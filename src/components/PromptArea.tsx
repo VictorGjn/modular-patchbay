@@ -1,37 +1,127 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
+import { OUTPUT_FORMATS } from '../store/knowledgeBase';
+
+const PLACEHOLDER_EXAMPLES = [
+  'Analyze our competitive position against StormGeo...',
+  'Prepare slides for the Odfjell quarterly review...',
+  'Draft an email to Michelle about fuel savings...',
+  'Compare CII monitoring features across competitors...',
+  'Summarize recent user feedback from KCC...',
+  'Create a voyage briefing for the North Atlantic route...',
+];
 
 export function PromptArea() {
   const prompt = useConsoleStore((s) => s.prompt);
   const setPrompt = useConsoleStore((s) => s.setPrompt);
+  const outputFormat = useConsoleStore((s) => s.outputFormat);
+  const running = useConsoleStore((s) => s.running);
+  const run = useConsoleStore((s) => s.run);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [focused, setFocused] = useState(false);
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+
   const tokenCount = Math.ceil(prompt.length / 4);
+  const formatInfo = OUTPUT_FORMATS.find((f) => f.id === outputFormat);
+
+  // Cycle placeholder
+  useEffect(() => {
+    if (prompt) return;
+    const interval = setInterval(() => {
+      setPlaceholderIdx((i) => (i + 1) % PLACEHOLDER_EXAMPLES.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [prompt]);
+
+  // Auto-grow textarea
+  const autoGrow = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    const lineHeight = 19.2; // 12px * 1.6
+    const minH = lineHeight * 2 + 24; // 2 lines + padding
+    const maxH = lineHeight * 6 + 24; // 6 lines + padding
+    ta.style.height = `${Math.max(minH, Math.min(maxH, ta.scrollHeight))}px`;
+  }, []);
+
+  useEffect(() => {
+    autoGrow();
+  }, [prompt, autoGrow]);
+
+  // Auto-detect format tag
+  const detectedTag = outputFormat !== 'markdown' ? formatInfo : null;
+
+  // Handle Ctrl/Cmd+Enter
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (!running) run();
+    }
+  };
 
   return (
     <div className="w-full px-4 py-3">
       <div className="relative">
         <textarea
+          ref={textareaRef}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Type your prompt here... e.g. 'How should we position our EU ETS cost layer against StormGeo?'"
+          onKeyDown={handleKeyDown}
+          placeholder={PLACEHOLDER_EXAMPLES[placeholderIdx]}
           className="w-full resize-none outline-none"
-          rows={3}
+          rows={2}
           style={{
             background: '#0a0a0a',
-            border: '1px solid #2d2720',
+            border: `1px solid ${focused ? 'rgba(254,80,0,0.35)' : '#2d2720'}`,
             borderRadius: 6,
             color: '#e8e0d8',
             fontFamily: "'Space Mono', monospace",
             fontSize: 12,
             padding: '12px 14px',
+            paddingBottom: 28,
             lineHeight: 1.6,
+            minHeight: 80,
+            boxShadow: focused ? 'inset 0 0 16px rgba(254,80,0,0.06), 0 0 0 1px rgba(254,80,0,0.1)' : 'none',
+            transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
           }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = '#FE5000'; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = '#2d2720'; }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
-        <div
-          className="absolute bottom-2 right-3 text-[10px]"
-          style={{ fontFamily: "'Space Mono', monospace", color: '#5a4e42' }}
-        >
-          ~{tokenCount.toLocaleString()} tokens
+
+        {/* Bottom bar with token count + detected format */}
+        <div className="absolute bottom-2 left-3 right-3 flex items-center gap-2">
+          {/* Auto-detected format tag */}
+          {detectedTag && prompt.length > 3 && (
+            <span
+              className="text-[8px] tracking-[1px] uppercase px-1.5 py-0.5 rounded"
+              style={{
+                fontFamily: "'Space Mono', monospace",
+                color: '#FE5000',
+                background: '#FE500012',
+                border: '1px solid #FE500025',
+              }}
+            >
+              auto: {detectedTag.icon} {detectedTag.label}
+            </span>
+          )}
+
+          <div className="flex-1" />
+
+          {/* Character count */}
+          <span
+            className="text-[9px]"
+            style={{ fontFamily: "'Space Mono', monospace", color: '#3d3730' }}
+          >
+            {prompt.length}c
+          </span>
+
+          {/* Token count with model icon */}
+          <span
+            className="text-[10px]"
+            style={{ fontFamily: "'Space Mono', monospace", color: '#5a4e42' }}
+          >
+            ◆ ~{tokenCount.toLocaleString()} tokens
+          </span>
         </div>
       </div>
     </div>

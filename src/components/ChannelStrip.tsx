@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react';
 import { Knob } from '../controls/Knob';
 import { Screw } from '../controls/Screw';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
@@ -8,11 +9,22 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
-function VUMeter({ ratio, enabled }: { ratio: number; enabled: boolean }) {
+function VUMeter({ ratio, enabled, flash }: { ratio: number; enabled: boolean; flash: boolean }) {
   const segments = 12;
   const filled = Math.round(ratio * segments);
   return (
-    <div className="flex gap-[2px] items-end h-[32px] w-full px-1">
+    <div className="flex gap-[2px] items-end h-[32px] w-full px-1 relative">
+      {/* Signal flash overlay */}
+      {flash && (
+        <div
+          className="absolute inset-0 rounded"
+          style={{
+            background: 'linear-gradient(to bottom, transparent, rgba(254,80,0,0.3), transparent)',
+            animation: 'signal-flash 0.5s ease forwards',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
       {Array.from({ length: segments }, (_, i) => {
         const active = enabled && i < filled;
         let color = '#2ecc71';
@@ -21,12 +33,13 @@ function VUMeter({ ratio, enabled }: { ratio: number; enabled: boolean }) {
         return (
           <div
             key={i}
-            className="flex-1 rounded-[1px] transition-all duration-150"
+            className="flex-1 rounded-[1px]"
             style={{
               height: `${40 + (i / segments) * 60}%`,
               background: active ? color : '#1a1a1a',
               boxShadow: active ? `0 0 4px ${color}40` : 'none',
               opacity: active ? 1 : 0.3,
+              transition: 'background 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease',
             }}
           />
         );
@@ -35,7 +48,18 @@ function VUMeter({ ratio, enabled }: { ratio: number; enabled: boolean }) {
   );
 }
 
-export function ChannelStrip({ channel, maxTokens }: { channel: ChannelConfig; maxTokens: number }) {
+interface ChannelStripProps {
+  channel: ChannelConfig;
+  maxTokens: number;
+  index: number;
+  onDragStart: (index: number) => void;
+  onDragOver: (e: React.DragEvent, index: number) => void;
+  onDrop: (index: number) => void;
+  dragOverIndex: number | null;
+  draggingIndex: number | null;
+}
+
+export function ChannelStrip({ channel, maxTokens, index, onDragStart, onDragOver, onDrop, dragOverIndex, draggingIndex }: ChannelStripProps) {
   const toggleChannel = useConsoleStore((s) => s.toggleChannel);
   const setChannelDepth = useConsoleStore((s) => s.setChannelDepth);
   const removeChannel = useConsoleStore((s) => s.removeChannel);
@@ -46,15 +70,48 @@ export function ChannelStrip({ channel, maxTokens }: { channel: ChannelConfig; m
   const catColor = CATEGORY_COLORS[channel.category];
   const depthLabel = DEPTH_LEVELS[channel.depth]?.label ?? 'Full';
 
+  const [vuFlash, setVuFlash] = useState(false);
+  const [showInstruction, setShowInstruction] = useState(false);
+  const prevEnabled = useRef(channel.enabled);
+
+  // Detect toggle to trigger VU flash
+  if (channel.enabled !== prevEnabled.current) {
+    prevEnabled.current = channel.enabled;
+    if (channel.enabled) {
+      setVuFlash(true);
+      setTimeout(() => setVuFlash(false), 500);
+    }
+  }
+
+  const isDragging = draggingIndex === index;
+  const isDragOver = dragOverIndex === index;
+
   return (
     <div
-      className="flex flex-col items-center shrink-0 relative select-none"
+      className={`channel-strip noise-overlay flex flex-col items-center shrink-0 relative select-none${isDragging ? ' dragging' : ''}${isDragOver ? ' drag-over-left' : ''}`}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        onDragStart(index);
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        onDragOver(e, index);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        onDrop(index);
+      }}
       style={{
         width: 172,
         background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%, rgba(0,0,0,0.05) 100%), linear-gradient(to bottom, #1e1a17, #1b1714)',
         border: '1px solid #2d2720',
         borderRadius: 6,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
+        boxShadow: channel.enabled
+          ? `0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), 0 1px 8px ${catColor}15`
+          : '0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
+        animation: 'slide-in-right 0.4s ease backwards',
       }}
     >
       {/* Category color stripe */}
@@ -63,12 +120,21 @@ export function ChannelStrip({ channel, maxTokens }: { channel: ChannelConfig; m
         style={{ background: catColor }}
       />
 
+      {/* Drag handle */}
+      <div
+        className="w-full flex justify-center pt-1.5 pb-0 cursor-grab active:cursor-grabbing"
+        style={{ color: '#3d3730', fontSize: 8, letterSpacing: 2 }}
+        title="Drag to reorder"
+      >
+        ⋮⋮⋮
+      </div>
+
       {/* Screws */}
       <div className="absolute top-[8px] left-[8px]"><Screw /></div>
       <div className="absolute top-[8px] right-[8px]"><Screw /></div>
 
       {/* Title */}
-      <div className="w-full px-3 pt-4 pb-2">
+      <div className="w-full px-3 pt-1 pb-2">
         <div
           className="text-[9px] font-bold tracking-[2px] uppercase truncate text-center"
           style={{ fontFamily: "'Space Mono', monospace", color: '#e8e0d8', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
@@ -92,24 +158,54 @@ export function ChannelStrip({ channel, maxTokens }: { channel: ChannelConfig; m
       </button>
 
       {/* Knowledge Type Badge */}
-      <button
-        type="button"
-        onClick={() => cycleKnowledgeType(channel.sourceId)}
-        className="flex items-center gap-1 px-2 py-0.5 rounded-full cursor-pointer border-none transition-all"
-        style={{
-          background: `${kt.color}18`,
-          border: `1px solid ${kt.color}40`,
-        }}
-        title={`${kt.label}: ${kt.instruction}\nClick to change type.`}
-      >
-        <span style={{ fontSize: 8, lineHeight: 1 }}>{kt.icon}</span>
-        <span
-          className="text-[7px] tracking-[1px] uppercase"
-          style={{ fontFamily: "'Space Mono', monospace", color: kt.color }}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => cycleKnowledgeType(channel.sourceId)}
+          onMouseEnter={() => setShowInstruction(true)}
+          onMouseLeave={() => setShowInstruction(false)}
+          className="flex items-center gap-1 px-2 py-0.5 rounded-full cursor-pointer border-none transition-all"
+          style={{
+            background: `${kt.color}18`,
+            border: `1px solid ${kt.color}40`,
+          }}
+          title={`${kt.label}: ${kt.instruction}\nClick to change type.`}
         >
-          {kt.label}
-        </span>
-      </button>
+          <span style={{ fontSize: 8, lineHeight: 1 }}>{kt.icon}</span>
+          <span
+            className="text-[7px] tracking-[1px] uppercase"
+            style={{ fontFamily: "'Space Mono', monospace", color: kt.color }}
+          >
+            {kt.label}
+          </span>
+          {/* Pulsing dot on hover */}
+          {showInstruction && (
+            <span
+              className="w-[4px] h-[4px] rounded-full ml-0.5"
+              style={{
+                background: kt.color,
+                animation: 'pulse-glow 1s ease infinite',
+              }}
+            />
+          )}
+        </button>
+        {/* Instruction tooltip */}
+        {showInstruction && (
+          <div
+            className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 rounded z-10 whitespace-nowrap"
+            style={{
+              background: '#1e1a17',
+              border: `1px solid ${kt.color}40`,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.6)',
+              animation: 'fade-in-up 0.15s ease',
+            }}
+          >
+            <span className="text-[7px] italic" style={{ fontFamily: "'Space Mono', monospace", color: kt.color }}>
+              {kt.instruction}
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* LED ON/OFF button */}
       <button
@@ -124,6 +220,7 @@ export function ChannelStrip({ channel, maxTokens }: { channel: ChannelConfig; m
             ? `0 0 12px ${catColor}80, 0 0 24px ${catColor}30, inset 0 -2px 4px rgba(0,0,0,0.3)`
             : 'inset 0 2px 4px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05)',
           transition: 'all 0.2s ease',
+          animation: channel.enabled ? 'led-pulse 3s ease infinite' : 'none',
         }}
         title={channel.enabled ? 'ON — click to disable' : 'OFF — click to enable'}
       />
@@ -152,15 +249,30 @@ export function ChannelStrip({ channel, maxTokens }: { channel: ChannelConfig; m
       {/* Token count */}
       <div
         className="text-[13px] font-bold my-1"
-        style={{ fontFamily: "'Space Mono', monospace", color: channel.enabled ? '#FE5000' : '#5a4e42' }}
+        style={{
+          fontFamily: "'Space Mono', monospace",
+          color: channel.enabled ? '#FE5000' : '#5a4e42',
+          transition: 'color 0.2s ease',
+        }}
       >
         {formatTokens(effectiveTokens)}
       </div>
 
       {/* VU meter */}
       <div className="w-full px-2 pb-2">
-        <VUMeter ratio={ratio} enabled={channel.enabled} />
+        <VUMeter ratio={ratio} enabled={channel.enabled} flash={vuFlash} />
       </div>
+
+      {/* Active warm glow at bottom */}
+      {channel.enabled && (
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[2px] rounded-b-[5px]"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${catColor}60, transparent)`,
+            boxShadow: `0 2px 8px ${catColor}30`,
+          }}
+        />
+      )}
 
       {/* Bottom screws */}
       <div className="absolute bottom-[6px] left-[8px]"><Screw /></div>

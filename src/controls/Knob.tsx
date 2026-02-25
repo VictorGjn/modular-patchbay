@@ -53,7 +53,7 @@ export function Knob({ value, min, max, step, label, onChange }: KnobProps) {
   return (
     <div className="flex flex-col items-center gap-1 select-none">
       <div
-        className="w-[44px] h-[44px] rounded-full cursor-ns-resize relative"
+        className="knob-body w-[44px] h-[44px] rounded-full cursor-ns-resize relative"
         style={{
           background: 'radial-gradient(circle at 40% 35%, #4a4a4a, #333 40%, #222 70%, #1a1a1a)',
           boxShadow: '0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
@@ -63,7 +63,7 @@ export function Knob({ value, min, max, step, label, onChange }: KnobProps) {
         {/* Indicator line */}
         <div
           className="absolute inset-0"
-          style={{ transform: `rotate(${angle}deg)` }}
+          style={{ transform: `rotate(${angle}deg)`, transition: 'transform 0.1s ease' }}
         >
           <div
             className="absolute left-1/2 top-[3px] w-[2px] h-[18px] rounded-full"

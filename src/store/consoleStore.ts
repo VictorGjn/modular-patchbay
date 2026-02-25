@@ -27,6 +27,7 @@ export interface ConsoleState {
   setModel: (model: string) => void;
   setTokenBudget: (budget: number) => void;
   setShowFilePicker: (show: boolean) => void;
+  reorderChannels: (fromIndex: number, toIndex: number) => void;
   run: () => void;
   clearChannels: () => void;
 }
@@ -108,6 +109,13 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setModel: (model: string) => set({ selectedModel: model }),
   setTokenBudget: (budget: number) => set({ tokenBudget: budget }),
   setShowFilePicker: (show: boolean) => set({ showFilePicker: show }),
+
+  reorderChannels: (fromIndex: number, toIndex: number) => {
+    const channels = [...get().channels];
+    const [moved] = channels.splice(fromIndex, 1);
+    channels.splice(toIndex, 0, moved);
+    set({ channels, selectedPreset: '' });
+  },
 
   run: () => {
     const { running, prompt, channels } = get();

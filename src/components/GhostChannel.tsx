@@ -28,6 +28,7 @@ export function GhostChannel({ source, reason }: { source: KnowledgeSource; reas
         borderRadius: 6,
         opacity: 0.45,
         padding: 0,
+        animation: 'ghost-breathe 4s ease infinite',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.opacity = '0.85';
