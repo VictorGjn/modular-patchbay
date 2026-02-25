@@ -483,7 +483,174 @@ Context Mixing Console. AI Studio. Knowledge Mixer. Whatever you call it — nob
 
 ---
 
-## XI. COMPETITIVE MOAT
+## XI. SIGNAL EPISTEMOLOGY — The Knowledge Type System
+
+*"A transcript from a client would be taken as ground truth but it's just the current need from a client. We need to dig deep in it, understand what's behind it to uncover the killer feature they need." — Victor*
+
+This is the deepest idea in this entire project. Every piece of knowledge has an **epistemic weight** — how much should it shape decisions? Current AI tools treat all input the same. A customer quote and a board-approved strategy get equal influence. That's insane.
+
+### The Knowledge Type Taxonomy
+
+Every channel has a **signal type** badge — a colored indicator showing what KIND of knowledge it carries.
+
+#### 1. 🔴 GROUND TRUTH — What we know for certain
+Things that are verified, decided, committed. Highest epistemic weight.
+- **Signed contracts** — commercial terms, SLAs
+- **Shipped features** — what the product ACTUALLY does today
+- **Financial actuals** — real revenue, costs, metrics
+- **Board decisions** — approved strategy, budget
+- **Regulatory requirements** — laws, compliance mandates (EU ETS rates, IMO regulations)
+- **Physics/math** — emission factors, conversion formulas
+- **Published standards** — S-100, ISO specs
+
+*On the console:* Red badge. These channels get priority in the mix. The LLM is told: "This is ground truth. Do not contradict."
+
+#### 2. 🟡 SIGNAL — What we're hearing but haven't validated
+Inputs that suggest direction but require interpretation. Medium epistemic weight.
+- **Customer feedback** — what users SAY they want (≠ what they need)
+- **Interview transcripts** — rich but biased by the interviewee's role + context
+- **Support tickets** — symptoms, not root causes
+- **Usage analytics** — what users DO (strong signal) vs. what they ask for
+- **Sales call notes** — filtered through sales incentives
+- **NPS/survey responses** — aggregated sentiment
+- **Feature requests** — surface-level desires, not underlying jobs-to-be-done
+- **Competitor announcements** — what they claim vs. what they've shipped
+
+*On the console:* Yellow badge. The LLM is told: "This is signal. Interpret it, don't parrot it. Look for the underlying need."
+
+#### 3. 🔵 EVIDENCE — Research and analysis that supports or challenges
+Processed knowledge that builds understanding. Variable weight based on rigor.
+- **User research reports** — synthesized from multiple signals
+- **Competitive analyses** — structured comparison
+- **Market research** — industry reports, TAM/SAM
+- **A/B test results** — experimental evidence
+- **Data analyses** — statistical findings
+- **Case studies** — contextualized examples
+- **Expert opinions** — domain authority perspectives
+- **Academic papers** — peer-reviewed findings
+
+*On the console:* Blue badge. The LLM is told: "This is evidence. Cite it, weigh it against other evidence, note the methodology."
+
+#### 4. 🟢 FRAMEWORK — How we think about things
+Mental models, methodologies, principles that shape interpretation. These are lenses, not facts.
+- **Product strategy docs** — vision, principles, positioning
+- **Prioritization frameworks** — RICE, ICE, value/effort
+- **Personas** — user archetypes
+- **Jobs-to-be-done maps** — outcome-driven models
+- **Competitive positioning** — where we play, how we win
+- **OKRs / KPIs** — what we're optimizing for
+- **Design principles** — UX philosophy
+- **Engineering standards** — technical constraints and patterns
+
+*On the console:* Green badge. The LLM is told: "This is a framework. Use it to structure thinking, but don't treat it as immutable."
+
+#### 5. 🟣 HYPOTHESIS — What we think might be true
+Untested beliefs, bets, assumptions that need validation. Lowest initial weight, highest discovery potential.
+- **Discovery docs** — early-stage problem exploration
+- **Experiment proposals** — "we believe X because Y, we'll test by Z"
+- **Roadmap items** — planned but unvalidated
+- **Assumption logs** — explicit beliefs to test
+- **Opportunity assessments** — sized but unproven
+- **User stories (pre-research)** — assumed needs
+
+*On the console:* Purple badge. The LLM is told: "This is a hypothesis. Help validate or invalidate it using evidence and signals."
+
+#### 6. ⚪ ARTIFACT — Output from previous work
+Generated documents, deliverables, specs. Weight depends on freshness and what they were built from.
+- **PRDs** — requirements documents
+- **Presentations** — slide decks (may be aspirational, not factual)
+- **Meeting notes** — raw capture, may have errors
+- **Emails sent** — commitments made
+- **Release notes** — what was shipped
+- **SOWs / proposals** — what was promised
+
+*On the console:* White/gray badge. The LLM is told: "This is a prior artifact. It may be outdated. Cross-reference with current ground truth."
+
+### The Discovery Engine
+
+Here's where it gets powerful. The signal type doesn't just label — it **drives behavior**.
+
+#### When you feed a SIGNAL (customer transcript) into a mix:
+
+Instead of regurgitating "the customer said they want X," the system:
+
+1. **Extracts the surface request** — "Customer wants a button to export to Excel"
+2. **Identifies the job-to-be-done** — "Customer needs to share fleet data with shore management"
+3. **Maps to existing capabilities** — "We have API access + Slack integration. Could that solve the underlying job?"
+4. **Checks against other signals** — "3 other customers asked for similar export features. Pattern?"
+5. **Generates hypothesis** — "H: Shore managers need asynchronous fleet performance summaries. Excel is a proxy for 'format I can forward to my boss.'"
+6. **Suggests validation** — "Test: Would an auto-generated weekly email report satisfy this need?"
+
+This is the **"5 Whys" built into the mixing console.** Every signal gets interrogated, not just included.
+
+#### The Insight Ladder
+
+```
+SIGNAL:     "We need Excel export"           ← What they said
+  ↓ Why?
+NEED:       "Share data with management"     ← What they want to do
+  ↓ Why?
+JOB:        "Prove fleet is optimized"       ← What outcome they need
+  ↓ Why?
+MOTIVATION: "Justify fuel optimization spend" ← What drives the job
+  ↓ So what?
+FEATURE:    "Automated management dashboard   ← What would actually solve it
+             with ROI proof"
+```
+
+The console can run this ladder automatically on any SIGNAL-typed channel. It shows the ladder as a **pull-out panel** — you see the raw signal AND the unpacked insight chain.
+
+#### Signal Freshness & Decay
+
+Signals aren't static. A customer transcript from 6 months ago may describe a problem that's since been solved or changed.
+
+- **Fresh (< 30 days)** — full weight, bright badge
+- **Recent (30-90 days)** — slight fade, "check if still valid" flag
+- **Aging (90-180 days)** — dimmed badge, auto-reduced depth
+- **Stale (> 180 days)** — nearly transparent, "archive or revalidate?" prompt
+
+Ground truth decays slower (contracts are valid until expiration). Signals decay fastest (customer needs evolve). Frameworks decay slowest (principles are durable).
+
+#### Contradiction Detection
+
+When multiple channels are ON, the system watches for:
+
+- **Signal vs. Ground Truth** — "Customer says X, but our data shows Y"
+- **Signal vs. Signal** — "Customer A wants faster speeds, Customer B wants fuel savings"
+- **Hypothesis vs. Evidence** — "We assumed X, but research shows Y"
+- **Artifact vs. Ground Truth** — "The PRD says we support Z, but we actually don't"
+
+Contradictions show as a **red pulse** on the conflicting channel strips, with a tooltip explaining the tension. In Expert Mode, you get a full contradiction report.
+
+#### Auto-Classification
+
+New files dragged into the console get auto-classified:
+- Filename/path patterns ("interview" → SIGNAL, "strategy" → FRAMEWORK)
+- Content analysis (quotes and "they said" → SIGNAL, "we will" → HYPOTHESIS)
+- Metadata (creation date for freshness, author for authority)
+- User override (you can always reclassify)
+
+Over time, the system learns YOUR classification patterns. "Files from 07-Signals/ are always SIGNAL type" — learned, not coded.
+
+### Why This Changes Everything
+
+Current AI tools have ONE failure mode that kills product work:
+
+**They treat a customer's feature request with the same authority as your product strategy.**
+
+The result: AI becomes a feature-request parrot instead of a strategic tool. It tells you to build what customers asked for instead of what they need.
+
+The Knowledge Type System fixes this by making epistemic weight VISIBLE and ADJUSTABLE. You can:
+- Crank up EVIDENCE and FRAMEWORK, dim SIGNALS → strategic synthesis mode
+- Crank up SIGNALS, dim everything else → voice-of-customer mode
+- Enable only GROUND TRUTH + HYPOTHESIS → validation mode (test assumptions against facts)
+- Enable all types with Expert Mode → full discovery mode with contradiction detection
+
+**The mixing console metaphor was MADE for this.** You literally adjust the volume of different knowledge types and hear how the mix changes. That's product management.
+
+---
+
+## XII. COMPETITIVE MOAT
 
 If this works:
 1. **Presets are shareable** — community-built mixing configurations for specific workflows
