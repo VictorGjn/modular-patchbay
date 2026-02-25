@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
-import { KNOWLEDGE_TREE, CATEGORY_COLORS, type KnowledgeSource } from '../store/knowledgeBase';
+import { KNOWLEDGE_TREE, CATEGORY_COLORS, classifyKnowledgeType, type KnowledgeSource } from '../store/knowledgeBase';
 
 function formatTokens(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
@@ -86,6 +86,7 @@ export function FilePicker() {
       name: source.name,
       path: source.path,
       category: source.category,
+      knowledgeType: classifyKnowledgeType(source.path),
       depth: 0,
       baseTokens: source.tokenEstimate,
     });

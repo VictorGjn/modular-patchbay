@@ -8,6 +8,72 @@ export const CATEGORY_COLORS: Record<Category, string> = {
   agents: '#9b59b6',
 };
 
+// Knowledge Type System — epistemic weight classification
+export type KnowledgeType = 'ground-truth' | 'signal' | 'evidence' | 'framework' | 'hypothesis' | 'artifact';
+
+export const KNOWLEDGE_TYPES: Record<KnowledgeType, { label: string; color: string; icon: string; instruction: string }> = {
+  'ground-truth': { label: 'Ground Truth', color: '#e74c3c', icon: '🔴', instruction: 'Do not contradict this.' },
+  'signal':       { label: 'Signal',       color: '#f1c40f', icon: '🟡', instruction: 'Interpret — look for the underlying need, not the surface request.' },
+  'evidence':     { label: 'Evidence',     color: '#3498db', icon: '🔵', instruction: 'Cite and weigh against other evidence.' },
+  'framework':    { label: 'Framework',    color: '#2ecc71', icon: '🟢', instruction: 'Use to structure thinking, but not as immutable.' },
+  'hypothesis':   { label: 'Hypothesis',   color: '#9b59b6', icon: '🟣', instruction: 'Help validate or invalidate with evidence and signals.' },
+  'artifact':     { label: 'Artifact',     color: '#95a5a6', icon: '⚪', instruction: 'May be outdated. Cross-reference with current ground truth.' },
+};
+
+// Auto-classify knowledge type based on path
+export function classifyKnowledgeType(path: string): KnowledgeType {
+  const p = path.toLowerCase();
+  // Signals
+  if (p.includes('signal') || p.includes('feedback') || p.includes('user feedback')) return 'signal';
+  // Hypotheses
+  if (p.includes('discovery') || p.includes('_temp_')) return 'hypothesis';
+  // Frameworks
+  if (p.includes('roadmap') || p.includes('plans/') || p.includes('plan/')) return 'framework';
+  // Intel / Evidence
+  if (p.includes('intel') || p.includes('competitors') || p.includes('competitive') || p.includes('research') || p.includes('savings-analysis')) return 'evidence';
+  // Artifacts
+  if (p.includes('cmo-handoff') || p.includes('release') || p.includes('demo') || p.includes('newsletter')) return 'artifact';
+  // Sales prep / agents
+  if (p.includes('sales prep') || p.includes('event prep') || p.includes('executive profiler')) return 'artifact';
+  // Products = ground truth (what we actually ship)
+  if (p.includes('products') && !p.includes('feedback')) return 'ground-truth';
+  // Clients knowledge = ground truth
+  if (p.includes('clients/') && !p.includes('feedback')) return 'ground-truth';
+  // Companies
+  if (p.includes('companies')) return 'evidence';
+  // Voyage preparation (code = ground truth)
+  if (p.includes('voyage-preparation') || p.includes('navarea-map')) return 'ground-truth';
+  // Default
+  return 'evidence';
+}
+
+// Output format types
+export type OutputFormat = 'markdown' | 'html-slides' | 'email' | 'code' | 'csv' | 'json' | 'diagram' | 'slack';
+
+export const OUTPUT_FORMATS: { id: OutputFormat; label: string; icon: string; ext: string }[] = [
+  { id: 'markdown', label: 'Markdown', icon: '📝', ext: '.md' },
+  { id: 'html-slides', label: 'HTML Slides', icon: '🎯', ext: '.html' },
+  { id: 'email', label: 'Email Draft', icon: '✉️', ext: '' },
+  { id: 'code', label: 'Code', icon: '💻', ext: '.py' },
+  { id: 'csv', label: 'Data Table', icon: '📊', ext: '.csv' },
+  { id: 'json', label: 'JSON', icon: '{}', ext: '.json' },
+  { id: 'diagram', label: 'Diagram', icon: '🔀', ext: '.svg' },
+  { id: 'slack', label: 'Slack Post', icon: '💬', ext: '' },
+];
+
+// Auto-detect output format from prompt
+export function detectOutputFormat(prompt: string): OutputFormat {
+  const p = prompt.toLowerCase();
+  if (p.includes('slide') || p.includes('presentation') || p.includes('pitch') || p.includes('deck')) return 'html-slides';
+  if (p.includes('email') || p.includes('draft') || p.includes('send to')) return 'email';
+  if (p.includes('script') || p.includes('function') || p.includes('code') || p.includes('implement')) return 'code';
+  if (p.includes('table') || p.includes('csv') || p.includes('spreadsheet') || p.includes('data')) return 'csv';
+  if (p.includes('json') || p.includes('api') || p.includes('schema')) return 'json';
+  if (p.includes('diagram') || p.includes('flowchart') || p.includes('architecture')) return 'diagram';
+  if (p.includes('slack') || p.includes('post in')) return 'slack';
+  return 'markdown';
+}
+
 export interface KnowledgeSource {
   id: string;
   name: string;
@@ -123,6 +189,7 @@ export interface ChannelConfig {
   name: string;
   path: string;
   category: Category;
+  knowledgeType: KnowledgeType;
   enabled: boolean;
   depth: number; // 0-4 index into DEPTH_LEVELS
   baseTokens: number;
@@ -135,7 +202,7 @@ export interface Preset {
 }
 
 function ch(source: KnowledgeSource, depth = 0): Omit<ChannelConfig, 'enabled'> {
-  return { sourceId: source.id, name: source.name, path: source.path, category: source.category, depth, baseTokens: source.tokenEstimate };
+  return { sourceId: source.id, name: source.name, path: source.path, category: source.category, knowledgeType: classifyKnowledgeType(source.path), depth, baseTokens: source.tokenEstimate };
 }
 
 // Flatten helper - find a source by id from the tree
