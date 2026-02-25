@@ -54,3 +54,157 @@
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
 }
+
+/* === NEXT-GEN ANIMATIONS === */
+
+/* LED gentle pulse when channel enabled */
+@keyframes led-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+
+/* Signal flash down VU meter on toggle */
+@keyframes signal-flash {
+  0% { opacity: 0; transform: translateY(-100%); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(100%); }
+}
+
+/* Channel slide in from right */
+@keyframes slide-in-right {
+  0% { opacity: 0; transform: translateX(60px) scale(0.95); }
+  60% { opacity: 1; transform: translateX(-8px) scale(1.01); }
+  80% { transform: translateX(3px) scale(1); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* Run button pulsing ring */
+@keyframes run-pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(254,80,0,0.6), 0 0 8px rgba(254,80,0,0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(254,80,0,0), 0 0 16px rgba(254,80,0,0.4); }
+  100% { box-shadow: 0 0 0 0 rgba(254,80,0,0), 0 0 8px rgba(254,80,0,0.3); }
+}
+
+/* Ghost channel breathe */
+@keyframes ghost-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.015); opacity: 0.5; }
+}
+
+/* Typewriter cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Response reveal */
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Signal flow dash animation */
+@keyframes dash-flow {
+  0% { stroke-dashoffset: 16; }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* Signal flow node pulse */
+@keyframes node-pulse {
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 2px rgba(254,80,0,0.2)); }
+  50% { filter: brightness(1.15) drop-shadow(0 0 6px rgba(254,80,0,0.4)); }
+}
+
+/* Prompt placeholder fade */
+@keyframes placeholder-fade-in {
+  0% { opacity: 0; }
+  15% { opacity: 0.5; }
+  85% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+/* Noise texture overlay for panels */
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+}
+
+/* Channel strip hover lift */
+.channel-strip {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.channel-strip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* Drag styles */
+.channel-strip.dragging {
+  opacity: 0.4;
+  transform: scale(0.97);
+}
+.channel-strip.drag-over-left {
+  border-left: 2px solid #FE5000;
+}
+.channel-strip.drag-over-right {
+  border-right: 2px solid #FE5000;
+}
+
+/* Gradient mesh background */
+.gradient-mesh-bg {
+  position: relative;
+}
+.gradient-mesh-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 600px 400px at 15% 50%, rgba(254,80,0,0.015) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 500px at 85% 30%, rgba(52,152,219,0.01) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 300px at 50% 80%, rgba(46,204,113,0.008) 0%, transparent 70%);
+  z-index: 0;
+}
+
+/* Topbar LED dots */
+.topbar-leds {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.topbar-leds .led-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #2d2720;
+}
+.topbar-leds .led-dot.active {
+  background: #FE5000;
+  box-shadow: 0 0 4px rgba(254,80,0,0.4);
+}
+
+/* File picker modal entrance */
+@keyframes modal-in {
+  0% { opacity: 0; transform: scale(0.96) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Response modal overlay */
+.response-modal-overlay {
+  animation: modal-in 0.2s ease-out;
+}
+
+/* Smooth knob rotation */
+.knob-body {
+  transition: box-shadow 0.15s ease;
+}
+.knob-body:active {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 12px rgba(254,80,0,0.15);
+}

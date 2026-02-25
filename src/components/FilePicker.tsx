@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
 import { KNOWLEDGE_TREE, CATEGORY_COLORS, classifyKnowledgeType, type KnowledgeSource } from '../store/knowledgeBase';
 
@@ -7,10 +7,21 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
-function TreeNode({ source, depth, onAdd }: { source: KnowledgeSource; depth: number; onAdd: (s: KnowledgeSource) => void }) {
-  const [expanded, setExpanded] = useState(depth < 1);
+function matchesFilter(source: KnowledgeSource, filter: string): boolean {
+  if (!filter) return true;
+  const f = filter.toLowerCase();
+  if (source.name.toLowerCase().includes(f)) return true;
+  if (source.path.toLowerCase().includes(f)) return true;
+  if (source.children?.some((c) => matchesFilter(c, filter))) return true;
+  return false;
+}
+
+function TreeNode({ source, depth, onAdd, filter }: { source: KnowledgeSource; depth: number; onAdd: (s: KnowledgeSource) => void; filter: string }) {
+  const [expanded, setExpanded] = useState(depth < 1 || !!filter);
   const hasChildren = source.children && source.children.length > 0;
   const catColor = CATEGORY_COLORS[source.category];
+
+  if (!matchesFilter(source, filter)) return null;
 
   return (
     <div>
@@ -67,7 +78,7 @@ function TreeNode({ source, depth, onAdd }: { source: KnowledgeSource; depth: nu
       </div>
 
       {hasChildren && expanded && source.children!.map((child) => (
-        <TreeNode key={child.id} source={child} depth={depth + 1} onAdd={onAdd} />
+        <TreeNode key={child.id} source={child} depth={depth + 1} onAdd={onAdd} filter={filter} />
       ))}
     </div>
   );
@@ -77,6 +88,26 @@ export function FilePicker() {
   const showFilePicker = useConsoleStore((s) => s.showFilePicker);
   const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
   const addChannel = useConsoleStore((s) => s.addChannel);
+  const [filter, setFilter] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus search input when opening
+  useEffect(() => {
+    if (showFilePicker) {
+      setFilter('');
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [showFilePicker]);
+
+  // Escape to close
+  useEffect(() => {
+    if (!showFilePicker) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowFilePicker(false);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [showFilePicker, setShowFilePicker]);
 
   if (!showFilePicker) return null;
 
@@ -107,6 +138,7 @@ export function FilePicker() {
           background: 'linear-gradient(to bottom, #1e1a17, #151210)',
           border: '1px solid #2d2720',
           boxShadow: '0 24px 48px rgba(0,0,0,0.8)',
+          animation: 'modal-in 0.2s ease-out',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -130,10 +162,32 @@ export function FilePicker() {
           </button>
         </div>
 
+        {/* Search filter */}
+        <div className="px-4 py-2 border-b" style={{ borderColor: '#1a1a1a' }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Search sources..."
+            className="w-full outline-none text-[11px]"
+            style={{
+              background: '#0a0a0a',
+              border: '1px solid #2d2720',
+              borderRadius: 4,
+              color: '#e8e0d8',
+              fontFamily: "'Space Mono', monospace",
+              padding: '6px 10px',
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = '#FE500050'; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = '#2d2720'; }}
+          />
+        </div>
+
         {/* Tree */}
         <div className="flex-1 overflow-y-auto py-2 px-1">
           {KNOWLEDGE_TREE.map((source) => (
-            <TreeNode key={source.id} source={source} depth={0} onAdd={handleAdd} />
+            <TreeNode key={source.id} source={source} depth={0} onAdd={handleAdd} filter={filter} />
           ))}
         </div>
       </div>
