@@ -1,4 +1,4 @@
-/* Module panel texture - subtle noise via gradient */
+/* Module panel texture */
 .module-panel {
   background:
     linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%, rgba(0,0,0,0.05) 100%),
@@ -9,29 +9,6 @@
     0 4px 12px rgba(0,0,0,0.5),
     inset 0 1px 0 rgba(255,255,255,0.05);
   position: relative;
-  min-width: 200px;
-}
-
-/* Module header bar */
-.module-header {
-  background: #151210;
-  border-radius: 5px 5px 0 0;
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid #2d2720;
-}
-
-.module-title {
-  font-family: 'Space Mono', monospace;
-  text-transform: uppercase;
-  letter-spacing: 3px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #e8e0d8;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-  flex: 1;
 }
 
 /* Engraved label effect */
@@ -70,68 +47,6 @@
     rgba(0,0,0,0.15) 4px
   );
   pointer-events: none;
-}
-
-/* Jack section layout */
-.jack-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 8px 0;
-}
-
-/* Knob row */
-.knob-row {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  padding: 8px 0;
-}
-
-/* Module body */
-.module-body {
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Module textarea */
-.module-textarea {
-  background: #0a0a0a;
-  border: 1px solid #2d2720;
-  border-radius: 3px;
-  color: #e8e0d8;
-  font-family: 'Space Mono', monospace;
-  font-size: 10px;
-  padding: 6px 8px;
-  resize: vertical;
-  min-height: 48px;
-  width: 100%;
-  outline: none;
-}
-.module-textarea:focus {
-  border-color: #FE5000;
-}
-.module-textarea::placeholder {
-  color: #555;
-}
-
-/* IO row with jacks on sides */
-.io-container {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-/* Cable animation */
-@keyframes cable-flow {
-  from { stroke-dashoffset: 20; }
-  to { stroke-dashoffset: 0; }
-}
-.cable-flowing {
-  stroke-dasharray: 10 5;
-  animation: cable-flow 0.5s linear infinite;
 }
 
 /* Run animation pulse */

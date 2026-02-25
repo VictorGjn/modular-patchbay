@@ -1,4 +1,4 @@
-import type { LedState } from '../store/patchStore';
+export type LedState = 'idle' | 'processing' | 'done' | 'error';
 
 const LED_COLORS: Record<LedState, string> = {
   idle: '#333',

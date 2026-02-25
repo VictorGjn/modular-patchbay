@@ -1,58 +1,43 @@
-import { useRef } from 'react';
-import { usePatchStore } from '../store/patchStore';
-import { exportPatch, importPatch } from '../utils/serialization';
-import { executePatch } from '../execution/executor';
+import { useConsoleStore } from '../store/consoleStore';
+import { PRESETS } from '../store/knowledgeBase';
+
+const MODELS = [
+  { id: 'claude-opus-4', name: 'Claude Opus 4' },
+  { id: 'claude-sonnet-4', name: 'Claude Sonnet 4' },
+  { id: 'claude-haiku-3.5', name: 'Claude Haiku 3.5' },
+  { id: 'gpt-4o', name: 'GPT-4o' },
+  { id: 'gpt-4.1', name: 'GPT-4.1' },
+];
+
+function TopbarSelect({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="appearance-none cursor-pointer outline-none text-[9px] tracking-[1px] uppercase py-1 pl-2.5 pr-6 rounded"
+      style={{
+        fontFamily: "'Space Mono', monospace",
+        background: '#111',
+        border: '1px solid #2d2720',
+        color: '#b5a898',
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M0 2l4 4 4-4' fill='none' stroke='%238a7e72' stroke-width='1.5'/%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 6px center',
+      }}
+    >
+      {children}
+    </select>
+  );
+}
 
 export function Topbar() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const nodes = usePatchStore((s) => s.nodes);
-  const edges = usePatchStore((s) => s.edges);
-  const moduleConfigs = usePatchStore((s) => s.moduleConfigs);
-  const running = usePatchStore((s) => s.execution.running);
-  const clearAll = usePatchStore((s) => s.clearAll);
-  const autoLayout = usePatchStore((s) => s.autoLayout);
-  const setNodes = usePatchStore((s) => s.setNodes);
-  const setEdges = usePatchStore((s) => s.setEdges);
-  const setModuleConfigs = usePatchStore((s) => s.setModuleConfigs);
-
-  const handleExport = () => {
-    const json = exportPatch(nodes, edges, moduleConfigs);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'patch.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImport = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const patch = importPatch(ev.target?.result as string);
-        setNodes(patch.nodes);
-        setEdges(patch.edges);
-        setModuleConfigs(patch.moduleConfigs);
-      } catch {
-        // Invalid file
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  };
-
-  const handleRun = () => {
-    if (!running) {
-      executePatch();
-    }
-  };
+  const selectedModel = useConsoleStore((s) => s.selectedModel);
+  const setModel = useConsoleStore((s) => s.setModel);
+  const selectedPreset = useConsoleStore((s) => s.selectedPreset);
+  const loadPreset = useConsoleStore((s) => s.loadPreset);
+  const running = useConsoleStore((s) => s.running);
+  const run = useConsoleStore((s) => s.run);
+  const clearChannels = useConsoleStore((s) => s.clearChannels);
 
   return (
     <div
@@ -74,27 +59,43 @@ export function Topbar() {
         >
           MODULAR
         </span>
-        <span
-          className="text-[9px] tracking-[2px] uppercase"
-          style={{ fontFamily: "'Space Mono', monospace", color: '#8a7e72' }}
-        >
-          PATCHBAY
-        </span>
       </div>
+
+      {/* Model selector */}
+      <TopbarSelect value={selectedModel} onChange={setModel}>
+        {MODELS.map((m) => (
+          <option key={m.id} value={m.id}>{m.name}</option>
+        ))}
+      </TopbarSelect>
+
+      {/* Preset selector */}
+      <TopbarSelect value={selectedPreset} onChange={loadPreset}>
+        <option value="">— Preset —</option>
+        {PRESETS.map((p) => (
+          <option key={p.id} value={p.id}>{p.name}</option>
+        ))}
+      </TopbarSelect>
 
       <div className="flex-1" />
 
-      {/* Action buttons */}
-      <TopbarButton onClick={clearAll} label="CLEAR" />
-      <TopbarButton onClick={autoLayout} label="LAYOUT" />
-      <TopbarButton onClick={handleExport} label="EXPORT" />
-      <TopbarButton onClick={handleImport} label="IMPORT" />
-
+      {/* Clear */}
       <button
         type="button"
-        onClick={handleRun}
+        onClick={clearChannels}
+        className="px-2.5 py-1 rounded text-[9px] tracking-[2px] uppercase cursor-pointer border transition-colors"
+        style={{ fontFamily: "'Space Mono', monospace", background: 'transparent', borderColor: '#2d2720', color: '#b5a898' }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2d2720'; e.currentTarget.style.color = '#b5a898'; }}
+      >
+        CLEAR
+      </button>
+
+      {/* Run button */}
+      <button
+        type="button"
+        onClick={run}
         disabled={running}
-        className="px-3 py-1.5 rounded text-[10px] font-bold tracking-[2px] uppercase cursor-pointer border-none transition-all"
+        className="px-4 py-1.5 rounded text-[10px] font-bold tracking-[2px] uppercase cursor-pointer border-none transition-all"
         style={{
           fontFamily: "'Space Mono', monospace",
           background: running ? '#CC4000' : '#FE5000',
@@ -105,40 +106,6 @@ export function Topbar() {
       >
         {running ? '● RUN' : '▶ RUN'}
       </button>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        className="hidden"
-        onChange={handleFileChange}
-      />
     </div>
-  );
-}
-
-function TopbarButton({ onClick, label }: { onClick: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="px-2.5 py-1 rounded text-[9px] tracking-[2px] uppercase cursor-pointer border transition-colors"
-      style={{
-        fontFamily: "'Space Mono', monospace",
-        background: 'transparent',
-        borderColor: '#2d2720',
-        color: '#b5a898',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = '#FE5000';
-        e.currentTarget.style.color = '#FE5000';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = '#2d2720';
-        e.currentTarget.style.color = '#b5a898';
-      }}
-    >
-      {label}
-    </button>
   );
 }
