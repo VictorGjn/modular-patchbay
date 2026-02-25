@@ -1,5 +1,5 @@
 import { useConsoleStore } from '../store/consoleStore';
-import { PRESETS } from '../store/knowledgeBase';
+import { PRESETS, OUTPUT_FORMATS } from '../store/knowledgeBase';
 
 const MODELS = [
   { id: 'claude-opus-4', name: 'Claude Opus 4' },
@@ -35,6 +35,8 @@ export function Topbar() {
   const setModel = useConsoleStore((s) => s.setModel);
   const selectedPreset = useConsoleStore((s) => s.selectedPreset);
   const loadPreset = useConsoleStore((s) => s.loadPreset);
+  const outputFormat = useConsoleStore((s) => s.outputFormat);
+  const setOutputFormat = useConsoleStore((s) => s.setOutputFormat);
   const running = useConsoleStore((s) => s.running);
   const run = useConsoleStore((s) => s.run);
   const clearChannels = useConsoleStore((s) => s.clearChannels);
@@ -73,6 +75,13 @@ export function Topbar() {
         <option value="">— Preset —</option>
         {PRESETS.map((p) => (
           <option key={p.id} value={p.id}>{p.name}</option>
+        ))}
+      </TopbarSelect>
+
+      {/* Output format selector */}
+      <TopbarSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)}>
+        {OUTPUT_FORMATS.map((f) => (
+          <option key={f.id} value={f.id}>{f.icon} {f.label}</option>
         ))}
       </TopbarSelect>
 

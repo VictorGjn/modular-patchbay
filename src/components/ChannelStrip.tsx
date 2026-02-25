@@ -1,7 +1,7 @@
 import { Knob } from '../controls/Knob';
 import { Screw } from '../controls/Screw';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
-import { CATEGORY_COLORS, DEPTH_LEVELS, type ChannelConfig } from '../store/knowledgeBase';
+import { CATEGORY_COLORS, DEPTH_LEVELS, KNOWLEDGE_TYPES, type ChannelConfig } from '../store/knowledgeBase';
 
 function formatTokens(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
@@ -39,6 +39,8 @@ export function ChannelStrip({ channel, maxTokens }: { channel: ChannelConfig; m
   const toggleChannel = useConsoleStore((s) => s.toggleChannel);
   const setChannelDepth = useConsoleStore((s) => s.setChannelDepth);
   const removeChannel = useConsoleStore((s) => s.removeChannel);
+  const cycleKnowledgeType = useConsoleStore((s) => s.cycleKnowledgeType);
+  const kt = KNOWLEDGE_TYPES[channel.knowledgeType];
   const effectiveTokens = getEffectiveTokens(channel);
   const ratio = maxTokens > 0 ? effectiveTokens / maxTokens : 0;
   const catColor = CATEGORY_COLORS[channel.category];
@@ -87,6 +89,26 @@ export function ChannelStrip({ channel, maxTokens }: { channel: ChannelConfig; m
         title="Remove channel"
       >
         ✕
+      </button>
+
+      {/* Knowledge Type Badge */}
+      <button
+        type="button"
+        onClick={() => cycleKnowledgeType(channel.sourceId)}
+        className="flex items-center gap-1 px-2 py-0.5 rounded-full cursor-pointer border-none transition-all"
+        style={{
+          background: `${kt.color}18`,
+          border: `1px solid ${kt.color}40`,
+        }}
+        title={`${kt.label}: ${kt.instruction}\nClick to change type.`}
+      >
+        <span style={{ fontSize: 8, lineHeight: 1 }}>{kt.icon}</span>
+        <span
+          className="text-[7px] tracking-[1px] uppercase"
+          style={{ fontFamily: "'Space Mono', monospace", color: kt.color }}
+        >
+          {kt.label}
+        </span>
       </button>
 
       {/* LED ON/OFF button */}

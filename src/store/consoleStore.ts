@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS } from './knowledgeBase';
+import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, KNOWLEDGE_TYPES, type OutputFormat, type KnowledgeType, detectOutputFormat } from './knowledgeBase';
 
 export interface ConsoleState {
   channels: ChannelConfig[];
   prompt: string;
   selectedModel: string;
   selectedPreset: string;
+  outputFormat: OutputFormat;
   tokenBudget: number;
   running: boolean;
   showFilePicker: boolean;
@@ -16,6 +17,8 @@ export interface ConsoleState {
 
   // Actions
   loadPreset: (presetId: string) => void;
+  setOutputFormat: (format: OutputFormat) => void;
+  cycleKnowledgeType: (sourceId: string) => void;
   addChannel: (channel: Omit<ChannelConfig, 'enabled'>) => void;
   removeChannel: (sourceId: string) => void;
   toggleChannel: (sourceId: string) => void;
@@ -39,6 +42,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   prompt: '',
   selectedModel: 'claude-opus-4',
   selectedPreset: '',
+  outputFormat: 'markdown' as OutputFormat,
   tokenBudget: 200000,
   running: false,
   showFilePicker: false,
@@ -56,6 +60,19 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     if (!preset) return;
     const channels: ChannelConfig[] = preset.channels.map((ch) => ({ ...ch, enabled: true }));
     set({ channels, selectedPreset: presetId, mockResponse: '' });
+  },
+
+  setOutputFormat: (format: OutputFormat) => set({ outputFormat: format }),
+
+  cycleKnowledgeType: (sourceId: string) => {
+    const types: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+    set({
+      channels: get().channels.map((ch) => {
+        if (ch.sourceId !== sourceId) return ch;
+        const idx = types.indexOf(ch.knowledgeType);
+        return { ...ch, knowledgeType: types[(idx + 1) % types.length] };
+      }),
+    });
   },
 
   addChannel: (channel) => {
@@ -84,7 +101,10 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     });
   },
 
-  setPrompt: (prompt: string) => set({ prompt }),
+  setPrompt: (prompt: string) => {
+    const detected = detectOutputFormat(prompt);
+    set({ prompt, outputFormat: detected });
+  },
   setModel: (model: string) => set({ selectedModel: model }),
   setTokenBudget: (budget: number) => set({ tokenBudget: budget }),
   setShowFilePicker: (show: boolean) => set({ showFilePicker: show }),
@@ -95,12 +115,13 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     set({ running: true, mockResponse: '' });
 
     const activeChannels = channels.filter((ch) => ch.enabled);
-    const sourceList = activeChannels.map((ch) => `  - ${ch.name} (${DEPTH_LEVELS[ch.depth].label})`).join('\n');
+    const sourceList = activeChannels.map((ch) => `  - ${KNOWLEDGE_TYPES[ch.knowledgeType].icon} ${ch.name} (${DEPTH_LEVELS[ch.depth].label}, ${KNOWLEDGE_TYPES[ch.knowledgeType].label})`).join('\n');
+    const format = get().outputFormat;
 
     setTimeout(() => {
       set({
         running: false,
-        mockResponse: `## Response from ${get().selectedModel}\n\n**Context loaded:** ${activeChannels.length} sources, ~${get().totalTokens().toLocaleString()} tokens\n\n**Sources:**\n${sourceList}\n\n**Prompt:** ${prompt || '(empty)'}\n\n---\n\n_This is a mock response. In production, the assembled context would be sent to the selected model API._`,
+        mockResponse: `## Response from ${get().selectedModel}\n\n**Output format:** ${format}\n**Context loaded:** ${activeChannels.length} sources, ~${get().totalTokens().toLocaleString()} tokens\n\n**Sources (with epistemic weight):**\n${sourceList}\n\n**Prompt:** ${prompt || '(empty)'}\n\n---\n\n_This is a mock response. In production, each source would be injected with its knowledge type instruction (e.g., "${activeChannels[0] ? KNOWLEDGE_TYPES[activeChannels[0].knowledgeType].instruction : 'N/A'}")._`,
       });
     }, 1800);
   },
