@@ -1,14 +1,19 @@
 import { Topbar } from './components/Topbar';
 import { PromptArea } from './components/PromptArea';
 import { ChannelStrip } from './components/ChannelStrip';
+import { GhostChannel } from './components/GhostChannel';
 import { TokenBudget } from './components/TokenBudget';
 import { FilePicker } from './components/FilePicker';
 import { ResponseArea } from './components/ResponseArea';
+import { ContextualHint } from './components/ContextualHint';
 import { useConsoleStore, getEffectiveTokens } from './store/consoleStore';
+import { getGhostSuggestions } from './utils/ghostSuggestions';
 
 export default function App() {
   const channels = useConsoleStore((s) => s.channels);
+  const prompt = useConsoleStore((s) => s.prompt);
   const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
+  const ghosts = getGhostSuggestions(prompt, channels);
 
   // Find max effective tokens across enabled channels for VU meter scaling
   const maxTokens = channels.reduce((max, ch) => {
@@ -20,6 +25,8 @@ export default function App() {
     <div className="w-full h-full flex flex-col" style={{ background: '#0f0f0f' }}>
       <Topbar />
       <PromptArea />
+
+      <ContextualHint />
 
       {/* Channel strips area */}
       <div className="flex-1 overflow-hidden px-4 pb-2">
@@ -65,9 +72,14 @@ export default function App() {
               </span>
             </div>
           ) : (
-            channels.map((ch) => (
-              <ChannelStrip key={ch.sourceId} channel={ch} maxTokens={maxTokens} />
-            ))
+            <>
+              {channels.map((ch) => (
+                <ChannelStrip key={ch.sourceId} channel={ch} maxTokens={maxTokens} />
+              ))}
+              {ghosts.map((g) => (
+                <GhostChannel key={g.source.id} source={g.source} reason={g.reason} />
+              ))}
+            </>
           )}
         </div>
       </div>
