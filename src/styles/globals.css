@@ -10,19 +10,16 @@
   --color-text-primary: #e8e0d8;
   --color-text-secondary: #8a7e72;
   --color-text-label: #b5a898;
-  --color-jack-ring: #888888;
-  --color-jack-hole: #0a0a0a;
   --color-led-green: #00ff88;
   --color-led-red: #ff3344;
   --color-led-amber: #ffaa00;
   --color-knob-body: #333333;
   --color-knob-cap: #1a1a1a;
   --color-knob-indicator: #ffffff;
-  --color-source: #3498db;
-  --color-processor: #2ecc71;
-  --color-tool: #e67e22;
-  --color-routing: #9b59b6;
-  --color-output: #e74c3c;
+  --color-knowledge: #3498db;
+  --color-discovery: #2ecc71;
+  --color-intel: #e67e22;
+  --color-agents: #9b59b6;
   --font-mono: 'Space Mono', monospace;
   --font-sans: 'Inter', sans-serif;
 }
@@ -42,80 +39,10 @@ html, body, #root {
   color: var(--color-text-primary);
 }
 
-/* React Flow overrides */
-.react-flow__node {
-  cursor: grab;
-}
-.react-flow__node:active {
-  cursor: grabbing;
-}
-.react-flow__handle {
-  opacity: 0;
-}
-.react-flow__edge path {
-  cursor: pointer;
-}
-.react-flow__minimap {
-  background: #1a1a1a !important;
-  border: 1px solid #2d2720 !important;
-  border-radius: 6px !important;
-}
-.react-flow__controls {
-  border: 1px solid #2d2720 !important;
-  border-radius: 6px !important;
-  overflow: hidden;
-}
-.react-flow__controls button {
-  background: #1e1a17 !important;
-  border-color: #2d2720 !important;
-  color: #b5a898 !important;
-  fill: #b5a898 !important;
-}
-.react-flow__controls button:hover {
-  background: #2d2720 !important;
-}
-.react-flow__controls svg {
-  fill: #b5a898 !important;
-}
-.react-flow__background {
-  background: var(--color-rack) !important;
-}
-.react-flow__attribution {
-  display: none !important;
-}
-
-/* Context menu */
-.context-menu {
-  position: fixed;
-  z-index: 1000;
-  background: #1e1a17;
-  border: 1px solid #2d2720;
-  border-radius: 6px;
-  padding: 4px 0;
-  min-width: 160px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-  font-family: var(--font-sans);
-  font-size: 12px;
-}
-.context-menu-item {
-  padding: 6px 12px;
-  cursor: pointer;
-  color: #e8e0d8;
-  transition: background 0.1s;
-}
-.context-menu-item:hover {
-  background: #2d2720;
-  color: #FE5000;
-}
-.context-menu-separator {
-  height: 1px;
-  background: #2d2720;
-  margin: 4px 0;
-}
-
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: #0f0f0f;
