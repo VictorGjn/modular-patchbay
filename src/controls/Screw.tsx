@@ -1,3 +1,4 @@
+// Analog mode control — reserved for future use
 export function Screw({ className = '' }: { className?: string }) {
   return (
     <div
