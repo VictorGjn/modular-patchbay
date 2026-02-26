@@ -1,4 +1,4 @@
-import { BookOpen, Plug, Zap, Bot, ArrowUpRight, FileText, Presentation, Mail, Code, Table2, Braces, GitFork, MessageSquare, Mic, Cloud, BarChart3, Anchor, GitBranch, Palette, Hash, Flame, Database, Hexagon, Users, HardDrive, type LucideProps } from 'lucide-react';
+import { BookOpen, Plug, Zap, Bot, ArrowUpRight, FileText, Presentation, Mail, Code, Table2, Braces, GitFork, MessageSquare, Mic, Cloud, BarChart3, Anchor, GitBranch, Palette, Hash, Flame, Database, Hexagon, Users, HardDrive, Search, Image, Map, Sparkles, Compass, Waves, Box, Layout, Wrench, Cpu, PenTool, Target, Workflow, ClipboardList, Globe, Folder, Shield, Brain, Triangle, type LucideProps } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 // Section header icons
@@ -22,8 +22,9 @@ export const OUTPUT_ICON_MAP: Record<string, ComponentType<LucideProps>> = {
   slack: MessageSquare,
 };
 
-// Skill icons
-export const SKILL_ICON_MAP: Record<string, ComponentType<LucideProps>> = {
+// Unified icon map used by marketplace and all icon resolvers
+export const ICON_MAP: Record<string, ComponentType<LucideProps>> = {
+  // Skills
   presentation: Presentation,
   mic: Mic,
   cloud: Cloud,
@@ -32,27 +33,49 @@ export const SKILL_ICON_MAP: Record<string, ComponentType<LucideProps>> = {
   anchor: Anchor,
   'git-branch': GitBranch,
   palette: Palette,
-};
-
-// MCP server icons
-export const MCP_ICON_MAP: Record<string, ComponentType<LucideProps>> = {
+  search: Search,
+  image: Image,
+  'book-open': BookOpen,
+  hexagon: Hexagon,
+  workflow: Workflow,
+  map: Map,
+  sparkles: Sparkles,
+  compass: Compass,
+  waves: Waves,
+  box: Box,
+  layout: Layout,
+  wrench: Wrench,
+  cpu: Cpu,
+  triangle: Triangle,
+  'pen-tool': PenTool,
+  // MCP servers
   mail: Mail,
   hash: Hash,
   github: GitBranch,
   'file-text': FileText,
-  hexagon: Hexagon,
   flame: Flame,
   database: Database,
+  globe: Globe,
+  folder: Folder,
+  target: Target,
+  'clipboard-list': ClipboardList,
+  'hard-drive': HardDrive,
+  shield: Shield,
+  brain: Brain,
 };
 
+// Legacy maps (kept for backward compat with existing nodes)
+export const SKILL_ICON_MAP = ICON_MAP;
+export const MCP_ICON_MAP = ICON_MAP;
+
 export function McpIcon({ icon, size = 14, ...props }: { icon: string; size?: number } & Omit<LucideProps, 'size'>) {
-  const Icon = MCP_ICON_MAP[icon];
+  const Icon = ICON_MAP[icon];
   if (!Icon) return <Plug size={size} {...props} />;
   return <Icon size={size} {...props} />;
 }
 
 export function SkillIcon({ icon, size = 14, ...props }: { icon: string; size?: number } & Omit<LucideProps, 'size'>) {
-  const Icon = SKILL_ICON_MAP[icon];
+  const Icon = ICON_MAP[icon];
   if (!Icon) return <Zap size={size} {...props} />;
   return <Icon size={size} {...props} />;
 }
@@ -77,5 +100,12 @@ export const CONNECTOR_ICON_MAP: Record<string, ComponentType<LucideProps>> = {
 export function ConnectorIcon({ service, size = 14, ...props }: { service: string; size?: number } & Omit<LucideProps, 'size'>) {
   const Icon = CONNECTOR_ICON_MAP[service];
   if (!Icon) return <Plug size={size} {...props} />;
+  return <Icon size={size} {...props} />;
+}
+
+/** Generic icon resolver — used by Marketplace */
+export function RegistryIcon({ icon, size = 14, ...props }: { icon: string; size?: number } & Omit<LucideProps, 'size'>) {
+  const Icon = ICON_MAP[icon];
+  if (!Icon) return <Zap size={size} {...props} />;
   return <Icon size={size} {...props} />;
 }
