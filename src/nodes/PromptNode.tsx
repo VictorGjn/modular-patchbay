@@ -6,7 +6,6 @@ import { OutputIcon } from '../components/icons/SectionIcons';
 import { JackPort } from '../components/JackPort';
 import { useTheme } from '../theme';
 import { Play, Download } from 'lucide-react';
-import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 
 export const PromptNode = memo(function PromptNode() {
   const prompt = useConsoleStore((s) => s.prompt);
@@ -14,9 +13,7 @@ export const PromptNode = memo(function PromptNode() {
   const outputFormat = useConsoleStore((s) => s.outputFormat);
   const running = useConsoleStore((s) => s.running);
   const run = useConsoleStore((s) => s.run);
-  const channels = useConsoleStore((s) => s.channels);
-  const selectedModel = useConsoleStore((s) => s.selectedModel);
-  const tokenBudget = useConsoleStore((s) => s.tokenBudget);
+  const setShowSaveModal = useConsoleStore((s) => s.setShowSaveModal);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [focused, setFocused] = useState(false);
   const t = useTheme();
@@ -45,9 +42,7 @@ export const PromptNode = memo(function PromptNode() {
   };
 
   const handleSaveAsAgent = () => {
-    const content = exportAsAgent({ channels, selectedModel, outputFormat, prompt, tokenBudget });
-    const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? 'modular-agent';
-    downloadAgentFile(content, name);
+    setShowSaveModal(true);
   };
 
   return (
