@@ -13,6 +13,23 @@ export interface AgentMeta {
 
 export type ExportTarget = 'claude' | 'amp' | 'codex' | 'vibe-kanban' | 'openclaw' | 'generic';
 
+export interface PendingKnowledgeItem {
+  id: string;
+  name: string;
+  type: string;
+  content?: string;
+  fromRun?: string;
+}
+
+export interface SuggestedSkill {
+  id: string;
+  name: string;
+  description: string;
+  installCmd: string;
+  installing?: boolean;
+  installed?: boolean;
+}
+
 export interface ConsoleState {
   channels: ChannelConfig[];
   prompt: string;
@@ -41,6 +58,10 @@ export interface ConsoleState {
   skills: Skill[];
   agents: AgentDef[];
   connectors: Connector[];
+
+  // Feedback state
+  pendingKnowledge: PendingKnowledgeItem[];
+  suggestedSkills: SuggestedSkill[];
 
   // Computed
   totalTokens: () => number;
@@ -88,6 +109,14 @@ export interface ConsoleState {
   addConnector: (connector: Connector) => void;
   removeConnector: (id: string) => void;
   setExportTarget: (target: ExportTarget) => void;
+
+  // Feedback actions
+  addPendingKnowledge: (item: PendingKnowledgeItem) => void;
+  acceptPendingKnowledge: (id: string) => void;
+  dismissPendingKnowledge: (id: string) => void;
+  addSuggestedSkill: (item: SuggestedSkill) => void;
+  acceptSuggestedSkill: (id: string) => void;
+  dismissSuggestedSkill: (id: string) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -118,6 +147,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   skills: MOCK_SKILLS.map((s) => ({ ...s })),
   agents: MOCK_AGENTS.map((a) => ({ ...a })),
   connectors: MOCK_CONNECTORS.map((c) => ({ ...c })),
+  pendingKnowledge: [],
+  suggestedSkills: [],
 
   totalTokens: () => {
     const { channels, prompt } = get();
@@ -249,6 +280,13 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         set({ running: false });
         // Clear stored controller
         (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
+        // Inject mock feedback data if no pending items exist
+        if (get().pendingKnowledge.length === 0) {
+          get().addPendingKnowledge({ id: `pk-${Date.now()}`, name: 'run-summary.md', type: 'evidence', content: 'Auto-generated run summary', fromRun: 'latest' });
+        }
+        if (get().suggestedSkills.length === 0) {
+          get().addSuggestedSkill({ id: `ss-${Date.now()}`, name: 'web-search', description: 'Search the web', installCmd: 'npx modular-skills install web-search' });
+        }
       },
       onError: (error) => {
         set({ running: false, mockResponse: `Error: ${error.message}` });
@@ -357,6 +395,64 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   },
 
   setExportTarget: (target) => set({ exportTarget: target }),
+
+  addPendingKnowledge: (item: PendingKnowledgeItem) => {
+    set({ pendingKnowledge: [...get().pendingKnowledge, item] });
+  },
+
+  acceptPendingKnowledge: (id: string) => {
+    const item = get().pendingKnowledge.find((p) => p.id === id);
+    if (!item) return;
+    const newChannel: ChannelConfig = {
+      sourceId: `feedback-${id}`,
+      name: item.name,
+      path: '',
+      category: 'knowledge',
+      knowledgeType: (item.type as KnowledgeType) || 'evidence',
+      enabled: true,
+      depth: 0,
+      baseTokens: 500,
+    };
+    set({
+      channels: [...get().channels, newChannel],
+      pendingKnowledge: get().pendingKnowledge.filter((p) => p.id !== id),
+    });
+  },
+
+  dismissPendingKnowledge: (id: string) => {
+    set({ pendingKnowledge: get().pendingKnowledge.filter((p) => p.id !== id) });
+  },
+
+  addSuggestedSkill: (item: SuggestedSkill) => {
+    set({ suggestedSkills: [...get().suggestedSkills, item] });
+  },
+
+  acceptSuggestedSkill: (id: string) => {
+    // Show installing state
+    set({
+      suggestedSkills: get().suggestedSkills.map((s) =>
+        s.id === id ? { ...s, installing: true } : s,
+      ),
+    });
+    // Simulate install delay
+    setTimeout(() => {
+      const skill = get().suggestedSkills.find((s) => s.id === id);
+      if (!skill) return;
+      set({
+        suggestedSkills: get().suggestedSkills.map((s) =>
+          s.id === id ? { ...s, installing: false, installed: true } : s,
+        ),
+      });
+      // Remove from suggestions after a brief checkmark display
+      setTimeout(() => {
+        set({ suggestedSkills: get().suggestedSkills.filter((s) => s.id !== id) });
+      }, 1200);
+    }, 1500);
+  },
+
+  dismissSuggestedSkill: (id: string) => {
+    set({ suggestedSkills: get().suggestedSkills.filter((s) => s.id !== id) });
+  },
 }));
 
 export { getEffectiveTokens };
