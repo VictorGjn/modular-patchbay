@@ -10,6 +10,7 @@ interface JackPortProps {
 
 export function JackPort({ type, position, label, color = '#FE5000', id }: JackPortProps) {
   const isLeft = position === Position.Left;
+  const shortLabel = type === 'target' ? 'IN' : 'OUT';
 
   return (
     <div
@@ -28,6 +29,21 @@ export function JackPort({ type, position, label, color = '#FE5000', id }: JackP
             boxShadow: `inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05), 0 0 8px ${color}30`,
           }}
         />
+        {/* IN/OUT label centered on the ring */}
+        <span
+          className="absolute inset-0 flex items-center justify-center select-none pointer-events-none"
+          style={{
+            fontFamily: "'Space Mono', monospace",
+            fontSize: 6,
+            fontWeight: 700,
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            color: '#999',
+            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+          }}
+        >
+          {shortLabel}
+        </span>
         <Handle
           type={type}
           position={position}

@@ -4,6 +4,8 @@ import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { OutputIcon } from '../components/icons/SectionIcons';
 import { JackPort } from '../components/JackPort';
+import { Play, Download } from 'lucide-react';
+import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 
 export const PromptNode = memo(function PromptNode() {
   const prompt = useConsoleStore((s) => s.prompt);
@@ -11,6 +13,9 @@ export const PromptNode = memo(function PromptNode() {
   const outputFormat = useConsoleStore((s) => s.outputFormat);
   const running = useConsoleStore((s) => s.running);
   const run = useConsoleStore((s) => s.run);
+  const channels = useConsoleStore((s) => s.channels);
+  const selectedModel = useConsoleStore((s) => s.selectedModel);
+  const tokenBudget = useConsoleStore((s) => s.tokenBudget);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [focused, setFocused] = useState(false);
 
@@ -37,6 +42,12 @@ export const PromptNode = memo(function PromptNode() {
     }
   };
 
+  const handleSaveAsAgent = () => {
+    const content = exportAsAgent({ channels, selectedModel, outputFormat, prompt, tokenBudget });
+    const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? 'modular-agent';
+    downloadAgentFile(content, name);
+  };
+
   return (
     <div
       className="rounded-xl"
@@ -53,8 +64,11 @@ export const PromptNode = memo(function PromptNode() {
         <div className="flex items-center gap-2">
           <JackPort type="target" position={Position.Left} label="INPUT" color="#FE5000" id="prompt-in" />
         </div>
-        <span className="text-xs font-medium tracking-wide uppercase" style={{ color: '#888' }}>
-          Prompt
+        <span
+          className="text-xs font-bold tracking-[3px] uppercase"
+          style={{ fontFamily: "'Space Mono', monospace", color: '#f0f0f0' }}
+        >
+          PROMPT
         </span>
         <div className="flex items-center gap-2">
           <JackPort type="source" position={Position.Right} label="OUTPUT" color="#FE5000" id="prompt-out" />
@@ -107,6 +121,45 @@ export const PromptNode = memo(function PromptNode() {
             ~{tokenCount.toLocaleString()} tokens
           </span>
         </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-2 px-3 pb-3">
+        {/* Test Run */}
+        <button
+          type="button"
+          onClick={() => { if (!running) run(); }}
+          disabled={running}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center nodrag"
+          style={{
+            background: running ? '#CC4000' : '#FE5000',
+            color: '#fff',
+            boxShadow: running ? '0 0 12px rgba(254,80,0,0.5)' : '0 0 8px rgba(254,80,0,0.25)',
+            opacity: running ? 0.8 : 1,
+            transition: 'background 0.2s ease, opacity 0.2s ease',
+          }}
+        >
+          <Play size={12} fill="white" />
+          {running ? 'Running...' : 'Test Run'}
+        </button>
+
+        {/* Save As Agent */}
+        <button
+          type="button"
+          onClick={handleSaveAsAgent}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer flex-1 justify-center nodrag"
+          style={{
+            background: 'transparent',
+            border: '1px solid #2a2a30',
+            color: '#888',
+            transition: 'border-color 0.15s ease, color 0.15s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a30'; e.currentTarget.style.color = '#888'; }}
+        >
+          <Download size={12} />
+          Save as Agent
+        </button>
       </div>
     </div>
   );
