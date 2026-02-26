@@ -95,6 +95,28 @@
 
 ## Queued (Next Sprint)
 
+### 0. Responsive Nodes — Card/List View + Collapse
+**WHY:** As nodes gain more content (sub-categories, connectors, URLs, hints, ghost tiles), they become unreadable. Every node needs responsive sizing.
+
+**Card/List toggle** (per node):
+- Card view: current tile grid, compact overview
+- List view: full-width rows with details (depth, type, URL, hint, token count)
+- Toggle button in node header: ⊞ (card) / ≡ (list)
+- Persisted per node in local state
+
+**Collapse/Expand** (per node):
+- Chevron in header toggles expanded ↔ collapsed
+- Collapsed: header only + count badge, ~40px height
+- Expanded: full content in current view mode
+- Persisted in store (survives reload)
+
+**Applies to:** KnowledgeNode, SkillsNode, McpNode, OutputNode, AgentNode
+**NOT:** PromptNode (always expanded — it's the primary input), ResponseNode (always shows output)
+
+**Node min-width:** adapts to content. Card view wider, list view narrower.
+**React Flow:** node dimensions update via useEffect → triggers edge re-routing.
+
+
 ### 7. Feedback Edges — Bidirectional Knowledge & Skills
 **WHY:** Certain flows enrich the knowledge base (analysis results become new knowledge). Skills discovery (find-skills) can propose installing new skills from within a run.
 
