@@ -65,6 +65,12 @@
   50% { filter: drop-shadow(0 0 4px currentColor); }
 }
 
+/* Cable dash animation for selected/hovered edges */
+@keyframes cable-dash {
+  0% { stroke-dashoffset: 20; }
+  100% { stroke-dashoffset: 0; }
+}
+
 /* Gradient mesh background - subtle */
 .gradient-mesh-bg {
   position: relative;
