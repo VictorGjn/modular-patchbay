@@ -14,7 +14,7 @@ const getLinkedAgents = (skillId: string): string[] =>
 export const SkillsNode = memo(function SkillsNode() {
   const skills = useConsoleStore((s) => s.skills);
   const toggleSkill = useConsoleStore((s) => s.toggleSkill);
-  const setShowSkillPicker = useConsoleStore((s) => s.setShowSkillPicker);
+  const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
   const t = useTheme();
 
   const addedSkills = skills.filter((s) => s.added);
@@ -63,7 +63,7 @@ export const SkillsNode = memo(function SkillsNode() {
       <div className="px-4 pb-3 pt-1">
         <button
           type="button"
-          onClick={() => setShowSkillPicker(true)}
+          onClick={() => setShowMarketplace(true, 'skills')}
           className="w-full py-1.5 rounded-lg text-xs tracking-wide uppercase cursor-pointer transition-colors nodrag"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}

@@ -3,7 +3,7 @@ import { useThemeStore } from '../store/themeStore';
 import { useTheme } from '../theme';
 import { PRESETS, OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
-import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings } from 'lucide-react';
+import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings, ShoppingBag } from 'lucide-react';
 import { OutputIcon } from './icons/SectionIcons';
 
 const MODELS = [
@@ -55,6 +55,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
   const mcpServers = useConsoleStore((s) => s.mcpServers);
   const skills = useConsoleStore((s) => s.skills);
   const agentMeta = useConsoleStore((s) => s.agentMeta);
+  const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
 
   const handleExport = () => {
     const content = exportAsAgent({ channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta });
@@ -125,6 +126,20 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       )}
 
       <div className="flex-1" />
+
+      {/* Marketplace */}
+      <button
+        type="button"
+        onClick={() => setShowMarketplace(true)}
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer border-none"
+        style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
+        aria-label="Open Marketplace"
+      >
+        <ShoppingBag size={13} />
+        Marketplace
+      </button>
 
       {/* Settings */}
       <button
