@@ -1,5 +1,8 @@
 import { create } from 'zustand';
-import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, KNOWLEDGE_TYPES, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG } from './knowledgeBase';
+import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG } from './knowledgeBase';
+import { streamCompletion } from '../services/llmService';
+import { assembleContext } from '../services/contextAssembler';
+import { getStoredApiKey, getStoredBaseUrl, getStoredModelOverride } from '../components/SettingsModal';
 
 export interface ConsoleState {
   channels: ChannelConfig[];
@@ -43,6 +46,7 @@ export interface ConsoleState {
   setShowSkillPicker: (show: boolean) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
   run: () => void;
+  cancelRun: () => void;
   clearChannels: () => void;
 
   // Agent config actions
@@ -169,19 +173,56 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
 
   run: () => {
     const { running, prompt, channels } = get();
-    if (running) return;
+    if (running) {
+      // Clicking while running cancels
+      get().cancelRun();
+      return;
+    }
+
+    const apiKey = getStoredApiKey();
+    if (!apiKey) {
+      set({ mockResponse: 'Error: No API key configured. Click the gear icon in the topbar to set your API key.' });
+      return;
+    }
+
     set({ running: true, mockResponse: '' });
 
-    const activeChannels = channels.filter((ch) => ch.enabled);
-    const sourceList = activeChannels.map((ch) => `  - ${KNOWLEDGE_TYPES[ch.knowledgeType].icon} ${ch.name} (${DEPTH_LEVELS[ch.depth].label}, ${KNOWLEDGE_TYPES[ch.knowledgeType].label})`).join('\n');
-    const format = get().outputFormat;
+    const messages = assembleContext(channels, prompt);
+    const modelOverride = getStoredModelOverride();
+    const model = modelOverride || get().selectedModel;
+    const baseUrl = getStoredBaseUrl();
 
-    setTimeout(() => {
-      set({
-        running: false,
-        mockResponse: `## Response from ${get().selectedModel}\n\n**Output format:** ${format}\n**Context loaded:** ${activeChannels.length} sources, ~${get().totalTokens().toLocaleString()} tokens\n\n**Sources (with epistemic weight):**\n${sourceList}\n\n**Prompt:** ${prompt || '(empty)'}\n\n---\n\n_This is a mock response. In production, each source would be injected with its knowledge type instruction (e.g., "${activeChannels[0] ? KNOWLEDGE_TYPES[activeChannels[0].knowledgeType].instruction : 'N/A'}")._`,
-      });
-    }, 1800);
+    let accumulated = '';
+
+    const controller = streamCompletion({
+      apiKey,
+      baseUrl,
+      model,
+      messages,
+      onChunk: (text) => {
+        accumulated += text;
+        set({ mockResponse: accumulated });
+      },
+      onDone: () => {
+        set({ running: false });
+        // Clear stored controller
+        (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
+      },
+      onError: (error) => {
+        set({ running: false, mockResponse: `Error: ${error.message}` });
+        (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
+      },
+    });
+
+    // Store controller for cancellation
+    (get() as unknown as { _abortController?: AbortController })._abortController = controller;
+  },
+
+  cancelRun: () => {
+    const ctrl = (get() as unknown as { _abortController?: AbortController })._abortController;
+    if (ctrl) ctrl.abort();
+    set({ running: false });
+    (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
   },
 
   clearChannels: () => set({ channels: [], selectedPreset: '', mockResponse: '' }),

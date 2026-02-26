@@ -3,7 +3,7 @@ import { useThemeStore } from '../store/themeStore';
 import { useTheme } from '../theme';
 import { PRESETS, OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
-import { Download, Upload, Trash2, Play, Sun, Moon } from 'lucide-react';
+import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings } from 'lucide-react';
 import { OutputIcon } from './icons/SectionIcons';
 
 const MODELS = [
@@ -35,7 +35,7 @@ function TopbarSelect({ value, onChange, children, t }: { value: string; onChang
   );
 }
 
-export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
+export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () => void; onSettingsClick?: () => void }) {
   const selectedModel = useConsoleStore((s) => s.selectedModel);
   const setModel = useConsoleStore((s) => s.setModel);
   const selectedPreset = useConsoleStore((s) => s.selectedPreset);
@@ -121,6 +121,17 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
 
       <div className="flex-1" />
 
+      {/* Settings */}
+      <button
+        type="button"
+        onClick={onSettingsClick}
+        className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        style={{ color: t.textDim }}
+        aria-label="LLM settings"
+      >
+        <Settings size={14} />
+      </button>
+
       {/* Theme toggle */}
       <button
         type="button"
@@ -169,7 +180,6 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
       <button
         type="button"
         onClick={run}
-        disabled={running}
         className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer border-none"
         style={{
           background: running ? '#CC4000' : '#FE5000',
@@ -180,9 +190,9 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
           transition: 'background 0.2s ease, opacity 0.2s ease',
         }}
       >
-        <Play size={12} fill="white" />
-        {running ? 'Running' : 'Run'}
-        <span className="text-[9px] opacity-60 tracking-normal font-normal ml-1">Ctrl+Enter</span>
+        {running ? <Square size={12} fill="white" /> : <Play size={12} fill="white" />}
+        {running ? 'Stop' : 'Run'}
+        <span className="text-[9px] opacity-60 tracking-normal font-normal ml-1">{running ? 'click to cancel' : 'Ctrl+Enter'}</span>
       </button>
     </div>
   );
