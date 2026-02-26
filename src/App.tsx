@@ -50,10 +50,10 @@ const initialNodes: Node[] = [
   { id: 'skills', type: 'skills', position: { x: 50, y: 340 }, data: {} },
   { id: 'mcp', type: 'mcp', position: { x: 50, y: 620 }, data: {} },
   // Center
-  { id: 'prompt', type: 'prompt', position: { x: 400, y: 120 }, data: {} },
+  { id: 'prompt', type: 'prompt', position: { x: 420, y: 250 }, data: {} },
   // Right column
-  { id: 'output', type: 'output', position: { x: 900, y: 60 }, data: {} },
-  { id: 'response', type: 'response', position: { x: 900, y: 380 }, data: {} },
+  { id: 'output', type: 'output', position: { x: 950, y: 40 }, data: {} },
+  { id: 'response', type: 'response', position: { x: 950, y: 520 }, data: {} },
 ];
 
 const initialEdges: Edge[] = [
