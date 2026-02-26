@@ -26,6 +26,26 @@ export function Section({ title, sectionId, count, active, children, actionLabel
         minWidth: 0,
       }}
     >
+      {/* Jack port — big chrome ring at top */}
+      <div className="flex justify-center pt-3 pb-1">
+        <div
+          data-jack-port={sectionId}
+          data-jack-active={active ? 'true' : 'false'}
+          className="rounded-full shrink-0"
+          style={{
+            width: 24,
+            height: 24,
+            background: active
+              ? `radial-gradient(circle, #0a0a0a 35%, ${SECTION_COLORS[sectionId] ?? '#555'} 50%, #888 58%, #555 68%, #333 100%)`
+              : 'radial-gradient(circle, #0a0a0a 40%, #444 55%, #666 60%, #444 70%, #222 100%)',
+            boxShadow: active
+              ? `inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05), 0 0 8px ${SECTION_COLORS[sectionId] ?? '#555'}50`
+              : 'inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05)',
+            transition: 'box-shadow 0.2s ease',
+          }}
+        />
+      </div>
+
       {/* Header */}
       <div
         className="flex items-center gap-2 px-3 py-2 shrink-0"
@@ -91,25 +111,7 @@ export function Section({ title, sectionId, count, active, children, actionLabel
         </div>
       )}
 
-      {/* Jack port — big chrome ring */}
-      <div className="flex justify-center pb-3 pt-1">
-        <div
-          data-jack-port={sectionId}
-          data-jack-active={active ? 'true' : 'false'}
-          className="rounded-full shrink-0"
-          style={{
-            width: 24,
-            height: 24,
-            background: active
-              ? `radial-gradient(circle, #0a0a0a 35%, ${SECTION_COLORS[sectionId] ?? '#555'} 50%, #888 58%, #555 68%, #333 100%)`
-              : 'radial-gradient(circle, #0a0a0a 40%, #444 55%, #666 60%, #444 70%, #222 100%)',
-            boxShadow: active
-              ? `inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05), 0 0 8px ${SECTION_COLORS[sectionId] ?? '#555'}50`
-              : 'inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05)',
-            transition: 'box-shadow 0.2s ease',
-          }}
-        />
-      </div>
+
     </div>
   );
 }
