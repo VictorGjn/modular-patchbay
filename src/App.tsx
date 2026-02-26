@@ -7,6 +7,7 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
+  reconnectEdge,
   type Connection,
   type Node,
   type Edge,
@@ -107,6 +108,20 @@ export default function App() {
     [setEdges],
   );
 
+  const onReconnect = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds));
+    },
+    [setEdges],
+  );
+
+  const isValidConnection = useCallback((connection: Edge | Connection) => {
+    // Only allow output→input connections (source-out → target-in)
+    const { sourceHandle, targetHandle } = connection;
+    if (!sourceHandle || !targetHandle) return false;
+    return sourceHandle.endsWith('-out') && targetHandle.endsWith('-in');
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setShowFilePicker(!showFilePicker); }
@@ -134,6 +149,9 @@ export default function App() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onReconnect={onReconnect}
+          isValidConnection={isValidConnection}
+          edgesReconnectable
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
