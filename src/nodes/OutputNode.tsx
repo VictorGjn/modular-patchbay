@@ -3,6 +3,7 @@ import { Position } from '@xyflow/react';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { JackPort } from '../components/JackPort';
+import { ConnectorTile } from '../components/ConnectorTile';
 import { OutputIcon } from '../components/icons/SectionIcons';
 import { useTheme } from '../theme';
 import { ArrowUpRight } from 'lucide-react';
@@ -10,7 +11,12 @@ import { ArrowUpRight } from 'lucide-react';
 export const OutputNode = memo(function OutputNode() {
   const outputFormats = useConsoleStore((s) => s.outputFormats);
   const toggleOutputFormat = useConsoleStore((s) => s.toggleOutputFormat);
+  const connectors = useConsoleStore((s) => s.connectors);
+  const toggleConnector = useConsoleStore((s) => s.toggleConnector);
+  const setShowConnectorPicker = useConsoleStore((s) => s.setShowConnectorPicker);
   const t = useTheme();
+
+  const writeConnectors = connectors.filter((c) => c.direction === 'write' || c.direction === 'both');
 
   return (
     <div
@@ -80,6 +86,44 @@ export const OutputNode = memo(function OutputNode() {
             );
           })}
         </div>
+      </div>
+
+      {/* Destinations section */}
+      {writeConnectors.length > 0 && (
+        <div className="px-3 pt-1 pb-2">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
+            <span className="text-[9px] tracking-wider uppercase" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Destinations</span>
+            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {writeConnectors.map((c) => (
+              <ConnectorTile
+                key={c.id}
+                service={c.service}
+                name={c.name}
+                status={c.status}
+                enabled={c.enabled}
+                showDirection="write"
+                onClick={() => toggleConnector(c.id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add connector button */}
+      <div className="px-3 pb-3 pt-1">
+        <button
+          type="button"
+          onClick={() => setShowConnectorPicker(true)}
+          className="w-full py-1.5 rounded-lg text-xs tracking-wide uppercase cursor-pointer transition-colors nodrag"
+          style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+        >
+          + Add Connector
+        </button>
       </div>
     </div>
   );
