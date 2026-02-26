@@ -31,7 +31,7 @@ export function SignalFlow() {
   return (
     <div className="mx-4 mb-2 select-none">
       <div
-        className="rounded-md overflow-hidden noise-overlay relative"
+        className="rounded-md overflow-hidden relative"
         style={{
           background: 'linear-gradient(to bottom, #151210, #111)',
           border: '1px solid #2d2720',

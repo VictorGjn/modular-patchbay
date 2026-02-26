@@ -2,15 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 
-const PLACEHOLDER_EXAMPLES = [
-  'Analyze our competitive position against StormGeo...',
-  'Prepare slides for the Odfjell quarterly review...',
-  'Draft an email to Michelle about fuel savings...',
-  'Compare CII monitoring features across competitors...',
-  'Summarize recent user feedback from KCC...',
-  'Create a voyage briefing for the North Atlantic route...',
-];
-
 export function PromptArea() {
   const prompt = useConsoleStore((s) => s.prompt);
   const setPrompt = useConsoleStore((s) => s.setPrompt);
@@ -19,19 +10,9 @@ export function PromptArea() {
   const run = useConsoleStore((s) => s.run);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [focused, setFocused] = useState(false);
-  const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
   const tokenCount = Math.ceil(prompt.length / 4);
   const formatInfo = OUTPUT_FORMATS.find((f) => f.id === outputFormat);
-
-  // Cycle placeholder
-  useEffect(() => {
-    if (prompt) return;
-    const interval = setInterval(() => {
-      setPlaceholderIdx((i) => (i + 1) % PLACEHOLDER_EXAMPLES.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [prompt]);
 
   // Auto-grow textarea
   const autoGrow = useCallback(() => {
@@ -67,7 +48,7 @@ export function PromptArea() {
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={PLACEHOLDER_EXAMPLES[placeholderIdx]}
+          placeholder="Describe what you need — analysis, slides, email, code..."
           className="w-full resize-none outline-none"
           rows={2}
           style={{
@@ -82,7 +63,7 @@ export function PromptArea() {
             lineHeight: 1.6,
             minHeight: 80,
             boxShadow: focused ? 'inset 0 0 16px rgba(254,80,0,0.06), 0 0 0 1px rgba(254,80,0,0.1)' : 'none',
-            transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+            transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
           }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
@@ -110,7 +91,7 @@ export function PromptArea() {
           {/* Character count */}
           <span
             className="text-[9px]"
-            style={{ fontFamily: "'Space Mono', monospace", color: '#3d3730' }}
+            style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#3d3730' }}
           >
             {prompt.length}c
           </span>
@@ -118,7 +99,7 @@ export function PromptArea() {
           {/* Token count with model icon */}
           <span
             className="text-[10px]"
-            style={{ fontFamily: "'Space Mono', monospace", color: '#5a4e42' }}
+            style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#5a4e42' }}
           >
             ◆ ~{tokenCount.toLocaleString()} tokens
           </span>

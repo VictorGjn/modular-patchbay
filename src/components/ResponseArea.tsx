@@ -173,7 +173,7 @@ export function ResponseArea() {
 
   const content = (
     <div
-      className="w-full rounded-md overflow-hidden noise-overlay relative"
+      className="w-full rounded-md overflow-hidden relative"
       style={{
         background: '#0a0a0a',
         border: '1px solid #2d2720',
@@ -213,7 +213,7 @@ export function ResponseArea() {
         {mockResponse && !running && (
           <span
             className="text-[8px]"
-            style={{ fontFamily: "'Space Mono', monospace", color: '#3d3730' }}
+            style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#3d3730' }}
           >
             ~{responseTokens.toLocaleString()}t
           </span>
@@ -228,7 +228,7 @@ export function ResponseArea() {
             style={{ fontFamily: "'Space Mono', monospace", color: copied ? '#00ff88' : '#5a4e42' }}
             onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#FE5000'; }}
             onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = '#5a4e42'; }}
-            title="Copy to clipboard"
+            aria-label="Copy to clipboard"
           >
             {copied ? '✓ copied' : '⧉ copy'}
           </button>
@@ -243,7 +243,7 @@ export function ResponseArea() {
             style={{ color: '#5a4e42' }}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4e42'; }}
-            title="Expand fullscreen"
+            aria-label="Expand fullscreen"
           >
             ⤢
           </button>

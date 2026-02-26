@@ -1,5 +1,6 @@
 import { useConsoleStore } from '../store/consoleStore';
 import { PRESETS, OUTPUT_FORMATS } from '../store/knowledgeBase';
+import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 
 const MODELS = [
   { id: 'claude-opus-4', name: 'Claude Opus 4' },
@@ -30,7 +31,7 @@ function TopbarSelect({ value, onChange, children }: { value: string; onChange: 
   );
 }
 
-export function Topbar() {
+export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
   const selectedModel = useConsoleStore((s) => s.selectedModel);
   const setModel = useConsoleStore((s) => s.setModel);
   const selectedPreset = useConsoleStore((s) => s.selectedPreset);
@@ -41,20 +42,28 @@ export function Topbar() {
   const run = useConsoleStore((s) => s.run);
   const clearChannels = useConsoleStore((s) => s.clearChannels);
   const channels = useConsoleStore((s) => s.channels);
+  const prompt = useConsoleStore((s) => s.prompt);
+  const tokenBudget = useConsoleStore((s) => s.tokenBudget);
+
+  const handleExport = () => {
+    const content = exportAsAgent({ channels, selectedModel, outputFormat, prompt, tokenBudget });
+    const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? 'modular-agent';
+    downloadAgentFile(content, name);
+  };
 
   const activeCount = channels.filter((c) => c.enabled).length;
   const formatInfo = OUTPUT_FORMATS.find((f) => f.id === outputFormat);
 
   return (
     <div
-      className="flex flex-col shrink-0 border-b select-none noise-overlay relative"
+      className="flex flex-col shrink-0 border-b select-none relative"
       style={{
         background: 'linear-gradient(to bottom, #1e1a17, #151210)',
         borderColor: '#2d2720',
       }}
     >
       {/* Main topbar row */}
-      <div className="h-[48px] flex items-center px-4 gap-3">
+      <div className="h-[40px] flex items-center px-4 gap-2">
         {/* Logo */}
         <div className="flex items-center gap-2 mr-4">
           <div
@@ -108,16 +117,43 @@ export function Topbar() {
 
         <div className="flex-1" />
 
+        {/* Import */}
+        <button
+          type="button"
+          onClick={onImportClick}
+          className="px-2 py-0.5 rounded text-[9px] tracking-[1px] uppercase cursor-pointer border-none bg-transparent"
+          style={{ fontFamily: "'Space Mono', monospace", color: '#5a4e42', transition: 'color 0.15s ease' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4e42'; }}
+          aria-label="Import agent definition"
+        >
+          Import ↙
+        </button>
+
+        {/* Export */}
+        <button
+          type="button"
+          onClick={handleExport}
+          className="px-2 py-0.5 rounded text-[9px] tracking-[1px] uppercase cursor-pointer border-none bg-transparent"
+          style={{ fontFamily: "'Space Mono', monospace", color: '#5a4e42', transition: 'color 0.15s ease' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4e42'; }}
+          aria-label="Export as agent definition"
+        >
+          Export ↗
+        </button>
+
         {/* Clear */}
         <button
           type="button"
           onClick={clearChannels}
-          className="px-2.5 py-1 rounded text-[9px] tracking-[2px] uppercase cursor-pointer border transition-colors"
-          style={{ fontFamily: "'Space Mono', monospace", background: 'transparent', borderColor: '#2d2720', color: '#b5a898' }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2d2720'; e.currentTarget.style.color = '#b5a898'; }}
+          className="px-2 py-0.5 rounded text-[9px] tracking-[1px] uppercase cursor-pointer border-none bg-transparent"
+          style={{ fontFamily: "'Space Mono', monospace", color: '#5a4e42', transition: 'color 0.15s ease' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4e42'; }}
+          aria-label="Clear all channels"
         >
-          CLEAR
+          Clear
         </button>
 
         {/* Run button with pulse ring */}
@@ -150,7 +186,7 @@ export function Topbar() {
             style={{
               background: i < activeCount * 2 ? '#FE5000' : running && i % 3 === 0 ? '#FE500060' : '#1a1a1a',
               boxShadow: i < activeCount * 2 ? '0 0 3px rgba(254,80,0,0.3)' : 'none',
-              transition: 'background 0.3s ease, box-shadow 0.3s ease',
+              transition: 'background 0.15s ease, box-shadow 0.15s ease',
             }}
           />
         ))}
