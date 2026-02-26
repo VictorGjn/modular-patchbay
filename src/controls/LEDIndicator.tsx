@@ -1,3 +1,4 @@
+// Analog mode control — reserved for future use
 export type LedState = 'idle' | 'processing' | 'done' | 'error';
 
 const LED_COLORS: Record<LedState, string> = {
