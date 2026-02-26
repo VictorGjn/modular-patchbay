@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG } from './knowledgeBase';
+import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG, type Connector, MOCK_CONNECTORS } from './knowledgeBase';
 import { streamCompletion } from '../services/llmService';
 import { assembleContext } from '../services/contextAssembler';
 import { getStoredApiKey, getStoredBaseUrl, getStoredModelOverride } from '../components/SettingsModal';
@@ -24,6 +24,7 @@ export interface ConsoleState {
   showMcpPicker: boolean;
   showSkillPicker: boolean;
   showSaveModal: boolean;
+  showConnectorPicker: boolean;
   mockResponse: string;
 
   // Agent configuration
@@ -36,6 +37,7 @@ export interface ConsoleState {
   mcpServers: McpServer[];
   skills: Skill[];
   agents: AgentDef[];
+  connectors: Connector[];
 
   // Computed
   totalTokens: () => number;
@@ -56,6 +58,7 @@ export interface ConsoleState {
   setShowMcpPicker: (show: boolean) => void;
   setShowSkillPicker: (show: boolean) => void;
   setShowSaveModal: (show: boolean) => void;
+  setShowConnectorPicker: (show: boolean) => void;
   setAgentMeta: (meta: Partial<AgentMeta>) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
   run: () => void;
@@ -77,6 +80,9 @@ export interface ConsoleState {
   addSkill: (id: string) => void;
   removeSkill: (id: string) => void;
   loadAgent: (id: string) => void;
+  toggleConnector: (id: string) => void;
+  addConnector: (connector: Connector) => void;
+  removeConnector: (id: string) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -98,12 +104,14 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   showMcpPicker: false,
   showSkillPicker: false,
   showSaveModal: false,
+  showConnectorPicker: false,
   mockResponse: '',
   agentConfig: { ...DEFAULT_AGENT_CONFIG },
   agentMeta: { name: '', description: '', icon: 'brain', category: 'general' },
   mcpServers: MOCK_MCP_SERVERS.map((s) => ({ ...s })),
   skills: MOCK_SKILLS.map((s) => ({ ...s })),
   agents: MOCK_AGENTS.map((a) => ({ ...a })),
+  connectors: MOCK_CONNECTORS.map((c) => ({ ...c })),
 
   totalTokens: () => {
     const { channels, prompt } = get();
@@ -179,6 +187,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setShowMcpPicker: (show: boolean) => set({ showMcpPicker: show }),
   setShowSkillPicker: (show: boolean) => set({ showSkillPicker: show }),
   setShowSaveModal: (show: boolean) => set({ showSaveModal: show }),
+  setShowConnectorPicker: (show: boolean) => set({ showConnectorPicker: show }),
   setAgentMeta: (meta: Partial<AgentMeta>) => set({ agentMeta: { ...get().agentMeta, ...meta } }),
 
   reorderChannels: (fromIndex: number, toIndex: number) => {
@@ -311,6 +320,24 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     if (presetId) {
       get().loadPreset(presetId);
     }
+  },
+
+  toggleConnector: (id: string) => {
+    set({
+      connectors: get().connectors.map((c) =>
+        c.id === id ? { ...c, enabled: !c.enabled } : c,
+      ),
+    });
+  },
+
+  addConnector: (connector: Connector) => {
+    const { connectors } = get();
+    if (connectors.some((c) => c.id === connector.id)) return;
+    set({ connectors: [...connectors, connector] });
+  },
+
+  removeConnector: (id: string) => {
+    set({ connectors: get().connectors.filter((c) => c.id !== id) });
   },
 }));
 

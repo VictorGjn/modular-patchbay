@@ -1,4 +1,4 @@
-import { BookOpen, Plug, Zap, Bot, ArrowUpRight, FileText, Presentation, Mail, Code, Table2, Braces, GitFork, MessageSquare, Mic, Cloud, BarChart3, Anchor, GitBranch, Palette, Hash, Flame, Database, Hexagon, type LucideProps } from 'lucide-react';
+import { BookOpen, Plug, Zap, Bot, ArrowUpRight, FileText, Presentation, Mail, Code, Table2, Braces, GitFork, MessageSquare, Mic, Cloud, BarChart3, Anchor, GitBranch, Palette, Hash, Flame, Database, Hexagon, Users, HardDrive, type LucideProps } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 // Section header icons
@@ -60,5 +60,22 @@ export function SkillIcon({ icon, size = 14, ...props }: { icon: string; size?: 
 export function OutputIcon({ formatId, size = 14, ...props }: { formatId: string; size?: number } & Omit<LucideProps, 'size'>) {
   const Icon = OUTPUT_ICON_MAP[formatId];
   if (!Icon) return <FileText size={size} {...props} />;
+  return <Icon size={size} {...props} />;
+}
+
+// Connector service icons
+export const CONNECTOR_ICON_MAP: Record<string, ComponentType<LucideProps>> = {
+  notion: BookOpen,
+  slack: MessageSquare,
+  hubspot: Users,
+  granola: FileText,
+  github: GitBranch,
+  'google-drive': HardDrive,
+  custom: Plug,
+};
+
+export function ConnectorIcon({ service, size = 14, ...props }: { service: string; size?: number } & Omit<LucideProps, 'size'>) {
+  const Icon = CONNECTOR_ICON_MAP[service];
+  if (!Icon) return <Plug size={size} {...props} />;
   return <Icon size={size} {...props} />;
 }
