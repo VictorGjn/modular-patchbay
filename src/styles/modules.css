@@ -190,6 +190,17 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 12px rgba(254,80,0,0.15);
 }
 
+/* Tile styles */
+.tile {
+  transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.tile:hover {
+  transform: translateY(-1px);
+}
+.tile:active {
+  transform: translateY(0);
+}
+
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

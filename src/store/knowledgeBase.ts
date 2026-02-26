@@ -223,6 +223,65 @@ function chById(id: string, depth = 0): Omit<ChannelConfig, 'enabled'> {
   return ch(src, depth);
 }
 
+// Mock MCP Servers
+export interface McpServer {
+  id: string;
+  name: string;
+  icon: string;
+  connected: boolean;
+  enabled: boolean;
+  capabilities: string[];
+}
+
+export const MOCK_MCP_SERVERS: McpServer[] = [
+  { id: 'mcp-gmail', name: 'Gmail', icon: '📧', connected: true, enabled: true, capabilities: ['input', 'output'] },
+  { id: 'mcp-slack', name: 'Slack', icon: '💬', connected: true, enabled: true, capabilities: ['input', 'output'] },
+  { id: 'mcp-github', name: 'GitHub', icon: '🐙', connected: true, enabled: false, capabilities: ['input', 'output'] },
+  { id: 'mcp-notion', name: 'Notion', icon: '📓', connected: true, enabled: false, capabilities: ['input', 'output'] },
+  { id: 'mcp-hubspot', name: 'HubSpot', icon: '🔶', connected: false, enabled: false, capabilities: ['input'] },
+  { id: 'mcp-firecrawl', name: 'Firecrawl', icon: '🔥', connected: true, enabled: false, capabilities: ['input'] },
+  { id: 'mcp-supabase', name: 'Supabase', icon: '⚡', connected: false, enabled: false, capabilities: ['output'] },
+];
+
+// Mock Skills
+export interface Skill {
+  id: string;
+  name: string;
+  enabled: boolean;
+  description: string;
+}
+
+export const MOCK_SKILLS: Skill[] = [
+  { id: 'skill-frontend-slides', name: 'Frontend Slides', enabled: true, description: 'HTML presentations' },
+  { id: 'skill-openai-whisper', name: 'OpenAI Whisper', enabled: false, description: 'Speech-to-text' },
+  { id: 'skill-weather', name: 'Weather', enabled: false, description: 'Weather data' },
+  { id: 'skill-coding-agent', name: 'Coding Agent', enabled: true, description: 'Code generation' },
+  { id: 'skill-feedback-analyzer', name: 'Feedback Analyzer', enabled: false, description: 'Analyze feedback' },
+  { id: 'skill-maritime-expert', name: 'Maritime Expert', enabled: true, description: 'Maritime domain' },
+  { id: 'skill-github', name: 'GitHub', enabled: false, description: 'Repository ops' },
+  { id: 'skill-web-design', name: 'Web Design', enabled: false, description: 'UI guidelines' },
+];
+
+// Mock Agents
+export interface AgentDef {
+  id: string;
+  name: string;
+  emoji: string;
+  model: string;
+  description: string;
+}
+
+export const MOCK_AGENTS: AgentDef[] = [
+  { id: 'agent-senior-pm', name: 'Senior PM', emoji: '📋', model: 'Opus 4', description: 'Product strategy & roadmap' },
+  { id: 'agent-engineer', name: 'Engineer', emoji: '⚙️', model: 'Sonnet 4', description: 'Technical implementation' },
+  { id: 'agent-user-researcher', name: 'User Researcher', emoji: '🔬', model: 'Opus 4', description: 'User insights & signals' },
+  { id: 'agent-executive', name: 'Executive', emoji: '👔', model: 'Opus 4', description: 'Strategic decisions' },
+  { id: 'agent-feedback-mgr', name: 'Feedback Manager', emoji: '📊', model: 'Sonnet 4', description: 'Feedback synthesis' },
+  { id: 'agent-company-intel', name: 'Company Intel', emoji: '🏢', model: 'Opus 4', description: 'Company research' },
+  { id: 'agent-opportunity', name: 'Opportunity Creator', emoji: '🎯', model: 'Opus 4', description: 'Sales opportunities' },
+  { id: 'agent-visual-designer', name: 'Visual Designer', emoji: '🎨', model: 'Sonnet 4', description: 'Design & visuals' },
+];
+
 export const PRESETS: Preset[] = [
   {
     id: 'senior-pm', name: 'Senior PM',
