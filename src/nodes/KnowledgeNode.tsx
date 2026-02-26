@@ -4,6 +4,7 @@ import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 import { Tile } from '../components/Tile';
 import { JackPort } from '../components/JackPort';
+import { useTheme } from '../theme';
 import { BookOpen } from 'lucide-react';
 
 export const KnowledgeNode = memo(function KnowledgeNode() {
@@ -12,6 +13,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
   const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
   const setChannelDepth = useConsoleStore((s) => s.setChannelDepth);
   const [depthPopup, setDepthPopup] = useState<{ sourceId: string; x: number; y: number } | null>(null);
+  const t = useTheme();
 
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
 
@@ -24,32 +26,26 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
   return (
     <div
       className="rounded-xl overflow-hidden"
-      style={{
-        background: 'rgba(28, 28, 32, 0.9)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid #2a2a30',
-        width: 260,
-        minHeight: 100,
-      }}
+      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 280 }}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid #222226' }}>
-        <BookOpen size={14} style={{ color: '#888' }} />
-        <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ color: '#888' }}>
+      <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+        <BookOpen size={14} style={{ color: t.textSecondary }} />
+        <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ color: t.textSecondary }}>
           Knowledge
         </span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ fontFamily: "'Space Mono', monospace", color: '#555', background: '#25252a' }}>
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>
           {channels.filter((c) => c.enabled).length}
         </span>
         <JackPort type="source" position={Position.Right} label="OUTPUT" color="#3498db" id="knowledge-out" />
       </div>
 
       {/* Tiles */}
-      <div className="p-2 overflow-y-auto nowheel" style={{ maxHeight: 240 }}>
-        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}>
+      <div className="p-4 overflow-y-auto nowheel" style={{ maxHeight: 240 }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))' }}>
           {channels.length === 0 ? (
-            <div className="col-span-full flex items-center justify-center py-6">
-              <span className="text-xs" style={{ color: '#444' }}>No sources loaded</span>
+            <div className="col-span-full flex items-center justify-center py-3">
+              <span className="text-xs" style={{ color: t.textFaint }}>No sources loaded</span>
             </div>
           ) : channels.map((ch) => {
             const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
@@ -71,14 +67,14 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
       </div>
 
       {/* Add button */}
-      <div className="px-2 pb-2 pt-1">
+      <div className="px-4 pb-3 pt-1">
         <button
           type="button"
           onClick={() => setShowFilePicker(true)}
           className="w-full py-1.5 rounded-lg text-xs tracking-wide uppercase cursor-pointer transition-colors nodrag"
-          style={{ background: 'transparent', border: '1px solid #2a2a30', color: '#555' }}
+          style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a30'; e.currentTarget.style.color = '#555'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
           + Add  ⌘K
         </button>
@@ -91,9 +87,9 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
           style={{
             left: depthPopup.x,
             top: depthPopup.y,
-            background: '#1c1c20',
-            border: '1px solid #2a2a30',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            background: t.surfaceOpaque,
+            border: `1px solid ${t.border}`,
+            boxShadow: t.isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.15)',
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -102,7 +98,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
               key={level.label}
               type="button"
               className="block w-full text-left px-3 py-1.5 rounded-md text-xs cursor-pointer border-none hover-row"
-              style={{ background: 'transparent', color: '#888' }}
+              style={{ background: 'transparent', color: t.textSecondary }}
               onClick={() => { setChannelDepth(depthPopup.sourceId, i); setDepthPopup(null); }}
             >
               {level.label} ({Math.round(level.pct * 100)}%)

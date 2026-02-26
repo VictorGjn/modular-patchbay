@@ -1,4 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
+import { useTheme } from '../theme';
 
 interface JackPortProps {
   type: 'source' | 'target';
@@ -11,6 +12,7 @@ interface JackPortProps {
 export function JackPort({ type, position, label, color = '#FE5000', id }: JackPortProps) {
   const isLeft = position === Position.Left;
   const shortLabel = type === 'target' ? 'IN' : 'OUT';
+  const t = useTheme();
 
   return (
     <div
@@ -25,8 +27,12 @@ export function JackPort({ type, position, label, color = '#FE5000', id }: JackP
           style={{
             width: 22,
             height: 22,
-            background: `radial-gradient(circle, #0a0a0a 35%, ${color} 50%, #888 58%, #555 68%, #333 100%)`,
-            boxShadow: `inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05), 0 0 8px ${color}30`,
+            background: t.isDark
+              ? `radial-gradient(circle, #0a0a0a 35%, ${color} 50%, #888 58%, #555 68%, #333 100%)`
+              : `radial-gradient(circle, #e0e0e5 30%, ${color} 48%, #bbb 56%, #999 66%, #ccc 100%)`,
+            boxShadow: t.isDark
+              ? `inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05), 0 0 8px ${color}30`
+              : `inset 0 1px 3px rgba(0,0,0,0.2), 0 1px 0 rgba(255,255,255,0.5), 0 0 6px ${color}20`,
           }}
         />
         {/* IN/OUT label centered on the ring */}
@@ -38,8 +44,8 @@ export function JackPort({ type, position, label, color = '#FE5000', id }: JackP
             fontWeight: 700,
             letterSpacing: '0.5px',
             textTransform: 'uppercase',
-            color: '#999',
-            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+            color: t.jackLabelOnRing,
+            textShadow: t.isDark ? '0 1px 2px rgba(0,0,0,0.8)' : '0 1px 1px rgba(255,255,255,0.6)',
           }}
         >
           {shortLabel}
@@ -64,7 +70,7 @@ export function JackPort({ type, position, label, color = '#FE5000', id }: JackP
         className="text-[8px] tracking-[1.5px] uppercase select-none"
         style={{
           fontFamily: "'Space Mono', monospace",
-          color: '#666',
+          color: t.jackLabelBeside,
         }}
       >
         {label}

@@ -4,6 +4,7 @@ import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { OutputIcon } from '../components/icons/SectionIcons';
 import { JackPort } from '../components/JackPort';
+import { useTheme } from '../theme';
 import { Play, Download } from 'lucide-react';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 
@@ -18,6 +19,7 @@ export const PromptNode = memo(function PromptNode() {
   const tokenBudget = useConsoleStore((s) => s.tokenBudget);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [focused, setFocused] = useState(false);
+  const t = useTheme();
 
   const tokenCount = Math.ceil(prompt.length / 4);
   const formatInfo = OUTPUT_FORMATS.find((f) => f.id === outputFormat);
@@ -51,22 +53,16 @@ export const PromptNode = memo(function PromptNode() {
   return (
     <div
       className="rounded-xl"
-      style={{
-        background: 'rgba(28, 28, 32, 0.9)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid #2a2a30',
-        width: 420,
-        minHeight: 160,
-      }}
+      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 420, minHeight: 160 }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid #222226' }}>
+      <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
         <div className="flex items-center gap-2">
           <JackPort type="target" position={Position.Left} label="INPUT" color="#FE5000" id="prompt-in" />
         </div>
         <span
           className="text-xs font-bold tracking-[3px] uppercase"
-          style={{ fontFamily: "'Space Mono', monospace", color: '#f0f0f0' }}
+          style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}
         >
           PROMPT
         </span>
@@ -76,7 +72,7 @@ export const PromptNode = memo(function PromptNode() {
       </div>
 
       {/* Textarea */}
-      <div className="p-3 relative">
+      <div className="p-4 relative">
         <textarea
           ref={textareaRef}
           value={prompt}
@@ -86,10 +82,10 @@ export const PromptNode = memo(function PromptNode() {
           className="w-full resize-none outline-none text-sm nodrag nowheel"
           rows={3}
           style={{
-            background: '#141417',
-            border: `1px solid ${focused ? 'rgba(254,80,0,0.3)' : '#2a2a30'}`,
+            background: t.inputBg,
+            border: `1px solid ${focused ? 'rgba(254,80,0,0.3)' : t.border}`,
             borderRadius: 8,
-            color: '#f0f0f0',
+            color: t.textPrimary,
             fontFamily: "'Inter', sans-serif",
             padding: '10px 12px',
             paddingBottom: 24,
@@ -103,7 +99,7 @@ export const PromptNode = memo(function PromptNode() {
         />
 
         {/* Bottom bar */}
-        <div className="absolute bottom-4 left-6 right-6 flex items-center gap-2">
+        <div className="absolute bottom-5 left-7 right-7 flex items-center gap-2">
           {detectedTag && prompt.length > 3 && (
             <span
               className="flex items-center gap-1 text-[10px] tracking-wide uppercase px-2 py-0.5 rounded-md"
@@ -114,17 +110,17 @@ export const PromptNode = memo(function PromptNode() {
             </span>
           )}
           <div className="flex-1" />
-          <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: '#444' }}>
+          <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
             {prompt.length}c
           </span>
-          <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: '#555' }}>
+          <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textMuted }}>
             ~{tokenCount.toLocaleString()} tokens
           </span>
         </div>
       </div>
 
       {/* Action buttons */}
-      <div className="flex items-center gap-2 px-3 pb-3">
+      <div className="flex items-center gap-3 px-4 pb-4">
         {/* Test Run */}
         <button
           type="button"
@@ -150,12 +146,12 @@ export const PromptNode = memo(function PromptNode() {
           className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer flex-1 justify-center nodrag"
           style={{
             background: 'transparent',
-            border: '1px solid #2a2a30',
-            color: '#888',
+            border: `1px solid ${t.border}`,
+            color: t.textSecondary,
             transition: 'border-color 0.15s ease, color 0.15s ease',
           }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a30'; e.currentTarget.style.color = '#888'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; }}
         >
           <Download size={12} />
           Save as Agent

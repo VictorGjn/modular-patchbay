@@ -5,18 +5,19 @@ import { OUTPUT_FORMATS, KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { Copy, Check, Maximize2, X } from 'lucide-react';
 import { OutputIcon } from '../components/icons/SectionIcons';
 import { JackPort } from '../components/JackPort';
+import { useTheme } from '../theme';
 
-function renderMarkdown(text: string): React.ReactNode[] {
+function renderMarkdown(text: string, t: { textPrimary: string; border: string }): React.ReactNode[] {
   const lines = text.split('\n');
   const nodes: React.ReactNode[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.startsWith('## ')) {
-      nodes.push(<h2 key={i} style={{ fontSize: 14, fontWeight: 600, color: '#f0f0f0', margin: '12px 0 4px' }}>{renderInline(line.slice(3))}</h2>);
+      nodes.push(<h2 key={i} style={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, margin: '12px 0 4px' }}>{renderInline(line.slice(3))}</h2>);
     } else if (line.startsWith('# ')) {
-      nodes.push(<h1 key={i} style={{ fontSize: 16, fontWeight: 600, color: '#f0f0f0', margin: '12px 0 4px' }}>{renderInline(line.slice(2))}</h1>);
+      nodes.push(<h1 key={i} style={{ fontSize: 16, fontWeight: 600, color: t.textPrimary, margin: '12px 0 4px' }}>{renderInline(line.slice(2))}</h1>);
     } else if (line.match(/^---+$/)) {
-      nodes.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid #2a2a30', margin: '8px 0' }} />);
+      nodes.push(<hr key={i} style={{ border: 'none', borderTop: `1px solid ${t.border}`, margin: '8px 0' }} />);
     } else if (line.match(/^\s*[-*]\s/)) {
       const content = line.replace(/^\s*[-*]\s/, '');
       nodes.push(<div key={i} style={{ display: 'flex', gap: 6, marginLeft: 4 }}><span style={{ color: '#FE5000', flexShrink: 0 }}>-</span><span>{renderInline(content)}</span></div>);
@@ -24,7 +25,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
       const codeLines: string[] = [];
       i++;
       while (i < lines.length && !lines[i].startsWith('```')) { codeLines.push(lines[i]); i++; }
-      nodes.push(<pre key={`code-${i}`} style={{ background: '#141417', border: '1px solid #2a2a30', borderRadius: 8, padding: '8px 10px', margin: '6px 0', fontSize: 11, color: '#00ff88', overflow: 'auto' }}>{codeLines.join('\n')}</pre>);
+      nodes.push(<pre key={`code-${i}`} style={{ background: 'rgba(0,0,0,0.15)', border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 10px', margin: '6px 0', fontSize: 11, color: '#00ff88', overflow: 'auto' }}>{codeLines.join('\n')}</pre>);
     } else if (!line.trim()) {
       nodes.push(<div key={i} style={{ height: 8 }} />);
     } else {
@@ -41,9 +42,9 @@ function renderInline(text: string): React.ReactNode {
   let match;
   while ((match = regex.exec(text)) !== null) {
     if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
-    if (match[1]) parts.push(<strong key={match.index} style={{ color: '#f0f0f0', fontWeight: 600 }}>{match[1]}</strong>);
-    else if (match[2]) parts.push(<code key={match.index} style={{ background: '#25252a', padding: '1px 5px', borderRadius: 4, fontSize: '0.9em', color: '#FE5000' }}>{match[2]}</code>);
-    else if (match[3]) parts.push(<em key={match.index} style={{ color: '#888', fontStyle: 'italic' }}>{match[3]}</em>);
+    if (match[1]) parts.push(<strong key={match.index} style={{ fontWeight: 600 }}>{match[1]}</strong>);
+    else if (match[2]) parts.push(<code key={match.index} style={{ background: 'rgba(254,80,0,0.1)', padding: '1px 5px', borderRadius: 4, fontSize: '0.9em', color: '#FE5000' }}>{match[2]}</code>);
+    else if (match[3]) parts.push(<em key={match.index} style={{ fontStyle: 'italic', opacity: 0.7 }}>{match[3]}</em>);
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < text.length) parts.push(text.slice(lastIndex));
@@ -61,6 +62,7 @@ export const ResponseNode = memo(function ResponseNode() {
   const [copied, setCopied] = useState(false);
   const prevResponseRef = useRef('');
   const typingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const t = useTheme();
 
   const formatInfo = OUTPUT_FORMATS.find((f) => f.id === outputFormat);
   const responseTokens = Math.ceil(displayedText.length / 4);
@@ -98,38 +100,32 @@ export const ResponseNode = memo(function ResponseNode() {
     <>
       <div
         className="rounded-xl overflow-hidden"
-        style={{
-          background: 'rgba(28, 28, 32, 0.9)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid #2a2a30',
-          width: 420,
-          minHeight: 120,
-        }}
+        style={{ background: t.responseBg, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 420, minHeight: 100 }}
       >
         {/* Header */}
-        <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid #222226' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
           <JackPort type="target" position={Position.Left} label="INPUT" color="#FE5000" id="response-in" />
           <div
             className="w-1.5 h-1.5 rounded-full"
             style={{
-              background: running ? '#ffaa00' : mockResponse ? '#00ff88' : '#444',
+              background: running ? '#ffaa00' : mockResponse ? '#00ff88' : t.textFaint,
               boxShadow: running ? '0 0 6px #ffaa0080' : mockResponse ? '0 0 6px #00ff8880' : 'none',
               animation: running ? 'pulse-glow 1s ease infinite' : 'none',
             }}
           />
-          <span className="text-xs tracking-wider uppercase flex-1" style={{ color: '#888' }}>
+          <span className="text-xs tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>
             {running ? 'Processing...' : mockResponse ? 'Response' : 'Output'}
           </span>
 
           {formatInfo && mockResponse && (
-            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md" style={{ color: '#555', background: '#25252a' }}>
+            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md" style={{ color: t.textDim, background: t.badgeBg }}>
               <OutputIcon formatId={outputFormat} size={10} />
               {formatInfo.label}
             </span>
           )}
 
           {mockResponse && !running && (
-            <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: '#444' }}>
+            <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
               ~{responseTokens.toLocaleString()}t
             </span>
           )}
@@ -139,7 +135,7 @@ export const ResponseNode = memo(function ResponseNode() {
               type="button"
               onClick={handleCopy}
               className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-1.5 py-0.5 rounded-md hover-accent-text nodrag"
-              style={{ color: copied ? '#00ff88' : '#555' }}
+              style={{ color: copied ? '#00ff88' : t.textDim }}
             >
               {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
             </button>
@@ -150,7 +146,7 @@ export const ResponseNode = memo(function ResponseNode() {
               type="button"
               onClick={() => setExpanded(true)}
               className="cursor-pointer border-none bg-transparent p-0.5 rounded-md hover-accent-text nodrag"
-              style={{ color: '#555' }}
+              style={{ color: t.textDim }}
             >
               <Maximize2 size={12} />
             </button>
@@ -160,31 +156,31 @@ export const ResponseNode = memo(function ResponseNode() {
         {/* Content */}
         <div
           className="px-4 py-3 text-sm leading-relaxed overflow-y-auto nowheel"
-          style={{ color: '#bbb', minHeight: 60, maxHeight: 240 }}
+          style={{ color: t.responseText, minHeight: 40, maxHeight: 240 }}
         >
           {running ? (
             <span style={{ color: '#ffaa00' }}>Assembling context... patching signals... routing to model...</span>
           ) : displayedText ? (
             <>
-              {renderMarkdown(displayedText)}
+              {renderMarkdown(displayedText, t)}
               {isTyping && <span style={{ color: '#FE5000', animation: 'cursor-blink 0.8s step-end infinite' }}>|</span>}
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-6 gap-2">
+            <div className="flex flex-col items-center justify-center py-3 gap-1.5">
               <div className="flex gap-1.5">
                 {[0, 1, 2, 3, 4].map((i) => (
-                  <div key={i} className="w-[3px] h-[16px] rounded-full" style={{ background: '#2a2a30', animation: `pulse-glow 2s ease ${i * 0.2}s infinite` }} />
+                  <div key={i} className="w-[3px] h-[14px] rounded-full" style={{ background: t.border, animation: `pulse-glow 2s ease ${i * 0.2}s infinite` }} />
                 ))}
               </div>
-              <span className="text-xs tracking-widest uppercase" style={{ fontFamily: "'Space Mono', monospace", color: '#444' }}>AWAITING SIGNAL</span>
+              <span className="text-[10px] tracking-widest uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>AWAITING SIGNAL</span>
             </div>
           )}
         </div>
 
         {/* Source list */}
         {mockResponse && !running && activeChannels.length > 0 && (
-          <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5" style={{ borderColor: '#222226' }}>
-            <span className="text-[9px] tracking-wider uppercase self-center mr-1" style={{ color: '#444' }}>Sources:</span>
+          <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5" style={{ borderColor: t.borderSubtle }}>
+            <span className="text-[9px] tracking-wider uppercase self-center mr-1" style={{ color: t.textFaint }}>Sources:</span>
             {activeChannels.map((ch) => {
               const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
               return (
@@ -201,24 +197,24 @@ export const ResponseNode = memo(function ResponseNode() {
       {/* Fullscreen modal */}
       {expanded && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center" onClick={() => setExpanded(false)}>
-          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }} />
+          <div className="absolute inset-0" style={{ background: t.isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }} />
           <div
             className="relative w-[90vw] max-w-[800px] max-h-[85vh] flex flex-col rounded-xl overflow-hidden"
-            style={{ background: '#141417', border: '1px solid #2a2a30', boxShadow: '0 24px 48px rgba(0,0,0,0.6)' }}
+            style={{ background: t.isDark ? '#141417' : '#ffffff', border: `1px solid ${t.border}`, boxShadow: '0 24px 48px rgba(0,0,0,0.4)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: '#222226', background: '#1c1c20' }}>
+            <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: t.borderSubtle, background: t.surfaceOpaque }}>
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#00ff88', boxShadow: '0 0 6px #00ff8880' }} />
-              <span className="text-xs tracking-wider uppercase flex-1" style={{ color: '#888' }}>Response -- Expanded</span>
-              <button type="button" onClick={handleCopy} className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text" style={{ color: copied ? '#00ff88' : '#555' }}>
+              <span className="text-xs tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>Response -- Expanded</span>
+              <button type="button" onClick={handleCopy} className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text" style={{ color: copied ? '#00ff88' : t.textDim }}>
                 {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
               </button>
-              <button type="button" onClick={() => setExpanded(false)} className="cursor-pointer border-none bg-transparent p-1 hover-accent-text" style={{ color: '#555' }}>
+              <button type="button" onClick={() => setExpanded(false)} className="cursor-pointer border-none bg-transparent p-1 hover-accent-text" style={{ color: t.textDim }}>
                 <X size={16} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 py-4 text-sm leading-relaxed" style={{ color: '#bbb' }}>
-              {renderMarkdown(displayedText)}
+            <div className="flex-1 overflow-y-auto px-6 py-4 text-sm leading-relaxed" style={{ color: t.responseText }}>
+              {renderMarkdown(displayedText, t)}
             </div>
           </div>
         </div>

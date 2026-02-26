@@ -1,4 +1,5 @@
 import { type EdgeProps, getSmoothStepPath } from '@xyflow/react';
+import { useTheme } from '../theme';
 
 export function PatchCable({
   sourceX,
@@ -9,6 +10,7 @@ export function PatchCable({
   targetPosition,
   style,
 }: EdgeProps) {
+  const t = useTheme();
   const color = (style?.stroke as string) ?? '#FE5000';
 
   const [path] = getSmoothStepPath({
@@ -27,7 +29,7 @@ export function PatchCable({
       <path
         d={path}
         fill="none"
-        stroke="rgba(0,0,0,0.4)"
+        stroke={t.cableShadow}
         strokeWidth={7}
         strokeLinecap="round"
         style={{ filter: 'blur(3px)' }}
@@ -45,7 +47,7 @@ export function PatchCable({
       <path
         d={path}
         fill="none"
-        stroke="rgba(255,255,255,0.06)"
+        stroke={t.cableHighlight}
         strokeWidth={1.5}
         strokeLinecap="round"
       />

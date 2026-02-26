@@ -4,44 +4,40 @@ import { useConsoleStore } from '../store/consoleStore';
 import { Tile } from '../components/Tile';
 import { JackPort } from '../components/JackPort';
 import { McpIcon } from '../components/icons/SectionIcons';
+import { useTheme } from '../theme';
 import { Plug } from 'lucide-react';
 
 export const McpNode = memo(function McpNode() {
   const mcpServers = useConsoleStore((s) => s.mcpServers);
   const toggleMcp = useConsoleStore((s) => s.toggleMcp);
   const setShowMcpPicker = useConsoleStore((s) => s.setShowMcpPicker);
+  const t = useTheme();
 
   const addedMcps = mcpServers.filter((s) => s.added);
 
   return (
     <div
       className="rounded-xl overflow-hidden"
-      style={{
-        background: 'rgba(28, 28, 32, 0.9)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid #2a2a30',
-        width: 260,
-        minHeight: 100,
-      }}
+      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 280 }}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid #222226' }}>
-        <Plug size={14} style={{ color: '#888' }} />
-        <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ color: '#888' }}>
+      <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+        <Plug size={14} style={{ color: t.textSecondary }} />
+        <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ color: t.textSecondary }}>
           MCP
         </span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ fontFamily: "'Space Mono', monospace", color: '#555', background: '#25252a' }}>
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>
           {addedMcps.filter((s) => s.enabled).length}
         </span>
         <JackPort type="source" position={Position.Right} label="OUTPUT" color="#2ecc71" id="mcp-out" />
       </div>
 
       {/* Tiles */}
-      <div className="p-2 overflow-y-auto nowheel" style={{ maxHeight: 240 }}>
-        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}>
+      <div className="p-4 overflow-y-auto nowheel" style={{ maxHeight: 280 }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))' }}>
           {addedMcps.length === 0 ? (
-            <div className="col-span-full flex items-center justify-center py-6">
-              <span className="text-xs" style={{ color: '#444' }}>No servers added</span>
+            <div className="col-span-full flex items-center justify-center py-3">
+              <span className="text-xs" style={{ color: t.textFaint }}>No servers added</span>
             </div>
           ) : addedMcps.map((server) => (
             <Tile
@@ -50,7 +46,7 @@ export const McpNode = memo(function McpNode() {
               active={server.enabled}
               icon={<McpIcon icon={server.icon} size={14} />}
               subtitle={server.connected ? 'connected' : 'offline'}
-              statusColor={server.connected ? (server.enabled ? '#00ff88' : '#555') : '#ff3344'}
+              statusColor={server.connected ? (server.enabled ? '#00ff88' : t.textDim) : '#ff3344'}
               onClick={() => toggleMcp(server.id)}
             />
           ))}
@@ -58,14 +54,14 @@ export const McpNode = memo(function McpNode() {
       </div>
 
       {/* Add button */}
-      <div className="px-2 pb-2 pt-1">
+      <div className="px-4 pb-3 pt-1">
         <button
           type="button"
           onClick={() => setShowMcpPicker(true)}
           className="w-full py-1.5 rounded-lg text-xs tracking-wide uppercase cursor-pointer transition-colors nodrag"
-          style={{ background: 'transparent', border: '1px solid #2a2a30', color: '#555' }}
+          style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#2a2a30'; e.currentTarget.style.color = '#555'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
           + Add
         </button>
