@@ -29,10 +29,8 @@ export default function App() {
   const setOutputFormat = useConsoleStore((s) => s.setOutputFormat);
   const mcpServers = useConsoleStore((s) => s.mcpServers);
   const skills = useConsoleStore((s) => s.skills);
-  const agents = useConsoleStore((s) => s.agents);
   const toggleMcp = useConsoleStore((s) => s.toggleMcp);
   const toggleSkill = useConsoleStore((s) => s.toggleSkill);
-  const loadAgent = useConsoleStore((s) => s.loadAgent);
 
   // Depth popup state
   const [depthPopup, setDepthPopup] = useState<{ sourceId: string; x: number; y: number } | null>(null);
@@ -141,7 +139,7 @@ export default function App() {
         <div
           className="grid gap-3 h-full"
           style={{
-            gridTemplateColumns: 'repeat(5, 1fr)',
+            gridTemplateColumns: 'repeat(4, 1fr)',
             minHeight: 0,
           }}
         >
@@ -249,35 +247,7 @@ export default function App() {
             )}
           </Section>
 
-          {/* Section 4: AGENTS */}
-          <Section
-            title="Agents"
-            sectionId="agents"
-            count={agents.length}
-            active={agents.length > 0}
-            actionLabel="+ New"
-            onAction={() => {}}
-          >
-            {agents.map((agent) => (
-              <Tile
-                key={agent.id}
-                name={agent.name}
-                active={false}
-                icon={
-                  <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold"
-                    style={{ background: '#25252a', color: '#888', border: '1px solid #2a2a30' }}
-                  >
-                    {agent.initials}
-                  </div>
-                }
-                subtitle={agent.model}
-                onClick={() => loadAgent(agent.id)}
-              />
-            ))}
-          </Section>
-
-          {/* Section 5: OUTPUT */}
+          {/* Section 4: OUTPUT */}
           <Section
             title="Output"
             sectionId="output"
