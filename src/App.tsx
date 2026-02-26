@@ -15,7 +15,6 @@ import { KNOWLEDGE_TYPES, DEPTH_LEVELS, OUTPUT_FORMATS, MOCK_AGENTS, type Output
 import { importAgent } from './utils/agentImport';
 import { McpIcon, SkillIcon, OutputIcon } from './components/icons/SectionIcons';
 
-
 export default function App() {
   const channels = useConsoleStore((s) => s.channels);
   const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
@@ -32,15 +31,11 @@ export default function App() {
   const toggleMcp = useConsoleStore((s) => s.toggleMcp);
   const toggleSkill = useConsoleStore((s) => s.toggleSkill);
 
-  // Depth popup state
   const [depthPopup, setDepthPopup] = useState<{ sourceId: string; x: number; y: number } | null>(null);
   const setChannelDepth = useConsoleStore((s) => s.setChannelDepth);
 
-  // Agent import
   const importInputRef = useRef<HTMLInputElement>(null);
-  const handleImportClick = useCallback(() => {
-    importInputRef.current?.click();
-  }, []);
+  const handleImportClick = useCallback(() => importInputRef.current?.click(), []);
   const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -52,9 +47,7 @@ export default function App() {
       const store = useConsoleStore.getState();
       if (partial.channels) {
         store.clearChannels();
-        for (const ch of partial.channels) {
-          store.addChannel(ch);
-        }
+        for (const ch of partial.channels) store.addChannel(ch);
       }
       if (partial.selectedModel) store.setModel(partial.selectedModel);
       if (partial.outputFormat) store.setOutputFormat(partial.outputFormat);
@@ -65,29 +58,16 @@ export default function App() {
     e.target.value = '';
   }, []);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setShowFilePicker(!showFilePicker);
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (!running) run();
-      }
-      if (e.key === 'Escape') {
-        setShowFilePicker(false);
-        setShowMcpPicker(false);
-        setShowSkillPicker(false);
-        setDepthPopup(null);
-      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setShowFilePicker(!showFilePicker); }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (!running) run(); }
+      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); setDepthPopup(null); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, run, running]);
 
-  // Close depth popup on outside click
   useEffect(() => {
     if (!depthPopup) return;
     const handler = () => setDepthPopup(null);
@@ -106,44 +86,29 @@ export default function App() {
   };
 
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
-
-  // Helper to get linked agents for a skill
   const getLinkedAgents = (skillId: string): string[] =>
     MOCK_AGENTS.filter((a) => a.linkedSkills?.includes(skillId)).map((a) => a.name);
 
   return (
     <div className="w-full h-full flex flex-col" style={{ background: '#111114' }}>
-      <input
-        ref={importInputRef}
-        type="file"
-        accept=".md"
-        onChange={handleImportFile}
-        style={{ display: 'none' }}
-        aria-hidden="true"
-      />
+      <input ref={importInputRef} type="file" accept=".md" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
 
-      {/* TOPBAR */}
       <Topbar onImportClick={handleImportClick} />
-
-      {/* PROMPT AREA with jack port */}
-      <PromptArea />
 
       {/* CABLE LAYER */}
       <CableLayer />
 
-      {/* SECTIONS GRID */}
-      <div
-        className="flex-1 overflow-hidden px-4 pb-2 relative"
-        style={{ zIndex: 1 }}
-      >
+      {/* HUB LAYOUT: sections around prompt */}
+      <div className="flex-1 overflow-hidden relative" style={{ zIndex: 1 }}>
         <div
-          className="grid gap-3 h-full"
+          className="h-full grid gap-3 p-4"
           style={{
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateColumns: '1fr 2fr 1fr',
+            gridTemplateRows: '1fr 1fr',
             minHeight: 0,
           }}
         >
-          {/* Section 1: KNOWLEDGE */}
+          {/* TOP LEFT: Knowledge */}
           <Section
             title="Knowledge"
             sectionId="knowledge"
@@ -154,9 +119,7 @@ export default function App() {
           >
             {channels.length === 0 ? (
               <div className="col-span-full flex items-center justify-center py-6">
-                <span className="text-xs" style={{ color: '#444' }}>
-                  No sources loaded
-                </span>
+                <span className="text-xs" style={{ color: '#444' }}>No sources loaded</span>
               </div>
             ) : (
               channels.map((ch) => {
@@ -171,16 +134,22 @@ export default function App() {
                     subtitle={`${fmtTokens(eff)} · ${DEPTH_LEVELS[ch.depth].label}`}
                     colorStripe={kt.color}
                     onClick={() => toggleChannel(ch.sourceId)}
-                    onDoubleClick={(e) => {
-                      if (e) handleTileDoubleClick(ch.sourceId, e);
-                    }}
+                    onDoubleClick={(e) => { if (e) handleTileDoubleClick(ch.sourceId, e); }}
                   />
                 );
               })
             )}
           </Section>
 
-          {/* Section 2: MCP */}
+          {/* CENTER: Prompt + Response (spans 2 rows) */}
+          <div className="row-span-2 flex flex-col gap-3 min-h-0">
+            <PromptArea />
+            <div className="flex-1 min-h-0 overflow-auto">
+              <ResponseArea />
+            </div>
+          </div>
+
+          {/* TOP RIGHT: MCP */}
           <Section
             title="MCP"
             sectionId="mcp"
@@ -191,15 +160,11 @@ export default function App() {
           >
             {addedMcps.length === 0 ? (
               <div className="col-span-full flex items-center justify-center py-6">
-                <span className="text-xs" style={{ color: '#444' }}>
-                  No servers added
-                </span>
+                <span className="text-xs" style={{ color: '#444' }}>No servers added</span>
               </div>
             ) : (
               addedMcps.map((server) => {
-                const statusColor = server.connected
-                  ? (server.enabled ? '#00ff88' : '#555')
-                  : '#ff3344';
+                const statusColor = server.connected ? (server.enabled ? '#00ff88' : '#555') : '#ff3344';
                 return (
                   <Tile
                     key={server.id}
@@ -215,7 +180,7 @@ export default function App() {
             )}
           </Section>
 
-          {/* Section 3: SKILLS */}
+          {/* BOTTOM LEFT: Skills */}
           <Section
             title="Skills"
             sectionId="skills"
@@ -226,9 +191,7 @@ export default function App() {
           >
             {addedSkills.length === 0 ? (
               <div className="col-span-full flex items-center justify-center py-6">
-                <span className="text-xs" style={{ color: '#444' }}>
-                  No skills added
-                </span>
+                <span className="text-xs" style={{ color: '#444' }}>No skills added</span>
               </div>
             ) : (
               addedSkills.map((skill) => {
@@ -247,7 +210,7 @@ export default function App() {
             )}
           </Section>
 
-          {/* Section 4: OUTPUT */}
+          {/* BOTTOM RIGHT: Output */}
           <Section
             title="Output"
             sectionId="output"
@@ -268,8 +231,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* RESPONSE AREA */}
-      <ResponseArea />
       <AgentPreview />
       <TokenBudget />
       <FilePicker />
@@ -295,14 +256,8 @@ export default function App() {
               key={level.label}
               type="button"
               className="block w-full text-left px-3 py-1.5 rounded-md text-xs cursor-pointer border-none hover-row"
-              style={{
-                background: 'transparent',
-                color: '#888',
-              }}
-              onClick={() => {
-                setChannelDepth(depthPopup.sourceId, i);
-                setDepthPopup(null);
-              }}
+              style={{ background: 'transparent', color: '#888' }}
+              onClick={() => { setChannelDepth(depthPopup.sourceId, i); setDepthPopup(null); }}
             >
               {level.label} ({Math.round(level.pct * 100)}%)
             </button>
