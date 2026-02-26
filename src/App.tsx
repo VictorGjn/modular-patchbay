@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -20,6 +20,7 @@ import { FilePicker } from './components/FilePicker';
 import { McpPicker } from './components/McpPicker';
 import { SkillPicker } from './components/SkillPicker';
 import { AgentPreview } from './components/AgentPreview';
+import { SettingsModal } from './components/SettingsModal';
 import { useConsoleStore } from './store/consoleStore';
 import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
@@ -77,6 +78,7 @@ export default function App() {
   const run = useConsoleStore((s) => s.run);
   const running = useConsoleStore((s) => s.running);
 
+  const [showSettings, setShowSettings] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const handleImportClick = useCallback(() => importInputRef.current?.click(), []);
   const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,7 +113,7 @@ export default function App() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setShowFilePicker(!showFilePicker); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (!running) run(); }
-      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); }
+      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); setShowSettings(false); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -124,7 +126,7 @@ export default function App() {
   return (
     <div className="w-full h-full flex flex-col" style={{ background: t.bg }}>
       <input ref={importInputRef} type="file" accept=".md" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
-      <Topbar onImportClick={handleImportClick} />
+      <Topbar onImportClick={handleImportClick} onSettingsClick={() => setShowSettings(true)} />
 
       {/* React Flow Canvas */}
       <div className="flex-1 overflow-hidden relative">
@@ -162,6 +164,7 @@ export default function App() {
       <FilePicker />
       <McpPicker />
       <SkillPicker />
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   );
 }
