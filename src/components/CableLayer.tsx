@@ -1,17 +1,22 @@
 import { useEffect, useState, useCallback } from 'react';
 import { SECTION_COLORS } from '../constants';
 
-interface JackPort {
+interface CableConnection {
   id: string;
-  x: number;
-  y: number;
-  active: boolean;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  color: string;
 }
 
-interface CableConnection {
-  from: JackPort;
-  to: JackPort;
-  color: string;
+function getCatenaryPath(sx: number, sy: number, tx: number, ty: number): string {
+  const midX = (sx + tx) / 2;
+  const midY = (sy + ty) / 2;
+  const dist = Math.hypot(tx - sx, ty - sy);
+  const sag = Math.min(dist * 0.25, 100);
+  const controlY = midY + sag;
+  return `M ${sx} ${sy} Q ${midX} ${controlY} ${tx} ${ty}`;
 }
 
 export function CableLayer() {
@@ -22,8 +27,8 @@ export function CableLayer() {
     if (!promptPort) return;
 
     const promptRect = promptPort.getBoundingClientRect();
-    const promptX = promptRect.left + promptRect.width / 2;
-    const promptY = promptRect.top + promptRect.height / 2;
+    const px = promptRect.left + promptRect.width / 2;
+    const py = promptRect.top + promptRect.height / 2;
 
     const sectionIds = ['knowledge', 'mcp', 'skills', 'agents', 'output'];
     const newConnections: CableConnection[] = [];
@@ -31,17 +36,15 @@ export function CableLayer() {
     for (const id of sectionIds) {
       const port = document.querySelector(`[data-jack-port="${id}"]`);
       if (!port) continue;
-
-      const isActive = port.getAttribute('data-jack-active') === 'true';
-      if (!isActive) continue;
+      if (port.getAttribute('data-jack-active') !== 'true') continue;
 
       const rect = port.getBoundingClientRect();
-      const fromX = rect.left + rect.width / 2;
-      const fromY = rect.top + rect.height / 2;
-
       newConnections.push({
-        from: { id, x: fromX, y: fromY, active: isActive },
-        to: { id: 'prompt', x: promptX, y: promptY, active: true },
+        id,
+        fromX: rect.left + rect.width / 2,
+        fromY: rect.top + rect.height / 2,
+        toX: px,
+        toY: py,
         color: SECTION_COLORS[id] ?? '#555',
       });
     }
@@ -56,12 +59,13 @@ export function CableLayer() {
     observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['data-jack-active'] });
 
     window.addEventListener('resize', updateConnections);
-    // Update on scroll too since sections can scroll
-    const interval = setInterval(updateConnections, 500);
+    window.addEventListener('scroll', updateConnections, true);
+    const interval = setInterval(updateConnections, 300);
 
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', updateConnections);
+      window.removeEventListener('scroll', updateConnections, true);
       clearInterval(interval);
     };
   }, [updateConnections]);
@@ -71,43 +75,37 @@ export function CableLayer() {
   return (
     <svg
       className="fixed inset-0 pointer-events-none"
-      style={{ zIndex: 5, width: '100%', height: '100%' }}
+      style={{ zIndex: 5, width: '100vw', height: '100vh' }}
     >
-      <defs>
-        {connections.map((conn) => (
-          <filter key={`glow-${conn.from.id}`} id={`cable-glow-${conn.from.id}`}>
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        ))}
-      </defs>
       {connections.map((conn) => {
-        const midX = (conn.from.x + conn.to.x) / 2;
-        // Sag effect — midpoint pulled down by gravity
-        const dist = Math.abs(conn.from.x - conn.to.x);
-        const midY = Math.max(conn.from.y, conn.to.y) + Math.min(dist * 0.15, 40);
-
-        const path = `M ${conn.from.x} ${conn.from.y} Q ${midX} ${midY} ${conn.to.x} ${conn.to.y}`;
+        const path = getCatenaryPath(conn.fromX, conn.fromY, conn.toX, conn.toY);
 
         return (
-          <g key={conn.from.id}>
+          <g key={conn.id}>
+            {/* Cable shadow — thick blur underneath */}
             <path
               d={path}
               fill="none"
-              stroke={conn.color}
-              strokeWidth={2}
-              opacity={0.4}
-              filter={`url(#cable-glow-${conn.from.id})`}
+              stroke="rgba(0,0,0,0.4)"
+              strokeWidth={7}
+              strokeLinecap="round"
+              style={{ filter: 'blur(3px)' }}
             />
+            {/* Main cable — thick, colored, with glow */}
             <path
               d={path}
               fill="none"
               stroke={conn.color}
+              strokeWidth={4}
+              strokeLinecap="round"
+              style={{ filter: `drop-shadow(0 0 4px ${conn.color}80)` }}
+            />
+            {/* Cable highlight — thin white for 3D sheen */}
+            <path
+              d={path}
+              fill="none"
+              stroke="rgba(255,255,255,0.08)"
               strokeWidth={1.5}
-              opacity={0.6}
               strokeLinecap="round"
             />
           </g>
