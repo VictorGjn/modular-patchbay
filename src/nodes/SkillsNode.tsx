@@ -6,7 +6,7 @@ import { Tile } from '../components/Tile';
 import { JackPort } from '../components/JackPort';
 import { SkillIcon } from '../components/icons/SectionIcons';
 import { useTheme } from '../theme';
-import { Zap } from 'lucide-react';
+import { Zap, Check, X, Loader2, Download } from 'lucide-react';
 
 const getLinkedAgents = (skillId: string): string[] =>
   MOCK_AGENTS.filter((a) => a.linkedSkills?.includes(skillId)).map((a) => a.name);
@@ -15,6 +15,9 @@ export const SkillsNode = memo(function SkillsNode() {
   const skills = useConsoleStore((s) => s.skills);
   const toggleSkill = useConsoleStore((s) => s.toggleSkill);
   const setShowSkillPicker = useConsoleStore((s) => s.setShowSkillPicker);
+  const suggestedSkills = useConsoleStore((s) => s.suggestedSkills);
+  const acceptSuggestedSkill = useConsoleStore((s) => s.acceptSuggestedSkill);
+  const dismissSuggestedSkill = useConsoleStore((s) => s.dismissSuggestedSkill);
   const t = useTheme();
 
   const addedSkills = skills.filter((s) => s.added);
@@ -58,6 +61,89 @@ export const SkillsNode = memo(function SkillsNode() {
           })}
         </div>
       </div>
+
+      {/* Suggested skills ghost tiles */}
+      {suggestedSkills.length > 0 && (
+        <div className="px-4 pt-1 pb-2">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
+            <span className="text-[9px] tracking-wider uppercase" style={{ color: '#f1c40f', fontFamily: "'Space Mono', monospace" }}>Suggest</span>
+            <JackPort type="target" position={Position.Right} label="SUGGEST" color="#f1c40f" id="skills-feedback-in" />
+            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {suggestedSkills.map((skill) => (
+              <div
+                key={skill.id}
+                className="ghost-tile flex items-center gap-2 px-2.5 py-1.5 rounded-md nodrag"
+                style={{
+                  border: `1px dashed #f1c40f40`,
+                  background: t.isDark ? 'rgba(241,196,15,0.04)' : 'rgba(241,196,15,0.06)',
+                  animation: skill.installed ? 'none' : undefined,
+                  opacity: skill.installed ? 1 : undefined,
+                }}
+              >
+                <span
+                  className="flex-1 truncate text-[10px]"
+                  style={{ fontFamily: "'Inter', sans-serif", color: t.textSecondary }}
+                >
+                  {skill.name}
+                </span>
+                <span
+                  className="text-[8px] truncate"
+                  style={{ color: t.textDim, fontFamily: "'Space Mono', monospace", maxWidth: 90 }}
+                  title={skill.installCmd}
+                >
+                  {skill.installCmd}
+                </span>
+                {skill.installed ? (
+                  <span style={{ color: '#00ff88' }}><Check size={12} /></span>
+                ) : skill.installing ? (
+                  <span style={{ color: '#f1c40f', animation: 'pulse-glow 1s ease-in-out infinite' }}><Loader2 size={12} /></span>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => acceptSuggestedSkill(skill.id)}
+                      className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
+                      style={{
+                        height: 16,
+                        fontSize: 9,
+                        fontFamily: "'Space Mono', monospace",
+                        background: 'rgba(241,196,15,0.15)',
+                        color: '#f1c40f',
+                      }}
+                    >
+                      <Download size={8} /> Install
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => dismissSuggestedSkill(skill.id)}
+                      className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
+                      style={{
+                        height: 16,
+                        fontSize: 9,
+                        fontFamily: "'Space Mono', monospace",
+                        background: 'rgba(255,80,80,0.12)',
+                        color: '#ff5050',
+                      }}
+                    >
+                      <X size={8} />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Feedback input port (shown when no suggestions yet) */}
+      {suggestedSkills.length === 0 && (
+        <div className="px-4 py-1 flex justify-end">
+          <JackPort type="target" position={Position.Right} label="SUGGEST" color="#f1c40f" id="skills-feedback-in" />
+        </div>
+      )}
 
       {/* Add button */}
       <div className="px-4 pb-3 pt-1">

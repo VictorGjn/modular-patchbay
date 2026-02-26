@@ -5,7 +5,7 @@ import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/know
 import { ConnectorTile } from '../components/ConnectorTile';
 import { JackPort } from '../components/JackPort';
 import { useTheme } from '../theme';
-import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 
 const KNOWLEDGE_TYPE_ORDER: KnowledgeType[] = [
   'ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact',
@@ -20,6 +20,9 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
   const connectors = useConsoleStore((s) => s.connectors);
   const toggleConnector = useConsoleStore((s) => s.toggleConnector);
   const setShowConnectorPicker = useConsoleStore((s) => s.setShowConnectorPicker);
+  const pendingKnowledge = useConsoleStore((s) => s.pendingKnowledge);
+  const acceptPendingKnowledge = useConsoleStore((s) => s.acceptPendingKnowledge);
+  const dismissPendingKnowledge = useConsoleStore((s) => s.dismissPendingKnowledge);
   const t = useTheme();
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -217,6 +220,78 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Feedback ghost tiles */}
+      {pendingKnowledge.length > 0 && (
+        <div className="px-4 pt-1 pb-2">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
+            <span className="text-[9px] tracking-wider uppercase" style={{ color: '#00d4ff', fontFamily: "'Space Mono', monospace" }}>Feedback</span>
+            <JackPort type="target" position={Position.Right} label="FEEDBACK" color="#00d4ff" id="knowledge-feedback-in" />
+            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {pendingKnowledge.map((item) => (
+              <div
+                key={item.id}
+                className="ghost-tile flex items-center gap-2 px-2.5 py-1.5 rounded-md nodrag"
+                style={{
+                  border: `1px dashed #00d4ff40`,
+                  background: t.isDark ? 'rgba(0,212,255,0.04)' : 'rgba(0,212,255,0.06)',
+                }}
+              >
+                <span
+                  className="flex-1 truncate text-[10px]"
+                  style={{ fontFamily: "'Inter', sans-serif", color: t.textSecondary }}
+                >
+                  {item.name}
+                </span>
+                <span
+                  className="text-[8px] tracking-wide uppercase px-1 rounded"
+                  style={{ color: '#00d4ff', fontFamily: "'Space Mono', monospace", background: 'rgba(0,212,255,0.1)' }}
+                >
+                  {item.type}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => acceptPendingKnowledge(item.id)}
+                  className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
+                  style={{
+                    height: 16,
+                    fontSize: 9,
+                    fontFamily: "'Space Mono', monospace",
+                    background: 'rgba(0,255,136,0.12)',
+                    color: '#00ff88',
+                  }}
+                >
+                  <Check size={8} /> Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => dismissPendingKnowledge(item.id)}
+                  className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
+                  style={{
+                    height: 16,
+                    fontSize: 9,
+                    fontFamily: "'Space Mono', monospace",
+                    background: 'rgba(255,80,80,0.12)',
+                    color: '#ff5050',
+                  }}
+                >
+                  <X size={8} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Feedback input port (shown when no pending items yet) */}
+      {pendingKnowledge.length === 0 && (
+        <div className="px-4 py-1 flex justify-end">
+          <JackPort type="target" position={Position.Right} label="FEEDBACK" color="#00d4ff" id="knowledge-feedback-in" />
         </div>
       )}
 
