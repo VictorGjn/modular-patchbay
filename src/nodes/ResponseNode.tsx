@@ -69,25 +69,28 @@ export const ResponseNode = memo(function ResponseNode() {
   const activeChannels = channels.filter((c) => c.enabled);
 
   useEffect(() => {
-    if (mockResponse && mockResponse !== prevResponseRef.current) {
-      prevResponseRef.current = mockResponse;
+    if (!mockResponse) {
+      prevResponseRef.current = '';
       setDisplayedText('');
-      setIsTyping(true);
-      let idx = 0;
+      setIsTyping(false);
       if (typingRef.current) clearInterval(typingRef.current);
-      typingRef.current = setInterval(() => {
-        idx++;
-        if (idx >= mockResponse.length) {
-          setDisplayedText(mockResponse);
-          setIsTyping(false);
-          if (typingRef.current) clearInterval(typingRef.current);
-        } else {
-          setDisplayedText(mockResponse.slice(0, idx));
-        }
-      }, 12);
+      return;
+    }
+
+    if (running) {
+      // Streaming mode: show text directly as it arrives
+      setDisplayedText(mockResponse);
+      setIsTyping(true);
+      prevResponseRef.current = mockResponse;
+    } else if (mockResponse !== prevResponseRef.current) {
+      // Non-streaming update (e.g. final state): show immediately
+      prevResponseRef.current = mockResponse;
+      setDisplayedText(mockResponse);
+      setIsTyping(false);
+      if (typingRef.current) clearInterval(typingRef.current);
     }
     return () => { if (typingRef.current) clearInterval(typingRef.current); };
-  }, [mockResponse]);
+  }, [mockResponse, running]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(displayedText).then(() => {
@@ -158,11 +161,15 @@ export const ResponseNode = memo(function ResponseNode() {
           className="px-4 py-3 text-sm leading-relaxed overflow-y-auto nowheel"
           style={{ color: t.responseText, minHeight: 40, maxHeight: 240 }}
         >
-          {running ? (
+          {running && !displayedText ? (
             <span style={{ color: '#ffaa00' }}>Assembling context... patching signals... routing to model...</span>
           ) : displayedText ? (
             <>
-              {renderMarkdown(displayedText, t)}
+              {displayedText.startsWith('Error:') ? (
+                <span style={{ color: '#e74c3c' }}>{displayedText}</span>
+              ) : (
+                renderMarkdown(displayedText, t)
+              )}
               {isTyping && <span style={{ color: '#FE5000', animation: 'cursor-blink 0.8s step-end infinite' }}>|</span>}
             </>
           ) : (
