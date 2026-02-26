@@ -7,6 +7,7 @@ export interface ConsoleState {
   selectedModel: string;
   selectedPreset: string;
   outputFormat: OutputFormat;
+  outputFormats: OutputFormat[];
   tokenBudget: number;
   running: boolean;
   showFilePicker: boolean;
@@ -25,6 +26,7 @@ export interface ConsoleState {
   // Actions
   loadPreset: (presetId: string) => void;
   setOutputFormat: (format: OutputFormat) => void;
+  toggleOutputFormat: (format: OutputFormat) => void;
   cycleKnowledgeType: (sourceId: string) => void;
   addChannel: (channel: Omit<ChannelConfig, 'enabled'>) => void;
   removeChannel: (sourceId: string) => void;
@@ -62,6 +64,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   selectedModel: 'claude-opus-4',
   selectedPreset: '',
   outputFormat: 'markdown' as OutputFormat,
+  outputFormats: ['markdown'] as OutputFormat[],
   tokenBudget: 200000,
   running: false,
   showFilePicker: false,
@@ -86,7 +89,17 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     set({ channels, selectedPreset: presetId, mockResponse: '' });
   },
 
-  setOutputFormat: (format: OutputFormat) => set({ outputFormat: format }),
+  setOutputFormat: (format: OutputFormat) => set({ outputFormat: format, outputFormats: [format] }),
+
+  toggleOutputFormat: (format: OutputFormat) => {
+    const current = get().outputFormats;
+    const next = current.includes(format)
+      ? current.filter((f) => f !== format)
+      : [...current, format];
+    // Keep at least one format selected; primary is the first
+    if (next.length === 0) return;
+    set({ outputFormats: next, outputFormat: next[0] });
+  },
 
   cycleKnowledgeType: (sourceId: string) => {
     const types: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];

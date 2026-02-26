@@ -1,26 +1,31 @@
-import { type EdgeProps } from '@xyflow/react';
+import { type EdgeProps, getSmoothStepPath } from '@xyflow/react';
 
 export function PatchCable({
   sourceX,
   sourceY,
   targetX,
   targetY,
+  sourcePosition,
+  targetPosition,
   style,
 }: EdgeProps) {
   const color = (style?.stroke as string) ?? '#FE5000';
 
-  const dist = Math.hypot(targetX - sourceX, targetY - sourceY);
-  const sag = Math.min(dist * 0.12, 40);
-
-  const mx = (sourceX + targetX) / 2;
-  const my = (sourceY + targetY) / 2 + sag;
-  const sagPath = `M ${sourceX} ${sourceY} Q ${mx} ${my} ${targetX} ${targetY}`;
+  const [path] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    borderRadius: 12,
+  });
 
   return (
     <g>
       {/* Shadow */}
       <path
-        d={sagPath}
+        d={path}
         fill="none"
         stroke="rgba(0,0,0,0.4)"
         strokeWidth={7}
@@ -29,7 +34,7 @@ export function PatchCable({
       />
       {/* Main cable */}
       <path
-        d={sagPath}
+        d={path}
         fill="none"
         stroke={color}
         strokeWidth={4}
@@ -38,7 +43,7 @@ export function PatchCable({
       />
       {/* Highlight */}
       <path
-        d={sagPath}
+        d={path}
         fill="none"
         stroke="rgba(255,255,255,0.06)"
         strokeWidth={1.5}
