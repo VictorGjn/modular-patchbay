@@ -45,10 +45,7 @@ export default function App() {
       if (!text) return;
       const partial = importAgent(text);
       const store = useConsoleStore.getState();
-      if (partial.channels) {
-        store.clearChannels();
-        for (const ch of partial.channels) store.addChannel(ch);
-      }
+      if (partial.channels) { store.clearChannels(); for (const ch of partial.channels) store.addChannel(ch); }
       if (partial.selectedModel) store.setModel(partial.selectedModel);
       if (partial.outputFormat) store.setOutputFormat(partial.outputFormat);
       if (partial.prompt) store.setPrompt(partial.prompt);
@@ -92,44 +89,35 @@ export default function App() {
   return (
     <div className="w-full h-full flex flex-col" style={{ background: '#111114' }}>
       <input ref={importInputRef} type="file" accept=".md" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
-
       <Topbar onImportClick={handleImportClick} />
 
-      {/* CABLE LAYER */}
-      <CableLayer />
-
-      {/* HUB LAYOUT: sections around prompt */}
+      {/* HUB LAYOUT */}
       <div className="flex-1 overflow-hidden relative" style={{ zIndex: 1 }}>
+        <CableLayer />
         <div
-          className="h-full grid gap-3 p-4"
+          className="h-full p-4"
           style={{
-            gridTemplateColumns: '1fr 2fr 1fr',
+            display: 'grid',
+            gridTemplateAreas: `
+              "knowledge  center  mcp"
+              "skills     center  output"
+            `,
+            gridTemplateColumns: '260px 1fr 260px',
             gridTemplateRows: '1fr 1fr',
+            gap: 16,
             minHeight: 0,
           }}
         >
-          {/* TOP LEFT: Knowledge */}
-          <Section
-            title="Knowledge"
-            sectionId="knowledge"
-            count={activeChannels.length}
-            active={activeChannels.length > 0}
-            actionLabel="+ Add  ⌘K"
-            onAction={() => setShowFilePicker(true)}
-          >
-            {channels.length === 0 ? (
-              <div className="col-span-full flex items-center justify-center py-6">
-                <span className="text-xs" style={{ color: '#444' }}>No sources loaded</span>
-              </div>
-            ) : (
-              channels.map((ch) => {
+          {/* KNOWLEDGE — top left */}
+          <div style={{ gridArea: 'knowledge' }}>
+            <Section title="Knowledge" sectionId="knowledge" count={activeChannels.length} active={activeChannels.length > 0} actionLabel="+ Add  ⌘K" onAction={() => setShowFilePicker(true)}>
+              {channels.length === 0 ? (
+                <div className="col-span-full flex items-center justify-center py-6"><span className="text-xs" style={{ color: '#444' }}>No sources loaded</span></div>
+              ) : channels.map((ch) => {
                 const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
                 const eff = getEffectiveTokens(ch);
                 return (
-                  <Tile
-                    key={ch.sourceId}
-                    name={ch.name}
-                    active={ch.enabled}
+                  <Tile key={ch.sourceId} name={ch.name} active={ch.enabled}
                     icon={<span className="w-2 h-2 rounded-full inline-block" style={{ background: kt.color }} />}
                     subtitle={`${fmtTokens(eff)} · ${DEPTH_LEVELS[ch.depth].label}`}
                     colorStripe={kt.color}
@@ -137,97 +125,63 @@ export default function App() {
                     onDoubleClick={(e) => { if (e) handleTileDoubleClick(ch.sourceId, e); }}
                   />
                 );
-              })
-            )}
-          </Section>
+              })}
+            </Section>
+          </div>
 
-          {/* CENTER: Prompt + Response (spans 2 rows) */}
-          <div className="row-span-2 flex flex-col gap-3 min-h-0">
+          {/* CENTER — prompt + response */}
+          <div style={{ gridArea: 'center' }} className="flex flex-col gap-3 min-h-0">
             <PromptArea />
             <div className="flex-1 min-h-0 overflow-auto">
               <ResponseArea />
             </div>
           </div>
 
-          {/* TOP RIGHT: MCP */}
-          <Section
-            title="MCP"
-            sectionId="mcp"
-            count={addedMcps.filter((s) => s.enabled).length}
-            active={addedMcps.some((s) => s.enabled)}
-            actionLabel="+ Add"
-            onAction={() => setShowMcpPicker(true)}
-          >
-            {addedMcps.length === 0 ? (
-              <div className="col-span-full flex items-center justify-center py-6">
-                <span className="text-xs" style={{ color: '#444' }}>No servers added</span>
-              </div>
-            ) : (
-              addedMcps.map((server) => {
-                const statusColor = server.connected ? (server.enabled ? '#00ff88' : '#555') : '#ff3344';
-                return (
-                  <Tile
-                    key={server.id}
-                    name={server.name}
-                    active={server.enabled}
-                    icon={<McpIcon icon={server.icon} size={14} />}
-                    subtitle={server.connected ? 'connected' : 'offline'}
-                    statusColor={statusColor}
-                    onClick={() => toggleMcp(server.id)}
-                  />
-                );
-              })
-            )}
-          </Section>
+          {/* MCP — top right */}
+          <div style={{ gridArea: 'mcp' }}>
+            <Section title="MCP" sectionId="mcp" count={addedMcps.filter((s) => s.enabled).length} active={addedMcps.some((s) => s.enabled)} actionLabel="+ Add" onAction={() => setShowMcpPicker(true)}>
+              {addedMcps.length === 0 ? (
+                <div className="col-span-full flex items-center justify-center py-6"><span className="text-xs" style={{ color: '#444' }}>No servers added</span></div>
+              ) : addedMcps.map((server) => (
+                <Tile key={server.id} name={server.name} active={server.enabled}
+                  icon={<McpIcon icon={server.icon} size={14} />}
+                  subtitle={server.connected ? 'connected' : 'offline'}
+                  statusColor={server.connected ? (server.enabled ? '#00ff88' : '#555') : '#ff3344'}
+                  onClick={() => toggleMcp(server.id)}
+                />
+              ))}
+            </Section>
+          </div>
 
-          {/* BOTTOM LEFT: Skills */}
-          <Section
-            title="Skills"
-            sectionId="skills"
-            count={addedSkills.filter((s) => s.enabled).length}
-            active={addedSkills.some((s) => s.enabled)}
-            actionLabel="+ Add"
-            onAction={() => setShowSkillPicker(true)}
-          >
-            {addedSkills.length === 0 ? (
-              <div className="col-span-full flex items-center justify-center py-6">
-                <span className="text-xs" style={{ color: '#444' }}>No skills added</span>
-              </div>
-            ) : (
-              addedSkills.map((skill) => {
+          {/* SKILLS — bottom left */}
+          <div style={{ gridArea: 'skills' }}>
+            <Section title="Skills" sectionId="skills" count={addedSkills.filter((s) => s.enabled).length} active={addedSkills.some((s) => s.enabled)} actionLabel="+ Add" onAction={() => setShowSkillPicker(true)}>
+              {addedSkills.length === 0 ? (
+                <div className="col-span-full flex items-center justify-center py-6"><span className="text-xs" style={{ color: '#444' }}>No skills added</span></div>
+              ) : addedSkills.map((skill) => {
                 const linked = getLinkedAgents(skill.id);
                 return (
-                  <Tile
-                    key={skill.id}
-                    name={skill.name}
-                    active={skill.enabled}
+                  <Tile key={skill.id} name={skill.name} active={skill.enabled}
                     icon={<SkillIcon icon={skill.icon} size={14} />}
                     subtitle={linked.length > 0 ? `Used by: ${linked.join(', ')}` : skill.description}
                     onClick={() => toggleSkill(skill.id)}
                   />
                 );
-              })
-            )}
-          </Section>
+              })}
+            </Section>
+          </div>
 
-          {/* BOTTOM RIGHT: Output */}
-          <Section
-            title="Output"
-            sectionId="output"
-            count={1}
-            active={outputFormat !== 'markdown'}
-          >
-            {OUTPUT_FORMATS.map((fmt) => (
-              <Tile
-                key={fmt.id}
-                name={fmt.label}
-                active={outputFormat === fmt.id}
-                icon={<OutputIcon formatId={fmt.id} size={14} />}
-                radioMode
-                onClick={() => setOutputFormat(fmt.id as OutputFormat)}
-              />
-            ))}
-          </Section>
+          {/* OUTPUT — bottom right */}
+          <div style={{ gridArea: 'output' }}>
+            <Section title="Output" sectionId="output" count={1} active={outputFormat !== 'markdown'}>
+              {OUTPUT_FORMATS.map((fmt) => (
+                <Tile key={fmt.id} name={fmt.label} active={outputFormat === fmt.id}
+                  icon={<OutputIcon formatId={fmt.id} size={14} />}
+                  radioMode onClick={() => setOutputFormat(fmt.id as OutputFormat)}
+                />
+              ))}
+            </Section>
+          </div>
         </div>
       </div>
 
@@ -237,30 +191,17 @@ export default function App() {
       <McpPicker />
       <SkillPicker />
 
-      {/* Depth popup */}
       {depthPopup && (
-        <div
-          className="fixed z-50 rounded-lg py-1 px-1"
-          style={{
-            left: depthPopup.x,
-            top: depthPopup.y,
-            background: '#1c1c20',
-            border: '1px solid #2a2a30',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            animation: 'fade-in-up 0.15s ease',
-          }}
+        <div className="fixed z-50 rounded-lg py-1 px-1"
+          style={{ left: depthPopup.x, top: depthPopup.y, background: '#1c1c20', border: '1px solid #2a2a30', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', animation: 'fade-in-up 0.15s ease' }}
           onClick={(e) => e.stopPropagation()}
         >
           {DEPTH_LEVELS.map((level, i) => (
-            <button
-              key={level.label}
-              type="button"
+            <button key={level.label} type="button"
               className="block w-full text-left px-3 py-1.5 rounded-md text-xs cursor-pointer border-none hover-row"
               style={{ background: 'transparent', color: '#888' }}
               onClick={() => { setChannelDepth(depthPopup.sourceId, i); setDepthPopup(null); }}
-            >
-              {level.label} ({Math.round(level.pct * 100)}%)
-            </button>
+            >{level.label} ({Math.round(level.pct * 100)}%)</button>
           ))}
         </div>
       )}
