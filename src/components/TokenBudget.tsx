@@ -1,8 +1,10 @@
 import { useConsoleStore } from '../store/consoleStore';
+import { useTheme } from '../theme';
 
 export function TokenBudget() {
   const totalTokens = useConsoleStore((s) => s.totalTokens);
   const tokenBudget = useConsoleStore((s) => s.tokenBudget);
+  const t = useTheme();
   const total = totalTokens();
   const pct = Math.min((total / tokenBudget) * 100, 100);
 
@@ -13,16 +15,16 @@ export function TokenBudget() {
   return (
     <div
       className="w-full px-4 py-2 flex items-center gap-3 shrink-0 border-t"
-      style={{ background: '#1c1c20', borderColor: '#2a2a30' }}
+      style={{ background: t.surfaceOpaque, borderColor: t.border }}
     >
       <span
-        className="text-[10px] tracking-wider uppercase shrink-0"
-        style={{ fontFamily: "'Space Mono', monospace", color: '#555' }}
+        className="text-[10px] tracking-wider uppercase shrink-0 font-medium"
+        style={{ fontFamily: "'Space Mono', monospace", color: t.tokenLabel }}
       >
         Token Budget
       </span>
 
-      <div className="flex-1 h-[6px] rounded-full overflow-hidden" style={{ background: '#25252a' }}>
+      <div className="flex-1 h-[6px] rounded-full overflow-hidden" style={{ background: t.tokenTrackBg }}>
         <div
           className="h-full rounded-full transition-all duration-300"
           style={{
@@ -41,7 +43,7 @@ export function TokenBudget() {
       </span>
       <span
         className="text-[10px] shrink-0"
-        style={{ fontFamily: "'Space Mono', monospace", color: '#555' }}
+        style={{ fontFamily: "'Space Mono', monospace", color: t.tokenDivider }}
       >
         / {tokenBudget >= 1000 ? `${(tokenBudget / 1000).toFixed(0)}K` : tokenBudget}
       </span>

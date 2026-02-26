@@ -1,7 +1,9 @@
 import { useConsoleStore } from '../store/consoleStore';
+import { useThemeStore } from '../store/themeStore';
+import { useTheme } from '../theme';
 import { PRESETS, OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
-import { Download, Upload, Trash2, Play } from 'lucide-react';
+import { Download, Upload, Trash2, Play, Sun, Moon } from 'lucide-react';
 import { OutputIcon } from './icons/SectionIcons';
 
 const MODELS = [
@@ -12,7 +14,7 @@ const MODELS = [
   { id: 'gpt-4.1', name: 'GPT-4.1' },
 ];
 
-function TopbarSelect({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) {
+function TopbarSelect({ value, onChange, children, t }: { value: string; onChange: (v: string) => void; children: React.ReactNode; t: ReturnType<typeof useTheme> }) {
   return (
     <select
       value={value}
@@ -20,10 +22,10 @@ function TopbarSelect({ value, onChange, children }: { value: string; onChange: 
       className="appearance-none cursor-pointer outline-none text-xs py-1.5 pl-3 pr-7 rounded-lg"
       style={{
         fontFamily: "'Inter', sans-serif",
-        background: '#1c1c20',
-        border: '1px solid #2a2a30',
-        color: '#888',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M0 2l4 4 4-4' fill='none' stroke='%23555' stroke-width='1.5'/%3E%3C/svg%3E")`,
+        background: t.surfaceOpaque,
+        border: `1px solid ${t.border}`,
+        color: t.textSecondary,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M0 2l4 4 4-4' fill='none' stroke='%23${t.isDark ? '555' : '999'}' stroke-width='1.5'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'right 8px center',
       }}
@@ -46,6 +48,8 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
   const channels = useConsoleStore((s) => s.channels);
   const prompt = useConsoleStore((s) => s.prompt);
   const tokenBudget = useConsoleStore((s) => s.tokenBudget);
+  const toggleTheme = useThemeStore((s) => s.toggleTheme);
+  const t = useTheme();
 
   const handleExport = () => {
     const content = exportAsAgent({ channels, selectedModel, outputFormat, prompt, tokenBudget });
@@ -59,9 +63,9 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
     <div
       className="flex items-center h-[48px] px-4 gap-3 shrink-0 border-b select-none"
       style={{
-        background: 'rgba(28, 28, 32, 0.9)',
+        background: t.surface,
         backdropFilter: 'blur(12px)',
-        borderColor: '#2a2a30',
+        borderColor: t.border,
       }}
     >
       {/* Logo */}
@@ -72,21 +76,21 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
         />
         <span
           className="text-sm font-bold tracking-[3px] uppercase"
-          style={{ fontFamily: "'Space Mono', monospace", color: '#f0f0f0' }}
+          style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}
         >
           MODULAR
         </span>
       </div>
 
       {/* Model selector */}
-      <TopbarSelect value={selectedModel} onChange={setModel}>
+      <TopbarSelect value={selectedModel} onChange={setModel} t={t}>
         {MODELS.map((m) => (
           <option key={m.id} value={m.id}>{m.name}</option>
         ))}
       </TopbarSelect>
 
       {/* Preset selector */}
-      <TopbarSelect value={selectedPreset} onChange={loadPreset}>
+      <TopbarSelect value={selectedPreset} onChange={loadPreset} t={t}>
         <option value="">-- Preset --</option>
         {PRESETS.map((p) => (
           <option key={p.id} value={p.id}>{p.name}</option>
@@ -94,7 +98,7 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
       </TopbarSelect>
 
       {/* Output format selector */}
-      <TopbarSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)}>
+      <TopbarSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)} t={t}>
         {OUTPUT_FORMATS.map((f) => (
           <option key={f.id} value={f.id}>{f.label}</option>
         ))}
@@ -117,12 +121,23 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
 
       <div className="flex-1" />
 
+      {/* Theme toggle */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        style={{ color: t.textDim }}
+        aria-label={t.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      >
+        {t.isDark ? <Sun size={14} /> : <Moon size={14} />}
+      </button>
+
       {/* Import */}
       <button
         type="button"
         onClick={onImportClick}
         className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
-        style={{ color: '#555' }}
+        style={{ color: t.textDim }}
         aria-label="Import agent definition"
       >
         <Upload size={14} />
@@ -133,7 +148,7 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
         type="button"
         onClick={handleExport}
         className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
-        style={{ color: '#555' }}
+        style={{ color: t.textDim }}
         aria-label="Export as agent definition"
       >
         <Download size={14} />
@@ -144,7 +159,7 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
         type="button"
         onClick={clearChannels}
         className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
-        style={{ color: '#555' }}
+        style={{ color: t.textDim }}
         aria-label="Clear all channels"
       >
         <Trash2 size={14} />

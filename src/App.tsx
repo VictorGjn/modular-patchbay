@@ -21,6 +21,7 @@ import { McpPicker } from './components/McpPicker';
 import { SkillPicker } from './components/SkillPicker';
 import { AgentPreview } from './components/AgentPreview';
 import { useConsoleStore } from './store/consoleStore';
+import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
 
 import { PromptNode } from './nodes/PromptNode';
@@ -67,6 +68,7 @@ const initialEdges: Edge[] = [
 export default function App() {
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const t = useTheme();
 
   const showFilePicker = useConsoleStore((s) => s.showFilePicker);
   const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
@@ -116,11 +118,11 @@ export default function App() {
   }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, run, running]);
 
   const minimapStyle = useMemo(() => ({
-    backgroundColor: '#111114',
-  }), []);
+    backgroundColor: t.minimapBg,
+  }), [t.minimapBg]);
 
   return (
-    <div className="w-full h-full flex flex-col" style={{ background: '#111114' }}>
+    <div className="w-full h-full flex flex-col" style={{ background: t.bg }}>
       <input ref={importInputRef} type="file" accept=".md" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
       <Topbar onImportClick={handleImportClick} />
 
@@ -137,19 +139,19 @@ export default function App() {
           fitView
           fitViewOptions={{ padding: 0.15 }}
           defaultEdgeOptions={{ type: 'patch' }}
-          style={{ background: '#111114' }}
+          style={{ background: t.bg }}
           proOptions={{ hideAttribution: true }}
         >
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#222228" />
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={t.dotGrid} />
           <Controls
             position="bottom-left"
-            style={{ background: '#1c1c20', border: '1px solid #2a2a30', borderRadius: 8 }}
+            style={{ background: t.controlsBg, border: `1px solid ${t.controlsBorder}`, borderRadius: 8 }}
           />
           <MiniMap
             position="bottom-right"
             style={minimapStyle}
-            maskColor="rgba(17,17,20,0.8)"
-            nodeColor="#25252a"
+            maskColor={t.minimapMask}
+            nodeColor={t.minimapNode}
             nodeBorderRadius={8}
           />
         </ReactFlow>

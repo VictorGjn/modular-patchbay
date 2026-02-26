@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
 import { exportAsAgent } from '../utils/agentExport';
+import { useTheme } from '../theme';
 
 export function AgentPreview() {
   const [expanded, setExpanded] = useState(false);
@@ -9,6 +10,7 @@ export function AgentPreview() {
   const outputFormat = useConsoleStore((s) => s.outputFormat);
   const prompt = useConsoleStore((s) => s.prompt);
   const tokenBudget = useConsoleStore((s) => s.tokenBudget);
+  const t = useTheme();
 
   const preview = useMemo(() => {
     return exportAsAgent({ channels, selectedModel, outputFormat, prompt, tokenBudget });
@@ -23,8 +25,8 @@ export function AgentPreview() {
       <div
         className="rounded-md overflow-hidden"
         style={{
-          background: '#151210',
-          border: '1px solid #2d2720',
+          background: t.agentBg,
+          border: `1px solid ${t.agentBorder}`,
         }}
       >
         {/* Toggle header */}
@@ -35,21 +37,21 @@ export function AgentPreview() {
           aria-label={expanded ? 'Collapse agent definition' : 'Expand agent definition'}
         >
           <span
-            className="text-[8px] tracking-[2px] uppercase"
-            style={{ fontFamily: "'Space Mono', monospace", color: '#5a4e42' }}
+            className="text-[9px] tracking-[2px] uppercase font-medium"
+            style={{ fontFamily: "'Space Mono', monospace", color: t.agentLabel }}
           >
             AGENT DEFINITION
           </span>
           <div className="flex-1" />
           <span
-            className="text-[8px]"
-            style={{ fontFamily: "'Space Mono', monospace", color: '#3d3730' }}
+            className="text-[9px]"
+            style={{ fontFamily: "'Space Mono', monospace", color: t.agentMeta }}
           >
             {lines.length} lines
           </span>
           <span
             className="text-[9px]"
-            style={{ fontFamily: "'Space Mono', monospace", color: '#3d3730' }}
+            style={{ fontFamily: "'Space Mono', monospace", color: t.agentArrow }}
           >
             {expanded ? '▲' : '▼'}
           </span>
@@ -65,22 +67,22 @@ export function AgentPreview() {
               className="text-[10px] leading-[1.5]"
               style={{
                 fontFamily: "'Space Mono', monospace",
-                color: '#8a7e72',
+                color: t.agentText,
                 margin: 0,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
               }}
             >
               {displayLines.map((line, i) => {
-                let color = '#8a7e72';
+                let color = t.agentText;
                 if (line === '---') color = '#FE5000';
-                else if (line.startsWith('#')) color = '#e8e0d8';
+                else if (line.startsWith('#')) color = t.textPrimary;
                 else if (line.match(/^\w[\w-]*:/)) color = '#3498db';
                 else if (line.match(/^\s+\w[\w-]*:/)) color = '#2ecc71';
-                else if (line.startsWith('- ')) color = '#b5a898';
+                else if (line.startsWith('- ')) color = t.textSecondary;
                 return (
                   <div key={i}>
-                    <span style={{ color: '#2d2720', userSelect: 'none', display: 'inline-block', width: 28, textAlign: 'right', marginRight: 8, fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ color: t.agentLineNum, userSelect: 'none', display: 'inline-block', width: 28, textAlign: 'right', marginRight: 8, fontVariantNumeric: 'tabular-nums' }}>
                       {i + 1}
                     </span>
                     <span style={{ color }}>{line}</span>
@@ -88,7 +90,7 @@ export function AgentPreview() {
                 );
               })}
               {!expanded && hasMore && (
-                <div style={{ color: '#3d3730', paddingLeft: 36 }}>
+                <div style={{ color: t.agentMeta, paddingLeft: 36 }}>
                   ... {lines.length - 20} more lines
                 </div>
               )}
