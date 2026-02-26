@@ -71,6 +71,18 @@
   100% { stroke-dashoffset: 0; }
 }
 
+/* Ghost tile pulse for feedback items */
+@keyframes ghost-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.02); opacity: 0.75; }
+}
+
+.ghost-tile {
+  border-style: dashed !important;
+  opacity: 0.6;
+  animation: ghost-pulse 2s ease-in-out infinite;
+}
+
 /* Gradient mesh background - subtle */
 .gradient-mesh-bg {
   position: relative;

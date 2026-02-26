@@ -36,6 +36,7 @@ import { OutputNode } from './nodes/OutputNode';
 import { ResponseNode } from './nodes/ResponseNode';
 import { AgentNode } from './nodes/AgentNode';
 import { PatchCable } from './edges/PatchCable';
+import { FeedbackEdge } from './edges/FeedbackEdge';
 
 const nodeTypes = {
   prompt: PromptNode,
@@ -49,6 +50,7 @@ const nodeTypes = {
 
 const edgeTypes = {
   patch: PatchCable,
+  feedback: FeedbackEdge,
 };
 
 const initialNodes: Node[] = [
@@ -75,6 +77,9 @@ const initialEdges: Edge[] = [
   // Agent -> Output/Response
   { id: 'e-agent-output', source: 'agent', target: 'output', sourceHandle: 'agent-out', targetHandle: 'output-in', type: 'patch', style: { stroke: '#FE5000' } },
   { id: 'e-agent-response', source: 'agent', target: 'response', sourceHandle: 'agent-out', targetHandle: 'response-in', type: 'patch', style: { stroke: '#FE5000' } },
+  // Feedback edges (agent → knowledge/skills)
+  { id: 'e-agent-knowledge-fb', source: 'agent', target: 'knowledge', sourceHandle: 'agent-knowledge-out', targetHandle: 'knowledge-feedback-in', type: 'feedback', data: { variant: 'knowledge' } },
+  { id: 'e-agent-skills-fb', source: 'agent', target: 'skills', sourceHandle: 'agent-skills-out', targetHandle: 'skills-feedback-in', type: 'feedback', data: { variant: 'skills' } },
 ];
 
 export default function App() {

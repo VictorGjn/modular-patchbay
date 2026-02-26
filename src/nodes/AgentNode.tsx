@@ -241,6 +241,21 @@ export const AgentNode = memo(function AgentNode() {
           />
         </div>
       </div>
+
+      {/* Feedback output handles */}
+      <div
+        className="flex items-center gap-3 px-4 py-2"
+        style={{ borderTop: `1px solid ${t.borderSubtle}` }}
+      >
+        <JackPort type="source" position={Position.Left} label="KB OUT" color="#00d4ff" id="agent-knowledge-out" />
+        <JackPort type="source" position={Position.Left} label="SKILL OUT" color="#f1c40f" id="agent-skills-out" />
+        <span
+          className="ml-auto text-[8px] tracking-wide uppercase"
+          style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}
+        >
+          feedback
+        </span>
+      </div>
     </div>
   );
 });
