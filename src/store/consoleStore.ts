@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG, type Connector, MOCK_CONNECTORS } from './knowledgeBase';
+import { REGISTRY_SKILLS, REGISTRY_MCP_SERVERS, type RegistrySkill, type RegistryMcp, type Runtime, type InstallScope } from './registry';
 import { streamCompletion } from '../services/llmService';
 import { assembleContext } from '../services/contextAssembler';
 import { getStoredApiKey, getStoredBaseUrl, getStoredModelOverride } from '../components/SettingsModal';
@@ -25,7 +26,13 @@ export interface ConsoleState {
   showSkillPicker: boolean;
   showSaveModal: boolean;
   showConnectorPicker: boolean;
+  showMarketplace: boolean;
+  activeMarketplaceTab: 'skills' | 'mcp' | 'presets';
   mockResponse: string;
+
+  // Marketplace registry
+  registrySkills: RegistrySkill[];
+  registryMcpServers: RegistryMcp[];
 
   // Agent configuration
   agentConfig: AgentConfig;
@@ -59,6 +66,7 @@ export interface ConsoleState {
   setShowSkillPicker: (show: boolean) => void;
   setShowSaveModal: (show: boolean) => void;
   setShowConnectorPicker: (show: boolean) => void;
+  setShowMarketplace: (show: boolean, tab?: 'skills' | 'mcp' | 'presets') => void;
   setAgentMeta: (meta: Partial<AgentMeta>) => void;
   setChannelKnowledgeType: (sourceId: string, typeIndex: number) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
@@ -84,6 +92,10 @@ export interface ConsoleState {
   toggleConnector: (id: string) => void;
   addConnector: (connector: Connector) => void;
   removeConnector: (id: string) => void;
+
+  // Marketplace actions
+  installRegistrySkill: (id: string, target: Runtime | 'all', scope: InstallScope) => void;
+  installRegistryMcp: (id: string) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -106,7 +118,11 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   showSkillPicker: false,
   showSaveModal: false,
   showConnectorPicker: false,
+  showMarketplace: false,
+  activeMarketplaceTab: 'skills' as const,
   mockResponse: '',
+  registrySkills: REGISTRY_SKILLS.map((s) => ({ ...s })),
+  registryMcpServers: REGISTRY_MCP_SERVERS.map((s) => ({ ...s })),
   agentConfig: { ...DEFAULT_AGENT_CONFIG },
   agentMeta: { name: '', description: '', icon: 'brain', category: 'general' },
   mcpServers: MOCK_MCP_SERVERS.map((s) => ({ ...s })),
@@ -189,6 +205,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setShowSkillPicker: (show: boolean) => set({ showSkillPicker: show }),
   setShowSaveModal: (show: boolean) => set({ showSaveModal: show }),
   setShowConnectorPicker: (show: boolean) => set({ showConnectorPicker: show }),
+  setShowMarketplace: (show: boolean, tab?: 'skills' | 'mcp' | 'presets') => set({ showMarketplace: show, ...(tab ? { activeMarketplaceTab: tab } : {}) }),
   setAgentMeta: (meta: Partial<AgentMeta>) => set({ agentMeta: { ...get().agentMeta, ...meta } }),
 
   setChannelKnowledgeType: (sourceId: string, typeIndex: number) => {
@@ -349,6 +366,22 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
 
   removeConnector: (id: string) => {
     set({ connectors: get().connectors.filter((c) => c.id !== id) });
+  },
+
+  installRegistrySkill: (id: string, target: Runtime | 'all', scope: InstallScope) => {
+    set({
+      registrySkills: get().registrySkills.map((s) =>
+        s.id === id ? { ...s, installed: true, installedTarget: target, installedScope: scope } : s,
+      ),
+    });
+  },
+
+  installRegistryMcp: (id: string) => {
+    set({
+      registryMcpServers: get().registryMcpServers.map((s) =>
+        s.id === id ? { ...s, installed: true, configured: true } : s,
+      ),
+    });
   },
 }));
 

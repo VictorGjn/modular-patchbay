@@ -10,7 +10,7 @@ import { Plug } from 'lucide-react';
 export const McpNode = memo(function McpNode() {
   const mcpServers = useConsoleStore((s) => s.mcpServers);
   const toggleMcp = useConsoleStore((s) => s.toggleMcp);
-  const setShowMcpPicker = useConsoleStore((s) => s.setShowMcpPicker);
+  const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
   const t = useTheme();
 
   const addedMcps = mcpServers.filter((s) => s.added);
@@ -57,7 +57,7 @@ export const McpNode = memo(function McpNode() {
       <div className="px-4 pb-3 pt-1">
         <button
           type="button"
-          onClick={() => setShowMcpPicker(true)}
+          onClick={() => setShowMarketplace(true, 'mcp')}
           className="w-full py-1.5 rounded-lg text-xs tracking-wide uppercase cursor-pointer transition-colors nodrag"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
