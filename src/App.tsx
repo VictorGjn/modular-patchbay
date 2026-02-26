@@ -1,38 +1,79 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useMemo } from 'react';
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  type Connection,
+  type Node,
+  type Edge,
+  BackgroundVariant,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+
 import { Topbar } from './components/Topbar';
-import { PromptArea } from './components/PromptArea';
 import { TokenBudget } from './components/TokenBudget';
 import { FilePicker } from './components/FilePicker';
 import { McpPicker } from './components/McpPicker';
 import { SkillPicker } from './components/SkillPicker';
-import { ResponseArea } from './components/ResponseArea';
-import { CableLayer } from './components/CableLayer';
 import { AgentPreview } from './components/AgentPreview';
-import { Section } from './components/Section';
-import { Tile } from './components/Tile';
-import { useConsoleStore, getEffectiveTokens } from './store/consoleStore';
-import { KNOWLEDGE_TYPES, DEPTH_LEVELS, OUTPUT_FORMATS, MOCK_AGENTS, type OutputFormat } from './store/knowledgeBase';
+import { useConsoleStore } from './store/consoleStore';
 import { importAgent } from './utils/agentImport';
-import { McpIcon, SkillIcon, OutputIcon } from './components/icons/SectionIcons';
+
+import { PromptNode } from './nodes/PromptNode';
+import { KnowledgeNode } from './nodes/KnowledgeNode';
+import { McpNode } from './nodes/McpNode';
+import { SkillsNode } from './nodes/SkillsNode';
+import { OutputNode } from './nodes/OutputNode';
+import { ResponseNode } from './nodes/ResponseNode';
+import { PatchCable } from './edges/PatchCable';
+
+const nodeTypes = {
+  prompt: PromptNode,
+  knowledge: KnowledgeNode,
+  mcp: McpNode,
+  skills: SkillsNode,
+  output: OutputNode,
+  response: ResponseNode,
+};
+
+const edgeTypes = {
+  patch: PatchCable,
+};
+
+const initialNodes: Node[] = [
+  // Left column
+  { id: 'knowledge', type: 'knowledge', position: { x: 50, y: 60 }, data: {} },
+  { id: 'skills', type: 'skills', position: { x: 50, y: 340 }, data: {} },
+  { id: 'mcp', type: 'mcp', position: { x: 50, y: 620 }, data: {} },
+  // Center
+  { id: 'prompt', type: 'prompt', position: { x: 400, y: 120 }, data: {} },
+  // Right column
+  { id: 'output', type: 'output', position: { x: 900, y: 60 }, data: {} },
+  { id: 'response', type: 'response', position: { x: 900, y: 380 }, data: {} },
+];
+
+const initialEdges: Edge[] = [
+  { id: 'e-knowledge-prompt', source: 'knowledge', target: 'prompt', sourceHandle: 'knowledge-out', targetHandle: 'prompt-in', type: 'patch', style: { stroke: '#3498db' } },
+  { id: 'e-skills-prompt', source: 'skills', target: 'prompt', sourceHandle: 'skills-out', targetHandle: 'prompt-in', type: 'patch', style: { stroke: '#f1c40f' } },
+  { id: 'e-mcp-prompt', source: 'mcp', target: 'prompt', sourceHandle: 'mcp-out', targetHandle: 'prompt-in', type: 'patch', style: { stroke: '#2ecc71' } },
+  { id: 'e-prompt-output', source: 'prompt', target: 'output', sourceHandle: 'prompt-out', targetHandle: 'output-in', type: 'patch', style: { stroke: '#FE5000' } },
+  { id: 'e-prompt-response', source: 'prompt', target: 'response', sourceHandle: 'prompt-out', targetHandle: 'response-in', type: 'patch', style: { stroke: '#FE5000' } },
+];
 
 export default function App() {
-  const channels = useConsoleStore((s) => s.channels);
-  const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
   const showFilePicker = useConsoleStore((s) => s.showFilePicker);
+  const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
   const setShowMcpPicker = useConsoleStore((s) => s.setShowMcpPicker);
   const setShowSkillPicker = useConsoleStore((s) => s.setShowSkillPicker);
   const run = useConsoleStore((s) => s.run);
   const running = useConsoleStore((s) => s.running);
-  const toggleChannel = useConsoleStore((s) => s.toggleChannel);
-  const outputFormat = useConsoleStore((s) => s.outputFormat);
-  const setOutputFormat = useConsoleStore((s) => s.setOutputFormat);
-  const mcpServers = useConsoleStore((s) => s.mcpServers);
-  const skills = useConsoleStore((s) => s.skills);
-  const toggleMcp = useConsoleStore((s) => s.toggleMcp);
-  const toggleSkill = useConsoleStore((s) => s.toggleSkill);
-
-  const [depthPopup, setDepthPopup] = useState<{ sourceId: string; x: number; y: number } | null>(null);
-  const setChannelDepth = useConsoleStore((s) => s.setChannelDepth);
 
   const importInputRef = useRef<HTMLInputElement>(null);
   const handleImportClick = useCallback(() => importInputRef.current?.click(), []);
@@ -55,134 +96,63 @@ export default function App() {
     e.target.value = '';
   }, []);
 
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      setEdges((eds) =>
+        addEdge({ ...connection, type: 'patch', style: { stroke: '#FE5000' } }, eds),
+      );
+    },
+    [setEdges],
+  );
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setShowFilePicker(!showFilePicker); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (!running) run(); }
-      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); setDepthPopup(null); }
+      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, run, running]);
 
-  useEffect(() => {
-    if (!depthPopup) return;
-    const handler = () => setDepthPopup(null);
-    window.addEventListener('click', handler);
-    return () => window.removeEventListener('click', handler);
-  }, [depthPopup]);
-
-  const activeChannels = channels.filter((c) => c.enabled);
-  const addedMcps = mcpServers.filter((s) => s.added);
-  const addedSkills = skills.filter((s) => s.added);
-
-  const handleTileDoubleClick = (sourceId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    setDepthPopup({ sourceId, x: rect.left, y: rect.bottom + 4 });
-  };
-
-  const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
-  const getLinkedAgents = (skillId: string): string[] =>
-    MOCK_AGENTS.filter((a) => a.linkedSkills?.includes(skillId)).map((a) => a.name);
+  const minimapStyle = useMemo(() => ({
+    backgroundColor: '#111114',
+  }), []);
 
   return (
     <div className="w-full h-full flex flex-col" style={{ background: '#111114' }}>
       <input ref={importInputRef} type="file" accept=".md" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
       <Topbar onImportClick={handleImportClick} />
 
-      {/* HUB LAYOUT */}
-      <div className="flex-1 overflow-hidden relative" style={{ zIndex: 1 }}>
-        <CableLayer />
-        <div
-          className="h-full p-4"
-          style={{
-            display: 'grid',
-            gridTemplateAreas: `
-              "knowledge  center  mcp"
-              "skills     center  output"
-            `,
-            gridTemplateColumns: '260px 1fr 260px',
-            gridTemplateRows: '1fr 1fr',
-            gap: 16,
-            minHeight: 0,
-          }}
+      {/* React Flow Canvas */}
+      <div className="flex-1 overflow-hidden relative">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.15 }}
+          defaultEdgeOptions={{ type: 'patch' }}
+          style={{ background: '#111114' }}
+          proOptions={{ hideAttribution: true }}
         >
-          {/* KNOWLEDGE — top left */}
-          <div style={{ gridArea: 'knowledge' }}>
-            <Section title="Knowledge" sectionId="knowledge" count={activeChannels.length} active={activeChannels.length > 0} actionLabel="+ Add  ⌘K" onAction={() => setShowFilePicker(true)}>
-              {channels.length === 0 ? (
-                <div className="col-span-full flex items-center justify-center py-6"><span className="text-xs" style={{ color: '#444' }}>No sources loaded</span></div>
-              ) : channels.map((ch) => {
-                const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
-                const eff = getEffectiveTokens(ch);
-                return (
-                  <Tile key={ch.sourceId} name={ch.name} active={ch.enabled}
-                    icon={<span className="w-2 h-2 rounded-full inline-block" style={{ background: kt.color }} />}
-                    subtitle={`${fmtTokens(eff)} · ${DEPTH_LEVELS[ch.depth].label}`}
-                    colorStripe={kt.color}
-                    onClick={() => toggleChannel(ch.sourceId)}
-                    onDoubleClick={(e) => { if (e) handleTileDoubleClick(ch.sourceId, e); }}
-                  />
-                );
-              })}
-            </Section>
-          </div>
-
-          {/* CENTER — prompt + response */}
-          <div style={{ gridArea: 'center' }} className="flex flex-col gap-3 min-h-0">
-            <PromptArea />
-            <div className="flex-1 min-h-0 overflow-auto">
-              <ResponseArea />
-            </div>
-          </div>
-
-          {/* MCP — top right */}
-          <div style={{ gridArea: 'mcp' }}>
-            <Section title="MCP" sectionId="mcp" count={addedMcps.filter((s) => s.enabled).length} active={addedMcps.some((s) => s.enabled)} actionLabel="+ Add" onAction={() => setShowMcpPicker(true)}>
-              {addedMcps.length === 0 ? (
-                <div className="col-span-full flex items-center justify-center py-6"><span className="text-xs" style={{ color: '#444' }}>No servers added</span></div>
-              ) : addedMcps.map((server) => (
-                <Tile key={server.id} name={server.name} active={server.enabled}
-                  icon={<McpIcon icon={server.icon} size={14} />}
-                  subtitle={server.connected ? 'connected' : 'offline'}
-                  statusColor={server.connected ? (server.enabled ? '#00ff88' : '#555') : '#ff3344'}
-                  onClick={() => toggleMcp(server.id)}
-                />
-              ))}
-            </Section>
-          </div>
-
-          {/* SKILLS — bottom left */}
-          <div style={{ gridArea: 'skills' }}>
-            <Section title="Skills" sectionId="skills" count={addedSkills.filter((s) => s.enabled).length} active={addedSkills.some((s) => s.enabled)} actionLabel="+ Add" onAction={() => setShowSkillPicker(true)}>
-              {addedSkills.length === 0 ? (
-                <div className="col-span-full flex items-center justify-center py-6"><span className="text-xs" style={{ color: '#444' }}>No skills added</span></div>
-              ) : addedSkills.map((skill) => {
-                const linked = getLinkedAgents(skill.id);
-                return (
-                  <Tile key={skill.id} name={skill.name} active={skill.enabled}
-                    icon={<SkillIcon icon={skill.icon} size={14} />}
-                    subtitle={linked.length > 0 ? `Used by: ${linked.join(', ')}` : skill.description}
-                    onClick={() => toggleSkill(skill.id)}
-                  />
-                );
-              })}
-            </Section>
-          </div>
-
-          {/* OUTPUT — bottom right */}
-          <div style={{ gridArea: 'output' }}>
-            <Section title="Output" sectionId="output" count={1} active={outputFormat !== 'markdown'}>
-              {OUTPUT_FORMATS.map((fmt) => (
-                <Tile key={fmt.id} name={fmt.label} active={outputFormat === fmt.id}
-                  icon={<OutputIcon formatId={fmt.id} size={14} />}
-                  radioMode onClick={() => setOutputFormat(fmt.id as OutputFormat)}
-                />
-              ))}
-            </Section>
-          </div>
-        </div>
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#222228" />
+          <Controls
+            position="bottom-left"
+            style={{ background: '#1c1c20', border: '1px solid #2a2a30', borderRadius: 8 }}
+          />
+          <MiniMap
+            position="bottom-right"
+            style={minimapStyle}
+            maskColor="rgba(17,17,20,0.8)"
+            nodeColor="#25252a"
+            nodeBorderRadius={8}
+          />
+        </ReactFlow>
       </div>
 
       <AgentPreview />
@@ -190,21 +160,6 @@ export default function App() {
       <FilePicker />
       <McpPicker />
       <SkillPicker />
-
-      {depthPopup && (
-        <div className="fixed z-50 rounded-lg py-1 px-1"
-          style={{ left: depthPopup.x, top: depthPopup.y, background: '#1c1c20', border: '1px solid #2a2a30', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', animation: 'fade-in-up 0.15s ease' }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {DEPTH_LEVELS.map((level, i) => (
-            <button key={level.label} type="button"
-              className="block w-full text-left px-3 py-1.5 rounded-md text-xs cursor-pointer border-none hover-row"
-              style={{ background: 'transparent', color: '#888' }}
-              onClick={() => { setChannelDepth(depthPopup.sourceId, i); setDepthPopup(null); }}
-            >{level.label} ({Math.round(level.pct * 100)}%)</button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
