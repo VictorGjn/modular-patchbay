@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, KNOWLEDGE_TYPES, type OutputFormat, type KnowledgeType, detectOutputFormat } from './knowledgeBase';
+import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, KNOWLEDGE_TYPES, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS } from './knowledgeBase';
 
 export interface ConsoleState {
   channels: ChannelConfig[];
@@ -11,6 +11,11 @@ export interface ConsoleState {
   running: boolean;
   showFilePicker: boolean;
   mockResponse: string;
+
+  // New section data
+  mcpServers: McpServer[];
+  skills: Skill[];
+  agents: AgentDef[];
 
   // Computed
   totalTokens: () => number;
@@ -30,6 +35,11 @@ export interface ConsoleState {
   reorderChannels: (fromIndex: number, toIndex: number) => void;
   run: () => void;
   clearChannels: () => void;
+
+  // New actions
+  toggleMcp: (id: string) => void;
+  toggleSkill: (id: string) => void;
+  loadAgent: (id: string) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -48,6 +58,9 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   running: false,
   showFilePicker: false,
   mockResponse: '',
+  mcpServers: MOCK_MCP_SERVERS.map((s) => ({ ...s })),
+  skills: MOCK_SKILLS.map((s) => ({ ...s })),
+  agents: MOCK_AGENTS.map((a) => ({ ...a })),
 
   totalTokens: () => {
     const { channels, prompt } = get();
@@ -135,6 +148,37 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   },
 
   clearChannels: () => set({ channels: [], selectedPreset: '', mockResponse: '' }),
+
+  toggleMcp: (id: string) => {
+    set({
+      mcpServers: get().mcpServers.map((s) =>
+        s.id === id ? { ...s, enabled: !s.enabled } : s,
+      ),
+    });
+  },
+
+  toggleSkill: (id: string) => {
+    set({
+      skills: get().skills.map((s) =>
+        s.id === id ? { ...s, enabled: !s.enabled } : s,
+      ),
+    });
+  },
+
+  loadAgent: (id: string) => {
+    const agent = get().agents.find((a) => a.id === id);
+    if (!agent) return;
+    // Find matching preset by agent name
+    const presetMap: Record<string, string> = {
+      'agent-senior-pm': 'senior-pm',
+      'agent-feedback-mgr': 'feedback-manager',
+      'agent-company-intel': 'company-intel',
+    };
+    const presetId = presetMap[id];
+    if (presetId) {
+      get().loadPreset(presetId);
+    }
+  },
 }));
 
 export { getEffectiveTokens };
