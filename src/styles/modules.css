@@ -201,6 +201,37 @@
   transform: translateY(0);
 }
 
+/* === HOVER UTILITY CLASSES === */
+
+.hover-accent-border {
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.hover-accent-border:hover {
+  border-color: #FE5000 !important;
+  color: #FE5000 !important;
+}
+
+.hover-accent-text {
+  transition: color 0.15s ease;
+}
+.hover-accent-text:hover {
+  color: #FE5000 !important;
+}
+
+.hover-danger-text {
+  transition: color 0.15s ease;
+}
+.hover-danger-text:hover {
+  color: #ff3344 !important;
+}
+
+.hover-row {
+  transition: background-color 0.15s ease;
+}
+.hover-row:hover {
+  background-color: rgba(45, 39, 32, 0.27);
+}
+
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
