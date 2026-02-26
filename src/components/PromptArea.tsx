@@ -41,14 +41,26 @@ export function PromptArea() {
 
   return (
     <div className="w-full px-4 py-3 relative">
-      {/* Jack port for prompt — big chrome ring */}
+      {/* Input jack — left side of prompt */}
       <div
-        data-jack-port="prompt"
+        data-jack-port="prompt-in"
         data-jack-active="true"
-        className="absolute left-1/2 -translate-x-1/2 -bottom-2 z-10 rounded-full"
+        className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 rounded-full"
         style={{
-          width: 28,
-          height: 28,
+          width: 26,
+          height: 26,
+          background: 'radial-gradient(circle, #0a0a0a 35%, #FE5000 50%, #888 58%, #555 68%, #333 100%)',
+          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05), 0 0 10px rgba(254,80,0,0.3)',
+        }}
+      />
+      {/* Output jack — right side of prompt */}
+      <div
+        data-jack-port="prompt-out"
+        data-jack-active="true"
+        className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 rounded-full"
+        style={{
+          width: 26,
+          height: 26,
           background: 'radial-gradient(circle, #0a0a0a 35%, #FE5000 50%, #888 58%, #555 68%, #333 100%)',
           boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05), 0 0 10px rgba(254,80,0,0.3)',
         }}
