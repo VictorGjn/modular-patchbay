@@ -57,6 +57,7 @@ export interface ConsoleState {
   setShowSkillPicker: (show: boolean) => void;
   setShowSaveModal: (show: boolean) => void;
   setAgentMeta: (meta: Partial<AgentMeta>) => void;
+  setChannelKnowledgeType: (sourceId: string, typeIndex: number) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
   run: () => void;
   cancelRun: () => void;
@@ -180,6 +181,16 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setShowSkillPicker: (show: boolean) => set({ showSkillPicker: show }),
   setShowSaveModal: (show: boolean) => set({ showSaveModal: show }),
   setAgentMeta: (meta: Partial<AgentMeta>) => set({ agentMeta: { ...get().agentMeta, ...meta } }),
+
+  setChannelKnowledgeType: (sourceId: string, typeIndex: number) => {
+    const types: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+    const newType = types[Math.max(0, Math.min(types.length - 1, typeIndex))];
+    set({
+      channels: get().channels.map((ch) =>
+        ch.sourceId === sourceId ? { ...ch, knowledgeType: newType } : ch,
+      ),
+    });
+  },
 
   reorderChannels: (fromIndex: number, toIndex: number) => {
     const channels = [...get().channels];

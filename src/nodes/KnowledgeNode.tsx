@@ -1,69 +1,193 @@
-import { memo, useState } from 'react';
+import { memo, useState, useCallback, type DragEvent } from 'react';
 import { Position } from '@xyflow/react';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
-import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
-import { Tile } from '../components/Tile';
+import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/knowledgeBase';
 import { JackPort } from '../components/JackPort';
 import { useTheme } from '../theme';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const KNOWLEDGE_TYPE_ORDER: KnowledgeType[] = [
+  'ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact',
+];
 
 export const KnowledgeNode = memo(function KnowledgeNode() {
   const channels = useConsoleStore((s) => s.channels);
   const toggleChannel = useConsoleStore((s) => s.toggleChannel);
   const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
   const setChannelDepth = useConsoleStore((s) => s.setChannelDepth);
-  const [depthPopup, setDepthPopup] = useState<{ sourceId: string; x: number; y: number } | null>(null);
+  const setChannelKnowledgeType = useConsoleStore((s) => s.setChannelKnowledgeType);
   const t = useTheme();
 
-  const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [dragOverType, setDragOverType] = useState<KnowledgeType | null>(null);
 
-  const handleTileDoubleClick = (sourceId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    setDepthPopup({ sourceId, x: rect.left, y: rect.bottom + 4 });
-  };
+  const fmtTokens = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`);
+
+  const toggleCollapse = useCallback((type: KnowledgeType) => {
+    setCollapsed((prev) => ({ ...prev, [type]: !prev[type] }));
+  }, []);
+
+  const handleDragStart = useCallback((e: DragEvent, sourceId: string) => {
+    e.dataTransfer.setData('text/plain', sourceId);
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvent, type: KnowledgeType) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverType(type);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverType(null);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: DragEvent, type: KnowledgeType) => {
+      e.preventDefault();
+      setDragOverType(null);
+      const sourceId = e.dataTransfer.getData('text/plain');
+      if (!sourceId) return;
+      const typeIndex = KNOWLEDGE_TYPE_ORDER.indexOf(type);
+      if (typeIndex >= 0) setChannelKnowledgeType(sourceId, typeIndex);
+    },
+    [setChannelKnowledgeType],
+  );
+
+  // Group channels by knowledge type
+  const grouped = KNOWLEDGE_TYPE_ORDER.map((type) => ({
+    type,
+    meta: KNOWLEDGE_TYPES[type],
+    items: channels.filter((ch) => ch.knowledgeType === type),
+  }));
+
+  const hasAnyChannels = channels.length > 0;
 
   return (
     <div
       className="rounded-xl overflow-hidden"
-      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 280 }}
+      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 300 }}
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
         <BookOpen size={14} style={{ color: t.textSecondary }} />
-        <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ color: t.textSecondary }}>
+        <span
+          className="text-xs font-medium tracking-wide uppercase flex-1"
+          style={{ color: t.textSecondary }}
+        >
           Knowledge
         </span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>
+        <span
+          className="text-[10px] px-1.5 py-0.5 rounded-full"
+          style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}
+        >
           {channels.filter((c) => c.enabled).length}
         </span>
         <JackPort type="source" position={Position.Right} label="OUTPUT" color="#3498db" id="knowledge-out" />
       </div>
 
-      {/* Tiles */}
-      <div className="p-4 overflow-y-auto nowheel" style={{ maxHeight: 240 }}>
-        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))' }}>
-          {channels.length === 0 ? (
-            <div className="col-span-full flex items-center justify-center py-3">
-              <span className="text-xs" style={{ color: t.textFaint }}>No sources loaded</span>
-            </div>
-          ) : channels.map((ch) => {
-            const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
-            const eff = getEffectiveTokens(ch);
-            return (
-              <Tile
-                key={ch.sourceId}
-                name={ch.name}
-                active={ch.enabled}
-                icon={<span className="w-2 h-2 rounded-full inline-block" style={{ background: kt.color }} />}
-                subtitle={`${fmtTokens(eff)} · ${DEPTH_LEVELS[ch.depth].label}`}
-                colorStripe={kt.color}
-                onClick={() => toggleChannel(ch.sourceId)}
-                onDoubleClick={(e) => { if (e) handleTileDoubleClick(ch.sourceId, e); }}
-              />
-            );
-          })}
-        </div>
+      {/* Content */}
+      <div className="overflow-y-auto nowheel" style={{ maxHeight: 340 }}>
+        {!hasAnyChannels ? (
+          <div className="flex items-center justify-center py-6">
+            <span className="text-xs" style={{ color: t.textFaint }}>No sources loaded</span>
+          </div>
+        ) : (
+          <div className="py-1">
+            {grouped.map(({ type, meta, items }) => {
+              const isCollapsed = items.length === 0 || collapsed[type];
+              const isEmpty = items.length === 0;
+              const isDragTarget = dragOverType === type;
+
+              return (
+                <div
+                  key={type}
+                  onDragOver={(e) => handleDragOver(e, type)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, type)}
+                  style={{
+                    border: isDragTarget ? `1px dashed ${meta.color}` : '1px solid transparent',
+                    borderRadius: 6,
+                    margin: '0 4px',
+                    transition: 'border-color 150ms ease',
+                  }}
+                >
+                  {/* Section header */}
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 w-full px-3 py-1.5 border-none cursor-pointer nodrag"
+                    style={{
+                      background: 'transparent',
+                      opacity: isEmpty ? 0.4 : 1,
+                    }}
+                    onClick={() => !isEmpty && toggleCollapse(type)}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: meta.color }}
+                    />
+                    <span
+                      className="flex-1 text-left"
+                      style={{
+                        fontSize: 10,
+                        fontFamily: "'Space Mono', monospace",
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        color: isEmpty ? t.textFaint : t.textSecondary,
+                      }}
+                    >
+                      {meta.label}
+                    </span>
+                    <span
+                      className="text-[10px] px-1 rounded-full"
+                      style={{
+                        fontFamily: "'Space Mono', monospace",
+                        color: t.textDim,
+                        background: items.length > 0 ? t.badgeBg : 'transparent',
+                        minWidth: 16,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {items.length}
+                    </span>
+                    {!isEmpty && (
+                      <span
+                        style={{ color: t.textDim, fontSize: 10, transition: 'transform 200ms ease', display: 'inline-block', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+                      >
+                        &#9662;
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Section items */}
+                  <div
+                    style={{
+                      maxHeight: isCollapsed ? 0 : items.length * 32 + 4,
+                      overflow: 'hidden',
+                      transition: 'max-height 200ms ease',
+                    }}
+                  >
+                    {items.map((ch) => (
+                      <FileRow
+                        key={ch.sourceId}
+                        sourceId={ch.sourceId}
+                        name={ch.name}
+                        enabled={ch.enabled}
+                        depth={ch.depth}
+                        baseTokens={ch.baseTokens}
+                        onToggle={() => toggleChannel(ch.sourceId)}
+                        onDepthChange={(d) => setChannelDepth(ch.sourceId, d)}
+                        onDragStart={(e) => handleDragStart(e, ch.sourceId)}
+                        fmtTokens={fmtTokens}
+                        theme={t}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Add button */}
@@ -79,33 +203,143 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
           + Add  ⌘K
         </button>
       </div>
-
-      {/* Depth popup */}
-      {depthPopup && (
-        <div
-          className="fixed z-[9999] rounded-lg py-1 px-1"
-          style={{
-            left: depthPopup.x,
-            top: depthPopup.y,
-            background: t.surfaceOpaque,
-            border: `1px solid ${t.border}`,
-            boxShadow: t.isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.15)',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {DEPTH_LEVELS.map((level, i) => (
-            <button
-              key={level.label}
-              type="button"
-              className="block w-full text-left px-3 py-1.5 rounded-md text-xs cursor-pointer border-none hover-row"
-              style={{ background: 'transparent', color: t.textSecondary }}
-              onClick={() => { setChannelDepth(depthPopup.sourceId, i); setDepthPopup(null); }}
-            >
-              {level.label} ({Math.round(level.pct * 100)}%)
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 });
+
+/* ── File row with inline depth carousel ── */
+
+interface FileRowProps {
+  sourceId: string;
+  name: string;
+  enabled: boolean;
+  depth: number;
+  baseTokens: number;
+  onToggle: () => void;
+  onDepthChange: (depth: number) => void;
+  onDragStart: (e: DragEvent<HTMLDivElement>) => void;
+  fmtTokens: (n: number) => string;
+  theme: ReturnType<typeof useTheme>;
+}
+
+function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepthChange, onDragStart, fmtTokens, theme: t }: FileRowProps) {
+  const [hovered, setHovered] = useState(false);
+  const [leftHover, setLeftHover] = useState(false);
+  const [rightHover, setRightHover] = useState(false);
+
+  const eff = getEffectiveTokens({ sourceId, name, path: '', category: 'knowledge', knowledgeType: 'evidence', enabled, depth, baseTokens });
+  const depthLabel = DEPTH_LEVELS[depth]?.label ?? 'Full';
+  const maxDepth = DEPTH_LEVELS.length - 1;
+
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart as unknown as (e: React.DragEvent<HTMLDivElement>) => void}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex items-center gap-1.5 px-3 nodrag"
+      style={{
+        height: 28,
+        background: hovered ? t.surfaceHover : 'transparent',
+        borderRadius: 4,
+        transition: 'background 100ms ease',
+        cursor: 'grab',
+      }}
+    >
+      {/* Toggle dot */}
+      <button
+        type="button"
+        className="flex-shrink-0 rounded-full border-none cursor-pointer p-0 nodrag nowheel"
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        style={{
+          width: 8,
+          height: 8,
+          background: enabled ? '#00ff88' : t.textFaint,
+          boxShadow: enabled ? '0 0 4px #00ff8866' : 'none',
+          transition: 'background 150ms ease, box-shadow 150ms ease',
+        }}
+        title={enabled ? 'Disable' : 'Enable'}
+      />
+
+      {/* Filename */}
+      <span
+        className="flex-1 truncate"
+        style={{
+          fontSize: 11,
+          fontFamily: "'Inter', sans-serif",
+          color: enabled ? t.textPrimary : t.textDim,
+          minWidth: 0,
+        }}
+      >
+        {name}
+      </span>
+
+      {/* Depth carousel */}
+      <div className="flex items-center gap-0 flex-shrink-0 nodrag nowheel">
+        <button
+          type="button"
+          className="border-none cursor-pointer p-0 flex items-center justify-center nodrag nowheel"
+          style={{
+            width: 16,
+            height: 16,
+            background: 'transparent',
+            color: leftHover ? '#FE5000' : t.textDim,
+            opacity: depth <= 0 ? 0.3 : 1,
+            transition: 'color 100ms ease',
+          }}
+          onMouseEnter={() => setLeftHover(true)}
+          onMouseLeave={() => setLeftHover(false)}
+          onClick={(e) => { e.stopPropagation(); if (depth > 0) onDepthChange(depth - 1); }}
+          disabled={depth <= 0}
+        >
+          <ChevronLeft size={12} />
+        </button>
+        <span
+          style={{
+            fontSize: 10,
+            fontFamily: "'Space Mono', monospace",
+            color: t.textMuted,
+            minWidth: 28,
+            textAlign: 'center',
+            userSelect: 'none',
+          }}
+          title={depthLabel}
+        >
+          {depth}/{maxDepth}
+        </span>
+        <button
+          type="button"
+          className="border-none cursor-pointer p-0 flex items-center justify-center nodrag nowheel"
+          style={{
+            width: 16,
+            height: 16,
+            background: 'transparent',
+            color: rightHover ? '#FE5000' : t.textDim,
+            opacity: depth >= maxDepth ? 0.3 : 1,
+            transition: 'color 100ms ease',
+          }}
+          onMouseEnter={() => setRightHover(true)}
+          onMouseLeave={() => setRightHover(false)}
+          onClick={(e) => { e.stopPropagation(); if (depth < maxDepth) onDepthChange(depth + 1); }}
+          disabled={depth >= maxDepth}
+        >
+          <ChevronRight size={12} />
+        </button>
+      </div>
+
+      {/* Token count */}
+      <span
+        className="flex-shrink-0"
+        style={{
+          fontSize: 10,
+          fontFamily: "'Space Mono', monospace",
+          color: t.textDim,
+          minWidth: 30,
+          textAlign: 'right',
+        }}
+      >
+        {fmtTokens(eff)}
+      </span>
+    </div>
+  );
+}
