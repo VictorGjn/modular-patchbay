@@ -26,31 +26,28 @@ export function Section({ title, sectionId, count, active, children, actionLabel
         minWidth: 0,
       }}
     >
-      {/* Jack port — big chrome ring at top */}
-      <div className="flex justify-center pt-3 pb-1">
+      {/* Header with jack ports: input (left) + output (right) */}
+      <div
+        className="flex items-center gap-2 px-2 py-2 shrink-0"
+        style={{ borderBottom: '1px solid #222226' }}
+      >
+        {/* Input jack — top left */}
         <div
-          data-jack-port={sectionId}
+          data-jack-port={`${sectionId}-in`}
           data-jack-active={active ? 'true' : 'false'}
           className="rounded-full shrink-0"
           style={{
-            width: 24,
-            height: 24,
+            width: 22,
+            height: 22,
             background: active
               ? `radial-gradient(circle, #0a0a0a 35%, ${SECTION_COLORS[sectionId] ?? '#555'} 50%, #888 58%, #555 68%, #333 100%)`
               : 'radial-gradient(circle, #0a0a0a 40%, #444 55%, #666 60%, #444 70%, #222 100%)',
             boxShadow: active
-              ? `inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05), 0 0 8px ${SECTION_COLORS[sectionId] ?? '#555'}50`
+              ? `inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05), 0 0 6px ${SECTION_COLORS[sectionId] ?? '#555'}40`
               : 'inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05)',
             transition: 'box-shadow 0.2s ease',
           }}
         />
-      </div>
-
-      {/* Header */}
-      <div
-        className="flex items-center gap-2 px-3 py-2 shrink-0"
-        style={{ borderBottom: '1px solid #222226' }}
-      >
         {Icon && <Icon size={14} style={{ color: '#888' }} />}
         <span
           className="text-xs font-medium tracking-wide uppercase flex-1"
@@ -68,6 +65,24 @@ export function Section({ title, sectionId, count, active, children, actionLabel
         >
           {count}
         </span>
+
+        {/* Output jack — top right */}
+        <div
+          data-jack-port={`${sectionId}-out`}
+          data-jack-active={active ? 'true' : 'false'}
+          className="rounded-full shrink-0"
+          style={{
+            width: 22,
+            height: 22,
+            background: active
+              ? `radial-gradient(circle, #0a0a0a 35%, ${SECTION_COLORS[sectionId] ?? '#555'} 50%, #888 58%, #555 68%, #333 100%)`
+              : 'radial-gradient(circle, #0a0a0a 40%, #444 55%, #666 60%, #444 70%, #222 100%)',
+            boxShadow: active
+              ? `inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05), 0 0 6px ${SECTION_COLORS[sectionId] ?? '#555'}40`
+              : 'inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05)',
+            transition: 'box-shadow 0.2s ease',
+          }}
+        />
       </div>
 
       {/* Content - scrollable grid of tiles */}
