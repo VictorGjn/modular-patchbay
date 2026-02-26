@@ -20,6 +20,7 @@ import { TokenBudget } from './components/TokenBudget';
 import { FilePicker } from './components/FilePicker';
 import { McpPicker } from './components/McpPicker';
 import { SkillPicker } from './components/SkillPicker';
+import { ConnectorPicker } from './components/ConnectorPicker';
 import { AgentPreview } from './components/AgentPreview';
 import { SettingsModal } from './components/SettingsModal';
 import { SaveAgentModal } from './components/SaveAgentModal';
@@ -85,6 +86,7 @@ export default function App() {
   const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
   const setShowMcpPicker = useConsoleStore((s) => s.setShowMcpPicker);
   const setShowSkillPicker = useConsoleStore((s) => s.setShowSkillPicker);
+  const setShowConnectorPicker = useConsoleStore((s) => s.setShowConnectorPicker);
   const run = useConsoleStore((s) => s.run);
   const running = useConsoleStore((s) => s.running);
 
@@ -138,11 +140,11 @@ export default function App() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setShowFilePicker(!showFilePicker); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (!running) run(); }
-      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); setShowSettings(false); useConsoleStore.getState().setShowSaveModal(false); }
+      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); setShowConnectorPicker(false); setShowSettings(false); useConsoleStore.getState().setShowSaveModal(false); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, run, running]);
+  }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, setShowConnectorPicker, run, running]);
 
   const minimapStyle = useMemo(() => ({
     backgroundColor: t.minimapBg,
@@ -192,6 +194,7 @@ export default function App() {
       <FilePicker />
       <McpPicker />
       <SkillPicker />
+      <ConnectorPicker />
       <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
       <SaveAgentModal />
     </div>

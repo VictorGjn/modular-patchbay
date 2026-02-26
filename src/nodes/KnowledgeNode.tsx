@@ -2,6 +2,7 @@ import { memo, useState, useCallback, type DragEvent } from 'react';
 import { Position } from '@xyflow/react';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/knowledgeBase';
+import { ConnectorTile } from '../components/ConnectorTile';
 import { JackPort } from '../components/JackPort';
 import { useTheme } from '../theme';
 import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -16,10 +17,14 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
   const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
   const setChannelDepth = useConsoleStore((s) => s.setChannelDepth);
   const setChannelKnowledgeType = useConsoleStore((s) => s.setChannelKnowledgeType);
+  const connectors = useConsoleStore((s) => s.connectors);
+  const toggleConnector = useConsoleStore((s) => s.toggleConnector);
+  const setShowConnectorPicker = useConsoleStore((s) => s.setShowConnectorPicker);
   const t = useTheme();
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [dragOverType, setDragOverType] = useState<KnowledgeType | null>(null);
+  const readConnectors = connectors.filter((c) => c.direction === 'read' || c.direction === 'both');
 
   const fmtTokens = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`);
 
@@ -190,17 +195,52 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         )}
       </div>
 
-      {/* Add button */}
-      <div className="px-4 pb-3 pt-1">
+      {/* Connectors section */}
+      {readConnectors.length > 0 && (
+        <div className="px-4 pt-1 pb-2">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
+            <span className="text-[9px] tracking-wider uppercase" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Connectors</span>
+            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {readConnectors.map((c) => (
+              <ConnectorTile
+                key={c.id}
+                service={c.service}
+                name={c.name}
+
+                status={c.status}
+                enabled={c.enabled}
+                showDirection="read"
+                onClick={() => toggleConnector(c.id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add buttons */}
+      <div className="px-4 pb-3 pt-1 flex gap-2">
         <button
           type="button"
           onClick={() => setShowFilePicker(true)}
-          className="w-full py-1.5 rounded-lg text-xs tracking-wide uppercase cursor-pointer transition-colors nodrag"
+          className="flex-1 py-1.5 rounded-lg text-xs tracking-wide uppercase cursor-pointer transition-colors nodrag"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
           + Add  ⌘K
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowConnectorPicker(true)}
+          className="py-1.5 px-2.5 rounded-lg text-xs tracking-wide uppercase cursor-pointer transition-colors nodrag"
+          style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3498db'; e.currentTarget.style.color = '#3498db'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+        >
+          + MCP
         </button>
       </div>
     </div>
