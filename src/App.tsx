@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Topbar } from './components/Topbar';
 import { PromptArea } from './components/PromptArea';
 import { ChannelStrip } from './components/ChannelStrip';
@@ -8,8 +8,10 @@ import { FilePicker } from './components/FilePicker';
 import { ResponseArea } from './components/ResponseArea';
 import { SignalFlow } from './components/SignalFlow';
 import { ContextualHint } from './components/ContextualHint';
+import { AgentPreview } from './components/AgentPreview';
 import { useConsoleStore, getEffectiveTokens } from './store/consoleStore';
 import { getGhostSuggestions } from './utils/ghostSuggestions';
+import { importAgent } from './utils/agentImport';
 
 export default function App() {
   const channels = useConsoleStore((s) => s.channels);
@@ -20,6 +22,35 @@ export default function App() {
   const running = useConsoleStore((s) => s.running);
   const reorderChannels = useConsoleStore((s) => s.reorderChannels);
   const ghosts = getGhostSuggestions(prompt, channels);
+
+  // Agent import
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const handleImportClick = useCallback(() => {
+    importInputRef.current?.click();
+  }, []);
+  const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      if (!text) return;
+      const partial = importAgent(text);
+      const store = useConsoleStore.getState();
+      if (partial.channels) {
+        store.clearChannels();
+        for (const ch of partial.channels) {
+          store.addChannel(ch);
+        }
+      }
+      if (partial.selectedModel) store.setModel(partial.selectedModel);
+      if (partial.outputFormat) store.setOutputFormat(partial.outputFormat);
+      if (partial.prompt) store.setPrompt(partial.prompt);
+      if (partial.tokenBudget) store.setTokenBudget(partial.tokenBudget);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }, []);
 
   // Drag state
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
@@ -81,7 +112,15 @@ export default function App() {
 
   return (
     <div className="gradient-mesh-bg w-full h-full flex flex-col" style={{ background: '#0f0f0f' }}>
-      <Topbar />
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".md"
+        onChange={handleImportFile}
+        style={{ display: 'none' }}
+        aria-hidden="true"
+      />
+      <Topbar onImportClick={handleImportClick} />
       <PromptArea />
 
       <ContextualHint />
@@ -154,6 +193,7 @@ export default function App() {
       </div>
 
       <ResponseArea />
+      <AgentPreview />
       <TokenBudget />
       <FilePicker />
     </div>

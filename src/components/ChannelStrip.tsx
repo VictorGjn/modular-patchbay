@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { Knob } from '../controls/Knob';
-import { Screw } from '../controls/Screw';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
 import { CATEGORY_COLORS, DEPTH_LEVELS, KNOWLEDGE_TYPES, type ChannelConfig } from '../store/knowledgeBase';
 
@@ -88,7 +87,7 @@ export function ChannelStrip({ channel, maxTokens, index, onDragStart, onDragOve
 
   return (
     <div
-      className={`channel-strip noise-overlay flex flex-col items-center shrink-0 relative select-none${isDragging ? ' dragging' : ''}${isDragOver ? ' drag-over-left' : ''}`}
+      className={`channel-strip flex flex-col items-center shrink-0 relative select-none${isDragging ? ' dragging' : ''}${isDragOver ? ' drag-over-left' : ''}`}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move';
@@ -104,14 +103,14 @@ export function ChannelStrip({ channel, maxTokens, index, onDragStart, onDragOve
         onDrop(index);
       }}
       style={{
-        width: 172,
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%, rgba(0,0,0,0.05) 100%), linear-gradient(to bottom, #1e1a17, #1b1714)',
+        width: 160,
+        background: 'linear-gradient(to bottom, #1e1a17, #1b1714)',
         border: '1px solid #2d2720',
         borderRadius: 6,
         boxShadow: channel.enabled
-          ? `0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05), 0 1px 8px ${catColor}15`
-          : '0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
-        animation: 'slide-in-right 0.4s ease backwards',
+          ? `0 4px 12px rgba(0,0,0,0.5), 0 1px 8px ${catColor}15`
+          : '0 4px 12px rgba(0,0,0,0.5)',
+        animation: 'slide-in-right 0.2s ease backwards',
       }}
     >
       {/* Category color stripe */}
@@ -129,12 +128,8 @@ export function ChannelStrip({ channel, maxTokens, index, onDragStart, onDragOve
         ⋮⋮⋮
       </div>
 
-      {/* Screws */}
-      <div className="absolute top-[8px] left-[8px]"><Screw /></div>
-      <div className="absolute top-[8px] right-[8px]"><Screw /></div>
-
       {/* Title */}
-      <div className="w-full px-3 pt-1 pb-2">
+      <div className="w-full px-3 pt-0.5 pb-1">
         <div
           className="text-[9px] font-bold tracking-[2px] uppercase truncate text-center"
           style={{ fontFamily: "'Space Mono', monospace", color: '#e8e0d8', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
@@ -148,11 +143,11 @@ export function ChannelStrip({ channel, maxTokens, index, onDragStart, onDragOve
       <button
         type="button"
         onClick={() => removeChannel(channel.sourceId)}
-        className="absolute top-[6px] right-[22px] text-[9px] cursor-pointer border-none bg-transparent"
+        className="absolute top-[6px] right-[6px] text-[9px] cursor-pointer border-none bg-transparent"
         style={{ color: '#5a4e42', lineHeight: 1 }}
         onMouseEnter={(e) => { e.currentTarget.style.color = '#ff3344'; }}
         onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4e42'; }}
-        title="Remove channel"
+        aria-label={`Remove ${channel.name} channel`}
       >
         ✕
       </button>
@@ -211,25 +206,25 @@ export function ChannelStrip({ channel, maxTokens, index, onDragStart, onDragOve
       <button
         type="button"
         onClick={() => toggleChannel(channel.sourceId)}
-        className="w-[28px] h-[28px] rounded-full cursor-pointer border-none my-2"
+        className="w-[24px] h-[24px] rounded-full cursor-pointer border-none my-1.5"
         style={{
           background: channel.enabled
             ? `radial-gradient(circle at 40% 35%, ${catColor}, ${catColor}88 60%, ${catColor}44)`
             : 'radial-gradient(circle at 40% 35%, #444, #222 60%, #111)',
           boxShadow: channel.enabled
-            ? `0 0 12px ${catColor}80, 0 0 24px ${catColor}30, inset 0 -2px 4px rgba(0,0,0,0.3)`
-            : 'inset 0 2px 4px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05)',
-          transition: 'all 0.2s ease',
+            ? `0 0 10px ${catColor}80, inset 0 -2px 4px rgba(0,0,0,0.3)`
+            : 'inset 0 2px 4px rgba(0,0,0,0.5)',
+          transition: 'background 0.15s ease, box-shadow 0.15s ease',
           animation: channel.enabled ? 'led-pulse 3s ease infinite' : 'none',
         }}
-        title={channel.enabled ? 'ON — click to disable' : 'OFF — click to enable'}
+        aria-label={channel.enabled ? `Disable ${channel.name}` : `Enable ${channel.name}`}
       />
       <span className="label-engraved mb-1" style={{ fontSize: 7 }}>
         {channel.enabled ? 'ON' : 'OFF'}
       </span>
 
       {/* DEPTH knob */}
-      <div className="py-2">
+      <div className="py-1">
         <Knob
           value={channel.depth}
           min={0}
@@ -251,8 +246,9 @@ export function ChannelStrip({ channel, maxTokens, index, onDragStart, onDragOve
         className="text-[13px] font-bold my-1"
         style={{
           fontFamily: "'Space Mono', monospace",
+          fontVariantNumeric: 'tabular-nums',
           color: channel.enabled ? '#FE5000' : '#5a4e42',
-          transition: 'color 0.2s ease',
+          transition: 'color 0.15s ease',
         }}
       >
         {formatTokens(effectiveTokens)}
@@ -274,9 +270,6 @@ export function ChannelStrip({ channel, maxTokens, index, onDragStart, onDragOve
         />
       )}
 
-      {/* Bottom screws */}
-      <div className="absolute bottom-[6px] left-[8px]"><Screw /></div>
-      <div className="absolute bottom-[6px] right-[8px]"><Screw /></div>
     </div>
   );
 }
