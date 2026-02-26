@@ -4,6 +4,13 @@ import { streamCompletion } from '../services/llmService';
 import { assembleContext } from '../services/contextAssembler';
 import { getStoredApiKey, getStoredBaseUrl, getStoredModelOverride } from '../components/SettingsModal';
 
+export interface AgentMeta {
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+}
+
 export interface ConsoleState {
   channels: ChannelConfig[];
   prompt: string;
@@ -16,10 +23,14 @@ export interface ConsoleState {
   showFilePicker: boolean;
   showMcpPicker: boolean;
   showSkillPicker: boolean;
+  showSaveModal: boolean;
   mockResponse: string;
 
   // Agent configuration
   agentConfig: AgentConfig;
+
+  // Agent metadata
+  agentMeta: AgentMeta;
 
   // New section data
   mcpServers: McpServer[];
@@ -44,6 +55,8 @@ export interface ConsoleState {
   setShowFilePicker: (show: boolean) => void;
   setShowMcpPicker: (show: boolean) => void;
   setShowSkillPicker: (show: boolean) => void;
+  setShowSaveModal: (show: boolean) => void;
+  setAgentMeta: (meta: Partial<AgentMeta>) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
   run: () => void;
   cancelRun: () => void;
@@ -84,8 +97,10 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   showFilePicker: false,
   showMcpPicker: false,
   showSkillPicker: false,
+  showSaveModal: false,
   mockResponse: '',
   agentConfig: { ...DEFAULT_AGENT_CONFIG },
+  agentMeta: { name: '', description: '', icon: 'brain', category: 'general' },
   mcpServers: MOCK_MCP_SERVERS.map((s) => ({ ...s })),
   skills: MOCK_SKILLS.map((s) => ({ ...s })),
   agents: MOCK_AGENTS.map((a) => ({ ...a })),
@@ -163,6 +178,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setShowFilePicker: (show: boolean) => set({ showFilePicker: show }),
   setShowMcpPicker: (show: boolean) => set({ showMcpPicker: show }),
   setShowSkillPicker: (show: boolean) => set({ showSkillPicker: show }),
+  setShowSaveModal: (show: boolean) => set({ showSaveModal: show }),
+  setAgentMeta: (meta: Partial<AgentMeta>) => set({ agentMeta: { ...get().agentMeta, ...meta } }),
 
   reorderChannels: (fromIndex: number, toIndex: number) => {
     const channels = [...get().channels];
