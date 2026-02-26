@@ -21,6 +21,7 @@ import { McpPicker } from './components/McpPicker';
 import { SkillPicker } from './components/SkillPicker';
 import { AgentPreview } from './components/AgentPreview';
 import { SettingsModal } from './components/SettingsModal';
+import { SaveAgentModal } from './components/SaveAgentModal';
 import { useConsoleStore } from './store/consoleStore';
 import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
@@ -103,6 +104,7 @@ export default function App() {
       if (partial.outputFormat) store.setOutputFormat(partial.outputFormat);
       if (partial.prompt) store.setPrompt(partial.prompt);
       if (partial.tokenBudget) store.setTokenBudget(partial.tokenBudget);
+      if (partial.agentMeta) store.setAgentMeta(partial.agentMeta);
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -121,7 +123,7 @@ export default function App() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setShowFilePicker(!showFilePicker); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (!running) run(); }
-      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); setShowSettings(false); }
+      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); setShowSettings(false); useConsoleStore.getState().setShowSaveModal(false); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -133,7 +135,7 @@ export default function App() {
 
   return (
     <div className="w-full h-full flex flex-col" style={{ background: t.bg }}>
-      <input ref={importInputRef} type="file" accept=".md" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
+      <input ref={importInputRef} type="file" accept=".md,.yaml,.yml,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
       <Topbar onImportClick={handleImportClick} onSettingsClick={() => setShowSettings(true)} />
 
       {/* React Flow Canvas */}
@@ -173,6 +175,7 @@ export default function App() {
       <McpPicker />
       <SkillPicker />
       <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
+      <SaveAgentModal />
     </div>
   );
 }
