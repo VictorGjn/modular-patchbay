@@ -79,7 +79,7 @@ export function FeedbackEdge({
           dur="2s"
           repeatCount="indefinite"
           path={path}
-          keyPoints="1;0"
+          keyPoints="0;1"
           keyTimes="0;1"
           calcMode="linear"
         />
@@ -89,7 +89,7 @@ export function FeedbackEdge({
           dur="2s"
           repeatCount="indefinite"
           path={path}
-          keyPoints="1;0"
+          keyPoints="0;1"
           keyTimes="0;1"
           calcMode="linear"
           begin="0.7s"
@@ -100,7 +100,7 @@ export function FeedbackEdge({
           dur="2s"
           repeatCount="indefinite"
           path={path}
-          keyPoints="1;0"
+          keyPoints="0;1"
           keyTimes="0;1"
           calcMode="linear"
           begin="1.4s"

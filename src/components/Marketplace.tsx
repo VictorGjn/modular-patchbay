@@ -53,7 +53,6 @@ export function Marketplace() {
   const handleInstall = useCallback((skillId: string, target: Runtime | 'all', scope: InstallScope) => {
     setInstallingId(skillId);
     setInstallDropdown(null);
-    // Simulate install delay
     setTimeout(() => {
       installRegistrySkill(skillId, target, scope);
       setInstallingId(null);
@@ -89,12 +88,6 @@ export function Marketplace() {
     matchesFilter(p.name, p.description)
   );
 
-  const tabStyle = (tab: Tab) => ({
-    color: activeTab === tab ? '#FE5000' : t.textDim,
-    borderBottom: activeTab === tab ? '2px solid #FE5000' : '2px solid transparent',
-    background: 'transparent',
-  });
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
@@ -103,10 +96,10 @@ export function Marketplace() {
       <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
 
       <div
-        className="relative flex flex-col rounded-xl overflow-hidden"
+        className="relative flex flex-col rounded-md overflow-hidden"
         style={{
           width: '90vw',
-          maxWidth: 1200,
+          maxWidth: 1000,
           height: '80vh',
           background: t.surfaceOpaque,
           border: `1px solid ${t.border}`,
@@ -116,21 +109,21 @@ export function Marketplace() {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center gap-4 px-6 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
-          <span className="text-base font-semibold" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+        <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
+          <span className="text-sm font-semibold" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
             Marketplace
           </span>
 
           {/* Search */}
-          <div className="flex-1 relative max-w-md">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: t.textDim }} />
+          <div className="flex-1 relative max-w-sm">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: t.textDim }} />
             <input
               ref={inputRef}
               type="text"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="Search skills, servers, presets..."
-              className="w-full outline-none text-sm pl-9 pr-3 py-2 rounded-lg"
+              placeholder="Search..."
+              className="w-full outline-none text-xs pl-8 pr-3 py-1.5 rounded-md"
               style={{
                 background: t.inputBg,
                 border: `1px solid ${t.border}`,
@@ -140,15 +133,21 @@ export function Marketplace() {
             />
           </div>
 
-          {/* Tabs */}
-          <div className="flex items-center gap-1 ml-auto">
+          {/* Tabs — underline style */}
+          <div className="flex items-center gap-0 ml-auto" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
             {(['skills', 'mcp', 'presets'] as Tab[]).map((tab) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => setTab(tab)}
-                className="px-3 py-1.5 text-xs font-medium tracking-wide uppercase cursor-pointer border-none"
-                style={tabStyle(tab)}
+                className="px-3 py-1.5 text-[11px] font-medium tracking-wide uppercase cursor-pointer border-none"
+                style={{
+                  color: activeTab === tab ? '#FE5000' : t.textDim,
+                  borderBottom: activeTab === tab ? '2px solid #FE5000' : '2px solid transparent',
+                  background: 'transparent',
+                  marginBottom: -1,
+                  transition: 'color 150ms ease',
+                }}
               >
                 {tab === 'mcp' ? 'MCP Servers' : tab === 'presets' ? 'Presets' : 'Skills'}
               </button>
@@ -158,7 +157,7 @@ export function Marketplace() {
           <button
             type="button"
             onClick={() => setShowMarketplace(false)}
-            className="p-1.5 rounded-md cursor-pointer border-none bg-transparent"
+            className="p-1 rounded-md cursor-pointer border-none bg-transparent"
             style={{ color: t.textDim }}
           >
             <X size={16} />
@@ -167,18 +166,20 @@ export function Marketplace() {
 
         {/* Body */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Category sidebar (not for presets) */}
+          {/* Category sidebar (not for presets) — simple text list */}
           {activeTab !== 'presets' && (
-            <div className="flex flex-col gap-1 p-3 overflow-y-auto" style={{ width: 160, borderRight: `1px solid ${t.borderSubtle}` }}>
+            <div className="flex flex-col gap-0 py-2 overflow-y-auto" style={{ width: 150, borderRight: `1px solid ${t.borderSubtle}` }}>
               {MARKETPLACE_CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
                   onClick={() => setCategory(cat.id)}
-                  className="text-left px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer border-none transition-colors"
+                  className="text-left px-3 py-1.5 text-[11px] font-medium cursor-pointer border-none"
                   style={{
-                    background: category === cat.id ? '#FE500018' : 'transparent',
+                    background: 'transparent',
                     color: category === cat.id ? '#FE5000' : t.textSecondary,
+                    borderLeft: category === cat.id ? '2px solid #FE5000' : '2px solid transparent',
+                    transition: 'color 150ms ease, border-color 150ms ease',
                   }}
                 >
                   {cat.label}
@@ -187,12 +188,12 @@ export function Marketplace() {
             </div>
           )}
 
-          {/* Grid content */}
-          <div className="flex-1 overflow-y-auto p-4">
+          {/* List content */}
+          <div className="flex-1 overflow-y-auto">
             {activeTab === 'skills' && (
-              <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              <div className="flex flex-col">
                 {filteredSkills.map((skill) => (
-                  <SkillCard
+                  <SkillRow
                     key={skill.id}
                     skill={skill}
                     installing={installingId === skill.id}
@@ -203,17 +204,17 @@ export function Marketplace() {
                   />
                 ))}
                 {filteredSkills.length === 0 && (
-                  <div className="col-span-3 flex items-center justify-center py-12">
-                    <span className="text-sm" style={{ color: t.textFaint }}>No skills match your search</span>
+                  <div className="flex items-center justify-center py-12">
+                    <span className="text-xs" style={{ color: t.textFaint }}>No skills match your search</span>
                   </div>
                 )}
               </div>
             )}
 
             {activeTab === 'mcp' && (
-              <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              <div className="flex flex-col">
                 {filteredMcp.map((mcp) => (
-                  <McpCard
+                  <McpRow
                     key={mcp.id}
                     mcp={mcp}
                     installing={installingId === mcp.id}
@@ -224,21 +225,21 @@ export function Marketplace() {
                   />
                 ))}
                 {filteredMcp.length === 0 && (
-                  <div className="col-span-3 flex items-center justify-center py-12">
-                    <span className="text-sm" style={{ color: t.textFaint }}>No MCP servers match your search</span>
+                  <div className="flex items-center justify-center py-12">
+                    <span className="text-xs" style={{ color: t.textFaint }}>No MCP servers match your search</span>
                   </div>
                 )}
               </div>
             )}
 
             {activeTab === 'presets' && (
-              <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              <div className="flex flex-col">
                 {filteredPresets.map((preset) => (
-                  <PresetCard key={preset.id} preset={preset} t={t} onLoad={() => setShowMarketplace(false)} />
+                  <PresetRow key={preset.id} preset={preset} t={t} onLoad={() => setShowMarketplace(false)} />
                 ))}
                 {filteredPresets.length === 0 && (
-                  <div className="col-span-3 flex items-center justify-center py-12">
-                    <span className="text-sm" style={{ color: t.textFaint }}>No presets match your search</span>
+                  <div className="flex items-center justify-center py-12">
+                    <span className="text-xs" style={{ color: t.textFaint }}>No presets match your search</span>
                   </div>
                 )}
               </div>
@@ -250,9 +251,9 @@ export function Marketplace() {
   );
 }
 
-/* ──────── Skill Card ──────── */
+/* ──────── Skill Row (list item, 48px) ──────── */
 
-function SkillCard({ skill, installing, dropdownOpen, onToggleDropdown, onInstall, t }: {
+function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall, t }: {
   skill: (typeof import('../store/registry'))['REGISTRY_SKILLS'][number];
   installing: boolean;
   dropdownOpen: boolean;
@@ -263,152 +264,139 @@ function SkillCard({ skill, installing, dropdownOpen, onToggleDropdown, onInstal
   const [selectedTarget, setSelectedTarget] = useState<Runtime | 'all'>('claude');
   const [selectedScope, setSelectedScope] = useState<InstallScope>('project');
 
-  const formatInstalls = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
-
   return (
     <div
-      className="flex flex-col rounded-xl p-4 relative"
-      style={{
-        background: t.surface,
-        border: `1px solid ${t.borderSubtle}`,
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-        minHeight: 180,
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+      className="relative"
+      style={{ borderBottom: `1px solid ${t.borderSubtle}` }}
     >
-      {/* Top row */}
-      <div className="flex items-start gap-3 mb-2">
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.surfaceElevated }}>
-          <RegistryIcon icon={skill.icon} size={18} style={{ color: t.textSecondary }} />
+      <div
+        className="flex items-center gap-3 px-4"
+        style={{ height: 48, transition: 'background 100ms ease' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+      >
+        {/* Icon */}
+        <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ background: t.surfaceElevated }}>
+          <RegistryIcon icon={skill.icon} size={13} style={{ color: t.textSecondary }} />
         </div>
+
+        {/* Name + description */}
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium" style={{ color: t.textPrimary }}>{skill.name}</div>
-          <div className="text-[11px]" style={{ color: t.textDim }}>{skill.author}</div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium truncate" style={{ color: t.textPrimary }}>{skill.name}</span>
+            <span className="text-[10px] truncate" style={{ color: t.textDim }}>{skill.author}</span>
+          </div>
+          {/* Runtime bars */}
+          <div className="flex gap-0.5 mt-0.5">
+            {skill.runtimes.map((rt) => (
+              <div key={rt} className="rounded-sm" style={{ width: 16, height: 3, background: RUNTIME_INFO[rt].color }} title={RUNTIME_INFO[rt].label} />
+            ))}
+          </div>
         </div>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0" style={{ color: t.textDim, background: t.badgeBg }}>
-          {formatInstalls(skill.installs)}
+
+        {/* Description */}
+        <span className="text-[11px] truncate shrink-0" style={{ color: t.textMuted, maxWidth: 200 }}>
+          {skill.description}
         </span>
-      </div>
 
-      {/* Description */}
-      <p className="text-xs leading-relaxed flex-1 mb-3" style={{ color: t.textSecondary, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-        {skill.description}
-      </p>
-
-      {/* Runtime badges */}
-      <div className="flex flex-wrap gap-1 mb-3">
-        {skill.runtimes.map((rt) => (
-          <span key={rt} className="text-[9px] px-1.5 py-0.5 rounded-full font-medium" style={{ color: RUNTIME_INFO[rt].color, background: `${RUNTIME_INFO[rt].color}15`, border: `1px solid ${RUNTIME_INFO[rt].color}30` }}>
-            {RUNTIME_INFO[rt].label}
+        {/* Install button */}
+        {skill.installed ? (
+          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#10B981', background: '#10B98110' }}>
+            <Check size={10} /> Installed
           </span>
-        ))}
-      </div>
-
-      {/* Install button / installed badge */}
-      {skill.installed ? (
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium" style={{ color: '#10B981', background: '#10B98115' }}>
-            <Check size={12} /> Installed
+        ) : installing ? (
+          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#FE5000', background: '#FE500010' }}>
+            <Loader2 size={10} className="animate-spin" /> Installing
           </span>
-          {skill.installedTarget && (
-            <span className="text-[10px]" style={{ color: t.textFaint }}>
-              {skill.installedTarget === 'all' ? 'All runtimes' : RUNTIME_INFO[skill.installedTarget]?.label} / {skill.installedScope}
-            </span>
-          )}
-        </div>
-      ) : installing ? (
-        <button type="button" disabled className="flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg text-xs font-medium border-none" style={{ background: '#FE5000', color: '#fff', opacity: 0.8 }}>
-          <Loader2 size={12} className="animate-spin" /> Installing...
-        </button>
-      ) : (
-        <div className="relative">
+        ) : (
           <button
             type="button"
             onClick={onToggleDropdown}
-            className="flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg text-xs font-medium cursor-pointer border-none"
-            style={{ background: '#FE5000', color: '#fff', transition: 'opacity 0.15s' }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer shrink-0"
+            style={{
+              background: 'transparent',
+              border: `1px solid ${t.border}`,
+              color: t.textSecondary,
+              transition: 'border-color 150ms ease, color 150ms ease, background 150ms ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+            onMouseLeave={(e) => { if (!dropdownOpen) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; } }}
           >
-            Install <ChevronDown size={10} />
+            Install <ChevronDown size={9} />
           </button>
+        )}
+      </div>
 
-          {/* Dropdown */}
-          {dropdownOpen && (
-            <div
-              className="absolute left-0 right-0 mt-1 rounded-lg p-3 z-10 flex flex-col gap-2"
-              style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
-            >
-              {/* Target */}
-              <div>
-                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: t.textDim }}>Target</span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {(['all', ...skill.runtimes] as (Runtime | 'all')[]).map((rt) => (
-                    <button
-                      key={rt}
-                      type="button"
-                      onClick={() => setSelectedTarget(rt)}
-                      className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer border-none font-medium"
-                      style={{
-                        background: selectedTarget === rt ? '#FE5000' : t.surfaceElevated,
-                        color: selectedTarget === rt ? '#fff' : t.textSecondary,
-                      }}
-                    >
-                      {rt === 'all' ? 'All' : RUNTIME_INFO[rt].label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Scope */}
-              <div>
-                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: t.textDim }}>Scope</span>
-                <div className="flex gap-1 mt-1">
-                  {(['project', 'global'] as InstallScope[]).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setSelectedScope(s)}
-                      className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer border-none font-medium capitalize"
-                      style={{
-                        background: selectedScope === s ? '#FE5000' : t.surfaceElevated,
-                        color: selectedScope === s ? '#fff' : t.textSecondary,
-                      }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Command preview */}
-              <div className="flex items-center gap-1.5 mt-1 px-2 py-1.5 rounded-md" style={{ background: t.inputBg }}>
-                <Terminal size={10} style={{ color: t.textDim }} />
-                <code className="text-[9px]" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
-                  {skill.installCmd} --target {selectedTarget} --scope {selectedScope}
-                </code>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => onInstall(skill.id, selectedTarget, selectedScope)}
-                className="w-full py-1.5 rounded-lg text-xs font-medium cursor-pointer border-none mt-1"
-                style={{ background: '#FE5000', color: '#fff' }}
-              >
-                Confirm Install
-              </button>
+      {/* Install dropdown */}
+      {dropdownOpen && (
+        <div
+          className="absolute right-4 mt-0 rounded-md p-3 z-10 flex flex-col gap-2"
+          style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', width: 260, top: 48 }}
+        >
+          <div>
+            <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Target</span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {(['all', ...skill.runtimes] as (Runtime | 'all')[]).map((rt) => (
+                <button
+                  key={rt}
+                  type="button"
+                  onClick={() => setSelectedTarget(rt)}
+                  className="text-[10px] px-2 py-0.5 rounded-md cursor-pointer border-none font-medium"
+                  style={{
+                    background: selectedTarget === rt ? '#FE5000' : t.surfaceElevated,
+                    color: selectedTarget === rt ? '#fff' : t.textSecondary,
+                  }}
+                >
+                  {rt === 'all' ? 'All' : RUNTIME_INFO[rt].label}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
+
+          <div>
+            <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Scope</span>
+            <div className="flex gap-1 mt-1">
+              {(['project', 'global'] as InstallScope[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSelectedScope(s)}
+                  className="text-[10px] px-2 py-0.5 rounded-md cursor-pointer border-none font-medium capitalize"
+                  style={{
+                    background: selectedScope === s ? '#FE5000' : t.surfaceElevated,
+                    color: selectedScope === s ? '#fff' : t.textSecondary,
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md" style={{ background: t.inputBg }}>
+            <Terminal size={9} style={{ color: t.textDim }} />
+            <code className="text-[9px]" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              {skill.installCmd} --target {selectedTarget} --scope {selectedScope}
+            </code>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onInstall(skill.id, selectedTarget, selectedScope)}
+            className="w-full py-1.5 rounded-md text-[11px] font-medium cursor-pointer border-none"
+            style={{ background: '#FE5000', color: '#fff' }}
+          >
+            Confirm Install
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-/* ──────── MCP Server Card ──────── */
+/* ──────── MCP Row (list item, 48px) ──────── */
 
-function McpCard({ mcp, installing, configuringOpen, onToggleConfigure, onInstall, t }: {
+function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall, t }: {
   mcp: (typeof import('../store/registry'))['REGISTRY_MCP_SERVERS'][number];
   installing: boolean;
   configuringOpen: boolean;
@@ -418,72 +406,72 @@ function McpCard({ mcp, installing, configuringOpen, onToggleConfigure, onInstal
 }) {
   return (
     <div
-      className="flex flex-col rounded-xl p-4 relative"
-      style={{
-        background: t.surface,
-        border: `1px solid ${t.borderSubtle}`,
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-        minHeight: 180,
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+      className="relative"
+      style={{ borderBottom: `1px solid ${t.borderSubtle}` }}
     >
-      {/* Top row */}
-      <div className="flex items-start gap-3 mb-2">
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.surfaceElevated }}>
-          <RegistryIcon icon={mcp.icon} size={18} style={{ color: t.textSecondary }} />
+      <div
+        className="flex items-center gap-3 px-4"
+        style={{ height: 48, transition: 'background 100ms ease' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+      >
+        {/* Icon */}
+        <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ background: t.surfaceElevated }}>
+          <RegistryIcon icon={mcp.icon} size={13} style={{ color: t.textSecondary }} />
         </div>
+
+        {/* Name + transport */}
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium" style={{ color: t.textPrimary }}>{mcp.name}</div>
-          <div className="text-[11px]" style={{ color: t.textDim }}>{mcp.author}</div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium truncate" style={{ color: t.textPrimary }}>{mcp.name}</span>
+            <span className="text-[10px] truncate" style={{ color: t.textDim }}>{mcp.author}</span>
+          </div>
+          <div className="flex gap-0.5 mt-0.5">
+            {mcp.runtimes.map((rt) => (
+              <div key={rt} className="rounded-sm" style={{ width: 16, height: 3, background: RUNTIME_INFO[rt].color }} title={RUNTIME_INFO[rt].label} />
+            ))}
+            <span className="text-[8px] ml-1 uppercase" style={{ color: mcp.transport === 'stdio' ? '#3B82F6' : '#F59E0B', fontFamily: "'Space Mono', monospace" }}>
+              {mcp.transport}
+            </span>
+          </div>
         </div>
-        {/* Transport badge */}
-        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono uppercase shrink-0" style={{ color: mcp.transport === 'stdio' ? '#3B82F6' : '#F59E0B', background: mcp.transport === 'stdio' ? '#3B82F615' : '#F59E0B15', border: `1px solid ${mcp.transport === 'stdio' ? '#3B82F630' : '#F59E0B30'}` }}>
-          {mcp.transport}
+
+        {/* Description */}
+        <span className="text-[11px] truncate shrink-0" style={{ color: t.textMuted, maxWidth: 200 }}>
+          {mcp.description}
         </span>
-      </div>
 
-      {/* Description */}
-      <p className="text-xs leading-relaxed flex-1 mb-3" style={{ color: t.textSecondary, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-        {mcp.description}
-      </p>
-
-      {/* Runtime badges */}
-      <div className="flex flex-wrap gap-1 mb-3">
-        {mcp.runtimes.map((rt) => (
-          <span key={rt} className="text-[9px] px-1.5 py-0.5 rounded-full font-medium" style={{ color: RUNTIME_INFO[rt].color, background: `${RUNTIME_INFO[rt].color}15`, border: `1px solid ${RUNTIME_INFO[rt].color}30` }}>
-            {RUNTIME_INFO[rt].label}
+        {/* Action */}
+        {mcp.installed ? (
+          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#10B981', background: '#10B98110' }}>
+            <Check size={10} /> Configured
           </span>
-        ))}
-      </div>
-
-      {/* Action */}
-      {mcp.installed ? (
-        <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium" style={{ color: '#10B981', background: '#10B98115' }}>
-          <Check size={12} /> Configured
-        </span>
-      ) : installing ? (
-        <button type="button" disabled className="flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg text-xs font-medium border-none" style={{ background: '#FE5000', color: '#fff', opacity: 0.8 }}>
-          <Loader2 size={12} className="animate-spin" /> Configuring...
-        </button>
-      ) : (
-        <div className="relative">
+        ) : installing ? (
+          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#FE5000', background: '#FE500010' }}>
+            <Loader2 size={10} className="animate-spin" /> Configuring
+          </span>
+        ) : (
           <button
             type="button"
             onClick={onToggleConfigure}
-            className="flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg text-xs font-medium cursor-pointer border-none"
-            style={{ background: '#FE5000', color: '#fff', transition: 'opacity 0.15s' }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+            className="text-[10px] px-2 py-1 rounded-md cursor-pointer shrink-0"
+            style={{
+              background: 'transparent',
+              border: `1px solid ${t.border}`,
+              color: t.textSecondary,
+              transition: 'border-color 150ms ease, color 150ms ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+            onMouseLeave={(e) => { if (!configuringOpen) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; } }}
           >
             Configure
           </button>
+        )}
+      </div>
 
-          {/* Inline config form */}
-          {configuringOpen && (
-            <McpConfigForm mcp={mcp} onInstall={onInstall} t={t} />
-          )}
-        </div>
+      {/* Config form dropdown */}
+      {configuringOpen && (
+        <McpConfigForm mcp={mcp} onInstall={onInstall} t={t} />
       )}
     </div>
   );
@@ -498,17 +486,17 @@ function McpConfigForm({ mcp, onInstall, t }: {
 }) {
   return (
     <div
-      className="absolute left-0 right-0 mt-1 rounded-lg p-3 z-10 flex flex-col gap-2"
-      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
+      className="absolute right-4 mt-0 rounded-md p-3 z-10 flex flex-col gap-2"
+      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', width: 260, top: 48 }}
     >
       {mcp.configFields.length > 0 ? (
         mcp.configFields.map((field) => (
           <div key={field.key}>
-            <label className="text-[10px] font-medium" style={{ color: t.textDim }}>{field.label}</label>
+            <label className="text-[10px] font-medium" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>{field.label}</label>
             <input
               type={field.type === 'password' ? 'password' : 'text'}
               placeholder={field.placeholder}
-              className="w-full text-xs px-2 py-1.5 rounded-md outline-none mt-0.5"
+              className="w-full text-[11px] px-2 py-1 rounded-md outline-none mt-0.5"
               style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
             />
           </div>
@@ -517,9 +505,8 @@ function McpConfigForm({ mcp, onInstall, t }: {
         <span className="text-[11px]" style={{ color: t.textMuted }}>No configuration needed</span>
       )}
 
-      {/* Command preview */}
-      <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md" style={{ background: t.inputBg }}>
-        <Terminal size={10} style={{ color: t.textDim }} />
+      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md" style={{ background: t.inputBg }}>
+        <Terminal size={9} style={{ color: t.textDim }} />
         <code className="text-[9px]" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
           {mcp.installCmd}
         </code>
@@ -528,7 +515,7 @@ function McpConfigForm({ mcp, onInstall, t }: {
       <button
         type="button"
         onClick={() => onInstall(mcp.id)}
-        className="w-full py-1.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+        className="w-full py-1.5 rounded-md text-[11px] font-medium cursor-pointer border-none"
         style={{ background: '#FE5000', color: '#fff' }}
       >
         Save & Install
@@ -537,60 +524,56 @@ function McpConfigForm({ mcp, onInstall, t }: {
   );
 }
 
-/* ──────── Preset Card ──────── */
+/* ──────── Preset Row (list item) ──────── */
 
-function PresetCard({ preset, t, onLoad }: {
+function PresetRow({ preset, t, onLoad }: {
   preset: (typeof REGISTRY_PRESETS)[number];
   t: ReturnType<typeof useTheme>;
   onLoad: () => void;
 }) {
   return (
     <div
-      className="flex flex-col rounded-xl p-4"
+      className="flex items-center gap-3 px-4"
       style={{
-        background: t.surface,
-        border: `1px solid ${t.borderSubtle}`,
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-        minHeight: 200,
+        minHeight: 56,
+        borderBottom: `1px solid ${t.borderSubtle}`,
+        transition: 'background 100ms ease',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
     >
-      {/* Header */}
-      <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#FE500015', border: '1px solid #FE500030' }}>
-          <RegistryIcon icon={preset.icon} size={20} style={{ color: '#FE5000' }} />
+      {/* Icon */}
+      <div className="w-6 h-6 rounded flex items-center justify-center shrink-0" style={{ background: '#FE500010' }}>
+        <RegistryIcon icon={preset.icon} size={14} style={{ color: '#FE5000' }} />
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-medium" style={{ color: t.textPrimary }}>{preset.name}</div>
+        <div className="text-[10px] truncate mt-0.5" style={{ color: t.textMuted }}>{preset.description}</div>
+        <div className="flex gap-1 mt-0.5">
+          {preset.skills.slice(0, 3).map((s) => (
+            <span key={s} className="text-[8px] px-1 rounded-sm" style={{ color: '#f1c40f', background: '#f1c40f10' }}>{s}</span>
+          ))}
+          {preset.mcpServers.slice(0, 2).map((m) => (
+            <span key={m} className="text-[8px] px-1 rounded-sm" style={{ color: '#2ecc71', background: '#2ecc7110' }}>{m}</span>
+          ))}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium" style={{ color: t.textPrimary }}>{preset.name}</div>
-          <div className="text-xs mt-0.5" style={{ color: t.textSecondary }}>{preset.description}</div>
-        </div>
       </div>
 
-      {/* Mini canvas description */}
-      <div className="flex-1 rounded-lg p-2.5 mb-3" style={{ background: t.inputBg, border: `1px solid ${t.borderSubtle}` }}>
-        <code className="text-[10px] leading-relaxed" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace", whiteSpace: 'pre-wrap' }}>
-          {preset.canvasDescription}
-        </code>
-      </div>
-
-      {/* Included items */}
-      <div className="flex flex-wrap gap-1 mb-3">
-        {preset.skills.slice(0, 3).map((s) => (
-          <span key={s} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ color: '#f1c40f', background: '#f1c40f15' }}>{s}</span>
-        ))}
-        {preset.mcpServers.slice(0, 2).map((m) => (
-          <span key={m} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ color: '#2ecc71', background: '#2ecc7115' }}>{m}</span>
-        ))}
-      </div>
-
+      {/* Load button */}
       <button
         type="button"
         onClick={onLoad}
-        className="w-full py-1.5 rounded-lg text-xs font-medium cursor-pointer border-none"
-        style={{ background: '#FE5000', color: '#fff', transition: 'opacity 0.15s' }}
-        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+        className="text-[10px] px-2 py-1 rounded-md cursor-pointer shrink-0"
+        style={{
+          background: 'transparent',
+          border: `1px solid ${t.border}`,
+          color: t.textSecondary,
+          transition: 'border-color 150ms ease, color 150ms ease, background 150ms ease',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#FE5000'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; e.currentTarget.style.background = 'transparent'; }}
       >
         Load Preset
       </button>

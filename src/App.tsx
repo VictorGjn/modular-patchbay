@@ -35,7 +35,6 @@ import { McpNode } from './nodes/McpNode';
 import { SkillsNode } from './nodes/SkillsNode';
 import { OutputNode } from './nodes/OutputNode';
 import { ResponseNode } from './nodes/ResponseNode';
-import { AgentNode } from './nodes/AgentNode';
 import { PatchCable } from './edges/PatchCable';
 import { FeedbackEdge } from './edges/FeedbackEdge';
 
@@ -46,7 +45,6 @@ const nodeTypes = {
   skills: SkillsNode,
   output: OutputNode,
   response: ResponseNode,
-  agent: AgentNode,
 };
 
 const edgeTypes = {
@@ -59,28 +57,24 @@ const initialNodes: Node[] = [
   { id: 'knowledge', type: 'knowledge', position: { x: 50, y: 60 }, data: {} },
   { id: 'skills', type: 'skills', position: { x: 50, y: 340 }, data: {} },
   { id: 'mcp', type: 'mcp', position: { x: 50, y: 620 }, data: {} },
-  // Center-left
-  { id: 'prompt', type: 'prompt', position: { x: 420, y: 250 }, data: {} },
-  // Center-right (Agent)
-  { id: 'agent', type: 'agent', position: { x: 530, y: 150 }, data: {} },
+  // Center — Hero Prompt node (merged with Agent)
+  { id: 'prompt', type: 'prompt', position: { x: 420, y: 120 }, data: {} },
   // Right column
-  { id: 'output', type: 'output', position: { x: 1020, y: 40 }, data: {} },
-  { id: 'response', type: 'response', position: { x: 1020, y: 520 }, data: {} },
+  { id: 'output', type: 'output', position: { x: 920, y: 40 }, data: {} },
+  { id: 'response', type: 'response', position: { x: 920, y: 520 }, data: {} },
 ];
 
 const initialEdges: Edge[] = [
-  // Left sources -> Agent
-  { id: 'e-knowledge-agent', source: 'knowledge', target: 'agent', sourceHandle: 'knowledge-out', targetHandle: 'agent-knowledge-in', type: 'patch', style: { stroke: '#3498db' } },
-  { id: 'e-skills-agent', source: 'skills', target: 'agent', sourceHandle: 'skills-out', targetHandle: 'agent-skills-in', type: 'patch', style: { stroke: '#f1c40f' } },
-  { id: 'e-mcp-agent', source: 'mcp', target: 'agent', sourceHandle: 'mcp-out', targetHandle: 'agent-mcp-in', type: 'patch', style: { stroke: '#2ecc71' } },
-  // Prompt -> Agent
-  { id: 'e-prompt-agent', source: 'prompt', target: 'agent', sourceHandle: 'prompt-out', targetHandle: 'agent-prompt-in', type: 'patch', style: { stroke: '#FE5000' } },
-  // Agent -> Output/Response
-  { id: 'e-agent-output', source: 'agent', target: 'output', sourceHandle: 'agent-out', targetHandle: 'output-in', type: 'patch', style: { stroke: '#FE5000' } },
-  { id: 'e-agent-response', source: 'agent', target: 'response', sourceHandle: 'agent-out', targetHandle: 'response-in', type: 'patch', style: { stroke: '#FE5000' } },
-  // Feedback edges (agent → knowledge/skills)
-  { id: 'e-agent-knowledge-fb', source: 'agent', target: 'knowledge', sourceHandle: 'agent-knowledge-out', targetHandle: 'knowledge-feedback-in', type: 'feedback', data: { variant: 'knowledge' } },
-  { id: 'e-agent-skills-fb', source: 'agent', target: 'skills', sourceHandle: 'agent-skills-out', targetHandle: 'skills-feedback-in', type: 'feedback', data: { variant: 'skills' } },
+  // Left sources -> Prompt
+  { id: 'e-knowledge-prompt', source: 'knowledge', target: 'prompt', sourceHandle: 'knowledge-out', targetHandle: 'prompt-knowledge-in', type: 'patch', style: { stroke: '#3498db' } },
+  { id: 'e-skills-prompt', source: 'skills', target: 'prompt', sourceHandle: 'skills-out', targetHandle: 'prompt-skills-in', type: 'patch', style: { stroke: '#f1c40f' } },
+  { id: 'e-mcp-prompt', source: 'mcp', target: 'prompt', sourceHandle: 'mcp-out', targetHandle: 'prompt-mcp-in', type: 'patch', style: { stroke: '#2ecc71' } },
+  // Prompt -> Output/Response
+  { id: 'e-prompt-output', source: 'prompt', target: 'output', sourceHandle: 'prompt-out', targetHandle: 'output-in', type: 'patch', style: { stroke: '#FE5000' } },
+  { id: 'e-prompt-response', source: 'prompt', target: 'response', sourceHandle: 'prompt-out', targetHandle: 'response-in', type: 'patch', style: { stroke: '#FE5000' } },
+  // Feedback edges (prompt → knowledge/skills)
+  { id: 'e-prompt-knowledge-fb', source: 'prompt', target: 'knowledge', sourceHandle: 'prompt-knowledge-out', targetHandle: 'knowledge-feedback-in', type: 'feedback', data: { variant: 'knowledge' } },
+  { id: 'e-prompt-skills-fb', source: 'prompt', target: 'skills', sourceHandle: 'prompt-skills-out', targetHandle: 'skills-feedback-in', type: 'feedback', data: { variant: 'skills' } },
 ];
 
 export default function App() {
