@@ -314,6 +314,30 @@ export const MOCK_AGENTS: AgentDef[] = [
   { id: 'agent-visual-designer', name: 'Visual Designer', initials: 'VD', model: 'Sonnet 4', description: 'Design & visuals', linkedSkills: ['skill-web-design', 'skill-frontend-slides'] },
 ];
 
+// Connector types
+export type ConnectorService = 'notion' | 'hubspot' | 'slack' | 'granola' | 'github' | 'google-drive' | 'custom';
+export type ConnectorDirection = 'read' | 'write' | 'both';
+export type ConnectorStatus = 'connected' | 'configured' | 'available';
+
+export interface Connector {
+  id: string;
+  service: ConnectorService;
+  name: string;
+  mcpServerId: string;
+  direction: ConnectorDirection;
+  enabled: boolean;
+  config: Record<string, string>;
+  status: ConnectorStatus;
+}
+
+export const MOCK_CONNECTORS: Connector[] = [
+  { id: 'conn-notion-wiki', service: 'notion', name: 'Product Wiki', mcpServerId: 'mcp-notion', direction: 'read', enabled: true, config: { page_id: 'abc123' }, status: 'connected' },
+  { id: 'conn-slack-product', service: 'slack', name: '#product-updates', mcpServerId: 'mcp-slack', direction: 'read', enabled: true, config: { channel: 'product-updates' }, status: 'connected' },
+  { id: 'conn-hubspot-crm', service: 'hubspot', name: 'CRM Contacts', mcpServerId: 'mcp-hubspot', direction: 'both', enabled: true, config: { object: 'contacts' }, status: 'configured' },
+  { id: 'conn-granola-notes', service: 'granola', name: 'Meeting Notes', mcpServerId: 'mcp-granola', direction: 'read', enabled: false, config: {}, status: 'available' },
+  { id: 'conn-slack-reports', service: 'slack', name: '#reports', mcpServerId: 'mcp-slack', direction: 'write', enabled: true, config: { channel: 'reports' }, status: 'connected' },
+];
+
 export const PRESETS: Preset[] = [
   {
     id: 'senior-pm', name: 'Senior PM',
