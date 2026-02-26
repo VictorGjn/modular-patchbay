@@ -1,3 +1,4 @@
+// Analog mode control — reserved for future use
 import { useRef, useEffect } from 'react';
 
 interface ScopeProps {
