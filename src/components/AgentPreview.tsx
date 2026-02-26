@@ -8,13 +8,17 @@ export function AgentPreview() {
   const channels = useConsoleStore((s) => s.channels);
   const selectedModel = useConsoleStore((s) => s.selectedModel);
   const outputFormat = useConsoleStore((s) => s.outputFormat);
+  const outputFormats = useConsoleStore((s) => s.outputFormats);
   const prompt = useConsoleStore((s) => s.prompt);
   const tokenBudget = useConsoleStore((s) => s.tokenBudget);
+  const mcpServers = useConsoleStore((s) => s.mcpServers);
+  const skills = useConsoleStore((s) => s.skills);
+  const agentMeta = useConsoleStore((s) => s.agentMeta);
   const t = useTheme();
 
   const preview = useMemo(() => {
-    return exportAsAgent({ channels, selectedModel, outputFormat, prompt, tokenBudget });
-  }, [channels, selectedModel, outputFormat, prompt, tokenBudget]);
+    return exportAsAgent({ channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta });
+  }, [channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta]);
 
   const lines = preview.split('\n');
   const displayLines = expanded ? lines : lines.slice(0, 20);

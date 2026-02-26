@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, KNOWLEDGE_TYPES, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS } from './knowledgeBase';
 
+export interface AgentMeta {
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+}
+
 export interface ConsoleState {
   channels: ChannelConfig[];
   prompt: string;
@@ -13,7 +20,11 @@ export interface ConsoleState {
   showFilePicker: boolean;
   showMcpPicker: boolean;
   showSkillPicker: boolean;
+  showSaveModal: boolean;
   mockResponse: string;
+
+  // Agent metadata
+  agentMeta: AgentMeta;
 
   // New section data
   mcpServers: McpServer[];
@@ -38,6 +49,8 @@ export interface ConsoleState {
   setShowFilePicker: (show: boolean) => void;
   setShowMcpPicker: (show: boolean) => void;
   setShowSkillPicker: (show: boolean) => void;
+  setShowSaveModal: (show: boolean) => void;
+  setAgentMeta: (meta: Partial<AgentMeta>) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
   run: () => void;
   clearChannels: () => void;
@@ -70,7 +83,9 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   showFilePicker: false,
   showMcpPicker: false,
   showSkillPicker: false,
+  showSaveModal: false,
   mockResponse: '',
+  agentMeta: { name: '', description: '', icon: 'brain', category: 'general' },
   mcpServers: MOCK_MCP_SERVERS.map((s) => ({ ...s })),
   skills: MOCK_SKILLS.map((s) => ({ ...s })),
   agents: MOCK_AGENTS.map((a) => ({ ...a })),
@@ -147,6 +162,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setShowFilePicker: (show: boolean) => set({ showFilePicker: show }),
   setShowMcpPicker: (show: boolean) => set({ showMcpPicker: show }),
   setShowSkillPicker: (show: boolean) => set({ showSkillPicker: show }),
+  setShowSaveModal: (show: boolean) => set({ showSaveModal: show }),
+  setAgentMeta: (meta: Partial<AgentMeta>) => set({ agentMeta: { ...get().agentMeta, ...meta } }),
 
   reorderChannels: (fromIndex: number, toIndex: number) => {
     const channels = [...get().channels];

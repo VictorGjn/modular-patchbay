@@ -51,8 +51,13 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const t = useTheme();
 
+  const outputFormats = useConsoleStore((s) => s.outputFormats);
+  const mcpServers = useConsoleStore((s) => s.mcpServers);
+  const skills = useConsoleStore((s) => s.skills);
+  const agentMeta = useConsoleStore((s) => s.agentMeta);
+
   const handleExport = () => {
-    const content = exportAsAgent({ channels, selectedModel, outputFormat, prompt, tokenBudget });
+    const content = exportAsAgent({ channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta });
     const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? 'modular-agent';
     downloadAgentFile(content, name);
   };
