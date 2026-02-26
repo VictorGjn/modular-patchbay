@@ -195,10 +195,29 @@ export interface ChannelConfig {
   baseTokens: number;
 }
 
+export type PlanningMode = 'single-shot' | 'chain-of-thought' | 'react';
+
+export interface AgentConfig {
+  model: string;
+  temperature: number;
+  systemPrompt: string;
+  planningMode: PlanningMode;
+  maxTokens: number;
+}
+
+export const DEFAULT_AGENT_CONFIG: AgentConfig = {
+  model: 'claude-opus-4',
+  temperature: 0.7,
+  systemPrompt: '',
+  planningMode: 'single-shot',
+  maxTokens: 4096,
+};
+
 export interface Preset {
   id: string;
   name: string;
   channels: Omit<ChannelConfig, 'enabled'>[];
+  agentConfig?: Partial<AgentConfig>;
 }
 
 function ch(source: KnowledgeSource, depth = 0): Omit<ChannelConfig, 'enabled'> {
@@ -298,6 +317,7 @@ export const MOCK_AGENTS: AgentDef[] = [
 export const PRESETS: Preset[] = [
   {
     id: 'senior-pm', name: 'Senior PM',
+    agentConfig: { model: 'claude-opus-4', temperature: 0.5, planningMode: 'chain-of-thought', maxTokens: 8192 },
     channels: [
       chById('knowledge-products', 0),
       chById('knowledge-products-feedback', 0),
@@ -312,6 +332,7 @@ export const PRESETS: Preset[] = [
   },
   {
     id: 'competitive-intel', name: 'Competitive Intel',
+    agentConfig: { model: 'claude-opus-4', temperature: 0.3, planningMode: 'react', maxTokens: 8192 },
     channels: [
       chById('knowledge-competitors', 0),
       chById('knowledge-competitors-stormgeo', 0),
@@ -332,6 +353,7 @@ export const PRESETS: Preset[] = [
   },
   {
     id: 'feedback-manager', name: 'Feedback Manager',
+    agentConfig: { model: 'claude-sonnet-4', temperature: 0.4, planningMode: 'chain-of-thought', maxTokens: 4096 },
     channels: [
       chById('knowledge-products-feedback', 0),
       chById('signals-odfjell', 0),

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, KNOWLEDGE_TYPES, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS } from './knowledgeBase';
+import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, KNOWLEDGE_TYPES, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG } from './knowledgeBase';
 
 export interface ConsoleState {
   channels: ChannelConfig[];
@@ -14,6 +14,9 @@ export interface ConsoleState {
   showMcpPicker: boolean;
   showSkillPicker: boolean;
   mockResponse: string;
+
+  // Agent configuration
+  agentConfig: AgentConfig;
 
   // New section data
   mcpServers: McpServer[];
@@ -41,6 +44,13 @@ export interface ConsoleState {
   reorderChannels: (fromIndex: number, toIndex: number) => void;
   run: () => void;
   clearChannels: () => void;
+
+  // Agent config actions
+  setAgentModel: (model: string) => void;
+  setAgentTemperature: (temperature: number) => void;
+  setAgentSystemPrompt: (systemPrompt: string) => void;
+  setAgentPlanningMode: (planningMode: PlanningMode) => void;
+  setAgentMaxTokens: (maxTokens: number) => void;
 
   // New actions
   toggleMcp: (id: string) => void;
@@ -71,6 +81,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   showMcpPicker: false,
   showSkillPicker: false,
   mockResponse: '',
+  agentConfig: { ...DEFAULT_AGENT_CONFIG },
   mcpServers: MOCK_MCP_SERVERS.map((s) => ({ ...s })),
   skills: MOCK_SKILLS.map((s) => ({ ...s })),
   agents: MOCK_AGENTS.map((a) => ({ ...a })),
@@ -86,7 +97,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     const preset: Preset | undefined = PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
     const channels: ChannelConfig[] = preset.channels.map((ch) => ({ ...ch, enabled: true }));
-    set({ channels, selectedPreset: presetId, mockResponse: '' });
+    const agentConfig = { ...DEFAULT_AGENT_CONFIG, ...preset.agentConfig };
+    set({ channels, selectedPreset: presetId, mockResponse: '', agentConfig });
   },
 
   setOutputFormat: (format: OutputFormat) => set({ outputFormat: format, outputFormats: [format] }),
@@ -173,6 +185,12 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   },
 
   clearChannels: () => set({ channels: [], selectedPreset: '', mockResponse: '' }),
+
+  setAgentModel: (model: string) => set({ agentConfig: { ...get().agentConfig, model } }),
+  setAgentTemperature: (temperature: number) => set({ agentConfig: { ...get().agentConfig, temperature } }),
+  setAgentSystemPrompt: (systemPrompt: string) => set({ agentConfig: { ...get().agentConfig, systemPrompt } }),
+  setAgentPlanningMode: (planningMode: PlanningMode) => set({ agentConfig: { ...get().agentConfig, planningMode } }),
+  setAgentMaxTokens: (maxTokens: number) => set({ agentConfig: { ...get().agentConfig, maxTokens } }),
 
   toggleMcp: (id: string) => {
     set({
