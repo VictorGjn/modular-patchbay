@@ -30,11 +30,12 @@ export function CableLayer() {
     const px = promptRect.left + promptRect.width / 2;
     const py = promptRect.top + promptRect.height / 2;
 
-    const sectionIds = ['knowledge', 'mcp', 'skills', 'agents', 'output'];
+    const sectionIds = ['knowledge', 'mcp', 'skills', 'output'];
     const newConnections: CableConnection[] = [];
 
     for (const id of sectionIds) {
-      const port = document.querySelector(`[data-jack-port="${id}"]`);
+      // Connect to the input jack (top-left) of each section
+      const port = document.querySelector(`[data-jack-port="${id}-in"]`);
       if (!port) continue;
       if (port.getAttribute('data-jack-active') !== 'true') continue;
 
