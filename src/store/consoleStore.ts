@@ -11,6 +11,8 @@ export interface AgentMeta {
   category: string;
 }
 
+export type ExportTarget = 'claude' | 'amp' | 'codex' | 'vibe-kanban' | 'openclaw' | 'generic';
+
 export interface ConsoleState {
   channels: ChannelConfig[];
   prompt: string;
@@ -26,6 +28,7 @@ export interface ConsoleState {
   showSaveModal: boolean;
   showConnectorPicker: boolean;
   mockResponse: string;
+  exportTarget: ExportTarget;
 
   // Agent configuration
   agentConfig: AgentConfig;
@@ -84,6 +87,7 @@ export interface ConsoleState {
   toggleConnector: (id: string) => void;
   addConnector: (connector: Connector) => void;
   removeConnector: (id: string) => void;
+  setExportTarget: (target: ExportTarget) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -107,6 +111,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   showSaveModal: false,
   showConnectorPicker: false,
   mockResponse: '',
+  exportTarget: 'claude' as ExportTarget,
   agentConfig: { ...DEFAULT_AGENT_CONFIG },
   agentMeta: { name: '', description: '', icon: 'brain', category: 'general' },
   mcpServers: MOCK_MCP_SERVERS.map((s) => ({ ...s })),
@@ -350,6 +355,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   removeConnector: (id: string) => {
     set({ connectors: get().connectors.filter((c) => c.id !== id) });
   },
+
+  setExportTarget: (target) => set({ exportTarget: target }),
 }));
 
 export { getEffectiveTokens };

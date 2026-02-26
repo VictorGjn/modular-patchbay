@@ -1,4 +1,4 @@
-import { type ConsoleState, type AgentMeta } from '../store/consoleStore';
+import { type ConsoleState, type AgentMeta, type ExportTarget } from '../store/consoleStore';
 import { type KnowledgeType, type Category, type OutputFormat, classifyKnowledgeType, KNOWLEDGE_TREE, type KnowledgeSource } from '../store/knowledgeBase';
 
 interface ModularChannel {
@@ -32,6 +32,7 @@ const VALID_OUTPUT_FORMATS = new Set<string>([
 
 export interface ImportResult extends Partial<ConsoleState> {
   agentMeta?: AgentMeta;
+  detectedFormat?: ExportTarget;
 }
 
 export function importAgent(text: string): ImportResult {
@@ -44,7 +45,7 @@ export function importAgent(text: string): ImportResult {
   if (trimmed.startsWith('---')) {
     return importMarkdown(trimmed);
   }
-  // Pure YAML (no frontmatter delimiters)
+  // Pure YAML — could be Amp, OpenClaw, or generic YAML
   return importPureYAML(trimmed);
 }
 
@@ -55,14 +56,56 @@ function importJSON(text: string): ImportResult {
   } catch {
     return {};
   }
-  return mapDataToState(data);
+
+  // Detect which JSON format
+  if (data.modular_version && data.agent) {
+    // Generic JSON format
+    const agent = data.agent as Record<string, unknown>;
+    const result = mapDataToState({
+      ...agent,
+      system: agent.system_prompt,
+      reads: (agent.knowledge as { path: string }[] | undefined)?.map((k) => k.path),
+      output_format: agent.output_formats,
+      token_budget: agent.token_budget,
+    });
+    result.detectedFormat = 'generic';
+    return result;
+  }
+
+  if (data.template && data.context_files) {
+    // Vibe Kanban format
+    const result = mapDataToState({
+      name: data.template,
+      reads: data.context_files,
+      tools: data.tools,
+      output_format: data.output_format,
+    });
+    result.detectedFormat = 'vibe-kanban';
+    return result;
+  }
+
+  if (data.instructions && !data.system) {
+    // Codex format
+    const result = mapDataToState({
+      ...data,
+      system: data.instructions,
+      reads: data.context_files || data.reads,
+    });
+    result.detectedFormat = 'codex';
+    return result;
+  }
+
+  // Fallback generic JSON
+  const result = mapDataToState(data);
+  result.detectedFormat = 'generic';
+  return result;
 }
 
 function importMarkdown(text: string): ImportResult {
   const { frontmatter, body } = parseFrontmatter(text);
   const result = mapDataToState(frontmatter);
+  result.detectedFormat = 'claude';
 
-  // Extract prompt from body sections
   if (!result.prompt) {
     const promptMatch = body.match(/## Default Prompt\n([\s\S]*?)(?=\n## |$)/);
     if (promptMatch) {
@@ -70,7 +113,6 @@ function importMarkdown(text: string): ImportResult {
     }
   }
 
-  // Fallback: extract from Role section
   if (!result.prompt) {
     const roleMatch = body.match(/(?:##? Role)\n([\s\S]*?)(?=\n##? |$)/);
     if (roleMatch) {
@@ -78,7 +120,6 @@ function importMarkdown(text: string): ImportResult {
     }
   }
 
-  // If still no channels, try to parse from body
   if (!result.channels || result.channels.length === 0) {
     const channels = parseChannelsFromBody(body);
     if (channels.length > 0) {
@@ -91,13 +132,45 @@ function importMarkdown(text: string): ImportResult {
 
 function importPureYAML(text: string): ImportResult {
   const parsed = parseSimpleYaml(text);
-  return mapDataToState(parsed);
+
+  // Detect OpenClaw format (has `agents:` top-level key with nested agent)
+  if (parsed.agents && typeof parsed.agents === 'object' && !Array.isArray(parsed.agents)) {
+    const agents = parsed.agents as Record<string, Record<string, unknown>>;
+    const firstKey = Object.keys(agents)[0];
+    if (firstKey) {
+      const agentData = agents[firstKey];
+      const result = mapDataToState({
+        name: firstKey.replace(/-/g, ' '),
+        model: agentData.model,
+        temperature: agentData.temperature,
+        tools: agentData.skills,
+        reads: agentData.context,
+      });
+      result.detectedFormat = 'openclaw';
+      return result;
+    }
+  }
+
+  // Detect Amp format (has `mcp:` as object, `instructions:` field)
+  if (parsed.mcp && typeof parsed.mcp === 'object' && !Array.isArray(parsed.mcp)) {
+    const result = mapDataToState({
+      ...parsed,
+      system: parsed.instructions,
+      reads: parsed.context_files,
+    });
+    result.detectedFormat = 'amp';
+    return result;
+  }
+
+  // Generic pure YAML
+  const result = mapDataToState(parsed);
+  result.detectedFormat = 'amp'; // Default YAML to Amp
+  return result;
 }
 
 function mapDataToState(data: Record<string, unknown>): ImportResult {
   const result: ImportResult = {};
 
-  // Agent metadata
   const meta: AgentMeta = {
     name: asString(data.name) || '',
     description: asString(data.description) || '',
@@ -106,23 +179,19 @@ function mapDataToState(data: Record<string, unknown>): ImportResult {
   };
   result.agentMeta = meta;
 
-  // Model
   if (data.model) {
     const modelStr = asString(data.model);
     result.selectedModel = MODEL_MAP[modelStr] ?? modelStr;
   }
 
-  // Token budget
   if (data.token_budget !== undefined) {
     result.tokenBudget = Number(data.token_budget);
   }
-  // Legacy: modular.tokenBudget
   const modular = data.modular as Record<string, unknown> | undefined;
   if (modular?.tokenBudget !== undefined) {
     result.tokenBudget = Number(modular.tokenBudget);
   }
 
-  // Output format
   if (Array.isArray(data.output_format)) {
     const formats = (data.output_format as string[]).filter((f) => VALID_OUTPUT_FORMATS.has(f));
     if (formats.length > 0) {
@@ -134,12 +203,10 @@ function mapDataToState(data: Record<string, unknown>): ImportResult {
       result.outputFormat = f as OutputFormat;
     }
   }
-  // Legacy: modular.outputFormat
   if (!result.outputFormat && modular?.outputFormat) {
     result.outputFormat = modular.outputFormat as OutputFormat;
   }
 
-  // Channels from reads[]
   if (Array.isArray(data.reads)) {
     result.channels = (data.reads as string[]).map((path: string, i: number) => {
       const matched = findSourceByPath(path);
@@ -175,12 +242,10 @@ function mapDataToState(data: Record<string, unknown>): ImportResult {
     });
   }
 
-  // System prompt as prompt fallback
   if (!result.prompt && data.system) {
     result.prompt = asString(data.system);
   }
 
-  // Direct prompt field
   if (data.prompt) {
     result.prompt = asString(data.prompt);
   }
@@ -221,7 +286,6 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
   };
 
   for (const line of lines) {
-    // Handle multiline (| indicator)
     if (multilineKey) {
       const indent = line.search(/\S/);
       if (indent >= multilineIndent && line.trim() !== '') {
@@ -229,11 +293,9 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
         continue;
       } else {
         flushMultiline();
-        // Fall through to parse this line normally
       }
     }
 
-    // Top-level key: value
     const topMatch = line.match(/^(\w[\w_-]*)\s*:\s*(.*)$/);
     if (topMatch) {
       if (currentItem && currentArr) {
@@ -263,7 +325,6 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
       continue;
     }
 
-    // Nested key under currentObj (2-space indent)
     if (currentObj) {
       const nestedMatch = line.match(/^  (\w[\w_-]*)\s*:\s*(.*)$/);
       if (nestedMatch) {
@@ -289,7 +350,6 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
         continue;
       }
 
-      // Array item - simple value (2-space indent + dash)
       if (currentArr) {
         const simpleArr = line.match(/^  - (.+)$/);
         if (simpleArr && !simpleArr[1].includes(':')) {
@@ -302,7 +362,6 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
         }
       }
 
-      // Array item start (4-space indent + dash) for nested arrays
       if (currentArr) {
         const arrMatch = line.match(/^    - (\w[\w_-]*)\s*:\s*(.*)$/);
         if (arrMatch) {
@@ -311,7 +370,6 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
           continue;
         }
 
-        // Array item continuation (6-space indent)
         const contMatch = line.match(/^      (\w[\w_-]*)\s*:\s*(.*)$/);
         if (contMatch && currentItem) {
           currentItem[contMatch[1]] = stripQuotes(contMatch[2]);
@@ -320,7 +378,6 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
       }
     }
 
-    // Top-level simple array items (2-space indent + dash)
     if (!currentObj) {
       const topArrMatch = line.match(/^  - (.+)$/);
       if (topArrMatch && currentArr) {
@@ -335,7 +392,6 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
         }
         continue;
       }
-      // Check if this is the start of a top-level array
       const topArrKey = line.match(/^(\w[\w_-]*)\s*:$/);
       if (topArrKey) {
         currentKey = topArrKey[1];
@@ -346,7 +402,6 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
     }
   }
 
-  // Flush remaining
   flushMultiline();
   if (currentItem && currentArr) {
     currentArr.push(currentItem);
