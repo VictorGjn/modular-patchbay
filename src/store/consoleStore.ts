@@ -10,6 +10,8 @@ export interface ConsoleState {
   tokenBudget: number;
   running: boolean;
   showFilePicker: boolean;
+  showMcpPicker: boolean;
+  showSkillPicker: boolean;
   mockResponse: string;
 
   // New section data
@@ -32,13 +34,19 @@ export interface ConsoleState {
   setModel: (model: string) => void;
   setTokenBudget: (budget: number) => void;
   setShowFilePicker: (show: boolean) => void;
+  setShowMcpPicker: (show: boolean) => void;
+  setShowSkillPicker: (show: boolean) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
   run: () => void;
   clearChannels: () => void;
 
   // New actions
   toggleMcp: (id: string) => void;
+  addMcp: (id: string) => void;
+  removeMcp: (id: string) => void;
   toggleSkill: (id: string) => void;
+  addSkill: (id: string) => void;
+  removeSkill: (id: string) => void;
   loadAgent: (id: string) => void;
 }
 
@@ -57,6 +65,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   tokenBudget: 200000,
   running: false,
   showFilePicker: false,
+  showMcpPicker: false,
+  showSkillPicker: false,
   mockResponse: '',
   mcpServers: MOCK_MCP_SERVERS.map((s) => ({ ...s })),
   skills: MOCK_SKILLS.map((s) => ({ ...s })),
@@ -122,6 +132,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setModel: (model: string) => set({ selectedModel: model }),
   setTokenBudget: (budget: number) => set({ tokenBudget: budget }),
   setShowFilePicker: (show: boolean) => set({ showFilePicker: show }),
+  setShowMcpPicker: (show: boolean) => set({ showMcpPicker: show }),
+  setShowSkillPicker: (show: boolean) => set({ showSkillPicker: show }),
 
   reorderChannels: (fromIndex: number, toIndex: number) => {
     const channels = [...get().channels];
@@ -157,10 +169,42 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     });
   },
 
+  addMcp: (id: string) => {
+    set({
+      mcpServers: get().mcpServers.map((s) =>
+        s.id === id ? { ...s, added: true, enabled: true } : s,
+      ),
+    });
+  },
+
+  removeMcp: (id: string) => {
+    set({
+      mcpServers: get().mcpServers.map((s) =>
+        s.id === id ? { ...s, added: false, enabled: false } : s,
+      ),
+    });
+  },
+
   toggleSkill: (id: string) => {
     set({
       skills: get().skills.map((s) =>
         s.id === id ? { ...s, enabled: !s.enabled } : s,
+      ),
+    });
+  },
+
+  addSkill: (id: string) => {
+    set({
+      skills: get().skills.map((s) =>
+        s.id === id ? { ...s, added: true, enabled: true } : s,
+      ),
+    });
+  },
+
+  removeSkill: (id: string) => {
+    set({
+      skills: get().skills.map((s) =>
+        s.id === id ? { ...s, added: false, enabled: false } : s,
       ),
     });
   },

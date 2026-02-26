@@ -1,5 +1,7 @@
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
+import { Layers, Cpu, Sparkles } from 'lucide-react';
+import { OutputIcon } from './icons/SectionIcons';
 
 const MODELS_SHORT: Record<string, string> = {
   'claude-opus-4': 'Opus 4',
@@ -22,123 +24,38 @@ export function SignalFlow() {
   const modelShort = MODELS_SHORT[selectedModel] ?? selectedModel;
   const toolsLoaded = mcpServers.filter((s) => s.enabled).length + skills.filter((s) => s.enabled).length;
 
-  const nodes = [
-    { id: 'sources', icon: '◉', label: 'Sources', detail: `${activeCount} active` },
-    { id: 'process', icon: '⚙', label: 'Process', detail: `${toolsLoaded} tools` },
-    { id: 'model', icon: '◆', label: 'Model', detail: modelShort },
-    { id: 'out', icon: formatInfo?.icon ?? '📝', label: 'Out', detail: formatInfo?.label ?? 'Markdown' },
+  const items = [
+    { icon: <Layers size={13} />, label: `${activeCount} sources`, active: activeCount > 0 },
+    { icon: <Sparkles size={13} />, label: `${toolsLoaded} tools`, active: toolsLoaded > 0 },
+    { icon: <Cpu size={13} />, label: modelShort, active: true },
+    { icon: <OutputIcon formatId={outputFormat} size={13} />, label: formatInfo?.label ?? 'Markdown', active: true },
   ];
 
   return (
     <div className="mx-4 mb-2 select-none">
-      <div
-        className="rounded-md overflow-hidden relative"
-        style={{
-          background: 'linear-gradient(to bottom, #131110, #0f0e0d)',
-          border: '1px solid #2d2720',
-          minHeight: 84,
-        }}
-      >
-        {/* Label */}
-        <div className="absolute top-2 left-3">
-          <span
-            className="text-[7px] tracking-[2px] uppercase"
-            style={{ fontFamily: "'Space Mono', monospace", color: '#3d3730' }}
-          >
-            SIGNAL FLOW
-          </span>
-        </div>
-
-        {/* Flow visualization */}
-        <div className="flex items-center justify-center px-6" style={{ height: 84 }}>
-          <svg width="100%" height="72" viewBox="0 0 560 72" style={{ maxWidth: 560 }} preserveAspectRatio="xMidYMid meet">
-            {/* Connection lines */}
-            {[0, 1, 2].map((i) => {
-              const x1 = 60 + i * 150;
-              const x2 = 60 + (i + 1) * 150 - 56;
-              return (
-                <line
-                  key={i}
-                  x1={x1}
-                  y1={28}
-                  x2={x2 + 56}
-                  y2={28}
-                  stroke={running ? '#FE5000' : '#2d2720'}
-                  strokeWidth={2.5}
-                  strokeDasharray="6 4"
-                  style={running ? { animation: 'dash-flow 0.5s linear infinite' } : undefined}
-                />
-              );
-            })}
-
-            {/* Arrow heads */}
-            {[0, 1, 2].map((i) => {
-              const x = 60 + (i + 1) * 150 - 4;
-              return (
-                <polygon
-                  key={`arrow-${i}`}
-                  points={`${x - 6},${28 - 4} ${x},${28} ${x - 6},${28 + 4}`}
-                  fill={running ? '#FE5000' : '#2d2720'}
-                />
-              );
-            })}
-
-            {/* Nodes */}
-            {nodes.map((node, i) => {
-              const x = 4 + i * 150;
-              const isActive = (node.id === 'sources' && activeCount > 0) || running;
-              return (
-                <g key={node.id} style={running ? { animation: `node-pulse 2s ease ${i * 0.3}s infinite` } : undefined}>
-                  {/* Node box */}
-                  <rect
-                    x={x}
-                    y={0}
-                    width={56}
-                    height={56}
-                    rx={10}
-                    fill={isActive ? '#1e1a17' : '#161311'}
-                    stroke={isActive ? '#FE500050' : '#2d2720'}
-                    strokeWidth={1.5}
-                  />
-                  {/* Icon */}
-                  <text
-                    x={x + 28}
-                    y={26}
-                    textAnchor="middle"
-                    fill={isActive ? '#FE5000' : '#5a4e42'}
-                    fontSize={16}
-                    fontFamily="'Space Mono', monospace"
-                  >
-                    {node.icon}
-                  </text>
-                  {/* Label below icon */}
-                  <text
-                    x={x + 28}
-                    y={46}
-                    textAnchor="middle"
-                    fill="#5a4e42"
-                    fontSize={7}
-                    fontFamily="'Space Mono', monospace"
-                    letterSpacing={1}
-                  >
-                    {node.label.toUpperCase()}
-                  </text>
-                  {/* Detail below node */}
-                  <text
-                    x={x + 28}
-                    y={68}
-                    textAnchor="middle"
-                    fill={isActive ? '#8a7e72' : '#3d3730'}
-                    fontSize={8}
-                    fontFamily="'Space Mono', monospace"
-                  >
-                    {node.detail}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
+      <div className="flex items-center gap-3 px-4 py-2 rounded-lg" style={{ background: '#1c1c20', border: '1px solid #2a2a30' }}>
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center gap-3">
+            {i > 0 && (
+              <div className="w-6 h-px" style={{ background: running ? '#FE5000' : '#2a2a30', transition: 'background 0.3s ease' }} />
+            )}
+            <div className="flex items-center gap-1.5">
+              <span style={{ color: item.active ? (running ? '#FE5000' : '#888') : '#444' }}>
+                {item.icon}
+              </span>
+              <span
+                className="text-[11px]"
+                style={{
+                  fontFamily: "'Space Mono', monospace",
+                  color: item.active ? (running ? '#FE5000' : '#888') : '#444',
+                  transition: 'color 0.3s ease',
+                }}
+              >
+                {item.label}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
