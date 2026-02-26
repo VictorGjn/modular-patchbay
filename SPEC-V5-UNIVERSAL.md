@@ -195,7 +195,7 @@ my-skill/
 MCP servers are declared in Modular's canvas (McpNode / ConnectorTile) and exported to the target runtime's config format.
 
 ### In Modular canvas:
-User adds "Notion" connector → configures page_id, auth → Modular stores:
+User adds "Notion" connector → optionally pastes a URL and hint → Modular stores:
 ```json
 {
   "service": "notion",
@@ -203,8 +203,18 @@ User adds "Notion" connector → configures page_id, auth → Modular stores:
   "transport": "stdio",
   "command": "npx @notionhq/mcp",
   "env": { "NOTION_API_KEY": "${NOTION_API_KEY}" },
-  "config": { "page_id": "abc123" }
+  "url": "https://notion.so/workspace/product-wiki-abc123",
+  "hint": "Product roadmap and feature specs for Q1 2026"
 }
+```
+
+### ConnectorTile — 3 levels of precision (progressive disclosure):
+1. **Service only** — MCP is activated, agent CAN use it if relevant
+2. **Service + URL** — Agent knows WHERE to look (paste any URL: Notion page, Slack channel, Jira board, Google Doc...)
+3. **Service + URL + Hint** — Agent knows where AND what to look for ("Product roadmap and feature specs")
+
+URL is auto-detected to resolve service: notion.so → Notion, slack.com → Slack, etc.
+All 3 fields feed into the system prompt as lightweight context hints, NOT as n8n-style explicit API configs.
 ```
 
 ### Export writes to target config:
