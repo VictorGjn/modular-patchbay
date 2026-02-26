@@ -3,19 +3,25 @@ import { Topbar } from './components/Topbar';
 import { PromptArea } from './components/PromptArea';
 import { TokenBudget } from './components/TokenBudget';
 import { FilePicker } from './components/FilePicker';
+import { McpPicker } from './components/McpPicker';
+import { SkillPicker } from './components/SkillPicker';
 import { ResponseArea } from './components/ResponseArea';
-import { SignalFlow } from './components/SignalFlow';
+import { CableLayer } from './components/CableLayer';
 import { AgentPreview } from './components/AgentPreview';
 import { Section } from './components/Section';
 import { Tile } from './components/Tile';
 import { useConsoleStore, getEffectiveTokens } from './store/consoleStore';
-import { KNOWLEDGE_TYPES, DEPTH_LEVELS, OUTPUT_FORMATS, type OutputFormat } from './store/knowledgeBase';
+import { KNOWLEDGE_TYPES, DEPTH_LEVELS, OUTPUT_FORMATS, MOCK_AGENTS, type OutputFormat } from './store/knowledgeBase';
 import { importAgent } from './utils/agentImport';
+import { McpIcon, SkillIcon, OutputIcon } from './components/icons/SectionIcons';
+
 
 export default function App() {
   const channels = useConsoleStore((s) => s.channels);
   const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
   const showFilePicker = useConsoleStore((s) => s.showFilePicker);
+  const setShowMcpPicker = useConsoleStore((s) => s.setShowMcpPicker);
+  const setShowSkillPicker = useConsoleStore((s) => s.setShowSkillPicker);
   const run = useConsoleStore((s) => s.run);
   const running = useConsoleStore((s) => s.running);
   const toggleChannel = useConsoleStore((s) => s.toggleChannel);
@@ -74,12 +80,14 @@ export default function App() {
       }
       if (e.key === 'Escape') {
         setShowFilePicker(false);
+        setShowMcpPicker(false);
+        setShowSkillPicker(false);
         setDepthPopup(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setShowFilePicker, showFilePicker, run, running]);
+  }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, run, running]);
 
   // Close depth popup on outside click
   useEffect(() => {
@@ -90,6 +98,8 @@ export default function App() {
   }, [depthPopup]);
 
   const activeChannels = channels.filter((c) => c.enabled);
+  const addedMcps = mcpServers.filter((s) => s.added);
+  const addedSkills = skills.filter((s) => s.added);
 
   const handleTileDoubleClick = (sourceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -97,11 +107,14 @@ export default function App() {
     setDepthPopup({ sourceId, x: rect.left, y: rect.bottom + 4 });
   };
 
-  // Format tokens nicely
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
 
+  // Helper to get linked agents for a skill
+  const getLinkedAgents = (skillId: string): string[] =>
+    MOCK_AGENTS.filter((a) => a.linkedSkills?.includes(skillId)).map((a) => a.name);
+
   return (
-    <div className="gradient-mesh-bg w-full h-full flex flex-col" style={{ background: '#0f0f0f' }}>
+    <div className="w-full h-full flex flex-col" style={{ background: '#111114' }}>
       <input
         ref={importInputRef}
         type="file"
@@ -114,8 +127,11 @@ export default function App() {
       {/* TOPBAR */}
       <Topbar onImportClick={handleImportClick} />
 
-      {/* PROMPT AREA */}
+      {/* PROMPT AREA with jack port */}
       <PromptArea />
+
+      {/* CABLE LAYER */}
+      <CableLayer />
 
       {/* SECTIONS GRID */}
       <div
@@ -123,7 +139,7 @@ export default function App() {
         style={{ zIndex: 1 }}
       >
         <div
-          className="grid gap-2 h-full"
+          className="grid gap-3 h-full"
           style={{
             gridTemplateColumns: 'repeat(5, 1fr)',
             minHeight: 0,
@@ -132,17 +148,15 @@ export default function App() {
           {/* Section 1: KNOWLEDGE */}
           <Section
             title="Knowledge"
-            emoji="📚"
+            sectionId="knowledge"
             count={activeChannels.length}
-            actionLabel="+ ADD  ⌘K"
+            active={activeChannels.length > 0}
+            actionLabel="+ Add  ⌘K"
             onAction={() => setShowFilePicker(true)}
           >
             {channels.length === 0 ? (
               <div className="col-span-full flex items-center justify-center py-6">
-                <span
-                  className="text-[9px] tracking-[1px] uppercase"
-                  style={{ fontFamily: "'Space Mono', monospace", color: '#3d3730' }}
-                >
+                <span className="text-xs" style={{ color: '#444' }}>
                   No sources loaded
                 </span>
               </div>
@@ -155,7 +169,7 @@ export default function App() {
                     key={ch.sourceId}
                     name={ch.name}
                     active={ch.enabled}
-                    badge={kt.icon}
+                    icon={<span className="w-2 h-2 rounded-full inline-block" style={{ background: kt.color }} />}
                     subtitle={`${fmtTokens(eff)} · ${DEPTH_LEVELS[ch.depth].label}`}
                     colorStripe={kt.color}
                     onClick={() => toggleChannel(ch.sourceId)}
@@ -171,54 +185,77 @@ export default function App() {
           {/* Section 2: MCP */}
           <Section
             title="MCP"
-            emoji="🔌"
-            count={mcpServers.filter((s) => s.enabled).length}
-            actionLabel="+ FIND"
-            onAction={() => {}}
+            sectionId="mcp"
+            count={addedMcps.filter((s) => s.enabled).length}
+            active={addedMcps.some((s) => s.enabled)}
+            actionLabel="+ Add"
+            onAction={() => setShowMcpPicker(true)}
           >
-            {mcpServers.map((server) => {
-              const statusColor = server.connected
-                ? (server.enabled ? '#00ff88' : '#5a4e42')
-                : '#ff3344';
-              return (
-                <Tile
-                  key={server.id}
-                  name={server.name}
-                  active={server.enabled}
-                  badge={server.icon}
-                  subtitle={server.connected ? 'connected' : 'offline'}
-                  statusColor={statusColor}
-                  onClick={() => toggleMcp(server.id)}
-                />
-              );
-            })}
+            {addedMcps.length === 0 ? (
+              <div className="col-span-full flex items-center justify-center py-6">
+                <span className="text-xs" style={{ color: '#444' }}>
+                  No servers added
+                </span>
+              </div>
+            ) : (
+              addedMcps.map((server) => {
+                const statusColor = server.connected
+                  ? (server.enabled ? '#00ff88' : '#555')
+                  : '#ff3344';
+                return (
+                  <Tile
+                    key={server.id}
+                    name={server.name}
+                    active={server.enabled}
+                    icon={<McpIcon icon={server.icon} size={14} />}
+                    subtitle={server.connected ? 'connected' : 'offline'}
+                    statusColor={statusColor}
+                    onClick={() => toggleMcp(server.id)}
+                  />
+                );
+              })
+            )}
           </Section>
 
           {/* Section 3: SKILLS */}
           <Section
             title="Skills"
-            emoji="⚡"
-            count={skills.filter((s) => s.enabled).length}
-            actionLabel="+ FIND"
-            onAction={() => {}}
+            sectionId="skills"
+            count={addedSkills.filter((s) => s.enabled).length}
+            active={addedSkills.some((s) => s.enabled)}
+            actionLabel="+ Add"
+            onAction={() => setShowSkillPicker(true)}
           >
-            {skills.map((skill) => (
-              <Tile
-                key={skill.id}
-                name={skill.name}
-                active={skill.enabled}
-                subtitle={skill.description}
-                onClick={() => toggleSkill(skill.id)}
-              />
-            ))}
+            {addedSkills.length === 0 ? (
+              <div className="col-span-full flex items-center justify-center py-6">
+                <span className="text-xs" style={{ color: '#444' }}>
+                  No skills added
+                </span>
+              </div>
+            ) : (
+              addedSkills.map((skill) => {
+                const linked = getLinkedAgents(skill.id);
+                return (
+                  <Tile
+                    key={skill.id}
+                    name={skill.name}
+                    active={skill.enabled}
+                    icon={<SkillIcon icon={skill.icon} size={14} />}
+                    subtitle={linked.length > 0 ? `Used by: ${linked.join(', ')}` : skill.description}
+                    onClick={() => toggleSkill(skill.id)}
+                  />
+                );
+              })
+            )}
           </Section>
 
           {/* Section 4: AGENTS */}
           <Section
             title="Agents"
-            emoji="🤖"
+            sectionId="agents"
             count={agents.length}
-            actionLabel="+ NEW"
+            active={agents.length > 0}
+            actionLabel="+ New"
             onAction={() => {}}
           >
             {agents.map((agent) => (
@@ -226,7 +263,14 @@ export default function App() {
                 key={agent.id}
                 name={agent.name}
                 active={false}
-                badge={agent.emoji}
+                icon={
+                  <div
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold"
+                    style={{ background: '#25252a', color: '#888', border: '1px solid #2a2a30' }}
+                  >
+                    {agent.initials}
+                  </div>
+                }
                 subtitle={agent.model}
                 onClick={() => loadAgent(agent.id)}
               />
@@ -236,15 +280,16 @@ export default function App() {
           {/* Section 5: OUTPUT */}
           <Section
             title="Output"
-            emoji="📤"
+            sectionId="output"
             count={1}
+            active={outputFormat !== 'markdown'}
           >
             {OUTPUT_FORMATS.map((fmt) => (
               <Tile
                 key={fmt.id}
                 name={fmt.label}
                 active={outputFormat === fmt.id}
-                badge={fmt.icon}
+                icon={<OutputIcon formatId={fmt.id} size={14} />}
                 radioMode
                 onClick={() => setOutputFormat(fmt.id as OutputFormat)}
               />
@@ -253,25 +298,24 @@ export default function App() {
         </div>
       </div>
 
-      {/* SIGNAL FLOW */}
-      <SignalFlow />
-
       {/* RESPONSE AREA */}
       <ResponseArea />
       <AgentPreview />
       <TokenBudget />
       <FilePicker />
+      <McpPicker />
+      <SkillPicker />
 
       {/* Depth popup */}
       {depthPopup && (
         <div
-          className="fixed z-50 rounded-md py-1 px-1"
+          className="fixed z-50 rounded-lg py-1 px-1"
           style={{
             left: depthPopup.x,
             top: depthPopup.y,
-            background: '#1e1a17',
-            border: '1px solid #2d2720',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            background: '#1c1c20',
+            border: '1px solid #2a2a30',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
             animation: 'fade-in-up 0.15s ease',
           }}
           onClick={(e) => e.stopPropagation()}
@@ -280,14 +324,11 @@ export default function App() {
             <button
               key={level.label}
               type="button"
-              className="block w-full text-left px-3 py-1 rounded text-[9px] cursor-pointer border-none"
+              className="block w-full text-left px-3 py-1.5 rounded-md text-xs cursor-pointer border-none hover-row"
               style={{
-                fontFamily: "'Space Mono', monospace",
                 background: 'transparent',
-                color: '#b5a898',
+                color: '#888',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#2d2720'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               onClick={() => {
                 setChannelDepth(depthPopup.sourceId, i);
                 setDepthPopup(null);

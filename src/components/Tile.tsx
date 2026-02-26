@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 export interface TileProps {
   name: string;
   active: boolean;
-  badge?: string;
+  icon?: ReactNode;
   subtitle?: string;
   colorStripe?: string;
   statusColor?: string;
@@ -12,13 +12,13 @@ export interface TileProps {
   radioMode?: boolean;
 }
 
-export function Tile({ name, active, badge, subtitle, colorStripe, statusColor, onClick, onDoubleClick, radioMode }: TileProps) {
+export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, onClick, onDoubleClick, radioMode }: TileProps) {
   const [hovered, setHovered] = useState(false);
 
-  const dotColor = statusColor ?? (active ? '#00ff88' : '#3d3730');
+  const dotColor = statusColor ?? (active ? '#00ff88' : '#444');
   const borderColor = active
     ? (radioMode ? 'rgba(254,80,0,0.5)' : 'rgba(254,80,0,0.25)')
-    : hovered ? '#3d3730' : '#2d2720';
+    : hovered ? '#3a3a40' : '#2a2a30';
 
   return (
     <button
@@ -27,30 +27,29 @@ export function Tile({ name, active, badge, subtitle, colorStripe, statusColor, 
       onDoubleClick={(e) => onDoubleClick?.(e)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="tile relative flex flex-col items-start justify-between p-2 rounded cursor-pointer border-none outline-none text-left"
+      className="tile relative flex flex-col items-start justify-between p-2 rounded-lg cursor-pointer border-none outline-none text-left"
       style={{
-        width: 100,
+        width: 104,
         height: 80,
-        minWidth: 100,
+        minWidth: 104,
         minHeight: 80,
         background: active
-          ? 'linear-gradient(135deg, #221e1a, #1e1a17)'
-          : 'linear-gradient(135deg, #1e1a17, #1b1714)',
+          ? '#25252a'
+          : hovered ? '#1f1f24' : '#1c1c20',
         border: `1px solid ${borderColor}`,
         boxShadow: active
-          ? '0 0 12px rgba(254,80,0,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+          ? '0 0 12px rgba(254,80,0,0.06)'
           : hovered
-            ? '0 4px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)'
-            : 'inset 0 1px 0 rgba(255,255,255,0.02)',
+            ? '0 4px 12px rgba(0,0,0,0.3)'
+            : 'none',
         transform: hovered ? 'translateY(-1px)' : 'none',
-        transition: 'transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease',
-        fontFamily: "'Space Mono', monospace",
+        transition: 'transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease',
       }}
     >
       {/* Color stripe at top */}
       {colorStripe && (
         <div
-          className="absolute top-0 left-0 right-0 rounded-t"
+          className="absolute top-0 left-0 right-0 rounded-t-lg"
           style={{ height: 2, background: colorStripe }}
         />
       )}
@@ -71,9 +70,11 @@ export function Tile({ name, active, badge, subtitle, colorStripe, statusColor, 
 
       {/* Name */}
       <span
-        className="text-[9px] leading-tight block pr-3 overflow-hidden"
+        className="text-[10px] leading-tight block pr-3 overflow-hidden"
         style={{
-          color: active ? '#e8e0d8' : '#8a7e72',
+          fontFamily: "'Inter', sans-serif",
+          fontWeight: 500,
+          color: active ? '#f0f0f0' : '#888',
           display: '-webkit-box',
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
@@ -84,21 +85,18 @@ export function Tile({ name, active, badge, subtitle, colorStripe, statusColor, 
         {name}
       </span>
 
-      {/* Badge */}
-      {badge && (
-        <span
-          className="text-[11px]"
-          style={{ lineHeight: 1 }}
-        >
-          {badge}
-        </span>
+      {/* Icon */}
+      {icon && (
+        <div style={{ color: active ? '#888' : '#555', lineHeight: 1 }}>
+          {icon}
+        </div>
       )}
 
       {/* Subtitle */}
       {subtitle && (
         <span
-          className="text-[7px] tracking-[0.5px] uppercase block mt-auto"
-          style={{ color: '#5a4e42' }}
+          className="text-[8px] tracking-wide uppercase block mt-auto"
+          style={{ color: '#555', fontFamily: "'Space Mono', monospace" }}
         >
           {subtitle}
         </span>

@@ -223,6 +223,9 @@ function chById(id: string, depth = 0): Omit<ChannelConfig, 'enabled'> {
   return ch(src, depth);
 }
 
+// MCP Server categories
+export type McpCategory = 'communication' | 'development' | 'data' | 'productivity';
+
 // Mock MCP Servers
 export interface McpServer {
   id: string;
@@ -230,56 +233,66 @@ export interface McpServer {
   icon: string;
   connected: boolean;
   enabled: boolean;
+  added: boolean;
   capabilities: string[];
+  category: McpCategory;
+  description: string;
 }
 
 export const MOCK_MCP_SERVERS: McpServer[] = [
-  { id: 'mcp-gmail', name: 'Gmail', icon: '📧', connected: true, enabled: true, capabilities: ['input', 'output'] },
-  { id: 'mcp-slack', name: 'Slack', icon: '💬', connected: true, enabled: true, capabilities: ['input', 'output'] },
-  { id: 'mcp-github', name: 'GitHub', icon: '🐙', connected: true, enabled: false, capabilities: ['input', 'output'] },
-  { id: 'mcp-notion', name: 'Notion', icon: '📓', connected: true, enabled: false, capabilities: ['input', 'output'] },
-  { id: 'mcp-hubspot', name: 'HubSpot', icon: '🔶', connected: false, enabled: false, capabilities: ['input'] },
-  { id: 'mcp-firecrawl', name: 'Firecrawl', icon: '🔥', connected: true, enabled: false, capabilities: ['input'] },
-  { id: 'mcp-supabase', name: 'Supabase', icon: '⚡', connected: false, enabled: false, capabilities: ['output'] },
+  { id: 'mcp-gmail', name: 'Gmail', icon: 'mail', connected: true, enabled: true, added: true, capabilities: ['input', 'output'], category: 'communication', description: 'Send and read emails via Gmail' },
+  { id: 'mcp-slack', name: 'Slack', icon: 'hash', connected: true, enabled: true, added: true, capabilities: ['input', 'output'], category: 'communication', description: 'Read channels and send messages' },
+  { id: 'mcp-github', name: 'GitHub', icon: 'github', connected: true, enabled: false, added: false, capabilities: ['input', 'output'], category: 'development', description: 'Repos, issues, and pull requests' },
+  { id: 'mcp-notion', name: 'Notion', icon: 'file-text', connected: true, enabled: false, added: false, capabilities: ['input', 'output'], category: 'productivity', description: 'Read and write Notion pages' },
+  { id: 'mcp-hubspot', name: 'HubSpot', icon: 'hexagon', connected: false, enabled: false, added: false, capabilities: ['input'], category: 'data', description: 'CRM contacts and companies' },
+  { id: 'mcp-firecrawl', name: 'Firecrawl', icon: 'flame', connected: true, enabled: false, added: false, capabilities: ['input'], category: 'data', description: 'Web scraping and crawling' },
+  { id: 'mcp-supabase', name: 'Supabase', icon: 'database', connected: false, enabled: false, added: false, capabilities: ['output'], category: 'data', description: 'Database queries and storage' },
 ];
+
+// Skill categories
+export type SkillCategory = 'content' | 'analysis' | 'development' | 'domain';
 
 // Mock Skills
 export interface Skill {
   id: string;
   name: string;
+  icon: string;
   enabled: boolean;
+  added: boolean;
   description: string;
+  category: SkillCategory;
 }
 
 export const MOCK_SKILLS: Skill[] = [
-  { id: 'skill-frontend-slides', name: 'Frontend Slides', enabled: true, description: 'HTML presentations' },
-  { id: 'skill-openai-whisper', name: 'OpenAI Whisper', enabled: false, description: 'Speech-to-text' },
-  { id: 'skill-weather', name: 'Weather', enabled: false, description: 'Weather data' },
-  { id: 'skill-coding-agent', name: 'Coding Agent', enabled: true, description: 'Code generation' },
-  { id: 'skill-feedback-analyzer', name: 'Feedback Analyzer', enabled: false, description: 'Analyze feedback' },
-  { id: 'skill-maritime-expert', name: 'Maritime Expert', enabled: true, description: 'Maritime domain' },
-  { id: 'skill-github', name: 'GitHub', enabled: false, description: 'Repository ops' },
-  { id: 'skill-web-design', name: 'Web Design', enabled: false, description: 'UI guidelines' },
+  { id: 'skill-frontend-slides', name: 'Frontend Slides', icon: 'presentation', enabled: true, added: true, description: 'HTML presentations', category: 'content' },
+  { id: 'skill-openai-whisper', name: 'OpenAI Whisper', icon: 'mic', enabled: false, added: false, description: 'Speech-to-text', category: 'content' },
+  { id: 'skill-weather', name: 'Weather', icon: 'cloud', enabled: false, added: false, description: 'Weather data', category: 'domain' },
+  { id: 'skill-coding-agent', name: 'Coding Agent', icon: 'code', enabled: true, added: true, description: 'Code generation', category: 'development' },
+  { id: 'skill-feedback-analyzer', name: 'Feedback Analyzer', icon: 'bar-chart-3', enabled: false, added: false, description: 'Analyze feedback', category: 'analysis' },
+  { id: 'skill-maritime-expert', name: 'Maritime Expert', icon: 'anchor', enabled: true, added: true, description: 'Maritime domain', category: 'domain' },
+  { id: 'skill-github', name: 'GitHub', icon: 'git-branch', enabled: false, added: false, description: 'Repository ops', category: 'development' },
+  { id: 'skill-web-design', name: 'Web Design', icon: 'palette', enabled: false, added: false, description: 'UI guidelines', category: 'content' },
 ];
 
 // Mock Agents
 export interface AgentDef {
   id: string;
   name: string;
-  emoji: string;
+  initials: string;
   model: string;
   description: string;
+  linkedSkills?: string[];
 }
 
 export const MOCK_AGENTS: AgentDef[] = [
-  { id: 'agent-senior-pm', name: 'Senior PM', emoji: '📋', model: 'Opus 4', description: 'Product strategy & roadmap' },
-  { id: 'agent-engineer', name: 'Engineer', emoji: '⚙️', model: 'Sonnet 4', description: 'Technical implementation' },
-  { id: 'agent-user-researcher', name: 'User Researcher', emoji: '🔬', model: 'Opus 4', description: 'User insights & signals' },
-  { id: 'agent-executive', name: 'Executive', emoji: '👔', model: 'Opus 4', description: 'Strategic decisions' },
-  { id: 'agent-feedback-mgr', name: 'Feedback Manager', emoji: '📊', model: 'Sonnet 4', description: 'Feedback synthesis' },
-  { id: 'agent-company-intel', name: 'Company Intel', emoji: '🏢', model: 'Opus 4', description: 'Company research' },
-  { id: 'agent-opportunity', name: 'Opportunity Creator', emoji: '🎯', model: 'Opus 4', description: 'Sales opportunities' },
-  { id: 'agent-visual-designer', name: 'Visual Designer', emoji: '🎨', model: 'Sonnet 4', description: 'Design & visuals' },
+  { id: 'agent-senior-pm', name: 'Senior PM', initials: 'PM', model: 'Opus 4', description: 'Product strategy & roadmap', linkedSkills: ['skill-feedback-analyzer', 'skill-maritime-expert'] },
+  { id: 'agent-engineer', name: 'Engineer', initials: 'EN', model: 'Sonnet 4', description: 'Technical implementation', linkedSkills: ['skill-coding-agent', 'skill-github'] },
+  { id: 'agent-user-researcher', name: 'User Researcher', initials: 'UR', model: 'Opus 4', description: 'User insights & signals', linkedSkills: ['skill-feedback-analyzer'] },
+  { id: 'agent-executive', name: 'Executive', initials: 'EX', model: 'Opus 4', description: 'Strategic decisions' },
+  { id: 'agent-feedback-mgr', name: 'Feedback Manager', initials: 'FM', model: 'Sonnet 4', description: 'Feedback synthesis', linkedSkills: ['skill-feedback-analyzer'] },
+  { id: 'agent-company-intel', name: 'Company Intel', initials: 'CI', model: 'Opus 4', description: 'Company research' },
+  { id: 'agent-opportunity', name: 'Opportunity Creator', initials: 'OC', model: 'Opus 4', description: 'Sales opportunities' },
+  { id: 'agent-visual-designer', name: 'Visual Designer', initials: 'VD', model: 'Sonnet 4', description: 'Design & visuals', linkedSkills: ['skill-web-design', 'skill-frontend-slides'] },
 ];
 
 export const PRESETS: Preset[] = [

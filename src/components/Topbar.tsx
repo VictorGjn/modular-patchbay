@@ -1,6 +1,8 @@
 import { useConsoleStore } from '../store/consoleStore';
 import { PRESETS, OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
+import { Download, Upload, Trash2, Play } from 'lucide-react';
+import { OutputIcon } from './icons/SectionIcons';
 
 const MODELS = [
   { id: 'claude-opus-4', name: 'Claude Opus 4' },
@@ -15,15 +17,15 @@ function TopbarSelect({ value, onChange, children }: { value: string; onChange: 
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="appearance-none cursor-pointer outline-none text-[9px] tracking-[1px] uppercase py-1 pl-2.5 pr-6 rounded"
+      className="appearance-none cursor-pointer outline-none text-xs py-1.5 pl-3 pr-7 rounded-lg"
       style={{
-        fontFamily: "'Space Mono', monospace",
-        background: '#111',
-        border: '1px solid #2d2720',
-        color: '#b5a898',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M0 2l4 4 4-4' fill='none' stroke='%238a7e72' stroke-width='1.5'/%3E%3C/svg%3E")`,
+        fontFamily: "'Inter', sans-serif",
+        background: '#1c1c20',
+        border: '1px solid #2a2a30',
+        color: '#888',
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M0 2l4 4 4-4' fill='none' stroke='%23555' stroke-width='1.5'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'right 6px center',
+        backgroundPosition: 'right 8px center',
       }}
     >
       {children}
@@ -51,147 +53,122 @@ export function Topbar({ onImportClick }: { onImportClick?: () => void }) {
     downloadAgentFile(content, name);
   };
 
-  const activeCount = channels.filter((c) => c.enabled).length;
   const formatInfo = OUTPUT_FORMATS.find((f) => f.id === outputFormat);
 
   return (
     <div
-      className="flex flex-col shrink-0 border-b select-none relative"
+      className="flex items-center h-[48px] px-4 gap-3 shrink-0 border-b select-none"
       style={{
-        background: 'linear-gradient(to bottom, #1e1a17, #151210)',
-        borderColor: '#2d2720',
+        background: 'rgba(28, 28, 32, 0.9)',
+        backdropFilter: 'blur(12px)',
+        borderColor: '#2a2a30',
       }}
     >
-      {/* Main topbar row */}
-      <div className="h-[40px] flex items-center px-4 gap-2">
-        {/* Logo */}
-        <div className="flex items-center gap-2 mr-4">
-          <div
-            className="w-[8px] h-[8px] rounded-full"
-            style={{ background: '#FE5000', boxShadow: '0 0 8px rgba(254,80,0,0.5)' }}
-          />
-          <span
-            className="text-[13px] font-bold tracking-[4px] uppercase"
-            style={{ fontFamily: "'Space Mono', monospace", color: '#e8e0d8' }}
-          >
-            MODULAR
-          </span>
-        </div>
-
-        {/* Model selector */}
-        <TopbarSelect value={selectedModel} onChange={setModel}>
-          {MODELS.map((m) => (
-            <option key={m.id} value={m.id}>{m.name}</option>
-          ))}
-        </TopbarSelect>
-
-        {/* Preset selector */}
-        <TopbarSelect value={selectedPreset} onChange={loadPreset}>
-          <option value="">— Preset —</option>
-          {PRESETS.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </TopbarSelect>
-
-        {/* Output format selector with icon */}
-        <TopbarSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)}>
-          {OUTPUT_FORMATS.map((f) => (
-            <option key={f.id} value={f.id}>{f.icon} {f.label}</option>
-          ))}
-        </TopbarSelect>
-
-        {/* Active format highlight */}
-        {formatInfo && outputFormat !== 'markdown' && (
-          <span
-            className="text-[8px] px-1.5 py-0.5 rounded"
-            style={{
-              fontFamily: "'Space Mono', monospace",
-              color: '#FE5000',
-              background: '#FE500015',
-              border: '1px solid #FE500030',
-            }}
-          >
-            {formatInfo.icon}
-          </span>
-        )}
-
-        <div className="flex-1" />
-
-        {/* Import */}
-        <button
-          type="button"
-          onClick={onImportClick}
-          className="px-2 py-0.5 rounded text-[9px] tracking-[1px] uppercase cursor-pointer border-none bg-transparent"
-          style={{ fontFamily: "'Space Mono', monospace", color: '#5a4e42', transition: 'color 0.15s ease' }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4e42'; }}
-          aria-label="Import agent definition"
+      {/* Logo */}
+      <div className="flex items-center gap-2 mr-4">
+        <div
+          className="w-2 h-2 rounded-full"
+          style={{ background: '#FE5000', boxShadow: '0 0 8px rgba(254,80,0,0.4)' }}
+        />
+        <span
+          className="text-sm font-bold tracking-[3px] uppercase"
+          style={{ fontFamily: "'Space Mono', monospace", color: '#f0f0f0' }}
         >
-          Import ↙
-        </button>
+          MODULAR
+        </span>
+      </div>
 
-        {/* Export */}
-        <button
-          type="button"
-          onClick={handleExport}
-          className="px-2 py-0.5 rounded text-[9px] tracking-[1px] uppercase cursor-pointer border-none bg-transparent"
-          style={{ fontFamily: "'Space Mono', monospace", color: '#5a4e42', transition: 'color 0.15s ease' }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4e42'; }}
-          aria-label="Export as agent definition"
-        >
-          Export ↗
-        </button>
+      {/* Model selector */}
+      <TopbarSelect value={selectedModel} onChange={setModel}>
+        {MODELS.map((m) => (
+          <option key={m.id} value={m.id}>{m.name}</option>
+        ))}
+      </TopbarSelect>
 
-        {/* Clear */}
-        <button
-          type="button"
-          onClick={clearChannels}
-          className="px-2 py-0.5 rounded text-[9px] tracking-[1px] uppercase cursor-pointer border-none bg-transparent"
-          style={{ fontFamily: "'Space Mono', monospace", color: '#5a4e42', transition: 'color 0.15s ease' }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4e42'; }}
-          aria-label="Clear all channels"
-        >
-          Clear
-        </button>
+      {/* Preset selector */}
+      <TopbarSelect value={selectedPreset} onChange={loadPreset}>
+        <option value="">-- Preset --</option>
+        {PRESETS.map((p) => (
+          <option key={p.id} value={p.id}>{p.name}</option>
+        ))}
+      </TopbarSelect>
 
-        {/* Run button with pulse ring */}
-        <button
-          type="button"
-          onClick={run}
-          disabled={running}
-          className="px-4 py-1.5 rounded text-[10px] font-bold tracking-[2px] uppercase cursor-pointer border-none"
+      {/* Output format selector */}
+      <TopbarSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)}>
+        {OUTPUT_FORMATS.map((f) => (
+          <option key={f.id} value={f.id}>{f.label}</option>
+        ))}
+      </TopbarSelect>
+
+      {/* Active format highlight */}
+      {formatInfo && outputFormat !== 'markdown' && (
+        <span
+          className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md"
           style={{
-            fontFamily: "'Space Mono', monospace",
-            background: running ? '#CC4000' : '#FE5000',
-            color: '#fff',
-            boxShadow: running ? '0 0 12px rgba(254,80,0,0.6)' : '0 0 8px rgba(254,80,0,0.3)',
-            opacity: running ? 0.7 : 1,
-            animation: running ? 'run-pulse-ring 1.5s ease infinite' : 'none',
-            transition: 'background 0.2s ease, opacity 0.2s ease',
+            color: '#FE5000',
+            background: '#FE500012',
+            border: '1px solid #FE500020',
           }}
         >
-          {running ? '● RUN' : '▶ RUN'}
-          <span className="ml-1.5 text-[7px] opacity-60 tracking-normal" style={{ fontWeight: 400 }}>⌘↵</span>
-        </button>
-      </div>
+          <OutputIcon formatId={outputFormat} size={10} />
+          {formatInfo.label}
+        </span>
+      )}
 
-      {/* LED dot strip */}
-      <div className="flex items-center px-4 pb-1.5 gap-[6px]">
-        {Array.from({ length: 24 }, (_, i) => (
-          <div
-            key={i}
-            className="w-[3px] h-[3px] rounded-full"
-            style={{
-              background: i < activeCount * 2 ? '#FE5000' : running && i % 3 === 0 ? '#FE500060' : '#1a1a1a',
-              boxShadow: i < activeCount * 2 ? '0 0 3px rgba(254,80,0,0.3)' : 'none',
-              transition: 'background 0.15s ease, box-shadow 0.15s ease',
-            }}
-          />
-        ))}
-        <div className="flex-1" />
-      </div>
+      <div className="flex-1" />
+
+      {/* Import */}
+      <button
+        type="button"
+        onClick={onImportClick}
+        className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        style={{ color: '#555' }}
+        aria-label="Import agent definition"
+      >
+        <Upload size={14} />
+      </button>
+
+      {/* Export */}
+      <button
+        type="button"
+        onClick={handleExport}
+        className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        style={{ color: '#555' }}
+        aria-label="Export as agent definition"
+      >
+        <Download size={14} />
+      </button>
+
+      {/* Clear */}
+      <button
+        type="button"
+        onClick={clearChannels}
+        className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        style={{ color: '#555' }}
+        aria-label="Clear all channels"
+      >
+        <Trash2 size={14} />
+      </button>
+
+      {/* Run button */}
+      <button
+        type="button"
+        onClick={run}
+        disabled={running}
+        className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer border-none"
+        style={{
+          background: running ? '#CC4000' : '#FE5000',
+          color: '#fff',
+          boxShadow: running ? '0 0 12px rgba(254,80,0,0.5)' : '0 0 8px rgba(254,80,0,0.25)',
+          opacity: running ? 0.8 : 1,
+          animation: running ? 'run-pulse-ring 1.5s ease infinite' : 'none',
+          transition: 'background 0.2s ease, opacity 0.2s ease',
+        }}
+      >
+        <Play size={12} fill="white" />
+        {running ? 'Running' : 'Run'}
+        <span className="text-[9px] opacity-60 tracking-normal font-normal ml-1">Ctrl+Enter</span>
+      </button>
     </div>
   );
 }
