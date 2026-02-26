@@ -29,7 +29,7 @@ export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, o
       onDoubleClick={(e) => onDoubleClick?.(e)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="tile relative flex flex-col items-start justify-between p-2 rounded-lg cursor-pointer border-none outline-none text-left"
+      className="tile relative flex flex-col items-start justify-between p-2 rounded-md cursor-pointer border-none outline-none text-left"
       style={{
         width: 112,
         height: 84,
@@ -45,13 +45,13 @@ export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, o
             ? `0 4px 12px ${t.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.08)'}`
             : 'none',
         transform: hovered ? 'translateY(-1px)' : 'none',
-        transition: 'transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease',
+        transition: 'transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, background 150ms ease',
       }}
     >
       {/* Color stripe at top */}
       {colorStripe && (
         <div
-          className="absolute top-0 left-0 right-0 rounded-t-lg"
+          className="absolute top-0 left-0 right-0 rounded-t-md"
           style={{ height: 2, background: colorStripe }}
         />
       )}

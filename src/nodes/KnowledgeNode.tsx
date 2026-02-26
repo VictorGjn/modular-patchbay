@@ -1,11 +1,11 @@
-import { memo, useState, useCallback, type DragEvent } from 'react';
+import { memo, useState, useCallback, useEffect, type DragEvent } from 'react';
 import { Position } from '@xyflow/react';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/knowledgeBase';
 import { ConnectorTile } from '../components/ConnectorTile';
 import { JackPort } from '../components/JackPort';
 import { useTheme } from '../theme';
-import { BookOpen, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightIcon, LayoutGrid, List, Check, X } from 'lucide-react';
 
 const KNOWLEDGE_TYPE_ORDER: KnowledgeType[] = [
   'ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact',
@@ -27,7 +27,20 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [dragOverType, setDragOverType] = useState<KnowledgeType | null>(null);
+  const [nodeCollapsed, setNodeCollapsed] = useState(() => {
+    try { return localStorage.getItem('knowledge-node-collapsed') === 'true'; } catch { return false; }
+  });
+  const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
+    try { return (localStorage.getItem('knowledge-node-view') as 'card' | 'list') || 'card'; } catch { return 'card'; }
+  });
   const readConnectors = connectors.filter((c) => c.direction === 'read' || c.direction === 'both');
+
+  useEffect(() => {
+    try { localStorage.setItem('knowledge-node-collapsed', String(nodeCollapsed)); } catch {}
+  }, [nodeCollapsed]);
+  useEffect(() => {
+    try { localStorage.setItem('knowledge-node-view', viewMode); } catch {}
+  }, [viewMode]);
 
   const fmtTokens = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`);
 
@@ -77,24 +90,53 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
       style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 300 }}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+      <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
+        <button
+          type="button"
+          onClick={() => setNodeCollapsed(!nodeCollapsed)}
+          className="p-0 border-none bg-transparent cursor-pointer nodrag"
+          style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}
+        >
+          {nodeCollapsed ? <ChevronRightIcon size={14} /> : <ChevronDown size={14} />}
+        </button>
         <BookOpen size={14} style={{ color: t.textSecondary }} />
         <span
           className="text-xs font-medium tracking-wide uppercase flex-1"
-          style={{ color: t.textSecondary }}
+          style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}
         >
           Knowledge
         </span>
         <span
-          className="text-[10px] px-1.5 py-0.5 rounded-full"
+          className="text-[10px] px-1.5 py-0.5 rounded-md"
           style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}
         >
           {channels.filter((c) => c.enabled).length}
         </span>
+        {!nodeCollapsed && (
+          <div className="flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode('card')}
+              className="p-0.5 border-none cursor-pointer nodrag rounded"
+              style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}
+            >
+              <LayoutGrid size={12} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className="p-0.5 border-none cursor-pointer nodrag rounded"
+              style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}
+            >
+              <List size={12} />
+            </button>
+          </div>
+        )}
         <JackPort type="source" position={Position.Right} label="OUTPUT" color="#3498db" id="knowledge-out" />
       </div>
 
-      {/* Content */}
+      {/* Content — hidden when collapsed */}
+      {nodeCollapsed ? null : <>
       <div className="overflow-y-auto nowheel" style={{ maxHeight: 340 }}>
         {!hasAnyChannels ? (
           <div className="flex items-center justify-center py-6">
@@ -200,7 +242,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
 
       {/* Connectors section */}
       {readConnectors.length > 0 && (
-        <div className="px-4 pt-1 pb-2">
+        <div className="px-3 pt-1 pb-2">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
             <span className="text-[9px] tracking-wider uppercase" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Connectors</span>
@@ -225,14 +267,14 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
 
       {/* Feedback ghost tiles */}
       {pendingKnowledge.length > 0 && (
-        <div className="px-4 pt-1 pb-2">
+        <div className="px-3 pt-1 pb-2">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
             <span className="text-[9px] tracking-wider uppercase" style={{ color: '#00d4ff', fontFamily: "'Space Mono', monospace" }}>Feedback</span>
             <JackPort type="target" position={Position.Right} label="FEEDBACK" color="#00d4ff" id="knowledge-feedback-in" />
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1">
             {pendingKnowledge.map((item) => (
               <div
                 key={item.id}
@@ -290,18 +332,18 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
 
       {/* Feedback input port (shown when no pending items yet) */}
       {pendingKnowledge.length === 0 && (
-        <div className="px-4 py-1 flex justify-end">
+        <div className="px-3 py-1 flex justify-end">
           <JackPort type="target" position={Position.Right} label="FEEDBACK" color="#00d4ff" id="knowledge-feedback-in" />
         </div>
       )}
 
       {/* Add buttons */}
-      <div className="px-4 pb-3 pt-1 flex gap-2">
+      <div className="px-3 pb-3 pt-1 flex gap-2">
         <button
           type="button"
           onClick={() => setShowFilePicker(true)}
-          className="flex-1 py-1.5 rounded-lg text-xs tracking-wide uppercase cursor-pointer transition-colors nodrag"
-          style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim }}
+          className="flex-1 py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag"
+          style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
@@ -310,14 +352,15 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         <button
           type="button"
           onClick={() => setShowConnectorPicker(true)}
-          className="py-1.5 px-2.5 rounded-lg text-xs tracking-wide uppercase cursor-pointer transition-colors nodrag"
-          style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim }}
+          className="py-1.5 px-2 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag"
+          style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3498db'; e.currentTarget.style.color = '#3498db'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
           + MCP
         </button>
       </div>
+      </>}
     </div>
   );
 });
