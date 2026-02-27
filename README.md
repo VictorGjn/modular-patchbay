@@ -1,141 +1,135 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/MODULAR-Context%20Mixing%20Console-FE5000?style=for-the-badge&labelColor=1e1a17" />
-</p>
+# Modular Studio
 
-<p align="center">
-  <strong>The AI Studio for Knowledge Work</strong><br/>
-  Control what your AI knows. See what it costs. Trust what it produces.
-</p>
+**The visual design-time layer for AI agents**
 
-<p align="center">
-  <a href="#features">Features</a> ·
-  <a href="#knowledge-types">Knowledge Types</a> ·
-  <a href="#quick-start">Quick Start</a> ·
-  <a href="#vision">Vision</a>
-</p>
+Modular Studio is a visual node-graph builder where you compose AI agents by connecting knowledge sources, skills, MCP tools, and output targets. Design your agent on an interactive canvas, test it with real LLM calls, then export to any runtime — Claude, OpenAI, Codex, AMP, or OpenClaw.
 
----
-
-## What is Modular?
-
-Modular is a **context mixing console** for AI — a visual interface that gives you complete control over what knowledge goes into an LLM, how it's weighted, and what comes out.
-
-Think of it like an audio mixing console, but instead of sound sources, you're mixing **knowledge sources**. Each source gets a channel strip with:
-
-- **ON/OFF toggle** — include or exclude
-- **DEPTH knob** — Full, Detail, Summary, Headlines, Mention
-- **Knowledge Type** — how the AI should treat this source
-- **Token count** — how much context budget it uses
-- **VU meter** — visual representation of contribution
-
-## Why?
-
-Every AI tool treats all input the same. A customer complaint gets the same authority as your product roadmap. A six-month-old transcript overrides your latest strategy.
-
-**This is the #1 failure mode of AI in knowledge work.**
-
-Modular fixes it by making **epistemic weight visible and adjustable**.
-
-## Features
-
-### 🎛️ Channel Strips
-Each knowledge source is a channel strip with analog-inspired controls. Toggle, adjust depth, see token cost — all at a glance.
-
-### 🔴🟡🔵🟢🟣⚪ Knowledge Type System
-Not all knowledge is equal. Modular classifies every source:
-
-| Type | Badge | AI Behavior |
-|------|-------|-------------|
-| **Ground Truth** | 🔴 | Never contradict (contracts, shipped features, physics) |
-| **Signal** | 🟡 | Interpret, don't parrot — unpack the underlying need |
-| **Evidence** | 🔵 | Cite and weigh against other evidence |
-| **Framework** | 🟢 | Use to structure thinking, not as immutable |
-| **Hypothesis** | 🟣 | Help validate or invalidate |
-| **Artifact** | ⚪ | May be outdated — cross-reference |
-
-Auto-classified from file paths. Click to override.
-
-### 📊 Token Budget Bar
-Real-time visualization of context window usage. Green/yellow/red gradient. Adjust channel depths to stay in budget.
-
-### 👻 Ghost Channels
-Prompt-aware suggestions. "You mentioned Odfjell — add their feedback?" One click to materialize.
-
-### 🎯 10 Pre-Built Presets
-Senior PM · Competitive Intel · Company Intel · Feedback Manager · Odfjell Deep Dive · Voyage Prep Dev · Event Prep · Maritime Intel · Discovery · All Knowledge
-
-### 📤 Output Formats
-Auto-detected from your prompt: Markdown · HTML Slides · Email Draft · Code · Data Table · JSON · Diagram · Slack Post
-
-### 💡 Contextual Hints
-Smart tips based on your behavior: "All channels at FULL — try Summary on background sources" · "All Signal, no Ground Truth — add Products?"
-
-### 🔄 Signal Flow *(coming soon)*
-Visual pipeline: Sources → Process → Model → Output. Add stages. Override routing.
-
-### 🤖 Agent Teams *(coming soon)*
-Multi-agent orchestration: Researcher → Analyst → Writer → Editor. Auto-suggested from prompt complexity.
-
-### 🛡️ Expert Mode *(coming soon)*
-Confidence scoring. Source attribution. Contradiction detection. Hallucination heat map.
+![Modular Studio](./screenshot.png)
 
 ## Quick Start
 
 ```bash
+# Clone and run
 git clone https://github.com/VictorGjn/modular-patchbay.git
-cd modular-patchbay
+cd modular-patchbay && git checkout feat/ui-modernization
 npm install
-npm run dev
+npm run build:all
+node dist-server/bin/modular-studio.js --open
+
+# Or (after npm publish)
+npx modular-studio
 ```
 
-Open http://localhost:5173
+The studio opens at `http://localhost:4800`. Use `--port 3000` to change the port.
 
-## Tech Stack
+## Features
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | React 18 + TypeScript (strict) |
-| Build | Vite 7 |
-| State | Zustand |
-| Styling | Tailwind CSS v4 |
-| Controls | Custom analog components (Knob, Toggle, LED, VU, Screw) |
-| Fonts | Space Mono + Inter |
+- **Visual node-graph canvas** — Drag, connect, and arrange nodes on a React Flow canvas with minimap, zoom controls, and dot-grid background
+- **Real LLM integration** — Stream completions from OpenAI, Anthropic, Google AI, OpenRouter, or use the Claude Agent SDK (zero-config if `claude` CLI is authenticated)
+- **MCP server management** — Connect MCP servers via stdio transport, discover tools automatically, execute them during agent runs, and monitor health with live status indicators
+- **Knowledge system with epistemic types** — Classify sources as Ground Truth, Signal, Evidence, Framework, Hypothesis, or Artifact. Each type carries instructions that shape how the LLM uses that context
+- **Depth control** — Dial each knowledge source from Summary → Key Points → Details → Full → Verbatim to control token usage
+- **Multi-format output** — Markdown, HTML Slides, Email Draft, Code, CSV, JSON, Diagram, Slack Post — auto-detected from your prompt
+- **External connectors** — Read from and write to services (Notion, Google Docs, Slack, Gmail, etc.) via configurable connectors
+- **Dark / Light theme** — System-aware with manual toggle
+- **Agent export** — Save your agent as a `.md` definition targeting Claude, AMP, Codex, OpenClaw, or a generic format. Download individual targets or all at once
+- **Preset system** — Load pre-configured canvas setups to get started quickly
+- **Marketplace** — Browse and install skills, MCP servers, and presets from a curated registry
+- **Feedback edges** — The agent can suggest new knowledge sources and skills back to their respective nodes for human review
 
-## Design Language
+## Architecture
 
-Inspired by vintage analog synthesizers and mixing consoles:
+```
+Frontend                          Backend
+─────────────────────────        ─────────────────────────
+React 19 + TypeScript             Express 5
+@xyflow/react (React Flow)       @modelcontextprotocol/sdk
+Zustand (state management)       Claude Agent SDK
+Tailwind CSS 4                   LLM streaming proxy (SSE)
+Lucide icons                     MCP Manager (stdio transport)
+```
 
-- **Background:** `#0f0f0f` (near black)
-- **Panels:** `#1e1a17` (warm walnut)
-- **Accent:** `#FE5000` (signal orange)
-- **Typography:** Space Mono for labels, Inter for body
-- **Controls:** Skeuomorphic knobs with radial gradients, LED glow effects, VU meters with green-yellow-red segments
+Everything runs locally via a single command:
 
-## Vision
+```
+npx modular-studio
+    │
+    └── Express server (port 4800)
+        ├── Serves built React app from dist/
+        ├── /api/providers/*   — LLM provider CRUD + connection test
+        ├── /api/mcp/*         — MCP server lifecycle + tool discovery
+        ├── /api/llm/chat      — Streaming LLM proxy (SSE)
+        └── /api/agent-sdk/*   — Claude Agent SDK integration
+```
 
-See [VISION.md](./VISION.md) for the expanded concept.
-See [EXPLORATION.md](./EXPLORATION.md) for the full possibility space.
-See [SPEC-V3.md](./SPEC-V3.md) for the implementation roadmap.
-See [COMPETITIVE-LANDSCAPE.md](./COMPETITIVE-LANDSCAPE.md) for market analysis.
-See [AGENT-TEAMS.md](./AGENT-TEAMS.md) for multi-agent interaction patterns.
+### Canvas Topology
 
-## The Big Idea
+```
+Knowledge ─┐
+Skills ────┤──→ Prompt (Agent) ──→ Output
+MCP Tools ─┘         │              Response
+                     │
+              Feedback edges
+         (enrich knowledge, discover skills)
+```
 
-> "Context engineering is the new prompt engineering" — Tobi Lutke, CEO Shopify
+| Cable Color | Meaning |
+|-------------|---------|
+| Blue `#3498db` | Knowledge → Prompt |
+| Yellow `#f1c40f` | Skills → Prompt |
+| Green `#2ecc71` | MCP → Prompt |
+| Orange `#FE5000` | Prompt → Output / Response |
+| Cyan dashed `#00d4ff` | Feedback (Prompt → Knowledge) |
+| Yellow dashed | Feedback (Prompt → Skills) |
 
-Current tools: ChatGPT, Claude, Cursor, Langflow — all treat context as invisible plumbing. You can't see it, you can't control it, you can't trust it.
+## Configuration
 
-Modular makes context **the interface**. Not hidden behind a chat. Not abstracted into nodes and edges. Visible, tangible, controllable — like faders on a mixing console.
+### LLM Providers
 
-**Nobody has built this. The market is asking for it. The window is open.**
+Open **Settings → Providers** to add API keys:
+
+| Provider | Auth | Base URL |
+|----------|------|----------|
+| Anthropic | `x-api-key` header | `https://api.anthropic.com/v1` |
+| OpenAI | Bearer token | `https://api.openai.com/v1` |
+| Google AI | API key (query param) | `https://generativelanguage.googleapis.com/v1beta` |
+| OpenRouter | Bearer token | `https://openrouter.ai/api/v1` |
+| Claude Agent SDK | Zero-config | Requires `claude` CLI authenticated |
+
+You can also add custom providers with any OpenAI-compatible endpoint.
+
+### MCP Servers
+
+Configure MCP servers in **Settings → MCP Servers** or install them from the **Marketplace**. Each server connects via stdio transport and exposes tools that appear in the MCP node on the canvas.
+
+### General Settings
+
+- **Theme**: System / Light / Dark
+- **Edge routing**: Straight or smoothstep
+- **Grid snap**: Toggle snap-to-grid
+- **Minimap**: Show/hide the minimap overlay
+
+## Models
+
+The Prompt node supports these models out of the box:
+
+- Claude Opus 4, Claude Sonnet 4
+- GPT-4o, GPT-4o Mini
+- Llama 3.1 70B
+- DeepSeek V3
+- Gemini 2.5 Pro
+
+Select your model in the Prompt node's **Advanced** drawer, or from the Topbar dropdown.
+
+## Contributing
+
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feat/my-feature`)
+3. Run the dev server: `npm run dev` (frontend on `:5173`) + `npm run server` (backend on `:4800`)
+4. Make your changes
+5. `npm run build:all` to verify the production build
+6. Open a PR
 
 ## License
 
 MIT
-
----
-
-<p align="center">
-  <strong>MODULAR</strong> — Control the mix. Trust the output.<br/>
-  Built with 🦀 by <a href="https://github.com/VictorGjn">Victor Grosjean</a>
-</p>
