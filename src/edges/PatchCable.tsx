@@ -141,8 +141,8 @@ export function PatchCable({
               stroke={t.border}
               strokeWidth={1}
             />
-            <line x1={midX - 3.5} y1={midY - 3.5} x2={midX + 3.5} y2={midY + 3.5} stroke="#e74c3c" strokeWidth={1.5} strokeLinecap="round" />
-            <line x1={midX + 3.5} y1={midY - 3.5} x2={midX - 3.5} y2={midY + 3.5} stroke="#e74c3c" strokeWidth={1.5} strokeLinecap="round" />
+            <line x1={midX - 3.5} y1={midY - 3.5} x2={midX + 3.5} y2={midY + 3.5} stroke={t.statusError} strokeWidth={1.5} strokeLinecap="round" />
+            <line x1={midX + 3.5} y1={midY - 3.5} x2={midX - 3.5} y2={midY + 3.5} stroke={t.statusError} strokeWidth={1.5} strokeLinecap="round" />
           </g>
         )}
       </g>

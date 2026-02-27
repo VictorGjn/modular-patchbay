@@ -3,11 +3,6 @@ import { type EdgeProps, getSmoothStepPath, useReactFlow } from '@xyflow/react';
 import { useTheme } from '../theme';
 import { EdgeContextMenu } from '../components/EdgeContextMenu';
 
-const COLORS = {
-  knowledge: '#00d4ff',
-  skills: '#f1c40f',
-} as const;
-
 export function FeedbackEdge({
   id,
   sourceX,
@@ -20,10 +15,8 @@ export function FeedbackEdge({
   data,
 }: EdgeProps) {
   const t = useTheme();
-  const variant = (data?.variant as keyof typeof COLORS) ?? 'knowledge';
-  const rawColor = COLORS[variant];
-  // B6: Darken yellow edges in light mode for WCAG contrast
-  const color = !t.isDark && rawColor === '#f1c40f' ? '#B45309' : rawColor;
+  const variant = (data?.variant as string) ?? 'knowledge';
+  const color = variant === 'skills' ? t.cableSkills : '#00d4ff';
   const [hovered, setHovered] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const { setEdges } = useReactFlow();
@@ -134,8 +127,8 @@ export function FeedbackEdge({
           onClick={(e) => { e.stopPropagation(); handleDelete(); }}
         >
           <circle cx={midX} cy={midY} r={9} fill={t.surfaceOpaque} stroke={t.border} strokeWidth={1} />
-          <line x1={midX - 3.5} y1={midY - 3.5} x2={midX + 3.5} y2={midY + 3.5} stroke="#e74c3c" strokeWidth={1.5} strokeLinecap="round" />
-          <line x1={midX + 3.5} y1={midY - 3.5} x2={midX - 3.5} y2={midY + 3.5} stroke="#e74c3c" strokeWidth={1.5} strokeLinecap="round" />
+          <line x1={midX - 3.5} y1={midY - 3.5} x2={midX + 3.5} y2={midY + 3.5} stroke={t.statusError} strokeWidth={1.5} strokeLinecap="round" />
+          <line x1={midX + 3.5} y1={midY - 3.5} x2={midX - 3.5} y2={midY + 3.5} stroke={t.statusError} strokeWidth={1.5} strokeLinecap="round" />
         </g>
       )}
     </g>
