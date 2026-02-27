@@ -99,9 +99,9 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     baseUrl: '',
     apiKey: '',
     models: [
-      { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-      { id: 'claude-opus-4-0-20250514', label: 'Claude Opus 4' },
-      { id: 'claude-haiku-3-5-20241022', label: 'Claude Haiku 3.5' },
+      { id: 'sonnet', label: 'Claude Sonnet 4' },
+      { id: 'opus', label: 'Claude Opus 4' },
+      { id: 'haiku', label: 'Claude Haiku 3.5' },
     ],
     docsUrl: 'https://docs.anthropic.com/en/docs/claude-code/sdk',
     keyPageUrl: '',
