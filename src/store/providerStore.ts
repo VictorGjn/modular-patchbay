@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type AuthMethod = 'oauth' | 'api-key';
+export type AuthMethod = 'oauth' | 'api-key' | 'claude-agent-sdk';
 export type ProviderStatus = 'disconnected' | 'connected' | 'configured' | 'error' | 'expired';
 
 export interface ProviderConfig {
@@ -90,6 +90,25 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     color: '#4285F4',
     authHeader: 'query-param',
     headerNote: 'Uses ?key= query parameter',
+  },
+  {
+    id: 'claude-agent-sdk',
+    name: 'Claude (Agent SDK)',
+    authMethod: 'claude-agent-sdk' as AuthMethod,
+    status: 'disconnected',
+    baseUrl: '',
+    apiKey: '',
+    models: [
+      { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
+      { id: 'claude-opus-4-0-20250514', label: 'Claude Opus 4' },
+      { id: 'claude-haiku-3-5-20241022', label: 'Claude Haiku 3.5' },
+    ],
+    docsUrl: 'https://docs.anthropic.com/en/docs/claude-code/sdk',
+    keyPageUrl: '',
+    icon: 'Terminal',
+    color: '#D4A574',
+    authHeader: 'bearer',
+    headerNote: 'Zero-config — authenticates via Claude Code login',
   },
   {
     id: 'openrouter',
@@ -262,6 +281,36 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
   testConnection: async (id) => {
     set((state) => ({ testing: { ...state.testing, [id]: true } }));
     try {
+      // Special handling for Claude Agent SDK
+      const provider = get().providers.find((p) => p.id === id);
+      if (provider?.authMethod === 'claude-agent-sdk') {
+        try {
+          const res = await fetch(`${API_BASE}/agent-sdk/status`);
+          const data = await res.json();
+          const authenticated = data?.data?.authenticated === true;
+          set((state) => ({
+            testing: { ...state.testing, [id]: false },
+            providers: state.providers.map((p) =>
+              p.id === id ? { ...p, status: (authenticated ? 'connected' : 'error') as ProviderStatus, lastError: authenticated ? undefined : (data?.data?.error || 'Not authenticated') } : p
+            ),
+          }));
+          persistProviders(get().providers);
+          return authenticated
+            ? { ok: true, models: provider.models.map((m) => m.id) }
+            : { ok: false, error: data?.data?.error || 'Not authenticated — run `claude` in your terminal first' };
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Backend not available';
+          set((state) => ({
+            testing: { ...state.testing, [id]: false },
+            providers: state.providers.map((p) =>
+              p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: errorMsg } : p
+            ),
+          }));
+          persistProviders(get().providers);
+          return { ok: false, error: errorMsg };
+        }
+      }
+
       const backend = await isBackendAvailable();
       if (backend) {
         // Save first, then test via backend

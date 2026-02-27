@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   X, Eye, EyeOff, ExternalLink, CheckCircle, XCircle, Loader2, Plus,
   Trash2, Server, Plug, PlugZap, Sun, Moon, Monitor, Grid3X3, Minimize2,
-  Waypoints, GitBranch, ArrowDownRight, Cpu, Wrench,
+  Waypoints, GitBranch, ArrowDownRight, Cpu, Wrench, Terminal,
 } from 'lucide-react';
 import { useTheme } from '../theme';
 import { useProviderStore, type ProviderConfig, type ProviderStatus } from '../store/providerStore';
@@ -101,102 +101,167 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
       {/* Expanded config */}
       {expanded && (
         <div className="px-4 pb-4 flex flex-col gap-3">
-          {/* API Key */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
-              API Key
-            </label>
-            <div className="relative">
-              <input
-                type={showKey ? 'text' : 'password'}
-                value={localKey}
-                onChange={(e) => setLocalKey(e.target.value)}
-                onBlur={handleSave}
-                placeholder="sk-..."
-                className="nodrag nowheel w-full text-xs px-3 py-2 pr-9 rounded-lg outline-none"
-                style={inputStyle}
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="nodrag nowheel absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent p-0.5"
-                style={{ color: t.textDim }}
+          {/* Agent SDK: no API key or URL needed */}
+          {provider.authMethod === 'claude-agent-sdk' ? (
+            <>
+              <div
+                className="flex items-center gap-2 text-xs px-3 py-2.5 rounded-lg"
+                style={{ background: t.badgeBg, border: `1px solid ${t.borderSubtle}` }}
               >
-                {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </div>
-          </div>
+                <Terminal size={14} style={{ color: provider.color }} />
+                <span style={{ color: t.textSecondary }}>
+                  Authenticates via your Claude Code login — no API key needed.
+                </span>
+              </div>
+              {provider.status === 'connected' && (
+                <div
+                  className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
+                  style={{ background: '#22c55e15', border: '1px solid #22c55e30', color: '#22c55e' }}
+                >
+                  <CheckCircle size={14} />
+                  Authenticated via Claude Code
+                </div>
+              )}
+              {provider.status === 'error' && provider.lastError && (
+                <div
+                  className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
+                  style={{ background: '#ef444415', border: '1px solid #ef444430', color: '#ef4444' }}
+                >
+                  <XCircle size={14} />
+                  Not authenticated — run <code style={{ fontFamily: "'Space Mono', monospace" }}>claude</code> in your terminal first
+                </div>
+              )}
+              {/* Models */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                  Available Models
+                </label>
+                <div className="flex flex-wrap gap-1">
+                  {provider.models.map((m) => (
+                    <span
+                      key={m.id}
+                      className="text-[10px] px-2 py-0.5 rounded"
+                      style={{ background: provider.color + '15', color: provider.color, fontFamily: "'Space Mono', monospace" }}
+                    >
+                      {m.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {/* Check Status button */}
+              <div className="flex items-center gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={handleTest}
+                  disabled={testing}
+                  className="nodrag nowheel flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg cursor-pointer font-semibold border-none"
+                  style={{ background: '#FE5000', color: '#fff', opacity: testing ? 0.6 : 1 }}
+                >
+                  {testing ? <Loader2 size={12} className="animate-spin" /> : <PlugZap size={12} />}
+                  Check Status
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* API Key */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                  API Key
+                </label>
+                <div className="relative">
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    value={localKey}
+                    onChange={(e) => setLocalKey(e.target.value)}
+                    onBlur={handleSave}
+                    placeholder="sk-..."
+                    className="nodrag nowheel w-full text-xs px-3 py-2 pr-9 rounded-lg outline-none"
+                    style={inputStyle}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="nodrag nowheel absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent p-0.5"
+                    style={{ color: t.textDim }}
+                  >
+                    {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
 
-          {/* Base URL */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
-              Base URL
-            </label>
-            <input
-              type="text"
-              value={localUrl}
-              onChange={(e) => setLocalUrl(e.target.value)}
-              onBlur={handleSave}
-              className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
-              style={inputStyle}
-            />
-          </div>
+              {/* Base URL */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                  Base URL
+                </label>
+                <input
+                  type="text"
+                  value={localUrl}
+                  onChange={(e) => setLocalUrl(e.target.value)}
+                  onBlur={handleSave}
+                  className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+                  style={inputStyle}
+                />
+              </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 mt-1">
-            <button
-              type="button"
-              onClick={handleTest}
-              disabled={testing}
-              className="nodrag nowheel flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg cursor-pointer font-semibold border-none"
-              style={{ background: '#FE5000', color: '#fff', opacity: testing ? 0.6 : 1 }}
-            >
-              {testing ? <Loader2 size={12} className="animate-spin" /> : <Plug size={12} />}
-              Test Connection
-            </button>
+              {/* Actions */}
+              <div className="flex items-center gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={handleTest}
+                  disabled={testing}
+                  className="nodrag nowheel flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg cursor-pointer font-semibold border-none"
+                  style={{ background: '#FE5000', color: '#fff', opacity: testing ? 0.6 : 1 }}
+                >
+                  {testing ? <Loader2 size={12} className="animate-spin" /> : <Plug size={12} />}
+                  Test Connection
+                </button>
 
-            {provider.keyPageUrl && (
-              <a
-                href={provider.keyPageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="nodrag nowheel flex items-center gap-1 text-[11px] px-2 py-1.5 rounded-lg no-underline"
-                style={{ color: t.textSecondary, background: t.badgeBg }}
-              >
-                <ExternalLink size={10} />
-                Get API Key
-              </a>
-            )}
+                {provider.keyPageUrl && (
+                  <a
+                    href={provider.keyPageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="nodrag nowheel flex items-center gap-1 text-[11px] px-2 py-1.5 rounded-lg no-underline"
+                    style={{ color: t.textSecondary, background: t.badgeBg }}
+                  >
+                    <ExternalLink size={10} />
+                    Get API Key
+                  </a>
+                )}
 
-            {isCustom && (
-              <button
-                type="button"
-                onClick={() => deleteProvider(provider.id)}
-                className="nodrag nowheel flex items-center gap-1 text-[11px] px-2 py-1.5 rounded-lg cursor-pointer border-none ml-auto"
-                style={{ color: '#ef4444', background: '#ef444415' }}
-              >
-                <Trash2 size={10} />
-                Remove
-              </button>
-            )}
-          </div>
+                {isCustom && (
+                  <button
+                    type="button"
+                    onClick={() => deleteProvider(provider.id)}
+                    className="nodrag nowheel flex items-center gap-1 text-[11px] px-2 py-1.5 rounded-lg cursor-pointer border-none ml-auto"
+                    style={{ color: '#ef4444', background: '#ef444415' }}
+                  >
+                    <Trash2 size={10} />
+                    Remove
+                  </button>
+                )}
+              </div>
 
-          {/* Test result */}
-          {testResult && (
-            <div
-              className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
-              style={{
-                background: testResult.ok ? '#22c55e15' : '#ef444415',
-                border: `1px solid ${testResult.ok ? '#22c55e30' : '#ef444430'}`,
-                color: testResult.ok ? '#22c55e' : '#ef4444',
-              }}
-            >
-              {testResult.ok ? <CheckCircle size={14} /> : <XCircle size={14} />}
-              {testResult.ok
-                ? `Connected${testResult.models ? ` — ${testResult.models.length} models available` : ''}`
-                : (testResult.error || 'Connection failed')
-              }
-            </div>
+              {/* Test result */}
+              {testResult && (
+                <div
+                  className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
+                  style={{
+                    background: testResult.ok ? '#22c55e15' : '#ef444415',
+                    border: `1px solid ${testResult.ok ? '#22c55e30' : '#ef444430'}`,
+                    color: testResult.ok ? '#22c55e' : '#ef4444',
+                  }}
+                >
+                  {testResult.ok ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                  {testResult.ok
+                    ? `Connected${testResult.models ? ` — ${testResult.models.length} models available` : ''}`
+                    : (testResult.error || 'Connection failed')
+                  }
+                </div>
+              )}
+            </>
           )}
 
           {/* Header note */}
