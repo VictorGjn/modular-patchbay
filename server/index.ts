@@ -9,6 +9,7 @@ import providerRoutes from './routes/providers.js';
 import mcpRoutes from './routes/mcp.js';
 import llmRoutes from './routes/llm.js';
 import agentSdkRoutes from './routes/agent-sdk.js';
+import knowledgeRoutes from './routes/knowledge.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -32,6 +33,7 @@ export function createApp() {
   app.use('/api/mcp', mcpRoutes);
   app.use('/api/llm', llmRoutes);
   app.use('/api/agent-sdk', agentSdkRoutes);
+  app.use('/api/knowledge', knowledgeRoutes);
 
   // Serve built frontend
   const distPath = join(__dirname, '..', 'dist');
