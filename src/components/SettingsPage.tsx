@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import {
   X, Eye, EyeOff, ExternalLink, CheckCircle, XCircle, Loader2, Plus,
   Trash2, Server, Plug, PlugZap, Sun, Moon, Monitor, Grid3X3, Minimize2,
@@ -17,12 +17,12 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'general', label: 'General' },
 ];
 
-function statusColor(status: ProviderStatus): string {
+function statusColor(status: ProviderStatus, t: { statusSuccess: string; statusWarning: string; statusError: string; textMuted: string }): string {
   switch (status) {
-    case 'connected': return '#22c55e';
-    case 'configured': return '#eab308';
-    case 'error': return '#ef4444';
-    default: return '#666';
+    case 'connected': return t.statusSuccess;
+    case 'configured': return t.statusWarning;
+    case 'error': return t.statusError;
+    default: return t.textMuted;
   }
 }
 
@@ -82,7 +82,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
       >
         <div
           className="w-2 h-2 rounded-full shrink-0"
-          style={{ background: statusColor(provider.status), boxShadow: `0 0 6px ${statusColor(provider.status)}40` }}
+          style={{ background: statusColor(provider.status, t), boxShadow: `0 0 6px ${statusColor(provider.status, t)}40` }}
         />
         <div
           className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
@@ -116,7 +116,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
               {provider.status === 'connected' && (
                 <div
                   className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
-                  style={{ background: '#22c55e15', border: '1px solid #22c55e30', color: '#22c55e' }}
+                  style={{ background: t.statusSuccessBg, border: `1px solid ${t.statusSuccess}30`, color: t.statusSuccess }}
                 >
                   <CheckCircle size={14} />
                   <span>Authenticated{provider.lastError ? ` — ${provider.lastError}` : ' via Claude Code'}</span>
@@ -125,7 +125,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
               {provider.status === 'error' && (
                 <div
                   className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
-                  style={{ background: '#ef444415', border: '1px solid #ef444430', color: '#ef4444' }}
+                  style={{ background: t.statusErrorBg, border: `1px solid ${t.statusError}30`, color: t.statusError }}
                 >
                   <XCircle size={14} />
                   <span>{provider.lastError || 'Not authenticated — install Claude Code and run claude login'}</span>
@@ -236,7 +236,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                     type="button"
                     onClick={() => deleteProvider(provider.id)}
                     className="nodrag nowheel flex items-center gap-1 text-[11px] px-2 py-1.5 rounded-lg cursor-pointer border-none ml-auto"
-                    style={{ color: '#ef4444', background: '#ef444415' }}
+                    style={{ color: t.statusError, background: t.statusErrorBg }}
                   >
                     <Trash2 size={10} />
                     Remove
@@ -249,9 +249,9 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                 <div
                   className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
                   style={{
-                    background: testResult.ok ? '#22c55e15' : '#ef444415',
-                    border: `1px solid ${testResult.ok ? '#22c55e30' : '#ef444430'}`,
-                    color: testResult.ok ? '#22c55e' : '#ef4444',
+                    background: testResult.ok ? t.statusSuccessBg : t.statusErrorBg,
+                    border: `1px solid ${testResult.ok ? t.statusSuccess + '30' : t.statusError + '30'}`,
+                    color: testResult.ok ? t.statusSuccess : t.statusError,
                   }}
                 >
                   {testResult.ok ? <CheckCircle size={14} /> : <XCircle size={14} />}
@@ -331,8 +331,8 @@ function McpServersTab() {
           <div
             className="w-2 h-2 rounded-full shrink-0"
             style={{
-              background: srv.status === 'connected' ? '#22c55e' : srv.status === 'error' ? '#ef4444' : '#666',
-              boxShadow: srv.status === 'connected' ? '0 0 6px #22c55e40' : 'none',
+              background: statusColor(srv.status, t),
+              boxShadow: srv.status === 'connected' ? t.statusSuccessGlow : 'none',
             }}
           />
           <Server size={14} style={{ color: t.textDim }} />
@@ -348,8 +348,8 @@ function McpServersTab() {
             type="button"
             className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg cursor-pointer border-none"
             style={{
-              background: srv.status === 'connected' ? '#ef444415' : '#22c55e15',
-              color: srv.status === 'connected' ? '#ef4444' : '#22c55e',
+              background: srv.status === 'connected' ? t.statusErrorBg : t.statusSuccessBg,
+              color: srv.status === 'connected' ? t.statusError : t.statusSuccess,
             }}
           >
             {srv.status === 'connected' ? <PlugZap size={10} /> : <Plug size={10} />}
@@ -548,6 +548,22 @@ function GeneralTab() {
 export function SettingsPage({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTheme();
   const [activeTab, setActiveTab] = useState<SettingsTab>('providers');
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  const handleFocusTrap = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab' || !modalRef.current) return;
+    const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -564,9 +580,14 @@ export function SettingsPage({ open, onClose }: { open: boolean; onClose: () => 
     <div className="fixed inset-0 z-[9999] flex items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0" style={{ background: t.isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.35)', backdropFilter: 'blur(12px)' }} />
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Settings"
         className="relative w-[560px] max-h-[80vh] rounded-xl overflow-hidden flex flex-col"
         style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 24px 48px rgba(0,0,0,0.4)' }}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleFocusTrap}
       >
         {/* Header */}
         <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: t.borderSubtle }}>
@@ -581,6 +602,7 @@ export function SettingsPage({ open, onClose }: { open: boolean; onClose: () => 
             onClick={onClose}
             className="nodrag nowheel cursor-pointer border-none bg-transparent p-1 rounded-md"
             style={{ color: t.textDim }}
+            aria-label="Close settings"
           >
             <X size={14} />
           </button>

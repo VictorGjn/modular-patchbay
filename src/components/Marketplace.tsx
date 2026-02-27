@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore } from '../store/mcpStore';
 import { MARKETPLACE_CATEGORIES, RUNTIME_INFO, REGISTRY_PRESETS, type MarketplaceCategory, type Runtime, type InstallScope, type ConfigField } from '../store/registry';
@@ -23,7 +23,23 @@ export function Marketplace() {
   const [installDropdown, setInstallDropdown] = useState<string | null>(null);
   const [configuring, setConfiguring] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const t = useTheme();
+
+  const handleFocusTrap = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab' || !modalRef.current) return;
+    const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }, []);
 
   useEffect(() => {
     if (showMarketplace) {
@@ -112,6 +128,10 @@ export function Marketplace() {
       <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.90)', backdropFilter: 'blur(4px)' }} />
 
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Marketplace"
         className="relative flex flex-col rounded-md overflow-hidden"
         style={{
           isolation: 'isolate',
@@ -125,6 +145,7 @@ export function Marketplace() {
           animation: 'modal-in 0.2s ease-out',
         }}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleFocusTrap}
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
@@ -177,6 +198,7 @@ export function Marketplace() {
             onClick={() => setShowMarketplace(false)}
             className="p-1 rounded-md cursor-pointer border-none bg-transparent"
             style={{ color: t.textDim }}
+            aria-label="Close marketplace"
           >
             <X size={16} />
           </button>
@@ -319,7 +341,7 @@ function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall
 
         {/* Install button */}
         {skill.installed ? (
-          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#10B981', background: '#10B98110' }}>
+          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
             <Check size={10} /> Installed
           </span>
         ) : installing ? (
@@ -450,7 +472,7 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
             {mcp.runtimes.map((rt) => (
               <div key={rt} className="rounded-sm" style={{ width: 16, height: 3, background: RUNTIME_INFO[rt].color }} title={RUNTIME_INFO[rt].label} />
             ))}
-            <span className="text-[8px] ml-1 uppercase" style={{ color: mcp.transport === 'stdio' ? '#3B82F6' : '#F59E0B', fontFamily: "'Space Mono', monospace" }}>
+            <span className="text-[8px] ml-1 uppercase" style={{ color: mcp.transport === 'stdio' ? t.statusInfo : t.statusWarning, fontFamily: "'Space Mono', monospace" }}>
               {mcp.transport}
             </span>
           </div>
@@ -463,7 +485,7 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
 
         {/* Action */}
         {isInstalled ? (
-          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#10B981', background: '#10B98110' }}>
+          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
             <Check size={10} /> Installed
           </span>
         ) : installing ? (
@@ -577,10 +599,10 @@ function PresetRow({ preset, t, onLoad }: {
         <div className="text-[10px] truncate mt-0.5" style={{ color: t.textMuted }} title={preset.description} spellCheck={false}>{preset.description}</div>
         <div className="flex gap-1 mt-0.5">
           {preset.skills.slice(0, 3).map((s) => (
-            <span key={s} className="text-[8px] px-1 rounded-sm" style={{ color: '#f1c40f', background: '#f1c40f10' }}>{s}</span>
+            <span key={s} className="text-[8px] px-1 rounded-sm" style={{ color: t.cableSkills, background: t.cableSkills + '10' }}>{s}</span>
           ))}
           {preset.mcpServers.slice(0, 2).map((m) => (
-            <span key={m} className="text-[8px] px-1 rounded-sm" style={{ color: '#2ecc71', background: '#2ecc7110' }}>{m}</span>
+            <span key={m} className="text-[8px] px-1 rounded-sm" style={{ color: t.cableMcp, background: t.cableMcp + '10' }}>{m}</span>
           ))}
         </div>
       </div>
