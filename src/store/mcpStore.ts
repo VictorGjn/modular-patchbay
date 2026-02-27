@@ -46,7 +46,9 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T | null> {
       headers: { 'Content-Type': 'application/json', ...opts?.headers },
     });
     if (!res.ok) return null;
-    return await res.json() as T;
+    const json = await res.json();
+    // Backend wraps responses in { status, data }
+    return (json?.data ?? json) as T;
   } catch {
     return null;
   }
