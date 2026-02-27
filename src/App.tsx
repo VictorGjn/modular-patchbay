@@ -66,12 +66,12 @@ const initialNodes: Node[] = [
 
 const initialEdges: Edge[] = [
   // Left sources -> Prompt
-  { id: 'e-knowledge-prompt', source: 'knowledge', target: 'prompt', sourceHandle: 'knowledge-out', targetHandle: 'prompt-knowledge-in', type: 'patch', style: { stroke: '#3498db' } },
-  { id: 'e-skills-prompt', source: 'skills', target: 'prompt', sourceHandle: 'skills-out', targetHandle: 'prompt-skills-in', type: 'patch', style: { stroke: '#f1c40f' } },
-  { id: 'e-mcp-prompt', source: 'mcp', target: 'prompt', sourceHandle: 'mcp-out', targetHandle: 'prompt-mcp-in', type: 'patch', style: { stroke: '#2ecc71' }, data: { strokeDasharray: '4 2' } },
+  { id: 'e-knowledge-prompt', source: 'knowledge', target: 'prompt', sourceHandle: 'knowledge-out', targetHandle: 'prompt-knowledge-in', type: 'patch', style: { stroke: '#3498db' }, data: { label: 'knowledge' } },
+  { id: 'e-skills-prompt', source: 'skills', target: 'prompt', sourceHandle: 'skills-out', targetHandle: 'prompt-skills-in', type: 'patch', style: { stroke: '#f1c40f' }, data: { label: 'skills' } },
+  { id: 'e-mcp-prompt', source: 'mcp', target: 'prompt', sourceHandle: 'mcp-out', targetHandle: 'prompt-mcp-in', type: 'patch', style: { stroke: '#2ecc71' }, data: { label: 'tools' } },
   // Prompt -> Output/Response
-  { id: 'e-prompt-output', source: 'prompt', target: 'output', sourceHandle: 'prompt-out', targetHandle: 'output-in', type: 'patch', style: { stroke: '#FE5000' } },
-  { id: 'e-prompt-response', source: 'prompt', target: 'response', sourceHandle: 'prompt-out', targetHandle: 'response-in', type: 'patch', style: { stroke: '#FE5000' } },
+  { id: 'e-prompt-output', source: 'prompt', target: 'output', sourceHandle: 'prompt-out', targetHandle: 'output-in', type: 'patch', style: { stroke: '#FE5000' }, data: { label: 'output' } },
+  { id: 'e-prompt-response', source: 'prompt', target: 'response', sourceHandle: 'prompt-out', targetHandle: 'response-in', type: 'patch', style: { stroke: '#FE5000' }, data: { label: 'response' } },
   // Feedback edges (prompt → knowledge/skills)
   { id: 'e-prompt-knowledge-fb', source: 'prompt', target: 'knowledge', sourceHandle: 'prompt-knowledge-out', targetHandle: 'knowledge-feedback-in', type: 'feedback', data: { variant: 'knowledge' } },
   { id: 'e-prompt-skills-fb', source: 'prompt', target: 'skills', sourceHandle: 'prompt-skills-out', targetHandle: 'skills-feedback-in', type: 'feedback', data: { variant: 'skills' } },
@@ -124,10 +124,18 @@ export default function App() {
         output: '#FE5000',
         response: '#FE5000',
       };
+      const sourceLabels: Record<string, string> = {
+        knowledge: 'knowledge',
+        skills: 'skills',
+        mcp: 'tools',
+        prompt: 'output',
+        output: 'response',
+      };
       const sourceNode = connection.source ?? '';
       const color = sourceColors[sourceNode] ?? '#FE5000';
+      const label = sourceLabels[sourceNode] ?? '';
       setEdges((eds) =>
-        addEdge({ ...connection, type: 'patch', style: { stroke: color } }, eds),
+        addEdge({ ...connection, type: 'patch', style: { stroke: color }, data: { label } }, eds),
       );
     },
     [setEdges],

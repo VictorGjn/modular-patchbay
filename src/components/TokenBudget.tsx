@@ -8,9 +8,9 @@ export function TokenBudget() {
   const total = totalTokens();
   const pct = Math.min((total / tokenBudget) * 100, 100);
 
-  let barColor = '#2ecc71';
-  if (pct > 80) barColor = '#ff3344';
-  else if (pct > 55) barColor = '#ffaa00';
+  let barColor = t.statusSuccess;
+  if (pct > 80) barColor = t.statusError;
+  else if (pct > 55) barColor = t.statusWarning;
 
   return (
     <div
