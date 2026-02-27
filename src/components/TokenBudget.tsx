@@ -37,13 +37,13 @@ export function TokenBudget() {
 
       <span
         className="text-[11px] shrink-0 tabular-nums"
-        style={{ fontFamily: "'Space Mono', monospace", color: barColor }}
+        style={{ fontFamily: "'Space Mono', monospace", color: barColor, minWidth: 40, textAlign: 'right' }}
       >
         {total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total}
       </span>
       <span
-        className="text-[10px] shrink-0"
-        style={{ fontFamily: "'Space Mono', monospace", color: t.tokenDivider }}
+        className="text-[11px] shrink-0"
+        style={{ fontFamily: "'Space Mono', monospace", color: t.tokenDivider, minWidth: 50 }}
       >
         / {tokenBudget >= 1000 ? `${(tokenBudget / 1000).toFixed(0)}K` : tokenBudget}
       </span>

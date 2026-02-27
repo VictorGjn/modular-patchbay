@@ -161,7 +161,7 @@ export const OutputNode = memo(function OutputNode() {
         <div className="px-3 pt-1 pb-2">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
-            <span className="text-[9px] tracking-wider uppercase" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Destinations</span>
+            <span className="text-[11px] tracking-wider font-semibold" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Destinations</span>
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
           </div>
           <div className="flex flex-col gap-0.5">

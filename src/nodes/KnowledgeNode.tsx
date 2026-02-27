@@ -144,6 +144,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
       {/* Content — hidden when collapsed */}
       {nodeCollapsed ? null : <>
 
+<<<<<<< Updated upstream
       {/* Section tabs */}
       <div className="flex px-3 pt-2 gap-1 nodrag nowheel">
         <button
@@ -197,6 +198,113 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                   const isCollapsed = items.length === 0 || collapsed[type];
                   const isEmpty = items.length === 0;
                   const isDragTarget = dragOverType === type;
+=======
+              return (
+                <div
+                  key={type}
+                  onDragOver={(e) => handleDragOver(e, type)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, type)}
+                  style={{
+                    border: isDragTarget ? `1px dashed ${meta.color}` : '1px solid transparent',
+                    borderRadius: 6,
+                    margin: '0 4px',
+                    transition: 'border-color 150ms ease',
+                  }}
+                >
+                  {/* Section header */}
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 w-full px-3 py-1.5 border-none cursor-pointer nodrag"
+                    style={{
+                      background: 'transparent',
+                      opacity: isEmpty ? 0.4 : 1,
+                    }}
+                    onClick={() => !isEmpty && toggleCollapse(type)}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: meta.color }}
+                    />
+                    <span
+                      className="flex-1 text-left"
+                      style={{
+                        fontSize: 11,
+                        fontFamily: "'Space Mono', monospace",
+                        fontWeight: 600,
+                        letterSpacing: '0.05em',
+                        color: isEmpty ? t.textFaint : t.textSecondary,
+                      }}
+                    >
+                      {meta.label}
+                    </span>
+                    <span
+                      className="text-[10px] px-1 rounded-full"
+                      style={{
+                        fontFamily: "'Space Mono', monospace",
+                        color: t.textDim,
+                        background: items.length > 0 ? t.badgeBg : 'transparent',
+                        minWidth: 16,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {items.length}
+                    </span>
+                    {!isEmpty && (
+                      <span
+                        style={{ color: t.textDim, fontSize: 10, transition: 'transform 200ms ease', display: 'inline-block', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+                      >
+                        &#9662;
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Section items */}
+                  <div
+                    style={{
+                      maxHeight: isCollapsed ? 0 : items.length * 32 + 4,
+                      overflow: 'hidden',
+                      transition: 'max-height 200ms ease',
+                    }}
+                  >
+                    {items.map((ch) => (
+                      <FileRow
+                        key={ch.sourceId}
+                        sourceId={ch.sourceId}
+                        name={ch.name}
+                        enabled={ch.enabled}
+                        depth={ch.depth}
+                        baseTokens={ch.baseTokens}
+                        onToggle={() => toggleChannel(ch.sourceId)}
+                        onDepthChange={(d) => setChannelDepth(ch.sourceId, d)}
+                        onDragStart={(e) => handleDragStart(e, ch.sourceId)}
+                        fmtTokens={fmtTokens}
+                        theme={t}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Connectors section */}
+      {readConnectors.length > 0 && (
+        <div className="px-3 pt-1 pb-2">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
+            <span className="text-[11px] tracking-wider font-semibold" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Connectors</span>
+            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {readConnectors.map((c) => (
+              <ConnectorTile
+                key={c.id}
+                service={c.service}
+                name={c.name}
+>>>>>>> Stashed changes
 
                   return (
                     <div
@@ -326,7 +434,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         <div className="px-3 pt-1 pb-2">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
-            <span className="text-[9px] tracking-wider uppercase" style={{ color: '#00d4ff', fontFamily: "'Space Mono', monospace" }}>Feedback</span>
+            <span className="text-[11px] tracking-wider font-semibold" style={{ color: '#00d4ff', fontFamily: "'Space Mono', monospace" }}>Feedback</span>
             <JackPort type="target" position={Position.Right} label="FEEDBACK" color="#00d4ff" id="knowledge-feedback-in" />
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
           </div>
@@ -340,7 +448,14 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                 <span className="flex-1 truncate text-[10px]" style={{ fontFamily: "'Inter', sans-serif", color: t.textSecondary }}>
                   {item.name}
                 </span>
+<<<<<<< Updated upstream
                 <span className="text-[8px] tracking-wide uppercase px-1 rounded" style={{ color: '#00d4ff', fontFamily: "'Space Mono', monospace", background: 'rgba(0,212,255,0.1)' }}>
+=======
+                <span
+                  className="text-[11px] tracking-wide font-semibold px-1 rounded"
+                  style={{ color: '#00d4ff', fontFamily: "'Space Mono', monospace", background: 'rgba(0,212,255,0.1)' }}
+                >
+>>>>>>> Stashed changes
                   {item.type}
                 </span>
                 <button

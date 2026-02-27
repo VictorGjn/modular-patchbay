@@ -68,7 +68,7 @@ const initialEdges: Edge[] = [
   // Left sources -> Prompt
   { id: 'e-knowledge-prompt', source: 'knowledge', target: 'prompt', sourceHandle: 'knowledge-out', targetHandle: 'prompt-knowledge-in', type: 'patch', style: { stroke: '#3498db' } },
   { id: 'e-skills-prompt', source: 'skills', target: 'prompt', sourceHandle: 'skills-out', targetHandle: 'prompt-skills-in', type: 'patch', style: { stroke: '#f1c40f' } },
-  { id: 'e-mcp-prompt', source: 'mcp', target: 'prompt', sourceHandle: 'mcp-out', targetHandle: 'prompt-mcp-in', type: 'patch', style: { stroke: '#2ecc71' } },
+  { id: 'e-mcp-prompt', source: 'mcp', target: 'prompt', sourceHandle: 'mcp-out', targetHandle: 'prompt-mcp-in', type: 'patch', style: { stroke: '#2ecc71' }, data: { strokeDasharray: '4 2' } },
   // Prompt -> Output/Response
   { id: 'e-prompt-output', source: 'prompt', target: 'output', sourceHandle: 'prompt-out', targetHandle: 'output-in', type: 'patch', style: { stroke: '#FE5000' } },
   { id: 'e-prompt-response', source: 'prompt', target: 'response', sourceHandle: 'prompt-out', targetHandle: 'response-in', type: 'patch', style: { stroke: '#FE5000' } },
@@ -191,6 +191,8 @@ export default function App() {
         </ReactFlow>
       </div>
 
+      {/* Accessibility: aria-live region for canvas state announcements */}
+      <div aria-live="polite" className="sr-only" id="canvas-announcements" />
       <AgentPreview />
       <TokenBudget />
       <FilePicker />

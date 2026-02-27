@@ -14,17 +14,18 @@ const MODELS = [
   { id: 'gpt-4.1', name: 'GPT-4.1' },
 ];
 
-function TopbarSelect({ value, onChange, children, t }: { value: string; onChange: (v: string) => void; children: React.ReactNode; t: ReturnType<typeof useTheme> }) {
+function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: string; onChange: (v: string) => void; children: React.ReactNode; t: ReturnType<typeof useTheme>; ariaLabel?: string }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      aria-label={ariaLabel}
       className="appearance-none cursor-pointer outline-none text-xs py-1.5 pl-3 pr-7 rounded-lg"
       style={{
         fontFamily: "'Inter', sans-serif",
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
-        color: t.textSecondary,
+        color: t.isDark ? t.textSecondary : '#1a1a20',
         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M0 2l4 4 4-4' fill='none' stroke='%23${t.isDark ? '555' : '999'}' stroke-width='1.5'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'right 8px center',
@@ -89,14 +90,14 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       </div>
 
       {/* Model selector */}
-      <TopbarSelect value={selectedModel} onChange={setModel} t={t}>
+      <TopbarSelect value={selectedModel} onChange={setModel} t={t} ariaLabel="Select AI model">
         {MODELS.map((m) => (
           <option key={m.id} value={m.id}>{m.name}</option>
         ))}
       </TopbarSelect>
 
       {/* Preset selector */}
-      <TopbarSelect value={selectedPreset} onChange={loadPreset} t={t}>
+      <TopbarSelect value={selectedPreset} onChange={loadPreset} t={t} ariaLabel="Select preset">
         <option value="">-- Preset --</option>
         {PRESETS.map((p) => (
           <option key={p.id} value={p.id}>{p.name}</option>
@@ -104,7 +105,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       </TopbarSelect>
 
       {/* Output format selector */}
-      <TopbarSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)} t={t}>
+      <TopbarSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)} t={t} ariaLabel="Select output format">
         {OUTPUT_FORMATS.map((f) => (
           <option key={f.id} value={f.id}>{f.label}</option>
         ))}
