@@ -1,6 +1,5 @@
 import { memo, useState, useEffect } from 'react';
 import { Position } from '@xyflow/react';
-import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore, startHealthPolling, type McpServerState, type McpTool } from '../store/mcpStore';
 import { Tile } from '../components/Tile';
 import { JackPort } from '../components/JackPort';
@@ -8,7 +7,7 @@ import { McpIcon } from '../components/icons/SectionIcons';
 import { useTheme } from '../theme';
 import {
   Plug, ChevronDown, ChevronRight, LayoutGrid, List,
-  Loader2, AlertCircle, Wrench,
+  Loader2, AlertCircle, Wrench, Library, Search, X,
 } from 'lucide-react';
 
 const STATUS_COLORS: Record<McpServerState['status'], string> = {
@@ -166,10 +165,11 @@ function ServerRow({
 }
 
 export const McpNode = memo(function McpNode() {
-  const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
   const servers = useMcpStore((s) => s.servers);
   const loaded = useMcpStore((s) => s.loaded);
   const t = useTheme();
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [libFilter, setLibFilter] = useState('');
 
   const [nodeCollapsed, setNodeCollapsed] = useState(() => {
     try { return localStorage.getItem('mcp-node-collapsed') === 'true'; } catch { return false; }
@@ -200,12 +200,34 @@ export const McpNode = memo(function McpNode() {
     try { localStorage.setItem('mcp-node-view', viewMode); } catch { /* */ }
   }, [viewMode]);
 
-  const connectedCount = servers.filter((s) => s.status === 'connected').length;
+  // Track which MCP servers are "active" (added to canvas)
+  const [activeMcpIds, setActiveMcpIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('active-mcp-ids');
+      return saved ? new Set(JSON.parse(saved)) : new Set<string>();
+    } catch { return new Set<string>(); }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('active-mcp-ids', JSON.stringify([...activeMcpIds])); } catch {}
+  }, [activeMcpIds]);
+
+  const addMcp = (id: string) => setActiveMcpIds((prev) => new Set([...prev, id]));
+  const removeMcp = (id: string) => setActiveMcpIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+
+  // Active servers = explicitly added by user
+  const activeServers = servers.filter((s) => activeMcpIds.has(s.id));
+  const connectedCount = activeServers.filter((s) => s.status === 'connected').length;
+
+  const filteredLibraryServers = servers.filter((s) => {
+    if (!libFilter) return true;
+    return s.name.toLowerCase().includes(libFilter.toLowerCase());
+  });
 
   return (
     <div
       className="rounded-xl overflow-hidden"
-      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 280 }}
+      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 280, position: 'relative' }}
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
@@ -248,17 +270,15 @@ export const McpNode = memo(function McpNode() {
       </div>
 
       {nodeCollapsed ? null : <>
-      {/* Content */}
+      {/* Active MCP servers only */}
       <div className="p-3 overflow-y-auto nowheel" style={{ maxHeight: 280 }}>
         {viewMode === 'card' ? (
           <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))' }}>
-            {servers.length === 0 ? (
+            {activeServers.length === 0 ? (
               <div className="col-span-full flex items-center justify-center py-3">
-                <span className="text-[11px]" style={{ color: t.textFaint }}>
-                  {loaded ? 'No servers installed' : 'Loading...'}
-                </span>
+                <span className="text-[11px]" style={{ color: t.textFaint }}>No MCP servers active</span>
               </div>
-            ) : servers.map((server) => (
+            ) : activeServers.map((server) => (
               <Tile
                 key={server.id}
                 name={server.name}
@@ -278,33 +298,107 @@ export const McpNode = memo(function McpNode() {
           </div>
         ) : (
           <div className="flex flex-col gap-0.5">
-            {servers.length === 0 ? (
+            {activeServers.length === 0 ? (
               <div className="flex items-center justify-center py-3">
-                <span className="text-[11px]" style={{ color: t.textFaint }}>
-                  {loaded ? 'No servers installed' : 'Loading...'}
-                </span>
+                <span className="text-[11px]" style={{ color: t.textFaint }}>No MCP servers active</span>
               </div>
-            ) : servers.map((server) => (
+            ) : activeServers.map((server) => (
               <ServerRow key={server.id} server={server} t={t} />
             ))}
           </div>
         )}
       </div>
 
-      {/* Add button */}
+      {/* Library button */}
       <div className="px-3 pb-3 pt-1">
         <button
           type="button"
-          onClick={() => setShowMarketplace(true, 'mcp')}
-          className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag"
+          onClick={() => { setShowLibrary(true); setLibFilter(''); }}
+          className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag flex items-center justify-center gap-1.5"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
-          + Add MCP Server
+          <Library size={12} /> Library
         </button>
       </div>
       </>}
+
+      {/* Library Picker Overlay */}
+      {showLibrary && (
+        <div
+          className="absolute inset-0 rounded-xl flex flex-col overflow-hidden nodrag nowheel"
+          style={{ background: t.surfaceOpaque, zIndex: 10, border: `1px solid ${t.border}` }}
+        >
+          <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+            <Library size={14} style={{ color: '#FE5000' }} />
+            <span className="text-xs font-medium tracking-wide uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}>
+              MCP Library
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>
+              {servers.length}
+            </span>
+            <div className="flex-1" />
+            <button type="button" onClick={() => setShowLibrary(false)} className="p-0.5 border-none bg-transparent cursor-pointer rounded nodrag" style={{ color: t.textDim }}>
+              <X size={14} />
+            </button>
+          </div>
+
+          <div className="px-3 pt-2 pb-1">
+            <div className="relative">
+              <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: t.textDim }} />
+              <input
+                type="text"
+                value={libFilter}
+                onChange={(e) => setLibFilter(e.target.value)}
+                placeholder="Filter MCP servers..."
+                autoFocus
+                className="w-full outline-none text-[11px] pl-7 pr-2 py-1.5 rounded-md nodrag nowheel"
+                style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2 nowheel" style={{ maxHeight: 320 }}>
+            {filteredLibraryServers.length === 0 ? (
+              <div className="flex items-center justify-center py-6">
+                <span className="text-[11px]" style={{ color: t.textFaint }}>{servers.length === 0 ? 'No MCP servers found' : 'No matches'}</span>
+              </div>
+            ) : filteredLibraryServers.map((server) => {
+              const isActive = activeMcpIds.has(server.id);
+              return (
+                <button
+                  key={server.id}
+                  type="button"
+                  onClick={() => isActive ? removeMcp(server.id) : addMcp(server.id)}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-md border-none cursor-pointer nodrag w-full"
+                  style={{ background: isActive ? (t.isDark ? 'rgba(0,255,136,0.08)' : 'rgba(0,200,100,0.08)') : 'transparent', transition: 'background 100ms ease', textAlign: 'left' }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = t.surfaceHover; }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  {isActive ? (
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: STATUS_COLORS[server.status], boxShadow: server.status === 'connected' ? '0 0 4px #00ff8866' : 'none' }} />
+                  ) : (
+                    <span className="w-3 h-3 rounded border flex-shrink-0" style={{ borderColor: t.border }} />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] truncate" style={{ color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}>{server.name}</div>
+                    <div className="text-[9px] truncate" style={{ color: t.textDim }}>{server.command || server.id}</div>
+                  </div>
+                  {server.mcpStatus && server.mcpStatus !== 'enabled' && (
+                    <span className="text-[8px] uppercase px-1 py-0.5 rounded" style={{ fontFamily: "'Space Mono', monospace", fontWeight: 600, background: server.mcpStatus === 'deferred' ? '#f1c40f20' : '#ff334420', color: server.mcpStatus === 'deferred' ? '#f1c40f' : '#ff3344' }}>
+                      {server.mcpStatus}
+                    </span>
+                  )}
+                  <span className="text-[9px]" style={{ color: STATUS_COLORS[server.status], fontFamily: "'Space Mono', monospace" }}>
+                    {server.status === 'connected' ? `${server.tools.length} tools` : server.status}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 });
