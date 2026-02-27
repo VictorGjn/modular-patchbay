@@ -116,8 +116,18 @@ export default function App() {
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      const sourceColors: Record<string, string> = {
+        knowledge: '#3498db',
+        skills: '#f1c40f',
+        mcp: '#2ecc71',
+        prompt: '#FE5000',
+        output: '#FE5000',
+        response: '#FE5000',
+      };
+      const sourceNode = connection.source ?? '';
+      const color = sourceColors[sourceNode] ?? '#FE5000';
       setEdges((eds) =>
-        addEdge({ ...connection, type: 'patch', style: { stroke: '#FE5000' } }, eds),
+        addEdge({ ...connection, type: 'patch', style: { stroke: color } }, eds),
       );
     },
     [setEdges],
