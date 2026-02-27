@@ -3,7 +3,7 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore } from '../store/mcpStore';
 import type { ConnectorService, ConnectorDirection } from '../store/knowledgeBase';
 import { ConnectorIcon } from './icons/SectionIcons';
-import { X, Search, Plus, Check, Plug } from 'lucide-react';
+import { X, Search, Plus, Check } from 'lucide-react';
 
 interface AvailableConnector {
   service: ConnectorService;

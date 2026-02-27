@@ -107,7 +107,7 @@ function EmptyState() {
 }
 
 export function ResponseArea() {
-  const mockResponse = useConsoleStore((s) => s.mockResponse);
+  const response = useConsoleStore((s) => s.response);
   const running = useConsoleStore((s) => s.running);
   const outputFormat = useConsoleStore((s) => s.outputFormat);
   const channels = useConsoleStore((s) => s.channels);
@@ -123,8 +123,8 @@ export function ResponseArea() {
   const activeChannels = channels.filter((c) => c.enabled);
 
   useEffect(() => {
-    if (mockResponse && mockResponse !== prevResponseRef.current) {
-      prevResponseRef.current = mockResponse;
+    if (response && response !== prevResponseRef.current) {
+      prevResponseRef.current = response;
       setDisplayedText('');
       setIsTyping(true);
       let idx = 0;
@@ -133,19 +133,19 @@ export function ResponseArea() {
 
       typingRef.current = setInterval(() => {
         idx++;
-        if (idx >= mockResponse.length) {
-          setDisplayedText(mockResponse);
+        if (idx >= response.length) {
+          setDisplayedText(response);
           setIsTyping(false);
           if (typingRef.current) clearInterval(typingRef.current);
         } else {
-          setDisplayedText(mockResponse.slice(0, idx));
+          setDisplayedText(response.slice(0, idx));
         }
       }, 12);
     }
     return () => {
       if (typingRef.current) clearInterval(typingRef.current);
     };
-  }, [mockResponse]);
+  }, [response]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(displayedText).then(() => {
@@ -170,29 +170,29 @@ export function ResponseArea() {
         <div
           className="w-1.5 h-1.5 rounded-full"
           style={{
-            background: running ? '#ffaa00' : mockResponse ? '#00ff88' : '#444',
-            boxShadow: running ? '0 0 6px #ffaa0080' : mockResponse ? '0 0 6px #00ff8880' : 'none',
+            background: running ? '#ffaa00' : response ? '#00ff88' : '#444',
+            boxShadow: running ? '0 0 6px #ffaa0080' : response ? '0 0 6px #00ff8880' : 'none',
             animation: running ? 'pulse-glow 1s ease infinite' : 'none',
           }}
         />
         <span className="text-xs tracking-wider uppercase flex-1" style={{ color: '#888' }}>
-          {running ? 'Processing...' : mockResponse ? 'Response' : 'Output'}
+          {running ? 'Processing...' : response ? 'Response' : 'Output'}
         </span>
 
-        {formatInfo && mockResponse && (
+        {formatInfo && response && (
           <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md" style={{ color: '#555', background: '#25252a' }}>
             <OutputIcon formatId={outputFormat} size={10} />
             {formatInfo.label}
           </span>
         )}
 
-        {mockResponse && !running && (
+        {response && !running && (
           <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#444' }}>
             ~{responseTokens.toLocaleString()}t
           </span>
         )}
 
-        {mockResponse && !running && (
+        {response && !running && (
           <button
             type="button"
             onClick={handleCopy}
@@ -203,7 +203,7 @@ export function ResponseArea() {
           </button>
         )}
 
-        {mockResponse && !running && (
+        {response && !running && (
           <button
             type="button"
             onClick={() => setExpanded(true)}
@@ -237,7 +237,7 @@ export function ResponseArea() {
       </div>
 
       {/* Source list */}
-      {mockResponse && !running && activeChannels.length > 0 && (
+      {response && !running && activeChannels.length > 0 && (
         <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5" style={{ borderColor: '#222226' }}>
           <span className="text-[9px] tracking-wider uppercase self-center mr-1" style={{ color: '#444' }}>
             Sources:

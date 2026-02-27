@@ -87,7 +87,7 @@ export const SkillsNode = memo(function SkillsNode() {
                 <span className="text-[11px]" style={{ color: t.textFaint }}>No skills active</span>
               </div>
             ) : activeSkills.map((skill) => (
-              <Tile key={skill.id} name={skill.name} active={true} icon={<SkillIcon size={14} />} subtitle={skill.description?.slice(0, 40) || ''} onClick={() => toggleSkill(skill.id)} />
+              <Tile key={skill.id} name={skill.name} active={true} icon={<SkillIcon icon="zap" size={14} />} subtitle={skill.description?.slice(0, 40) || ''} onClick={() => toggleSkill(skill.id)} />
             ))}
           </div>
         ) : (

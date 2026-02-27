@@ -1,5 +1,5 @@
 import { type ConsoleState, type AgentMeta, type ExportTarget } from '../store/consoleStore';
-import { type KnowledgeType, type Category, type OutputFormat, classifyKnowledgeType, KNOWLEDGE_TREE, type KnowledgeSource } from '../store/knowledgeBase';
+import { type KnowledgeType, type Category, type OutputFormat, classifyKnowledgeType, type KnowledgeSource } from '../store/knowledgeBase';
 
 interface ModularChannel {
   path: string;
@@ -421,14 +421,8 @@ function isValidKnowledgeType(type: string): boolean {
   return ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'].includes(type);
 }
 
-function findSourceByPath(path: string, tree: KnowledgeSource[] = KNOWLEDGE_TREE): KnowledgeSource | undefined {
-  for (const node of tree) {
-    if (node.path === path || path.startsWith(node.path)) return node;
-    if (node.children) {
-      const found = findSourceByPath(path, node.children);
-      if (found) return found;
-    }
-  }
+function findSourceByPath(_path: string, _tree: KnowledgeSource[] = []): KnowledgeSource | undefined {
+  // Source matching now relies on real scanned data; import without a tree just uses path-based defaults
   return undefined;
 }
 

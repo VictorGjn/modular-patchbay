@@ -83,96 +83,7 @@ export interface KnowledgeSource {
   children?: KnowledgeSource[];
 }
 
-export const KNOWLEDGE_TREE: KnowledgeSource[] = [
-  {
-    id: 'knowledge', name: '00 - Knowledge', path: '00 - Knowledge/', category: 'knowledge', tokenEstimate: 82000,
-    children: [
-      { id: 'knowledge-clients', name: 'Clients', path: '00 - Knowledge/Clients/', category: 'knowledge', tokenEstimate: 18000, children: [
-        { id: 'knowledge-clients-odfjell', name: 'Odfjell', path: '00 - Knowledge/Clients/odfjell/', category: 'knowledge', tokenEstimate: 4200 },
-        { id: 'knowledge-clients-kcc', name: 'KCC', path: '00 - Knowledge/Clients/kcc/', category: 'knowledge', tokenEstimate: 3800 },
-        { id: 'knowledge-clients-dht', name: 'DHT', path: '00 - Knowledge/Clients/dht/', category: 'knowledge', tokenEstimate: 3500 },
-        { id: 'knowledge-clients-g2ocean', name: 'G2Ocean', path: '00 - Knowledge/Clients/g2ocean/', category: 'knowledge', tokenEstimate: 3200 },
-        { id: 'knowledge-clients-baru', name: 'Baru Navigation', path: '00 - Knowledge/Clients/baru/', category: 'knowledge', tokenEstimate: 3300 },
-      ]},
-      { id: 'knowledge-companies', name: 'Companies', path: '00 - Knowledge/Companies/', category: 'knowledge', tokenEstimate: 14000 },
-      { id: 'knowledge-competitors', name: 'Competitors', path: '00 - Knowledge/Competitors/', category: 'knowledge', tokenEstimate: 22000, children: [
-        { id: 'knowledge-competitors-stormgeo', name: 'StormGeo', path: '00 - Knowledge/Competitors/Features/stormgeo/', category: 'knowledge', tokenEstimate: 4500 },
-        { id: 'knowledge-competitors-dtn', name: 'DTN', path: '00 - Knowledge/Competitors/Features/dtn/', category: 'knowledge', tokenEstimate: 3800 },
-        { id: 'knowledge-competitors-sofar', name: 'Sofar', path: '00 - Knowledge/Competitors/Features/sofar/', category: 'knowledge', tokenEstimate: 3200 },
-        { id: 'knowledge-competitors-wni', name: 'WNI', path: '00 - Knowledge/Competitors/Features/wni/', category: 'knowledge', tokenEstimate: 3600 },
-        { id: 'knowledge-competitors-napa', name: 'NAPA', path: '00 - Knowledge/Competitors/Features/napa/', category: 'knowledge', tokenEstimate: 3400 },
-        { id: 'knowledge-competitors-aw', name: 'Applied Weather', path: '00 - Knowledge/Competitors/Features/aw/', category: 'knowledge', tokenEstimate: 1800 },
-        { id: 'knowledge-competitors-bespin', name: 'BeSpin', path: '00 - Knowledge/Competitors/Features/bespin/', category: 'knowledge', tokenEstimate: 900 },
-        { id: 'knowledge-competitors-deepsea', name: 'DeepSea', path: '00 - Knowledge/Competitors/Features/deepsea/', category: 'knowledge', tokenEstimate: 800 },
-      ]},
-      { id: 'knowledge-products', name: 'Products', path: '00 - Knowledge/Products/', category: 'knowledge', tokenEstimate: 16000, children: [
-        { id: 'knowledge-products-nr', name: 'Navigation Reports', path: '00 - Knowledge/Products/NR/', category: 'knowledge', tokenEstimate: 8200 },
-        { id: 'knowledge-products-feedback', name: 'Feedback', path: '00 - Knowledge/Products/Feedback/', category: 'knowledge', tokenEstimate: 4800 },
-        { id: 'knowledge-products-platform', name: 'Platform', path: '00 - Knowledge/Products/Platform/', category: 'knowledge', tokenEstimate: 3000 },
-      ]},
-      { id: 'knowledge-market', name: 'Market', path: '00 - Knowledge/Market/', category: 'knowledge', tokenEstimate: 6500 },
-      { id: 'knowledge-users', name: 'Users', path: '00 - Knowledge/Users/', category: 'knowledge', tokenEstimate: 5500 },
-    ],
-  },
-  {
-    id: 'discovery', name: '01 - Discovery', path: '01 - Discovery/', category: 'discovery', tokenEstimate: 64000,
-    children: [
-      { id: 'discovery-eu-ets', name: 'EU ETS Cost Layer', path: '01 - Discovery/EU ETS Cost Layer/', category: 'discovery', tokenEstimate: 3200 },
-      { id: 'discovery-weather-routing', name: 'Weather Routing v2', path: '01 - Discovery/Weather Routing v2/', category: 'discovery', tokenEstimate: 4100 },
-      { id: 'discovery-cii-monitor', name: 'CII Monitor', path: '01 - Discovery/CII Monitor/', category: 'discovery', tokenEstimate: 2800 },
-      { id: 'discovery-fleet-dashboard', name: 'Fleet Dashboard', path: '01 - Discovery/Fleet Dashboard/', category: 'discovery', tokenEstimate: 3500 },
-      { id: 'discovery-voyage-compare', name: 'Voyage Compare', path: '01 - Discovery/Voyage Compare/', category: 'discovery', tokenEstimate: 2600 },
-      { id: 'discovery-port-insights', name: 'Port Insights', path: '01 - Discovery/Port Insights/', category: 'discovery', tokenEstimate: 2200 },
-      { id: 'discovery-api-v2', name: 'API v2', path: '01 - Discovery/API v2/', category: 'discovery', tokenEstimate: 3800 },
-      { id: 'discovery-alerts-engine', name: 'Alerts Engine', path: '01 - Discovery/Alerts Engine/', category: 'discovery', tokenEstimate: 2400 },
-      { id: 'discovery-bunker-opt', name: 'Bunker Optimization', path: '01 - Discovery/Bunker Optimization/', category: 'discovery', tokenEstimate: 3100 },
-      { id: 'discovery-cargo-tracking', name: 'Cargo Tracking', path: '01 - Discovery/Cargo Tracking/', category: 'discovery', tokenEstimate: 2700 },
-    ],
-  },
-  { id: 'demo', name: '02 - Demo', path: '02 - Demo/', category: 'knowledge', tokenEstimate: 8400 },
-  { id: 'roadmap', name: '03 - Roadmap', path: '03 - Roadmap/', category: 'knowledge', tokenEstimate: 12000 },
-  { id: 'release', name: '04 - Release', path: '04 - Release/', category: 'knowledge', tokenEstimate: 9200 },
-  {
-    id: 'intel', name: '05 - Intel', path: '05 - Intel/', category: 'intel', tokenEstimate: 38000,
-    children: [
-      { id: 'intel-competitive', name: '01 - Competitive Intel', path: '05 - Intel/01 - Competitive Intel/', category: 'intel', tokenEstimate: 12000 },
-      { id: 'intel-maritime', name: '02 - Maritime Intel', path: '05 - Intel/02 - Maritime Intel/', category: 'intel', tokenEstimate: 14000 },
-      { id: 'intel-research', name: '03 - Research', path: '05 - Intel/03 - Research/', category: 'intel', tokenEstimate: 7200 },
-      { id: 'intel-feedback', name: '04 - Feedback Synthesis', path: '05 - Intel/04 - Feedback Synthesis/', category: 'intel', tokenEstimate: 4800 },
-    ],
-  },
-  {
-    id: 'sales-prep', name: '06 - Sales Prep', path: '06 - Sales Prep/', category: 'agents', tokenEstimate: 18000,
-    children: [
-      { id: 'sales-prep-events', name: 'Event Prep', path: '06 - Sales Prep/Event Prep/', category: 'agents', tokenEstimate: 9500 },
-      { id: 'sales-prep-exec', name: 'Executive Profiler', path: '06 - Sales Prep/Executive Profiler/', category: 'agents', tokenEstimate: 8500 },
-    ],
-  },
-  {
-    id: 'signals', name: '07 - Signals', path: '07 - Signals/', category: 'intel', tokenEstimate: 24000,
-    children: [
-      { id: 'signals-odfjell', name: 'User feedback / Odfjell', path: '07 - Signals/User feedback/odfjell/', category: 'intel', tokenEstimate: 6800 },
-      { id: 'signals-kcc', name: 'User feedback / KCC', path: '07 - Signals/User feedback/kcc/', category: 'intel', tokenEstimate: 5200 },
-      { id: 'signals-baru', name: 'User feedback / Baru', path: '07 - Signals/User feedback/baru/', category: 'intel', tokenEstimate: 4500 },
-      { id: 'signals-general', name: 'User feedback / General', path: '07 - Signals/User feedback/general/', category: 'intel', tokenEstimate: 7500 },
-    ],
-  },
-  {
-    id: 'cmo-handoff', name: 'CMO-Handoff', path: 'CMO-Handoff/', category: 'knowledge', tokenEstimate: 52000,
-    children: [
-      { id: 'cmo-company-profiles', name: '01 - Company Profiles', path: 'CMO-Handoff/01 - Company Profiles/', category: 'knowledge', tokenEstimate: 28000 },
-      { id: 'cmo-charter-structures', name: '02 - Charter Structures', path: 'CMO-Handoff/02 - Charter Structures/', category: 'knowledge', tokenEstimate: 8500 },
-      { id: 'cmo-newsletters', name: '03 - Newsletters', path: 'CMO-Handoff/03 - Newsletters/', category: 'knowledge', tokenEstimate: 6200 },
-      { id: 'cmo-competitive-intel', name: '05 - Competitive Intel', path: 'CMO-Handoff/05 - Competitive Intel/', category: 'intel', tokenEstimate: 5800 },
-      { id: 'cmo-event-prep', name: '07 - Event Prep Profiles', path: 'CMO-Handoff/07 - Event Prep Profiles/', category: 'agents', tokenEstimate: 3500 },
-    ],
-  },
-  { id: 'plans', name: 'plans', path: 'plans/', category: 'knowledge', tokenEstimate: 42000 },
-  { id: 'voyage-prep', name: 'voyage-preparation', path: 'voyage-preparation/', category: 'discovery', tokenEstimate: 18000 },
-  { id: 'odfjell-savings', name: 'odfjell-savings-analysis', path: 'odfjell-savings-analysis/', category: 'intel', tokenEstimate: 14000 },
-  { id: 'navarea-map', name: 'navarea-map', path: 'navarea-map/', category: 'intel', tokenEstimate: 11000 },
-  { id: 'temp-voyage', name: '_temp_voyage-briefing', path: '_temp_voyage-briefing/', category: 'discovery', tokenEstimate: 6400 },
-];
+// KNOWLEDGE_TREE removed — knowledge sources now come from knowledgeStore (real /api/knowledge/scan endpoint)
 
 export type DepthLevel = 'Full' | 'Detail' | 'Summary' | 'Headlines' | 'Mention';
 
@@ -220,26 +131,9 @@ export interface Preset {
   agentConfig?: Partial<AgentConfig>;
 }
 
-function ch(source: KnowledgeSource, depth = 0): Omit<ChannelConfig, 'enabled'> {
-  return { sourceId: source.id, name: source.name, path: source.path, category: source.category, knowledgeType: classifyKnowledgeType(source.path), depth, baseTokens: source.tokenEstimate };
-}
-
-// Flatten helper - find a source by id from the tree
-function findSource(id: string, tree: KnowledgeSource[] = KNOWLEDGE_TREE): KnowledgeSource | undefined {
-  for (const node of tree) {
-    if (node.id === id) return node;
-    if (node.children) {
-      const found = findSource(id, node.children);
-      if (found) return found;
-    }
-  }
-  return undefined;
-}
-
-function chById(id: string, depth = 0): Omit<ChannelConfig, 'enabled'> {
-  const src = findSource(id);
-  if (!src) throw new Error(`Source not found: ${id}`);
-  return ch(src, depth);
+// Preset channel helper — creates channel config from inline data (no longer depends on a mock tree)
+function presetChannel(id: string, name: string, path: string, category: Category, tokenEstimate: number, depth = 0): Omit<ChannelConfig, 'enabled'> {
+  return { sourceId: id, name, path, category, knowledgeType: classifyKnowledgeType(path), depth, baseTokens: tokenEstimate };
 }
 
 // MCP Server categories
@@ -286,16 +180,7 @@ export interface AgentDef {
   linkedSkills?: string[];
 }
 
-export const MOCK_AGENTS: AgentDef[] = [
-  { id: 'agent-senior-pm', name: 'Senior PM', initials: 'PM', model: 'Opus 4', description: 'Product strategy & roadmap', linkedSkills: ['skill-feedback-analyzer', 'skill-maritime-expert'] },
-  { id: 'agent-engineer', name: 'Engineer', initials: 'EN', model: 'Sonnet 4', description: 'Technical implementation', linkedSkills: ['skill-coding-agent', 'skill-github'] },
-  { id: 'agent-user-researcher', name: 'User Researcher', initials: 'UR', model: 'Opus 4', description: 'User insights & signals', linkedSkills: ['skill-feedback-analyzer'] },
-  { id: 'agent-executive', name: 'Executive', initials: 'EX', model: 'Opus 4', description: 'Strategic decisions' },
-  { id: 'agent-feedback-mgr', name: 'Feedback Manager', initials: 'FM', model: 'Sonnet 4', description: 'Feedback synthesis', linkedSkills: ['skill-feedback-analyzer'] },
-  { id: 'agent-company-intel', name: 'Company Intel', initials: 'CI', model: 'Opus 4', description: 'Company research' },
-  { id: 'agent-opportunity', name: 'Opportunity Creator', initials: 'OC', model: 'Opus 4', description: 'Sales opportunities' },
-  { id: 'agent-visual-designer', name: 'Visual Designer', initials: 'VD', model: 'Sonnet 4', description: 'Design & visuals', linkedSkills: ['skill-web-design', 'skill-frontend-slides'] },
-];
+// MOCK_AGENTS removed — agents now populated dynamically from real agent definitions
 
 // Connector types
 export type ConnectorService = 'notion' | 'hubspot' | 'slack' | 'granola' | 'github' | 'google-drive' | 'custom';
@@ -325,111 +210,111 @@ export const PRESETS: Preset[] = [
     id: 'senior-pm', name: 'Senior PM',
     agentConfig: { model: 'claude-opus-4', temperature: 0.5, planningMode: 'chain-of-thought', maxTokens: 8192 },
     channels: [
-      chById('knowledge-products', 0),
-      chById('knowledge-products-feedback', 0),
-      chById('signals-odfjell', 1),
-      chById('signals-kcc', 1),
-      chById('signals-general', 1),
-      chById('discovery-eu-ets', 2),
-      chById('discovery-weather-routing', 2),
-      chById('discovery-fleet-dashboard', 2),
-      chById('roadmap', 1),
+      presetChannel('knowledge-products', 'Products', '00 - Knowledge/Products/', 'knowledge', 16000, 0),
+      presetChannel('knowledge-products-feedback', 'Feedback', '00 - Knowledge/Products/Feedback/', 'knowledge', 4800, 0),
+      presetChannel('signals-odfjell', 'User feedback / Odfjell', '07 - Signals/User feedback/odfjell/', 'intel', 6800, 1),
+      presetChannel('signals-kcc', 'User feedback / KCC', '07 - Signals/User feedback/kcc/', 'intel', 5200, 1),
+      presetChannel('signals-general', 'User feedback / General', '07 - Signals/User feedback/general/', 'intel', 7500, 1),
+      presetChannel('discovery-eu-ets', 'EU ETS Cost Layer', '01 - Discovery/EU ETS Cost Layer/', 'discovery', 3200, 2),
+      presetChannel('discovery-weather-routing', 'Weather Routing v2', '01 - Discovery/Weather Routing v2/', 'discovery', 4100, 2),
+      presetChannel('discovery-fleet-dashboard', 'Fleet Dashboard', '01 - Discovery/Fleet Dashboard/', 'discovery', 3500, 2),
+      presetChannel('roadmap', '03 - Roadmap', '03 - Roadmap/', 'knowledge', 12000, 1),
     ],
   },
   {
     id: 'competitive-intel', name: 'Competitive Intel',
     agentConfig: { model: 'claude-opus-4', temperature: 0.3, planningMode: 'react', maxTokens: 8192 },
     channels: [
-      chById('knowledge-competitors', 0),
-      chById('knowledge-competitors-stormgeo', 0),
-      chById('knowledge-competitors-dtn', 0),
-      chById('knowledge-competitors-sofar', 0),
-      chById('knowledge-competitors-wni', 0),
-      chById('cmo-competitive-intel', 1),
-      chById('intel-competitive', 0),
+      presetChannel('knowledge-competitors', 'Competitors', '00 - Knowledge/Competitors/', 'knowledge', 22000, 0),
+      presetChannel('knowledge-competitors-stormgeo', 'StormGeo', '00 - Knowledge/Competitors/Features/stormgeo/', 'knowledge', 4500, 0),
+      presetChannel('knowledge-competitors-dtn', 'DTN', '00 - Knowledge/Competitors/Features/dtn/', 'knowledge', 3800, 0),
+      presetChannel('knowledge-competitors-sofar', 'Sofar', '00 - Knowledge/Competitors/Features/sofar/', 'knowledge', 3200, 0),
+      presetChannel('knowledge-competitors-wni', 'WNI', '00 - Knowledge/Competitors/Features/wni/', 'knowledge', 3600, 0),
+      presetChannel('cmo-competitive-intel', '05 - Competitive Intel', 'CMO-Handoff/05 - Competitive Intel/', 'intel', 5800, 1),
+      presetChannel('intel-competitive', '01 - Competitive Intel', '05 - Intel/01 - Competitive Intel/', 'intel', 12000, 0),
     ],
   },
   {
     id: 'company-intel', name: 'Company Intel',
     channels: [
-      chById('knowledge-companies', 0),
-      chById('cmo-company-profiles', 0),
-      chById('cmo-charter-structures', 1),
+      presetChannel('knowledge-companies', 'Companies', '00 - Knowledge/Companies/', 'knowledge', 14000, 0),
+      presetChannel('cmo-company-profiles', '01 - Company Profiles', 'CMO-Handoff/01 - Company Profiles/', 'knowledge', 28000, 0),
+      presetChannel('cmo-charter-structures', '02 - Charter Structures', 'CMO-Handoff/02 - Charter Structures/', 'knowledge', 8500, 1),
     ],
   },
   {
     id: 'feedback-manager', name: 'Feedback Manager',
     agentConfig: { model: 'claude-sonnet-4', temperature: 0.4, planningMode: 'chain-of-thought', maxTokens: 4096 },
     channels: [
-      chById('knowledge-products-feedback', 0),
-      chById('signals-odfjell', 0),
-      chById('signals-kcc', 0),
-      chById('signals-baru', 0),
-      chById('signals-general', 0),
-      chById('intel-feedback', 1),
+      presetChannel('knowledge-products-feedback', 'Feedback', '00 - Knowledge/Products/Feedback/', 'knowledge', 4800, 0),
+      presetChannel('signals-odfjell', 'User feedback / Odfjell', '07 - Signals/User feedback/odfjell/', 'intel', 6800, 0),
+      presetChannel('signals-kcc', 'User feedback / KCC', '07 - Signals/User feedback/kcc/', 'intel', 5200, 0),
+      presetChannel('signals-baru', 'User feedback / Baru', '07 - Signals/User feedback/baru/', 'intel', 4500, 0),
+      presetChannel('signals-general', 'User feedback / General', '07 - Signals/User feedback/general/', 'intel', 7500, 0),
+      presetChannel('intel-feedback', '04 - Feedback Synthesis', '05 - Intel/04 - Feedback Synthesis/', 'intel', 4800, 1),
     ],
   },
   {
     id: 'odfjell-deep-dive', name: 'Odfjell Deep Dive',
     channels: [
-      chById('odfjell-savings', 0),
-      chById('knowledge-clients-odfjell', 0),
-      chById('signals-odfjell', 0),
-      chById('cmo-charter-structures', 1),
-      chById('knowledge-competitors-stormgeo', 2),
+      presetChannel('odfjell-savings', 'odfjell-savings-analysis', 'odfjell-savings-analysis/', 'intel', 14000, 0),
+      presetChannel('knowledge-clients-odfjell', 'Odfjell', '00 - Knowledge/Clients/odfjell/', 'knowledge', 4200, 0),
+      presetChannel('signals-odfjell', 'User feedback / Odfjell', '07 - Signals/User feedback/odfjell/', 'intel', 6800, 0),
+      presetChannel('cmo-charter-structures', '02 - Charter Structures', 'CMO-Handoff/02 - Charter Structures/', 'knowledge', 8500, 1),
+      presetChannel('knowledge-competitors-stormgeo', 'StormGeo', '00 - Knowledge/Competitors/Features/stormgeo/', 'knowledge', 4500, 2),
     ],
   },
   {
     id: 'voyage-prep-dev', name: 'Voyage Prep Dev',
     channels: [
-      chById('voyage-prep', 0),
-      chById('temp-voyage', 0),
-      chById('discovery-weather-routing', 1),
-      chById('knowledge-products-nr', 1),
+      presetChannel('voyage-prep', 'voyage-preparation', 'voyage-preparation/', 'discovery', 18000, 0),
+      presetChannel('temp-voyage', '_temp_voyage-briefing', '_temp_voyage-briefing/', 'discovery', 6400, 0),
+      presetChannel('discovery-weather-routing', 'Weather Routing v2', '01 - Discovery/Weather Routing v2/', 'discovery', 4100, 1),
+      presetChannel('knowledge-products-nr', 'Navigation Reports', '00 - Knowledge/Products/NR/', 'knowledge', 8200, 1),
     ],
   },
   {
     id: 'event-prep', name: 'Event Prep',
     channels: [
-      chById('sales-prep-events', 0),
-      chById('sales-prep-exec', 0),
-      chById('cmo-event-prep', 0),
-      chById('cmo-company-profiles', 2),
+      presetChannel('sales-prep-events', 'Event Prep', '06 - Sales Prep/Event Prep/', 'agents', 9500, 0),
+      presetChannel('sales-prep-exec', 'Executive Profiler', '06 - Sales Prep/Executive Profiler/', 'agents', 8500, 0),
+      presetChannel('cmo-event-prep', '07 - Event Prep Profiles', 'CMO-Handoff/07 - Event Prep Profiles/', 'agents', 3500, 0),
+      presetChannel('cmo-company-profiles', '01 - Company Profiles', 'CMO-Handoff/01 - Company Profiles/', 'knowledge', 28000, 2),
     ],
   },
   {
     id: 'maritime-intel', name: 'Maritime Intel',
     channels: [
-      chById('intel-maritime', 0),
-      chById('navarea-map', 0),
-      chById('intel-research', 1),
+      presetChannel('intel-maritime', '02 - Maritime Intel', '05 - Intel/02 - Maritime Intel/', 'intel', 14000, 0),
+      presetChannel('navarea-map', 'navarea-map', 'navarea-map/', 'intel', 11000, 0),
+      presetChannel('intel-research', '03 - Research', '05 - Intel/03 - Research/', 'intel', 7200, 1),
     ],
   },
   {
     id: 'discovery-all', name: 'Discovery',
     channels: [
-      chById('discovery-eu-ets', 0),
-      chById('discovery-weather-routing', 0),
-      chById('discovery-cii-monitor', 0),
-      chById('discovery-fleet-dashboard', 0),
-      chById('discovery-voyage-compare', 0),
-      chById('discovery-port-insights', 0),
-      chById('discovery-api-v2', 0),
-      chById('discovery-alerts-engine', 0),
-      chById('discovery-bunker-opt', 0),
-      chById('discovery-cargo-tracking', 0),
+      presetChannel('discovery-eu-ets', 'EU ETS Cost Layer', '01 - Discovery/EU ETS Cost Layer/', 'discovery', 3200, 0),
+      presetChannel('discovery-weather-routing', 'Weather Routing v2', '01 - Discovery/Weather Routing v2/', 'discovery', 4100, 0),
+      presetChannel('discovery-cii-monitor', 'CII Monitor', '01 - Discovery/CII Monitor/', 'discovery', 2800, 0),
+      presetChannel('discovery-fleet-dashboard', 'Fleet Dashboard', '01 - Discovery/Fleet Dashboard/', 'discovery', 3500, 0),
+      presetChannel('discovery-voyage-compare', 'Voyage Compare', '01 - Discovery/Voyage Compare/', 'discovery', 2600, 0),
+      presetChannel('discovery-port-insights', 'Port Insights', '01 - Discovery/Port Insights/', 'discovery', 2200, 0),
+      presetChannel('discovery-api-v2', 'API v2', '01 - Discovery/API v2/', 'discovery', 3800, 0),
+      presetChannel('discovery-alerts-engine', 'Alerts Engine', '01 - Discovery/Alerts Engine/', 'discovery', 2400, 0),
+      presetChannel('discovery-bunker-opt', 'Bunker Optimization', '01 - Discovery/Bunker Optimization/', 'discovery', 3100, 0),
+      presetChannel('discovery-cargo-tracking', 'Cargo Tracking', '01 - Discovery/Cargo Tracking/', 'discovery', 2700, 0),
     ],
   },
   {
     id: 'all-knowledge', name: 'All Knowledge',
     channels: [
-      chById('knowledge', 2),
-      chById('knowledge-clients', 1),
-      chById('knowledge-companies', 1),
-      chById('knowledge-competitors', 1),
-      chById('knowledge-products', 0),
-      chById('knowledge-market', 2),
-      chById('knowledge-users', 2),
+      presetChannel('knowledge', '00 - Knowledge', '00 - Knowledge/', 'knowledge', 82000, 2),
+      presetChannel('knowledge-clients', 'Clients', '00 - Knowledge/Clients/', 'knowledge', 18000, 1),
+      presetChannel('knowledge-companies', 'Companies', '00 - Knowledge/Companies/', 'knowledge', 14000, 1),
+      presetChannel('knowledge-competitors', 'Competitors', '00 - Knowledge/Competitors/', 'knowledge', 22000, 1),
+      presetChannel('knowledge-products', 'Products', '00 - Knowledge/Products/', 'knowledge', 16000, 0),
+      presetChannel('knowledge-market', 'Market', '00 - Knowledge/Market/', 'knowledge', 6500, 2),
+      presetChannel('knowledge-users', 'Users', '00 - Knowledge/Users/', 'knowledge', 5500, 2),
     ],
   },
 ];

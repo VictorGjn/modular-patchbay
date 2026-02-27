@@ -1,11 +1,13 @@
-import { type ChannelConfig, KNOWLEDGE_TREE, type KnowledgeSource } from '../store/knowledgeBase';
+import { type ChannelConfig, type KnowledgeSource } from '../store/knowledgeBase';
 
 interface GhostSuggestion {
   source: KnowledgeSource;
   reason: string;
 }
 
-// Flatten the knowledge tree
+/** Flatten a knowledge tree (reserved for when real tree data is available) */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/*
 function flattenTree(tree: KnowledgeSource[]): KnowledgeSource[] {
   const result: KnowledgeSource[] = [];
   for (const node of tree) {
@@ -14,6 +16,7 @@ function flattenTree(tree: KnowledgeSource[]): KnowledgeSource[] {
   }
   return result;
 }
+*/
 
 const KEYWORD_MAP: Record<string, string[]> = {
   'knowledge-clients-odfjell': ['odfjell', 'bow optima', 'bow olympus', 'bow orion', 'michelle', 'chemical tanker'],
@@ -45,7 +48,8 @@ export function getGhostSuggestions(prompt: string, activeChannels: ChannelConfi
 
   const p = prompt.toLowerCase();
   const activeIds = new Set(activeChannels.map((ch) => ch.sourceId));
-  const allSources = flattenTree(KNOWLEDGE_TREE);
+  // Ghost suggestions are disabled until real knowledge tree is available
+  const allSources: KnowledgeSource[] = [];
   const suggestions: GhostSuggestion[] = [];
 
   // 1. Keyword-based suggestions from prompt
