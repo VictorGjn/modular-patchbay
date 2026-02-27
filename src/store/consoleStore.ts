@@ -1,10 +1,9 @@
 import { create } from 'zustand';
-import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_AGENTS, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG, type Connector } from './knowledgeBase';
+import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG, type Connector } from './knowledgeBase';
 import { REGISTRY_SKILLS, REGISTRY_MCP_SERVERS, type RegistrySkill, type RegistryMcp, type Runtime, type InstallScope } from './registry';
 import type { FileContent } from './knowledgeStore';
 import { streamCompletion, streamAgentSdk } from '../services/llmService';
 import { assembleContext } from '../services/contextAssembler';
-import { getStoredApiKey, getStoredBaseUrl, getStoredModelOverride } from '../components/SettingsModal';
 import { useProviderStore } from './providerStore';
 
 export interface AgentMeta {
@@ -49,7 +48,7 @@ export interface ConsoleState {
   showConnectorPicker: boolean;
   showMarketplace: boolean;
   activeMarketplaceTab: 'skills' | 'mcp' | 'presets';
-  mockResponse: string;
+  response: string;
   exportTarget: ExportTarget;
 
   // Marketplace registry
@@ -158,7 +157,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   showConnectorPicker: false,
   showMarketplace: false,
   activeMarketplaceTab: 'skills' as const,
-  mockResponse: '',
+  response: '',
   exportTarget: 'claude' as ExportTarget,
   registrySkills: REGISTRY_SKILLS.map((s) => ({ ...s })),
   registryMcpServers: REGISTRY_MCP_SERVERS.map((s) => ({ ...s })),
@@ -174,7 +173,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     description: s.description,
     category: s.category === 'coding' ? 'development' as const : s.category === 'research' ? 'analysis' as const : s.category === 'design' ? 'content' as const : s.category === 'writing' ? 'content' as const : s.category === 'domain' ? 'domain' as const : 'content' as const,
   })),
-  agents: MOCK_AGENTS.map((a) => ({ ...a })),
+  agents: [],
   connectors: [] as Connector[],
   pendingKnowledge: [],
   suggestedSkills: [],
@@ -191,7 +190,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     if (!preset) return;
     const channels: ChannelConfig[] = preset.channels.map((ch) => ({ ...ch, enabled: true }));
     const agentConfig = { ...DEFAULT_AGENT_CONFIG, ...preset.agentConfig };
-    set({ channels, selectedPreset: presetId, mockResponse: '', agentConfig });
+    set({ channels, selectedPreset: presetId, response: '', agentConfig });
   },
 
   setOutputFormat: (format: OutputFormat) => set({ outputFormat: format, outputFormats: [format] }),
@@ -289,12 +288,12 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
 
     if (!isAgentSdk) {
       if (!activeProvider?.apiKey) {
-        set({ mockResponse: 'Error: No API key configured. Open Settings → Providers to add your API key.' });
+        set({ response: 'Error: No API key configured. Open Settings → Providers to add your API key.' });
         return;
       }
     }
 
-    set({ running: true, mockResponse: '' });
+    set({ running: true, response: '' });
 
     const messages = assembleContext(channels, prompt);
     const model = get().agentConfig.model;
@@ -312,14 +311,14 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         systemPrompt: systemParts.join('\n') || undefined,
         onChunk: (text) => {
           accumulated += text;
-          set({ mockResponse: accumulated });
+          set({ response: accumulated });
         },
         onDone: () => {
           set({ running: false });
           (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
         },
         onError: (error) => {
-          set({ running: false, mockResponse: `Error: ${error.message}` });
+          set({ running: false, response: `Error: ${error.message}` });
           (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
         },
       });
@@ -335,7 +334,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       messages,
       onChunk: (text) => {
         accumulated += text;
-        set({ mockResponse: accumulated });
+        set({ response: accumulated });
       },
       onDone: () => {
         set({ running: false });
@@ -350,7 +349,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         }
       },
       onError: (error) => {
-        set({ running: false, mockResponse: `Error: ${error.message}` });
+        set({ running: false, response: `Error: ${error.message}` });
         (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
       },
     });
@@ -366,7 +365,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
   },
 
-  clearChannels: () => set({ channels: [], selectedPreset: '', mockResponse: '' }),
+  clearChannels: () => set({ channels: [], selectedPreset: '', response: '' }),
 
   setAgentModel: (model: string) => set({ agentConfig: { ...get().agentConfig, model } }),
   setAgentTemperature: (temperature: number) => set({ agentConfig: { ...get().agentConfig, temperature } }),

@@ -52,7 +52,7 @@ function renderInline(text: string): React.ReactNode {
 }
 
 export const ResponseNode = memo(function ResponseNode() {
-  const mockResponse = useConsoleStore((s) => s.mockResponse);
+  const response = useConsoleStore((s) => s.response);
   const running = useConsoleStore((s) => s.running);
   const outputFormat = useConsoleStore((s) => s.outputFormat);
   const channels = useConsoleStore((s) => s.channels);
@@ -69,7 +69,7 @@ export const ResponseNode = memo(function ResponseNode() {
   const activeChannels = channels.filter((c) => c.enabled);
 
   useEffect(() => {
-    if (!mockResponse) {
+    if (!response) {
       prevResponseRef.current = '';
       setDisplayedText('');
       setIsTyping(false);
@@ -79,18 +79,18 @@ export const ResponseNode = memo(function ResponseNode() {
 
     if (running) {
       // Streaming mode: show text directly as it arrives
-      setDisplayedText(mockResponse);
+      setDisplayedText(response);
       setIsTyping(true);
-      prevResponseRef.current = mockResponse;
-    } else if (mockResponse !== prevResponseRef.current) {
+      prevResponseRef.current = response;
+    } else if (response !== prevResponseRef.current) {
       // Non-streaming update (e.g. final state): show immediately
-      prevResponseRef.current = mockResponse;
-      setDisplayedText(mockResponse);
+      prevResponseRef.current = response;
+      setDisplayedText(response);
       setIsTyping(false);
       if (typingRef.current) clearInterval(typingRef.current);
     }
     return () => { if (typingRef.current) clearInterval(typingRef.current); };
-  }, [mockResponse, running]);
+  }, [response, running]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(displayedText).then(() => {
@@ -111,29 +111,29 @@ export const ResponseNode = memo(function ResponseNode() {
           <div
             className="w-1.5 h-1.5 rounded-full"
             style={{
-              background: running ? '#ffaa00' : mockResponse ? '#00ff88' : t.textFaint,
-              boxShadow: running ? '0 0 6px #ffaa0080' : mockResponse ? '0 0 6px #00ff8880' : 'none',
+              background: running ? '#ffaa00' : response ? '#00ff88' : t.textFaint,
+              boxShadow: running ? '0 0 6px #ffaa0080' : response ? '0 0 6px #00ff8880' : 'none',
               animation: running ? 'pulse-glow 1s ease infinite' : 'none',
             }}
           />
           <span className="text-xs tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>
-            {running ? 'Processing...' : mockResponse ? 'Response' : 'Output'}
+            {running ? 'Processing...' : response ? 'Response' : 'Output'}
           </span>
 
-          {formatInfo && mockResponse && (
+          {formatInfo && response && (
             <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md" style={{ color: t.textDim, background: t.badgeBg }}>
               <OutputIcon formatId={outputFormat} size={10} />
               {formatInfo.label}
             </span>
           )}
 
-          {mockResponse && !running && (
+          {response && !running && (
             <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
               ~{responseTokens.toLocaleString()}t
             </span>
           )}
 
-          {mockResponse && !running && (
+          {response && !running && (
             <button
               type="button"
               onClick={handleCopy}
@@ -144,7 +144,7 @@ export const ResponseNode = memo(function ResponseNode() {
             </button>
           )}
 
-          {mockResponse && !running && (
+          {response && !running && (
             <button
               type="button"
               onClick={() => setExpanded(true)}
@@ -185,7 +185,7 @@ export const ResponseNode = memo(function ResponseNode() {
         </div>
 
         {/* Source list */}
-        {mockResponse && !running && activeChannels.length > 0 && (
+        {response && !running && activeChannels.length > 0 && (
           <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5" style={{ borderColor: t.borderSubtle }}>
             <span className="text-[11px] tracking-wider font-semibold self-center mr-1" style={{ color: t.textFaint }}>Sources:</span>
             {activeChannels.map((ch) => {

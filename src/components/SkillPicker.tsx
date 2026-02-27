@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
-import { type SkillCategory, MOCK_AGENTS } from '../store/knowledgeBase';
+import { type SkillCategory } from '../store/knowledgeBase';
 import { SkillIcon } from './icons/SectionIcons';
 import { X, Search, Plus, Check } from 'lucide-react';
 
@@ -13,10 +13,9 @@ const CATEGORY_LABELS: Record<SkillCategory, string> = {
 
 const CATEGORY_ORDER: SkillCategory[] = ['content', 'analysis', 'development', 'domain'];
 
-function getLinkedAgents(skillId: string): string[] {
-  return MOCK_AGENTS
-    .filter((a) => a.linkedSkills?.includes(skillId))
-    .map((a) => a.name);
+function getLinkedAgents(_skillId: string): string[] {
+  // Agent linkage now comes from real agent definitions, not mock data
+  return [];
 }
 
 export function SkillPicker() {

@@ -101,7 +101,7 @@ export const PromptNode = memo(function PromptNode() {
     <>
     <ResizeHandle minWidth={340} minHeight={200} />
     <div
-      className="rounded-xl h-full flex flex-col"
+      className="rounded-xl h-full flex flex-col overflow-hidden"
       style={{
         background: t.surface,
         backdropFilter: 'blur(8px)',
@@ -111,7 +111,7 @@ export const PromptNode = memo(function PromptNode() {
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+      <div className="flex items-center justify-between px-3 py-2 shrink-0" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
         <div className="flex items-center gap-2">
           <JackPort type="target" position={Position.Left} label="KNOW" color="#3498db" id="prompt-knowledge-in" />
           <JackPort type="target" position={Position.Left} label="SKILLS" color="#f1c40f" id="prompt-skills-in" />
@@ -137,13 +137,14 @@ export const PromptNode = memo(function PromptNode() {
       </div>
 
       {/* Textarea */}
-      <div className="p-3 relative">
+      <div className="p-3 relative flex-1 overflow-y-auto">
         <textarea
           ref={textareaRef}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Describe what you need — analysis, slides, email, code..."
+          aria-label="Prompt input"
           className="w-full resize-none outline-none text-sm nodrag nowheel"
           rows={3}
           style={{
@@ -185,10 +186,11 @@ export const PromptNode = memo(function PromptNode() {
       </div>
 
       {/* Collapsible Model Settings Drawer */}
-      <div style={{ borderTop: `1px solid ${t.borderSubtle}` }}>
+      <div className="shrink-0" style={{ borderTop: `1px solid ${t.borderSubtle}` }}>
         <button
           type="button"
           onClick={() => setSettingsOpen(!settingsOpen)}
+          aria-label={settingsOpen ? 'Collapse advanced settings' : 'Expand advanced settings'}
           className="flex items-center gap-2 w-full px-3 py-2 nodrag"
           style={{
             background: 'transparent',
@@ -273,6 +275,7 @@ export const PromptNode = memo(function PromptNode() {
                       key={depth}
                       type="button"
                       onClick={() => supported && setThinkingDepth(depth)}
+                      aria-label={`Set thinking depth to ${depth}`}
                       className="flex-1 text-[10px] py-1 rounded-md tracking-wide nodrag"
                       style={{
                         fontFamily: "'Space Mono', monospace",
@@ -309,6 +312,7 @@ export const PromptNode = memo(function PromptNode() {
                 step={256}
                 value={Math.min(agentConfig.maxTokens, currentMeta.maxOutput)}
                 onChange={(e) => setAgentMaxTokens(parseInt(e.target.value))}
+                aria-label="Max output tokens"
                 className="w-full nodrag nowheel"
                 style={{ accentColor: '#FE5000' }}
               />
@@ -324,7 +328,7 @@ export const PromptNode = memo(function PromptNode() {
 
       {/* Feedback output handles */}
       <div
-        className="flex items-center gap-2 px-3 py-1.5"
+        className="flex items-center gap-2 px-3 py-1.5 shrink-0"
         style={{ borderTop: `1px solid ${t.borderSubtle}` }}
       >
         <JackPort type="source" position={Position.Left} label="KB OUT" color="#00d4ff" id="prompt-knowledge-out" />
@@ -338,13 +342,14 @@ export const PromptNode = memo(function PromptNode() {
       </div>
 
       {/* Action buttons */}
-      <div className="flex items-center gap-2 px-3 pb-3">
+      <div className="flex items-center gap-2 px-3 pb-3 shrink-0">
         {/* Test Run */}
         <button
           type="button"
           onClick={() => { if (!running) run(); }}
           disabled={running}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center nodrag"
+          aria-label={running ? 'Running preview' : 'Run preview'}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-md text-[11px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center nodrag"
           style={{
             background: running ? '#CC4000' : '#FE5000',
             color: '#fff',
@@ -360,7 +365,8 @@ export const PromptNode = memo(function PromptNode() {
         <button
           type="button"
           onClick={() => setShowSaveModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wider uppercase cursor-pointer flex-1 justify-center nodrag"
+          aria-label="Save as agent"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-md text-[11px] font-semibold tracking-wider uppercase cursor-pointer flex-1 justify-center nodrag"
           style={{
             background: 'transparent',
             border: `1px solid ${t.border}`,

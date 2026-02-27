@@ -103,6 +103,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         <button
           type="button"
           onClick={() => setNodeCollapsed(!nodeCollapsed)}
+          aria-label={nodeCollapsed ? 'Expand knowledge panel' : 'Collapse knowledge panel'}
           className="p-0 border-none bg-transparent cursor-pointer nodrag"
           style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}
         >
@@ -126,6 +127,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
             <button
               type="button"
               onClick={() => setViewMode('card')}
+              aria-label="Card view"
               className="p-0.5 border-none cursor-pointer nodrag rounded"
               style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}
             >
@@ -134,6 +136,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
             <button
               type="button"
               onClick={() => setViewMode('list')}
+              aria-label="List view"
               className="p-0.5 border-none cursor-pointer nodrag rounded"
               style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}
             >
@@ -152,6 +155,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         <button
           type="button"
           onClick={() => setActiveSection('files')}
+          aria-label="Local files section"
           className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none nodrag nowheel"
           style={{
             background: activeSection === 'files' ? t.surfaceElevated : 'transparent',
@@ -166,6 +170,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         <button
           type="button"
           onClick={() => setActiveSection('external')}
+          aria-label="External sources section"
           className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none nodrag nowheel"
           style={{
             background: activeSection === 'external' ? t.surfaceElevated : 'transparent',
@@ -243,6 +248,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
               style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3498db'; e.currentTarget.style.color = '#3498db'; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+              aria-label="Add external connector"
             >
               + Add Connector
             </button>
@@ -275,6 +281,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                 <button
                   type="button"
                   onClick={() => acceptPendingKnowledge(item.id)}
+                  aria-label={`Accept ${item.name}`}
                   className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
                   style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: 'rgba(0,255,136,0.12)', color: '#00ff88' }}
                 >
@@ -283,6 +290,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                 <button
                   type="button"
                   onClick={() => dismissPendingKnowledge(item.id)}
+                  aria-label={`Dismiss ${item.name}`}
                   className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
                   style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: 'rgba(255,80,80,0.12)', color: '#ff5050' }}
                 >
@@ -376,6 +384,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
             onChange={(e) => setScanDir(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleScan(); }}
             placeholder="Directory path..."
+            aria-label="Directory path to scan"
             className="flex-1 px-2 py-1 rounded-md text-[10px] border-none outline-none nodrag nowheel"
             style={{ background: t.surfaceElevated, color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}
           />
@@ -383,6 +392,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
             type="button"
             onClick={handleScan}
             disabled={scanning}
+            aria-label="Scan directory"
             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] cursor-pointer border-none nodrag nowheel"
             style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace", opacity: scanning ? 0.6 : 1 }}
           >
@@ -417,6 +427,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
           <button
             type="button"
             onClick={() => void handleAddSelected()}
+            aria-label={`Confirm adding ${selectedFiles.size} files`}
             className="flex-1 py-1.5 rounded-md text-[10px] cursor-pointer border-none nodrag nowheel font-semibold tracking-wide"
             style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace" }}
           >
@@ -425,6 +436,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
           <button
             type="button"
             onClick={() => setSelectedFiles(new Set())}
+            aria-label="Reset file selection"
             className="py-1.5 px-2 rounded-md text-[10px] cursor-pointer nodrag nowheel"
             style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace" }}
           >
@@ -504,6 +516,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
         <button
           type="button"
           onClick={() => setShowFilePicker(true)}
+          aria-label="Add knowledge files"
           className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
@@ -568,6 +581,7 @@ function FileTreeItem({ node, depth, selected, onToggle, theme: t }: FileTreeIte
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            aria-label={expanded ? `Collapse ${node.name}` : `Expand ${node.name}`}
             className="p-0 border-none bg-transparent cursor-pointer nodrag"
             style={{ display: 'flex', alignItems: 'center' }}
           >
@@ -581,6 +595,7 @@ function FileTreeItem({ node, depth, selected, onToggle, theme: t }: FileTreeIte
           checked={isSelected}
           ref={(el) => { if (el && isDir) el.indeterminate = someChildrenSelected && !allChildrenSelected; }}
           onChange={() => isFile ? onToggle(node.path) : handleFolderToggle()}
+          aria-label={`Select ${node.name}`}
           className="nodrag nowheel"
           style={{ width: 10, height: 10, accentColor: '#FE5000', flexShrink: 0, cursor: 'pointer' }}
         />
@@ -653,6 +668,7 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
         type="button"
         className="flex-shrink-0 rounded-full border-none cursor-pointer p-0 nodrag nowheel"
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        aria-label={enabled ? `Disable ${name}` : `Enable ${name}`}
         style={{ width: 8, height: 8, background: enabled ? '#00ff88' : t.textFaint, boxShadow: enabled ? '0 0 4px #00ff8866' : 'none', transition: 'background 150ms ease, box-shadow 150ms ease' }}
         title={enabled ? 'Disable' : 'Enable'}
       />
@@ -672,6 +688,7 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
           onMouseLeave={() => setLeftHover(false)}
           onClick={(e) => { e.stopPropagation(); if (depth > 0) onDepthChange(depth - 1); }}
           disabled={depth <= 0}
+          aria-label="Decrease depth"
         >
           <ChevronLeft size={12} />
         </button>
@@ -689,6 +706,7 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
           onMouseLeave={() => setRightHover(false)}
           onClick={(e) => { e.stopPropagation(); if (depth < maxDepth) onDepthChange(depth + 1); }}
           disabled={depth >= maxDepth}
+          aria-label="Increase depth"
         >
           <ChevronRight size={12} />
         </button>
