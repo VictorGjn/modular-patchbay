@@ -154,8 +154,6 @@ export const McpNode = memo(function McpNode() {
   const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
   const servers = useMcpStore((s) => s.servers);
   const loaded = useMcpStore((s) => s.loaded);
-  const loadServers = useMcpStore((s) => s.loadServers);
-  const connectServer = useMcpStore((s) => s.connectServer);
   const t = useTheme();
 
   const [nodeCollapsed, setNodeCollapsed] = useState(() => {
@@ -167,18 +165,18 @@ export const McpNode = memo(function McpNode() {
 
   // Load servers on mount + auto-reconnect previously connected
   useEffect(() => {
-    if (!loaded) {
-      loadServers().then(() => {
-        const { servers: current } = useMcpStore.getState();
-        for (const s of current) {
-          if (s.status === 'connected' || s.status === 'connecting') {
-            connectServer(s.id);
-          }
+    if (loaded) return;
+    const { loadServers: load, connectServer: connect } = useMcpStore.getState();
+    load().then(() => {
+      const { servers: current } = useMcpStore.getState();
+      for (const s of current) {
+        if (s.status === 'connected' || s.status === 'connecting') {
+          connect(s.id);
         }
-        startHealthPolling();
-      });
-    }
-  }, [loaded, loadServers, connectServer]);
+      }
+      startHealthPolling();
+    });
+  }, [loaded]);
 
   useEffect(() => {
     try { localStorage.setItem('mcp-node-collapsed', String(nodeCollapsed)); } catch { /* */ }
