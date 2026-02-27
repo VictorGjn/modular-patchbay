@@ -119,16 +119,16 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   style={{ background: '#22c55e15', border: '1px solid #22c55e30', color: '#22c55e' }}
                 >
                   <CheckCircle size={14} />
-                  Authenticated via Claude Code
+                  <span>Authenticated{provider.lastError ? ` — ${provider.lastError}` : ' via Claude Code'}</span>
                 </div>
               )}
-              {provider.status === 'error' && provider.lastError && (
+              {provider.status === 'error' && (
                 <div
                   className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
                   style={{ background: '#ef444415', border: '1px solid #ef444430', color: '#ef4444' }}
                 >
                   <XCircle size={14} />
-                  Not authenticated — run <code style={{ fontFamily: "'Space Mono', monospace" }}>claude</code> in your terminal first
+                  <span>{provider.lastError || 'Not authenticated — install Claude Code and run claude login'}</span>
                 </div>
               )}
               {/* Models */}

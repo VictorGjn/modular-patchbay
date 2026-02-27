@@ -1,6 +1,9 @@
-import { query, listSessions } from "@anthropic-ai/claude-agent-sdk";
+import { query } from "@anthropic-ai/claude-agent-sdk";
 import { Router } from "express";
 import type { Request, Response } from "express";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 
 const router = Router();
 
@@ -61,10 +64,39 @@ router.post("/chat", async (req: Request, res: Response) => {
 // GET /api/agent-sdk/status — check if Claude Code is authenticated
 router.get("/status", async (_req: Request, res: Response) => {
   try {
-    const sessions = await listSessions({ limit: 1 });
+    // Check for Claude Code credentials on disk (no CLI process needed)
+    const home = homedir();
+    const credPath = join(home, ".claude", ".credentials.json");
+    const configPath = join(home, ".claude.json");
+
+    if (!existsSync(configPath)) {
+      res.json({
+        status: "ok",
+        data: { authenticated: false, error: "Claude Code not installed — run: curl -fsSL https://claude.ai/install.sh | bash" },
+      });
+      return;
+    }
+
+    if (!existsSync(credPath)) {
+      res.json({
+        status: "ok",
+        data: { authenticated: false, error: "Not logged in — run: claude login" },
+      });
+      return;
+    }
+
+    // Read config for account info
+    const config = JSON.parse(readFileSync(configPath, "utf-8"));
+    const account = config?.oauthAccount;
+
     res.json({
       status: "ok",
-      data: { authenticated: true, sessionCount: sessions.length },
+      data: {
+        authenticated: true,
+        email: account?.emailAddress,
+        displayName: account?.displayName,
+        organization: account?.organizationUuid,
+      },
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);

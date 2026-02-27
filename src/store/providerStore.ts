@@ -287,11 +287,13 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         try {
           const res = await fetch(`${API_BASE}/agent-sdk/status`);
           const data = await res.json();
-          const authenticated = data?.data?.authenticated === true;
+          const info = data?.data;
+          const authenticated = info?.authenticated === true;
+          const displayInfo = authenticated && info?.email ? `${info.displayName || 'User'} (${info.email})` : undefined;
           set((state) => ({
             testing: { ...state.testing, [id]: false },
             providers: state.providers.map((p) =>
-              p.id === id ? { ...p, status: (authenticated ? 'connected' : 'error') as ProviderStatus, lastError: authenticated ? undefined : (data?.data?.error || 'Not authenticated') } : p
+              p.id === id ? { ...p, status: (authenticated ? 'connected' : 'error') as ProviderStatus, lastError: authenticated ? displayInfo : (info?.error || 'Not authenticated') } : p
             ),
           }));
           persistProviders(get().providers);
