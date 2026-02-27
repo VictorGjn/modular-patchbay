@@ -213,7 +213,7 @@ interface ProviderStore {
 
 export const useProviderStore = create<ProviderStore>((set, get) => ({
   providers: loadProviders(),
-  selectedProviderId: 'anthropic',
+  selectedProviderId: 'claude-agent-sdk',
   testing: {},
 
   setProviderKey: (id, apiKey) => {

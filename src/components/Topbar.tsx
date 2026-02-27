@@ -87,10 +87,20 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       </div>
 
       {/* Model selector */}
-      <TopbarSelect value={selectedModel} onChange={setModel} t={t} ariaLabel="Select AI model">
+      <TopbarSelect
+        value={`${useProviderStore.getState().selectedProviderId}::${selectedModel}`}
+        onChange={(val) => {
+          const [providerId, ...rest] = val.split('::');
+          const modelId = rest.join('::');
+          useProviderStore.getState().selectProvider(providerId);
+          setModel(modelId);
+        }}
+        t={t}
+        ariaLabel="Select AI model"
+      >
         {allModels.map((m) => (
-          <option key={`${m.providerId}-${m.id}`} value={m.id}>
-            {m.label}
+          <option key={`${m.providerId}-${m.id}`} value={`${m.providerId}::${m.id}`}>
+            {m.providerName} — {m.label}
           </option>
         ))}
       </TopbarSelect>
