@@ -187,7 +187,7 @@ export const ResponseNode = memo(function ResponseNode() {
         {/* Source list */}
         {mockResponse && !running && activeChannels.length > 0 && (
           <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5" style={{ borderColor: t.borderSubtle }}>
-            <span className="text-[9px] tracking-wider uppercase self-center mr-1" style={{ color: t.textFaint }}>Sources:</span>
+            <span className="text-[11px] tracking-wider font-semibold self-center mr-1" style={{ color: t.textFaint }}>Sources:</span>
             {activeChannels.map((ch) => {
               const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
               return (

@@ -145,7 +145,7 @@ export const SkillsNode = memo(function SkillsNode() {
         <div className="px-3 pt-1 pb-2">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
-            <span className="text-[9px] tracking-wider uppercase" style={{ color: '#f1c40f', fontFamily: "'Space Mono', monospace" }}>Suggest</span>
+            <span className="text-[11px] tracking-wider font-semibold" style={{ color: '#f1c40f', fontFamily: "'Space Mono', monospace" }}>Suggest</span>
             <JackPort type="target" position={Position.Right} label="SUGGEST" color="#f1c40f" id="skills-feedback-in" />
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
           </div>
@@ -166,7 +166,7 @@ export const SkillsNode = memo(function SkillsNode() {
                   {skill.name}
                 </span>
                 <span
-                  className="text-[8px] truncate"
+                  className="text-[11px] truncate"
                   style={{ color: t.textDim, fontFamily: "'Space Mono', monospace", maxWidth: 90 }}
                   title={skill.installCmd}
                 >

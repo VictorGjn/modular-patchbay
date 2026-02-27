@@ -47,6 +47,7 @@ export function ConnectorTile({ service, name, status, enabled, showDirection, u
         className="flex items-center gap-2 w-full px-2 py-1 cursor-pointer border-none text-left nodrag nowheel"
         style={{ height: 24, background: 'transparent', opacity: enabled ? 1 : 0.5 }}
       >
+<<<<<<< Updated upstream
         <span style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}>
           {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
         </span>
@@ -123,5 +124,32 @@ export function ConnectorTile({ service, name, status, enabled, showDirection, u
         </div>
       )}
     </div>
+=======
+        {name}
+      </span>
+      <span
+        className="text-[11px] px-1.5 py-0.5 rounded-full shrink-0 font-semibold"
+        style={{
+          background: dirColor,
+          color: '#fff',
+          fontFamily: "'Space Mono', monospace",
+          fontWeight: 600,
+          lineHeight: 1,
+        }}
+      >
+        {dirLabel}
+      </span>
+      <div
+        className="rounded-full shrink-0"
+        style={{
+          width: 8,
+          height: 8,
+          background: statusColor,
+          boxShadow: status === 'connected' ? `0 0 4px ${statusColor}80` : 'none',
+        }}
+        title={status}
+      />
+    </button>
+>>>>>>> Stashed changes
   );
 }

@@ -93,11 +93,13 @@ export function Marketplace() {
       className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={() => setShowMarketplace(false)}
     >
-      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
+      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)' }} />
 
       <div
         className="relative flex flex-col rounded-md overflow-hidden"
         style={{
+          isolation: 'isolate',
+          zIndex: 60,
           width: '90vw',
           maxWidth: 1000,
           height: '80vh',
@@ -134,7 +136,7 @@ export function Marketplace() {
           </div>
 
           {/* Tabs — underline style */}
-          <div className="flex items-center gap-0 ml-auto" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+          <div className="flex items-center gap-2 ml-auto" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
             {(['skills', 'mcp', 'presets'] as Tab[]).map((tab) => (
               <button
                 key={tab}
@@ -283,7 +285,7 @@ function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall
         {/* Name + description */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium truncate" style={{ color: t.textPrimary }}>{skill.name}</span>
+            <span className="text-xs font-medium truncate" style={{ color: t.textPrimary }} spellCheck={false}>{skill.name}</span>
             <span className="text-[10px] truncate" style={{ color: t.textDim }}>{skill.author}</span>
           </div>
           {/* Runtime bars */}
@@ -295,7 +297,7 @@ function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall
         </div>
 
         {/* Description */}
-        <span className="text-[11px] truncate shrink-0" style={{ color: t.textMuted, maxWidth: 200 }}>
+        <span className="text-[11px] truncate shrink-0" style={{ color: t.textMuted, maxWidth: 200 }} title={skill.description} spellCheck={false}>
           {skill.description}
         </span>
 
@@ -334,7 +336,7 @@ function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall
           style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', width: 260, top: 48 }}
         >
           <div>
-            <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Target</span>
+            <span className="text-[10px] font-semibold tracking-wider" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Target</span>
             <div className="flex flex-wrap gap-1 mt-1">
               {(['all', ...skill.runtimes] as (Runtime | 'all')[]).map((rt) => (
                 <button
@@ -354,7 +356,7 @@ function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall
           </div>
 
           <div>
-            <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Scope</span>
+            <span className="text-[10px] font-semibold tracking-wider" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Scope</span>
             <div className="flex gap-1 mt-1">
               {(['project', 'global'] as InstallScope[]).map((s) => (
                 <button
@@ -423,7 +425,7 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
         {/* Name + transport */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium truncate" style={{ color: t.textPrimary }}>{mcp.name}</span>
+            <span className="text-xs font-medium truncate" style={{ color: t.textPrimary }} spellCheck={false}>{mcp.name}</span>
             <span className="text-[10px] truncate" style={{ color: t.textDim }}>{mcp.author}</span>
           </div>
           <div className="flex gap-0.5 mt-0.5">
@@ -437,7 +439,7 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
         </div>
 
         {/* Description */}
-        <span className="text-[11px] truncate shrink-0" style={{ color: t.textMuted, maxWidth: 200 }}>
+        <span className="text-[11px] truncate shrink-0" style={{ color: t.textMuted, maxWidth: 200 }} title={mcp.description} spellCheck={false}>
           {mcp.description}
         </span>
 
@@ -550,7 +552,7 @@ function PresetRow({ preset, t, onLoad }: {
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="text-xs font-medium" style={{ color: t.textPrimary }}>{preset.name}</div>
-        <div className="text-[10px] truncate mt-0.5" style={{ color: t.textMuted }}>{preset.description}</div>
+        <div className="text-[10px] truncate mt-0.5" style={{ color: t.textMuted }} title={preset.description} spellCheck={false}>{preset.description}</div>
         <div className="flex gap-1 mt-0.5">
           {preset.skills.slice(0, 3).map((s) => (
             <span key={s} className="text-[8px] px-1 rounded-sm" style={{ color: '#f1c40f', background: '#f1c40f10' }}>{s}</span>
@@ -570,6 +572,8 @@ function PresetRow({ preset, t, onLoad }: {
           background: 'transparent',
           border: `1px solid ${t.border}`,
           color: t.textSecondary,
+          whiteSpace: 'nowrap',
+          minWidth: 80,
           transition: 'border-color 150ms ease, color 150ms ease, background 150ms ease',
         }}
         onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#FE5000'; }}

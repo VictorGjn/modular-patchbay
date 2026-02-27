@@ -61,8 +61,13 @@ const light = {
   textPrimary: '#1a1a20',
   textSecondary: '#3a3a45',
   textMuted: '#555560',
+<<<<<<< Updated upstream
   textDim: '#777780',
   textFaint: '#999',
+=======
+  textDim: '#999',
+  textFaint: '#aaa',
+>>>>>>> Stashed changes
   inputBg: '#f5f5f8',
   badgeBg: '#e5e5ea',
   dotGrid: '#d0d0d8',

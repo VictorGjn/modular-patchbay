@@ -140,10 +140,10 @@ export const PromptNode = memo(function PromptNode() {
           )}
           <div className="flex-1" />
           <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
-            {prompt.length}c
+            {prompt.length} chars
           </span>
           <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textMuted }}>
-            ~{tokenCount.toLocaleString()} tokens
+            · ~{tokenCount.toLocaleString()} tokens
           </span>
         </div>
       </div>
@@ -162,10 +162,10 @@ export const PromptNode = memo(function PromptNode() {
         >
           <Settings size={11} style={{ color: t.textDim }} />
           <span
-            className="text-[10px] font-medium tracking-wide uppercase"
+            className="text-[11px] font-semibold tracking-wide"
             style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}
           >
-            {modelLabel}
+            {settingsOpen ? '▾' : '▸'} Advanced
           </span>
           <div className="flex-1" />
         </button>
@@ -181,7 +181,7 @@ export const PromptNode = memo(function PromptNode() {
             {/* Model dropdown */}
             <div className="flex flex-col gap-1">
               <label
-                className="text-[10px] font-medium tracking-wide uppercase"
+                className="text-[10px] font-semibold tracking-wide"
                 style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
               >
                 Model
@@ -189,6 +189,7 @@ export const PromptNode = memo(function PromptNode() {
               <select
                 value={agentConfig.model}
                 onChange={(e) => setAgentModel(e.target.value)}
+                aria-label="Select model"
                 className="w-full text-[11px] rounded-md outline-none nodrag nowheel"
                 style={{
                   background: t.inputBg,
@@ -208,7 +209,7 @@ export const PromptNode = memo(function PromptNode() {
             {/* Thinking depth */}
             <div className="flex flex-col gap-1">
               <label
-                className="text-[10px] font-medium tracking-wide uppercase"
+                className="text-[10px] font-semibold tracking-wide"
                 style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
               >
                 Thinking Depth
@@ -241,7 +242,7 @@ export const PromptNode = memo(function PromptNode() {
             {/* Context size */}
             <div className="flex flex-col gap-1">
               <label
-                className="text-[10px] font-medium tracking-wide uppercase"
+                className="text-[10px] font-semibold tracking-wide"
                 style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
               >
                 Context Size
@@ -274,10 +275,10 @@ export const PromptNode = memo(function PromptNode() {
         <JackPort type="source" position={Position.Left} label="KB OUT" color="#00d4ff" id="prompt-knowledge-out" />
         <JackPort type="source" position={Position.Left} label="SKILL OUT" color="#f1c40f" id="prompt-skills-out" />
         <span
-          className="ml-auto text-[8px] tracking-wide uppercase"
+          className="ml-auto text-[11px] tracking-wide font-semibold"
           style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}
         >
-          feedback
+          Feedback
         </span>
       </div>
 

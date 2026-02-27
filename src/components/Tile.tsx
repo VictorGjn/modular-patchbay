@@ -56,18 +56,19 @@ export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, o
         />
       )}
 
-      {/* Status dot (top-right) */}
+      {/* Status badge (top-right) */}
       <div
         className="absolute rounded-full"
         style={{
-          top: 6,
-          right: 6,
-          width: 6,
-          height: 6,
+          top: 5,
+          right: 5,
+          width: 8,
+          height: 8,
           background: dotColor,
           boxShadow: active ? `0 0 6px ${dotColor}80` : 'none',
           transition: 'background 0.2s ease, box-shadow 0.2s ease',
         }}
+        title={active ? 'Active' : 'Inactive'}
       />
 
       {/* Name */}
@@ -98,8 +99,9 @@ export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, o
       {/* Subtitle */}
       {subtitle && (
         <span
-          className="text-[8px] tracking-wide uppercase block mt-auto"
+          className="text-[11px] tracking-wide font-semibold block mt-auto truncate w-full"
           style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}
+          title={subtitle}
         >
           {subtitle}
         </span>

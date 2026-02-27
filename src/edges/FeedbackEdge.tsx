@@ -19,7 +19,9 @@ export function FeedbackEdge({
 }: EdgeProps) {
   const t = useTheme();
   const variant = (data?.variant as keyof typeof COLORS) ?? 'knowledge';
-  const color = COLORS[variant];
+  const rawColor = COLORS[variant];
+  // B6: Darken yellow edges in light mode for WCAG contrast
+  const color = !t.isDark && rawColor === '#f1c40f' ? '#B45309' : rawColor;
   const [hovered, setHovered] = useState(false);
 
   const [path] = getSmoothStepPath({
