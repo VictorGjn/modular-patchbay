@@ -5,7 +5,7 @@ import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { OutputIcon } from '../components/icons/SectionIcons';
 import { JackPort } from '../components/JackPort';
 import { useTheme } from '../theme';
-import { Play, Download, ChevronDown, Settings } from 'lucide-react';
+import { Play, Download, Settings } from 'lucide-react';
 
 const MODELS = [
   { id: 'claude-opus-4', label: 'Claude Opus 4' },
@@ -168,14 +168,6 @@ export const PromptNode = memo(function PromptNode() {
             {modelLabel}
           </span>
           <div className="flex-1" />
-          <ChevronDown
-            size={14}
-            style={{
-              color: t.textDim,
-              transform: settingsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 150ms ease',
-            }}
-          />
         </button>
 
         <div
