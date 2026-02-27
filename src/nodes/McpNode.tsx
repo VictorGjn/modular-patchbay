@@ -94,6 +94,21 @@ function ServerRow({
           {server.name}
         </span>
 
+        {/* MCP config status badge (from Claude Code) */}
+        {server.mcpStatus && server.mcpStatus !== 'enabled' && (
+          <span
+            className="text-[8px] px-1 py-0.5 rounded uppercase"
+            style={{
+              fontFamily: "'Space Mono', monospace",
+              fontWeight: 600,
+              background: server.mcpStatus === 'deferred' ? '#f1c40f20' : '#ff334420',
+              color: server.mcpStatus === 'deferred' ? '#f1c40f' : '#ff3344',
+            }}
+          >
+            {server.mcpStatus}
+          </span>
+        )}
+
         {/* Tool count badge */}
         {server.status === 'connected' && hasTools && (
           <span
