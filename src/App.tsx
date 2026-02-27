@@ -189,7 +189,8 @@ export default function App() {
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={t.dotGrid} />
           <Controls
             position="bottom-left"
-            style={{ background: t.controlsBg, border: `1px solid ${t.controlsBorder}`, borderRadius: 8 }}
+            style={{ background: t.controlsBg, border: `1px solid ${t.controlsBorder}`, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+            className="zoom-controls"
           />
           <MiniMap
             position="bottom-right"

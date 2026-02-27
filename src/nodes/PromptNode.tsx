@@ -298,7 +298,7 @@ export const PromptNode = memo(function PromptNode() {
           }}
         >
           <Play size={11} fill="white" />
-          {running ? 'Running...' : 'Test Run'}
+          {running ? 'Running...' : 'Preview'}
         </button>
 
         {/* Save As Agent */}

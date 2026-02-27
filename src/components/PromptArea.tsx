@@ -114,14 +114,14 @@ export function PromptArea() {
             className="text-[10px]"
             style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#444' }}
           >
-            {prompt.length}c
+            {prompt.length} chars
           </span>
 
           <span
             className="text-[10px]"
             style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#555' }}
           >
-            ~{tokenCount.toLocaleString()} tokens
+            · ~{tokenCount.toLocaleString()} tokens
           </span>
         </div>
       </div>
