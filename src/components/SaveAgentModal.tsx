@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useConsoleStore, type ExportTarget } from '../store/consoleStore';
 import { useTheme } from '../theme';
 import {
@@ -74,7 +74,23 @@ export function SaveAgentModal() {
   const [visible, setVisible] = useState(false);
   const [previewFade, setPreviewFade] = useState(true);
   const nameRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const t = useTheme();
+
+  const handleFocusTrap = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab' || !modalRef.current) return;
+    const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }, []);
 
   useEffect(() => {
     if (showSaveModal) {
@@ -159,6 +175,10 @@ export function SaveAgentModal() {
 
       {/* Modal */}
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Save as agent"
         className="relative flex flex-col rounded-xl overflow-hidden"
         style={{
           width: 880,
@@ -171,6 +191,7 @@ export function SaveAgentModal() {
           transition: 'opacity 0.15s ease, transform 0.15s ease',
         }}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleFocusTrap}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
@@ -185,6 +206,7 @@ export function SaveAgentModal() {
             onClick={() => setShowSaveModal(false)}
             className="p-1 rounded-md cursor-pointer border-none"
             style={{ background: 'transparent', color: t.textMuted }}
+            aria-label="Close"
           >
             <X size={16} />
           </button>
@@ -365,7 +387,7 @@ export function SaveAgentModal() {
                   style={{
                     background: 'transparent',
                     border: `1px solid ${t.border}`,
-                    color: copied ? '#00ff88' : t.textSecondary,
+                    color: copied ? t.statusSuccess : t.textSecondary,
                     transition: 'color 0.15s ease',
                   }}
                 >

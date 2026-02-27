@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { X, Search, Check, Plug, Zap } from 'lucide-react';
 import { useTheme } from '../theme';
 
@@ -23,17 +23,33 @@ interface LibraryPickerProps {
   kind: 'skills' | 'mcp';
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  connected: '#00ff88',
-  connecting: '#f1c40f',
-  error: '#ff3344',
-  disconnected: '#555',
-};
+function getStatusColor(status: string | undefined, t: ReturnType<typeof useTheme>): string {
+  if (status === 'connected') return t.statusSuccess;
+  if (status === 'connecting') return t.statusWarning;
+  if (status === 'error') return t.statusError;
+  return t.textDim;
+}
 
 export function LibraryPicker({ open, onClose, title, items, activeIds, onToggle, kind }: LibraryPickerProps) {
   const [filter, setFilter] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const t = useTheme();
+
+  const handleKeyDown = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab' || !modalRef.current) return;
+    const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -62,6 +78,10 @@ export function LibraryPicker({ open, onClose, title, items, activeIds, onToggle
       <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
 
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         className="relative w-[520px] max-h-[70vh] flex flex-col rounded-xl overflow-hidden"
         style={{
           background: t.surfaceOpaque,
@@ -70,6 +90,7 @@ export function LibraryPicker({ open, onClose, title, items, activeIds, onToggle
           animation: 'modal-in 0.2s ease-out',
         }}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
@@ -87,6 +108,7 @@ export function LibraryPicker({ open, onClose, title, items, activeIds, onToggle
             onClick={onClose}
             className="p-1 rounded-md cursor-pointer border-none bg-transparent"
             style={{ color: t.textDim }}
+            aria-label="Close"
           >
             <X size={16} />
           </button>
@@ -140,7 +162,7 @@ export function LibraryPicker({ open, onClose, title, items, activeIds, onToggle
                 {/* Checkbox / status */}
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.badgeBg }}>
                   {isActive ? (
-                    <Check size={16} style={{ color: '#00ff88' }} />
+                    <Check size={16} style={{ color: t.statusSuccess }} />
                   ) : kind === 'mcp' ? (
                     <Plug size={14} style={{ color: t.textDim }} />
                   ) : (
@@ -160,8 +182,8 @@ export function LibraryPicker({ open, onClose, title, items, activeIds, onToggle
                     {item.mcpStatus && item.mcpStatus !== 'enabled' && (
                       <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{
                         fontFamily: "'Space Mono', monospace", fontWeight: 600,
-                        background: item.mcpStatus === 'deferred' ? '#f1c40f20' : '#ff334420',
-                        color: item.mcpStatus === 'deferred' ? '#f1c40f' : '#ff3344',
+                        background: item.mcpStatus === 'deferred' ? t.statusWarningBg : t.statusErrorBg,
+                        color: item.mcpStatus === 'deferred' ? t.statusWarning : t.statusError,
                       }}>
                         {item.mcpStatus}
                       </span>
@@ -175,8 +197,8 @@ export function LibraryPicker({ open, onClose, title, items, activeIds, onToggle
                 {/* Right side status */}
                 {kind === 'mcp' && item.status && (
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="w-2 h-2 rounded-full" style={{ background: STATUS_COLORS[item.status] || '#555' }} />
-                    <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: STATUS_COLORS[item.status] || t.textDim }}>
+                    <span className="w-2 h-2 rounded-full" style={{ background: getStatusColor(item.status, t) }} />
+                    <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: getStatusColor(item.status, t) }}>
                       {item.status === 'connected' && item.toolCount ? `${item.toolCount} tools` : item.status}
                     </span>
                   </div>
