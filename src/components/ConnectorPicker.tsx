@@ -64,6 +64,7 @@ export function ConnectorPicker() {
       enabled: true,
       config: {},
       status: 'configured',
+      authMethod: 'api-key',
     });
   };
 
