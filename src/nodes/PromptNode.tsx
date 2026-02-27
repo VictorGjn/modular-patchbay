@@ -1,5 +1,5 @@
 import { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Position } from '@xyflow/react';
+import { Position, NodeResizer } from '@xyflow/react';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { OutputIcon } from '../components/icons/SectionIcons';
@@ -93,13 +93,15 @@ export const PromptNode = memo(function PromptNode() {
   };
 
   return (
+    <>
+    <NodeResizer minWidth={340} minHeight={200} lineStyle={{ borderColor: t.border }} handleStyle={{ background: '#FE5000', width: 8, height: 8, borderRadius: 4 }} />
     <div
-      className="rounded-xl"
+      className="rounded-xl h-full flex flex-col"
       style={{
         background: t.surface,
         backdropFilter: 'blur(8px)',
         border: `1px solid ${t.border}`,
-        width: 420,
+        minWidth: 340,
         minHeight: 160,
       }}
     >
@@ -368,5 +370,6 @@ export const PromptNode = memo(function PromptNode() {
         </button>
       </div>
     </div>
+    </>
   );
 });

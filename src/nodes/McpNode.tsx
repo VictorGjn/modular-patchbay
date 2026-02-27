@@ -1,13 +1,14 @@
-import { memo, useState, useEffect } from 'react';
-import { Position } from '@xyflow/react';
+import { memo, useState, useEffect, useCallback } from 'react';
+import { Position, NodeResizer } from '@xyflow/react';
 import { useMcpStore, startHealthPolling, type McpServerState, type McpTool } from '../store/mcpStore';
 import { Tile } from '../components/Tile';
 import { JackPort } from '../components/JackPort';
 import { McpIcon } from '../components/icons/SectionIcons';
+import { LibraryPicker, type LibraryItem } from '../components/LibraryPicker';
 import { useTheme } from '../theme';
 import {
   Plug, ChevronDown, ChevronRight, LayoutGrid, List,
-  Loader2, AlertCircle, Wrench, Library, Search, X,
+  Loader2, AlertCircle, Wrench, Library,
 } from 'lucide-react';
 
 const STATUS_COLORS: Record<McpServerState['status'], string> = {
@@ -169,7 +170,6 @@ export const McpNode = memo(function McpNode() {
   const loaded = useMcpStore((s) => s.loaded);
   const t = useTheme();
   const [showLibrary, setShowLibrary] = useState(false);
-  const [libFilter, setLibFilter] = useState('');
 
   const [nodeCollapsed, setNodeCollapsed] = useState(() => {
     try { return localStorage.getItem('mcp-node-collapsed') === 'true'; } catch { return false; }
@@ -212,22 +212,35 @@ export const McpNode = memo(function McpNode() {
     try { localStorage.setItem('active-mcp-ids', JSON.stringify([...activeMcpIds])); } catch {}
   }, [activeMcpIds]);
 
-  const addMcp = (id: string) => setActiveMcpIds((prev) => new Set([...prev, id]));
-  const removeMcp = (id: string) => setActiveMcpIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+  const toggleMcp = useCallback((id: string) => {
+    setActiveMcpIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
 
   // Active servers = explicitly added by user
   const activeServers = servers.filter((s) => activeMcpIds.has(s.id));
   const connectedCount = activeServers.filter((s) => s.status === 'connected').length;
 
-  const filteredLibraryServers = servers.filter((s) => {
-    if (!libFilter) return true;
-    return s.name.toLowerCase().includes(libFilter.toLowerCase());
-  });
+  // Build library items for picker
+  const libraryItems: LibraryItem[] = servers.map((s) => ({
+    id: s.id,
+    name: s.name,
+    description: s.command || s.id,
+    status: s.status,
+    mcpStatus: s.mcpStatus,
+    toolCount: s.tools.length,
+    type: undefined, // TODO: add transport type to McpServerState
+  }));
 
   return (
+    <>
+    <NodeResizer minWidth={240} minHeight={120} lineStyle={{ borderColor: t.border }} handleStyle={{ background: '#FE5000', width: 8, height: 8, borderRadius: 4 }} />
     <div
-      className="rounded-xl overflow-hidden"
-      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 280, position: 'relative' }}
+      className="rounded-xl overflow-hidden h-full flex flex-col"
+      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 240 }}
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
@@ -271,7 +284,7 @@ export const McpNode = memo(function McpNode() {
 
       {nodeCollapsed ? null : <>
       {/* Active MCP servers only */}
-      <div className="p-3 overflow-y-auto nowheel" style={{ maxHeight: 280 }}>
+      <div className="flex-1 p-3 overflow-y-auto nowheel">
         {viewMode === 'card' ? (
           <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))' }}>
             {activeServers.length === 0 ? (
@@ -310,10 +323,10 @@ export const McpNode = memo(function McpNode() {
       </div>
 
       {/* Library button */}
-      <div className="px-3 pb-3 pt-1">
+      <div className="px-3 pb-3 pt-1 shrink-0">
         <button
           type="button"
-          onClick={() => { setShowLibrary(true); setLibFilter(''); }}
+          onClick={() => setShowLibrary(true)}
           className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag flex items-center justify-center gap-1.5"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
@@ -323,82 +336,18 @@ export const McpNode = memo(function McpNode() {
         </button>
       </div>
       </>}
-
-      {/* Library Picker Overlay */}
-      {showLibrary && (
-        <div
-          className="absolute inset-0 rounded-xl flex flex-col overflow-hidden nodrag nowheel"
-          style={{ background: t.surfaceOpaque, zIndex: 10, border: `1px solid ${t.border}` }}
-        >
-          <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-            <Library size={14} style={{ color: '#FE5000' }} />
-            <span className="text-xs font-medium tracking-wide uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}>
-              MCP Library
-            </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>
-              {servers.length}
-            </span>
-            <div className="flex-1" />
-            <button type="button" onClick={() => setShowLibrary(false)} className="p-0.5 border-none bg-transparent cursor-pointer rounded nodrag" style={{ color: t.textDim }}>
-              <X size={14} />
-            </button>
-          </div>
-
-          <div className="px-3 pt-2 pb-1">
-            <div className="relative">
-              <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: t.textDim }} />
-              <input
-                type="text"
-                value={libFilter}
-                onChange={(e) => setLibFilter(e.target.value)}
-                placeholder="Filter MCP servers..."
-                autoFocus
-                className="w-full outline-none text-[11px] pl-7 pr-2 py-1.5 rounded-md nodrag nowheel"
-                style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}
-              />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2 nowheel" style={{ maxHeight: 320 }}>
-            {filteredLibraryServers.length === 0 ? (
-              <div className="flex items-center justify-center py-6">
-                <span className="text-[11px]" style={{ color: t.textFaint }}>{servers.length === 0 ? 'No MCP servers found' : 'No matches'}</span>
-              </div>
-            ) : filteredLibraryServers.map((server) => {
-              const isActive = activeMcpIds.has(server.id);
-              return (
-                <button
-                  key={server.id}
-                  type="button"
-                  onClick={() => isActive ? removeMcp(server.id) : addMcp(server.id)}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md border-none cursor-pointer nodrag w-full"
-                  style={{ background: isActive ? (t.isDark ? 'rgba(0,255,136,0.08)' : 'rgba(0,200,100,0.08)') : 'transparent', transition: 'background 100ms ease', textAlign: 'left' }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = t.surfaceHover; }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
-                >
-                  {isActive ? (
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: STATUS_COLORS[server.status], boxShadow: server.status === 'connected' ? '0 0 4px #00ff8866' : 'none' }} />
-                  ) : (
-                    <span className="w-3 h-3 rounded border flex-shrink-0" style={{ borderColor: t.border }} />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] truncate" style={{ color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}>{server.name}</div>
-                    <div className="text-[9px] truncate" style={{ color: t.textDim }}>{server.command || server.id}</div>
-                  </div>
-                  {server.mcpStatus && server.mcpStatus !== 'enabled' && (
-                    <span className="text-[8px] uppercase px-1 py-0.5 rounded" style={{ fontFamily: "'Space Mono', monospace", fontWeight: 600, background: server.mcpStatus === 'deferred' ? '#f1c40f20' : '#ff334420', color: server.mcpStatus === 'deferred' ? '#f1c40f' : '#ff3344' }}>
-                      {server.mcpStatus}
-                    </span>
-                  )}
-                  <span className="text-[9px]" style={{ color: STATUS_COLORS[server.status], fontFamily: "'Space Mono', monospace" }}>
-                    {server.status === 'connected' ? `${server.tools.length} tools` : server.status}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
+
+    {/* Library picker — modal overlay */}
+    <LibraryPicker
+      open={showLibrary}
+      onClose={() => setShowLibrary(false)}
+      title="MCP Library"
+      items={libraryItems}
+      activeIds={activeMcpIds}
+      onToggle={toggleMcp}
+      kind="mcp"
+    />
+    </>
   );
 });
