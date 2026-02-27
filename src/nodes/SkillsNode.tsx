@@ -122,14 +122,13 @@ export const SkillsNode = memo(function SkillsNode() {
                 <span className="text-[11px]" style={{ color: t.textFaint }}>No skills added</span>
               </div>
             ) : addedSkills.map((skill) => {
-              const linked = getLinkedAgents(skill.id);
               return (
                 <Tile
                   key={skill.id}
                   name={skill.name}
-                  active={skill.enabled}
-                  icon={<SkillIcon icon={skill.icon} size={14} />}
-                  subtitle={linked.length > 0 ? `Used by: ${linked.join(', ')}` : skill.description}
+                  active={skill.enabled !== false}
+                  icon={<SkillIcon icon={(skill as Record<string, unknown>).icon as string | undefined} size={14} />}
+                  subtitle={skill.description || (skill.source === 'claude' ? 'Installed skill' : '')}
                   onClick={() => toggleSkill(skill.id)}
                 />
               );
