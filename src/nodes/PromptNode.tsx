@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useEffect, useCallback } from 'react';
+import { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Position } from '@xyflow/react';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
@@ -7,21 +7,34 @@ import { JackPort } from '../components/JackPort';
 import { useTheme } from '../theme';
 import { Play, Download, Settings } from 'lucide-react';
 
-const MODELS = [
-  { id: 'claude-opus-4', label: 'Claude Opus 4' },
-  { id: 'claude-sonnet-4', label: 'Claude Sonnet 4' },
-  { id: 'gpt-4o', label: 'GPT-4o' },
-  { id: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-  { id: 'llama-3.1-70b', label: 'Llama 3.1 70B' },
-  { id: 'deepseek-v3', label: 'DeepSeek V3' },
-  { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-];
+import { useProviderStore } from '../store/providerStore';
 
-const THINKING_DEPTHS = [
-  { id: 'low', label: 'Low' },
-  { id: 'medium', label: 'Medium' },
-  { id: 'high', label: 'High' },
-] as const;
+// Model metadata — context windows and thinking support
+const MODEL_META: Record<string, { contextWindow: number; thinking: ('low' | 'medium' | 'high')[]; maxOutput: number }> = {
+  // Anthropic / Agent SDK
+  'claude-sonnet-4-20250514': { contextWindow: 200000, thinking: ['low', 'medium', 'high'], maxOutput: 64000 },
+  'claude-opus-4-0-20250514': { contextWindow: 200000, thinking: ['low', 'medium', 'high'], maxOutput: 32000 },
+  'claude-haiku-3-5-20241022': { contextWindow: 200000, thinking: [], maxOutput: 8192 },
+  // OpenAI
+  'gpt-4o': { contextWindow: 128000, thinking: [], maxOutput: 16384 },
+  'gpt-4o-mini': { contextWindow: 128000, thinking: [], maxOutput: 16384 },
+  'gpt-4.1': { contextWindow: 1000000, thinking: [], maxOutput: 32768 },
+  'o3': { contextWindow: 200000, thinking: ['low', 'medium', 'high'], maxOutput: 100000 },
+  'o4-mini': { contextWindow: 200000, thinking: ['low', 'medium', 'high'], maxOutput: 100000 },
+  // Google
+  'gemini-2.5-pro': { contextWindow: 1000000, thinking: ['low', 'medium', 'high'], maxOutput: 65536 },
+  'gemini-2.5-flash': { contextWindow: 1000000, thinking: ['low', 'medium', 'high'], maxOutput: 65536 },
+  // Defaults for unknown models
+};
+
+const DEFAULT_META = { contextWindow: 128000, thinking: ['low' as const, 'medium' as const, 'high' as const], maxOutput: 16384 };
+
+function getModelMeta(modelId: string) {
+  // Try exact match, then partial match
+  if (MODEL_META[modelId]) return MODEL_META[modelId];
+  const key = Object.keys(MODEL_META).find((k) => modelId.includes(k) || k.includes(modelId));
+  return key ? MODEL_META[key] : DEFAULT_META;
+}
 
 export const PromptNode = memo(function PromptNode() {
   const prompt = useConsoleStore((s) => s.prompt);
@@ -37,12 +50,28 @@ export const PromptNode = memo(function PromptNode() {
   const [focused, setFocused] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [thinkingDepth, setThinkingDepth] = useState<'low' | 'medium' | 'high'>('medium');
+
+  // Real models from authenticated providers
+  const getAllModels = useProviderStore((s) => s.getAllModels);
+  const providers = useProviderStore((s) => s.providers);
+  const selectProvider = useProviderStore((s) => s.selectProvider);
+  const allModels = useMemo(() => getAllModels(), [getAllModels, providers]);
+  const connectedModels = useMemo(() => {
+    const connected = providers.filter((p) => p.status === 'connected' || p.apiKey);
+    const connectedIds = new Set(connected.map((p) => p.id));
+    return allModels.filter((m) => connectedIds.has(m.providerId));
+  }, [allModels, providers]);
+
+  // Get metadata for current model
+  const currentMeta = useMemo(() => getModelMeta(agentConfig.model), [agentConfig.model]);
+  const thinkingSupported = currentMeta.thinking.length > 0;
   const t = useTheme();
 
   const tokenCount = Math.ceil(prompt.length / 4);
   const formatInfo = OUTPUT_FORMATS.find((f) => f.id === outputFormat);
   const detectedTag = outputFormat !== 'markdown' ? formatInfo : null;
-  const modelLabel = MODELS.find((m) => m.id === agentConfig.model)?.label ?? agentConfig.model;
+  const activeModel = connectedModels.find((m) => m.id === agentConfig.model) ?? allModels.find((m) => m.id === agentConfig.model);
+  const modelLabel = activeModel ? `${activeModel.label}` : agentConfig.model;
 
   const autoGrow = useCallback(() => {
     const ta = textareaRef.current;
@@ -187,8 +216,12 @@ export const PromptNode = memo(function PromptNode() {
                 Model
               </label>
               <select
-                value={agentConfig.model}
-                onChange={(e) => setAgentModel(e.target.value)}
+                value={`${useProviderStore.getState().selectedProviderId}::${agentConfig.model}`}
+                onChange={(e) => {
+                  const [pid, ...rest] = e.target.value.split('::');
+                  selectProvider(pid);
+                  setAgentModel(rest.join('::'));
+                }}
                 aria-label="Select model"
                 className="w-full text-[11px] rounded-md outline-none nodrag nowheel"
                 style={{
@@ -200,68 +233,83 @@ export const PromptNode = memo(function PromptNode() {
                   cursor: 'pointer',
                 }}
               >
-                {MODELS.map((m) => (
-                  <option key={m.id} value={m.id}>{m.label}</option>
-                ))}
+                {connectedModels.length > 0 ? (
+                  connectedModels.map((m) => (
+                    <option key={`${m.providerId}-${m.id}`} value={`${m.providerId}::${m.id}`}>
+                      {m.providerName} — {m.label}
+                    </option>
+                  ))
+                ) : (
+                  allModels.map((m) => (
+                    <option key={`${m.providerId}-${m.id}`} value={`${m.providerId}::${m.id}`}>
+                      {m.providerName} — {m.label}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
-            {/* Thinking depth */}
-            <div className="flex flex-col gap-1">
+            {/* Thinking depth — only for models that support it */}
+            <div className="flex flex-col gap-1" style={{ opacity: thinkingSupported ? 1 : 0.4 }}>
               <label
                 className="text-[10px] font-semibold tracking-wide"
                 style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
               >
-                Thinking Depth
+                Thinking Depth {!thinkingSupported && <span style={{ color: t.textMuted, fontWeight: 400 }}>(not available)</span>}
               </label>
               <div className="flex gap-1">
-                {THINKING_DEPTHS.map((depth) => {
-                  const isActive = thinkingDepth === depth.id;
+                {(['low', 'medium', 'high'] as const).map((depth) => {
+                  const isActive = thinkingDepth === depth;
+                  const supported = currentMeta.thinking.includes(depth);
                   return (
                     <button
-                      key={depth.id}
+                      key={depth}
                       type="button"
-                      onClick={() => setThinkingDepth(depth.id)}
+                      onClick={() => supported && setThinkingDepth(depth)}
                       className="flex-1 text-[10px] py-1 rounded-md tracking-wide nodrag"
                       style={{
                         fontFamily: "'Space Mono', monospace",
-                        background: isActive ? '#FE500018' : 'transparent',
-                        border: `1px solid ${isActive ? '#FE5000' : t.border}`,
-                        color: isActive ? '#FE5000' : t.textDim,
-                        cursor: 'pointer',
+                        background: isActive && supported ? '#FE500018' : 'transparent',
+                        border: `1px solid ${isActive && supported ? '#FE5000' : t.border}`,
+                        color: isActive && supported ? '#FE5000' : t.textDim,
+                        cursor: supported ? 'pointer' : 'not-allowed',
+                        opacity: supported ? 1 : 0.4,
                         transition: 'all 150ms ease',
                       }}
                     >
-                      {depth.label}
+                      {depth.charAt(0).toUpperCase() + depth.slice(1)}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Context size */}
+            {/* Context window — adapts to model */}
             <div className="flex flex-col gap-1">
               <label
-                className="text-[10px] font-semibold tracking-wide"
+                className="text-[10px] font-semibold tracking-wide flex items-center justify-between"
                 style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
               >
-                Context Size
+                <span>Max Output Tokens</span>
+                <span style={{ color: t.textMuted, fontWeight: 400 }}>
+                  ctx: {(currentMeta.contextWindow / 1000).toFixed(0)}K
+                </span>
               </label>
               <input
-                type="number"
-                value={agentConfig.maxTokens}
-                onChange={(e) => setAgentMaxTokens(Math.max(1, parseInt(e.target.value) || 1))}
-                min={1}
-                max={200000}
-                className="w-full text-[11px] rounded-md outline-none nodrag nowheel"
-                style={{
-                  background: t.inputBg,
-                  border: `1px solid ${t.border}`,
-                  color: t.textPrimary,
-                  fontFamily: "'Space Mono', monospace",
-                  padding: '4px 6px',
-                }}
+                type="range"
+                min={256}
+                max={currentMeta.maxOutput}
+                step={256}
+                value={Math.min(agentConfig.maxTokens, currentMeta.maxOutput)}
+                onChange={(e) => setAgentMaxTokens(parseInt(e.target.value))}
+                className="w-full nodrag nowheel"
+                style={{ accentColor: '#FE5000' }}
               />
+              <div className="flex justify-between text-[9px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textMuted }}>
+                <span>256</span>
+                <span style={{ color: t.textPrimary, fontWeight: 600 }}>{(Math.min(agentConfig.maxTokens, currentMeta.maxOutput) / 1000).toFixed(1)}K</span>
+                <span>{(currentMeta.maxOutput / 1000).toFixed(0)}K</span>
+              </div>
             </div>
           </div>
         </div>
