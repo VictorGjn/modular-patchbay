@@ -1,0 +1,1 @@
+{"root":["../server/config.ts","../server/index.ts","../server/types.ts","../server/mcp/manager.ts","../server/routes/llm.ts","../server/routes/mcp.ts","../server/routes/providers.ts","../bin/modular-studio.ts"],"version":"5.9.3"}

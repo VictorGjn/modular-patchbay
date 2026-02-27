@@ -5,14 +5,7 @@ import { PRESETS, OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings, ShoppingBag } from 'lucide-react';
 import { OutputIcon } from './icons/SectionIcons';
-
-const MODELS = [
-  { id: 'claude-opus-4', name: 'Claude Opus 4' },
-  { id: 'claude-sonnet-4', name: 'Claude Sonnet 4' },
-  { id: 'claude-haiku-3.5', name: 'Claude Haiku 3.5' },
-  { id: 'gpt-4o', name: 'GPT-4o' },
-  { id: 'gpt-4.1', name: 'GPT-4.1' },
-];
+import { useProviderStore } from '../store/providerStore';
 
 function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: string; onChange: (v: string) => void; children: React.ReactNode; t: ReturnType<typeof useTheme>; ariaLabel?: string }) {
   return (
@@ -57,6 +50,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
   const skills = useConsoleStore((s) => s.skills);
   const agentMeta = useConsoleStore((s) => s.agentMeta);
   const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
+  const allModels = useProviderStore((s) => s.getAllModels());
 
   const handleExport = () => {
     const content = exportAsAgent({ channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta });
@@ -91,8 +85,10 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
 
       {/* Model selector */}
       <TopbarSelect value={selectedModel} onChange={setModel} t={t} ariaLabel="Select AI model">
-        {MODELS.map((m) => (
-          <option key={m.id} value={m.id}>{m.name}</option>
+        {allModels.map((m) => (
+          <option key={`${m.providerId}-${m.id}`} value={m.id}>
+            {m.label}
+          </option>
         ))}
       </TopbarSelect>
 

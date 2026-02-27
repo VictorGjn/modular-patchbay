@@ -1,33 +1,193 @@
 import { memo, useState, useEffect } from 'react';
 import { Position } from '@xyflow/react';
 import { useConsoleStore } from '../store/consoleStore';
+import { useMcpStore, startHealthPolling, type McpServerState, type McpTool } from '../store/mcpStore';
 import { Tile } from '../components/Tile';
 import { JackPort } from '../components/JackPort';
 import { McpIcon } from '../components/icons/SectionIcons';
 import { useTheme } from '../theme';
-import { Plug, ChevronDown, ChevronRight, LayoutGrid, List } from 'lucide-react';
+import {
+  Plug, ChevronDown, ChevronRight, LayoutGrid, List,
+  Loader2, AlertCircle, Wrench,
+} from 'lucide-react';
+
+const STATUS_COLORS: Record<McpServerState['status'], string> = {
+  connected: '#00ff88',
+  connecting: '#f1c40f',
+  error: '#ff3344',
+  disconnected: '#555',
+};
+
+function ToolList({ tools, t }: { tools: McpTool[]; t: ReturnType<typeof useTheme> }) {
+  return (
+    <div className="flex flex-col gap-0.5 pl-2 mt-1">
+      {tools.map((tool) => (
+        <div key={tool.name} className="flex items-start gap-1.5 py-0.5">
+          <Wrench size={9} style={{ color: t.textDim, marginTop: 2, flexShrink: 0 }} />
+          <div className="min-w-0">
+            <span className="text-[10px] font-medium block truncate" style={{ color: t.textSecondary, fontFamily: "'Space Mono', monospace" }}>
+              {tool.name}
+            </span>
+            {tool.description && (
+              <span className="text-[9px] block truncate" style={{ color: t.textDim }}>
+                {tool.description}
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ServerRow({
+  server,
+  t,
+}: {
+  server: McpServerState;
+  t: ReturnType<typeof useTheme>;
+}) {
+  const connectServer = useMcpStore((s) => s.connectServer);
+  const disconnectServer = useMcpStore((s) => s.disconnectServer);
+  const [expanded, setExpanded] = useState(false);
+  const hasTools = server.tools.length > 0;
+
+  return (
+    <div>
+      <div
+        className="flex items-center gap-2 px-2 rounded-md"
+        style={{ minHeight: 28 }}
+      >
+        {/* Status dot / spinner */}
+        {server.status === 'connecting' ? (
+          <Loader2 size={10} className="animate-spin flex-shrink-0" style={{ color: '#f1c40f' }} />
+        ) : server.status === 'error' ? (
+          <span title={server.lastError || 'Error'}>
+            <AlertCircle size={10} className="flex-shrink-0" style={{ color: '#ff3344' }} />
+          </span>
+        ) : (
+          <span
+            className="w-2 h-2 rounded-full flex-shrink-0"
+            style={{
+              background: STATUS_COLORS[server.status],
+              boxShadow: server.status === 'connected' ? '0 0 4px #00ff8866' : 'none',
+            }}
+          />
+        )}
+
+        {/* Expand arrow (only if connected with tools) */}
+        {hasTools && server.status === 'connected' ? (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="p-0 border-none bg-transparent cursor-pointer nodrag nowheel"
+            style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}
+          >
+            {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+          </button>
+        ) : (
+          <span style={{ width: 11 }} />
+        )}
+
+        {/* Name */}
+        <span className="flex-1 truncate text-[11px]" style={{ color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}>
+          {server.name}
+        </span>
+
+        {/* Tool count badge */}
+        {server.status === 'connected' && hasTools && (
+          <span
+            className="text-[9px] px-1 py-0.5 rounded"
+            style={{ color: t.textDim, background: t.badgeBg, fontFamily: "'Space Mono', monospace" }}
+          >
+            {server.tools.length}
+          </span>
+        )}
+
+        {/* Connect/Disconnect button */}
+        {server.status === 'disconnected' || server.status === 'error' ? (
+          <button
+            type="button"
+            onClick={() => connectServer(server.id)}
+            className="text-[9px] px-1.5 py-0.5 rounded border-none cursor-pointer nodrag nowheel"
+            style={{
+              background: 'transparent',
+              border: `1px solid ${t.border}`,
+              color: t.textDim,
+              transition: 'border-color 150ms ease, color 150ms ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#00ff88'; e.currentTarget.style.color = '#00ff88'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+          >
+            Connect
+          </button>
+        ) : server.status === 'connected' ? (
+          <button
+            type="button"
+            onClick={() => disconnectServer(server.id)}
+            className="text-[9px] px-1.5 py-0.5 rounded border-none cursor-pointer nodrag nowheel"
+            style={{
+              background: 'transparent',
+              border: `1px solid ${t.borderSubtle}`,
+              color: t.textFaint,
+              transition: 'border-color 150ms ease, color 150ms ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ff3344'; e.currentTarget.style.color = '#ff3344'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.borderSubtle; e.currentTarget.style.color = t.textFaint; }}
+          >
+            Stop
+          </button>
+        ) : null}
+      </div>
+
+      {/* Expanded tool list */}
+      {expanded && hasTools && (
+        <div className="px-2 pb-1">
+          <ToolList tools={server.tools} t={t} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export const McpNode = memo(function McpNode() {
-  const mcpServers = useConsoleStore((s) => s.mcpServers);
-  const toggleMcp = useConsoleStore((s) => s.toggleMcp);
   const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
+  const servers = useMcpStore((s) => s.servers);
+  const loaded = useMcpStore((s) => s.loaded);
+  const loadServers = useMcpStore((s) => s.loadServers);
+  const connectServer = useMcpStore((s) => s.connectServer);
   const t = useTheme();
-
-  const addedMcps = mcpServers.filter((s) => s.added);
 
   const [nodeCollapsed, setNodeCollapsed] = useState(() => {
     try { return localStorage.getItem('mcp-node-collapsed') === 'true'; } catch { return false; }
   });
   const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
-    try { return (localStorage.getItem('mcp-node-view') as 'card' | 'list') || 'card'; } catch { return 'card'; }
+    try { return (localStorage.getItem('mcp-node-view') as 'card' | 'list') || 'list'; } catch { return 'list'; }
   });
 
+  // Load servers on mount + auto-reconnect previously connected
   useEffect(() => {
-    try { localStorage.setItem('mcp-node-collapsed', String(nodeCollapsed)); } catch {}
+    if (!loaded) {
+      loadServers().then(() => {
+        const { servers: current } = useMcpStore.getState();
+        for (const s of current) {
+          if (s.status === 'connected' || s.status === 'connecting') {
+            connectServer(s.id);
+          }
+        }
+        startHealthPolling();
+      });
+    }
+  }, [loaded, loadServers, connectServer]);
+
+  useEffect(() => {
+    try { localStorage.setItem('mcp-node-collapsed', String(nodeCollapsed)); } catch { /* */ }
   }, [nodeCollapsed]);
   useEffect(() => {
-    try { localStorage.setItem('mcp-node-view', viewMode); } catch {}
+    try { localStorage.setItem('mcp-node-view', viewMode); } catch { /* */ }
   }, [viewMode]);
+
+  const connectedCount = servers.filter((s) => s.status === 'connected').length;
 
   return (
     <div
@@ -49,7 +209,7 @@ export const McpNode = memo(function McpNode() {
           MCP
         </span>
         <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>
-          {addedMcps.filter((s) => s.enabled).length}
+          {connectedCount}
         </span>
         {!nodeCollapsed && (
           <div className="flex items-center gap-0.5">
@@ -79,52 +239,40 @@ export const McpNode = memo(function McpNode() {
       <div className="p-3 overflow-y-auto nowheel" style={{ maxHeight: 280 }}>
         {viewMode === 'card' ? (
           <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))' }}>
-            {addedMcps.length === 0 ? (
+            {servers.length === 0 ? (
               <div className="col-span-full flex items-center justify-center py-3">
-                <span className="text-[11px]" style={{ color: t.textFaint }}>No servers added</span>
+                <span className="text-[11px]" style={{ color: t.textFaint }}>
+                  {loaded ? 'No servers installed' : 'Loading...'}
+                </span>
               </div>
-            ) : addedMcps.map((server) => (
+            ) : servers.map((server) => (
               <Tile
                 key={server.id}
                 name={server.name}
-                active={server.enabled}
-                icon={<McpIcon icon={server.icon} size={14} />}
-                subtitle={server.connected ? 'connected' : 'offline'}
-                statusColor={server.connected ? (server.enabled ? '#00ff88' : t.textDim) : '#ff3344'}
-                onClick={() => toggleMcp(server.id)}
+                active={server.status === 'connected'}
+                icon={<McpIcon icon="plug" size={14} />}
+                subtitle={server.status}
+                statusColor={STATUS_COLORS[server.status]}
+                onClick={() => {
+                  if (server.status === 'disconnected' || server.status === 'error') {
+                    useMcpStore.getState().connectServer(server.id);
+                  } else if (server.status === 'connected') {
+                    useMcpStore.getState().disconnectServer(server.id);
+                  }
+                }}
               />
             ))}
           </div>
         ) : (
           <div className="flex flex-col gap-0.5">
-            {addedMcps.length === 0 ? (
+            {servers.length === 0 ? (
               <div className="flex items-center justify-center py-3">
-                <span className="text-[11px]" style={{ color: t.textFaint }}>No servers added</span>
+                <span className="text-[11px]" style={{ color: t.textFaint }}>
+                  {loaded ? 'No servers installed' : 'Loading...'}
+                </span>
               </div>
-            ) : addedMcps.map((server) => (
-              <button
-                key={server.id}
-                type="button"
-                onClick={() => toggleMcp(server.id)}
-                className="flex items-center gap-2 px-2 rounded-md border-none cursor-pointer nodrag"
-                style={{ height: 28, background: 'transparent', transition: 'background 100ms ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-              >
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{
-                    background: server.connected ? (server.enabled ? '#00ff88' : t.textDim) : '#ff3344',
-                    boxShadow: server.connected && server.enabled ? '0 0 4px #00ff8866' : 'none',
-                  }}
-                />
-                <span className="flex-1 truncate text-[11px]" style={{ color: server.enabled ? t.textPrimary : t.textDim, fontFamily: "'Inter', sans-serif" }}>
-                  {server.name}
-                </span>
-                <span className="text-[10px]" style={{ color: server.connected ? t.textDim : '#ff3344', fontFamily: "'Space Mono', monospace" }}>
-                  {server.connected ? 'connected' : 'offline'}
-                </span>
-              </button>
+            ) : servers.map((server) => (
+              <ServerRow key={server.id} server={server} t={t} />
             ))}
           </div>
         )}
@@ -140,7 +288,7 @@ export const McpNode = memo(function McpNode() {
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
-          + Add
+          + Add MCP Server
         </button>
       </div>
       </>}

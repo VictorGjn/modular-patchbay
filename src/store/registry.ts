@@ -38,6 +38,8 @@ export interface RegistryMcp {
   transport: McpTransport;
   runtimes: Runtime[];
   installCmd: string;
+  command: string;
+  defaultArgs: string[];
   configFields: ConfigField[];
   installed: boolean;
   configured: boolean;
@@ -193,6 +195,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-notion', name: '@notionhq/mcp', description: 'Read and write Notion pages, databases, and blocks',
     icon: 'book-open', category: 'writing', author: 'Notion', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], installCmd: 'npx @notionhq/mcp',
+    command: 'npx', defaultArgs: ['-y', '@notionhq/mcp'],
     configFields: [{ key: 'NOTION_TOKEN', label: 'Integration Token', type: 'password', placeholder: 'ntn_...', required: true }],
     installed: true, configured: true,
   },
@@ -200,6 +203,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-brave', name: '@anthropic/mcp-brave', description: 'Web search powered by Brave Search API',
     icon: 'search', category: 'research', author: 'Anthropic', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], installCmd: 'npx @anthropic/mcp-brave',
+    command: 'npx', defaultArgs: ['-y', '@anthropic/mcp-brave'],
     configFields: [{ key: 'BRAVE_API_KEY', label: 'API Key', type: 'password', placeholder: 'BSA...', required: true }],
     installed: false, configured: false,
   },
@@ -207,6 +211,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-slack', name: '@modelcontextprotocol/server-slack', description: 'Read channels, send messages, search Slack workspace',
     icon: 'hash', category: 'data', author: 'Anthropic', transport: 'stdio',
     runtimes: ['claude', 'amp'], installCmd: 'npx @modelcontextprotocol/server-slack',
+    command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-slack'],
     configFields: [{ key: 'SLACK_BOT_TOKEN', label: 'Bot Token', type: 'password', placeholder: 'xoxb-...', required: true }],
     installed: true, configured: true,
   },
@@ -214,6 +219,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-github', name: '@modelcontextprotocol/server-github', description: 'GitHub repos, issues, PRs, and code search',
     icon: 'git-branch', category: 'coding', author: 'Anthropic', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], installCmd: 'npx @modelcontextprotocol/server-github',
+    command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-github'],
     configFields: [{ key: 'GITHUB_TOKEN', label: 'Personal Access Token', type: 'password', placeholder: 'ghp_...', required: true }],
     installed: false, configured: false,
   },
@@ -221,6 +227,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-gmail', name: '@gongrzhe/server-gmail-autoauth-mcp', description: 'Read and send emails via Gmail with auto-auth',
     icon: 'mail', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], installCmd: 'npx @gongrzhe/server-gmail-autoauth-mcp',
+    command: 'npx', defaultArgs: ['-y', '@gongrzhe/server-gmail-autoauth-mcp'],
     configFields: [
       { key: 'GMAIL_CLIENT_ID', label: 'Client ID', type: 'text', placeholder: '...apps.googleusercontent.com', required: true },
       { key: 'GMAIL_CLIENT_SECRET', label: 'Client Secret', type: 'password', placeholder: 'GOCSPX-...', required: true },
@@ -231,6 +238,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-memory', name: '@modelcontextprotocol/server-memory', description: 'Persistent key-value memory store for agent state',
     icon: 'brain', category: 'data', author: 'Anthropic', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], installCmd: 'npx @modelcontextprotocol/server-memory',
+    command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-memory'],
     configFields: [],
     installed: false, configured: false,
   },
@@ -238,6 +246,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-firecrawl', name: 'firecrawl-mcp', description: 'Web scraping and crawling — extract structured data from websites',
     icon: 'flame', category: 'research', author: 'Firecrawl', transport: 'stdio',
     runtimes: ['claude', 'amp'], installCmd: 'npx firecrawl-mcp',
+    command: 'npx', defaultArgs: ['-y', 'firecrawl-mcp'],
     configFields: [{ key: 'FIRECRAWL_API_KEY', label: 'API Key', type: 'password', placeholder: 'fc-...', required: true }],
     installed: false, configured: false,
   },
@@ -245,6 +254,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-puppeteer', name: '@anthropic/mcp-puppeteer', description: 'Browser automation — screenshots, navigation, form filling',
     icon: 'globe', category: 'research', author: 'Anthropic', transport: 'stdio',
     runtimes: ['claude', 'amp'], installCmd: 'npx @anthropic/mcp-puppeteer',
+    command: 'npx', defaultArgs: ['-y', '@anthropic/mcp-puppeteer'],
     configFields: [],
     installed: false, configured: false,
   },
@@ -252,6 +262,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-filesystem', name: '@modelcontextprotocol/server-filesystem', description: 'Read, write, and manage files on the local filesystem',
     icon: 'folder', category: 'coding', author: 'Anthropic', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], installCmd: 'npx @modelcontextprotocol/server-filesystem',
+    command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-filesystem'],
     configFields: [{ key: 'ALLOWED_DIRS', label: 'Allowed Directories', type: 'text', placeholder: '/home/user/projects', required: true }],
     installed: false, configured: false,
   },
@@ -259,6 +270,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-postgres', name: '@modelcontextprotocol/server-postgres', description: 'Query PostgreSQL databases with read/write access',
     icon: 'database', category: 'data', author: 'Anthropic', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], installCmd: 'npx @modelcontextprotocol/server-postgres',
+    command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-postgres'],
     configFields: [{ key: 'DATABASE_URL', label: 'Connection String', type: 'password', placeholder: 'postgresql://user:pass@host:5432/db', required: true }],
     installed: false, configured: false,
   },
@@ -266,6 +278,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-supabase', name: '@supabase/mcp', description: 'Supabase database, auth, and storage operations',
     icon: 'database', category: 'data', author: 'Supabase', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], installCmd: 'npx @supabase/mcp',
+    command: 'npx', defaultArgs: ['-y', '@supabase/mcp'],
     configFields: [
       { key: 'SUPABASE_URL', label: 'Project URL', type: 'url', placeholder: 'https://xxx.supabase.co', required: true },
       { key: 'SUPABASE_KEY', label: 'Service Role Key', type: 'password', placeholder: 'eyJ...', required: true },
@@ -276,6 +289,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-linear', name: '@linear/mcp', description: 'Linear project management — issues, projects, and cycles',
     icon: 'target', category: 'coding', author: 'Linear', transport: 'stdio',
     runtimes: ['claude', 'amp'], installCmd: 'npx @linear/mcp',
+    command: 'npx', defaultArgs: ['-y', '@linear/mcp'],
     configFields: [{ key: 'LINEAR_API_KEY', label: 'API Key', type: 'password', placeholder: 'lin_api_...', required: true }],
     installed: false, configured: false,
   },
@@ -283,6 +297,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-jira', name: '@jira/mcp', description: 'Jira issue tracking — create, update, search issues and boards',
     icon: 'clipboard-list', category: 'coding', author: 'Atlassian', transport: 'sse',
     runtimes: ['claude', 'amp'], installCmd: 'npx @jira/mcp',
+    command: 'npx', defaultArgs: ['-y', '@jira/mcp'],
     configFields: [
       { key: 'JIRA_URL', label: 'Instance URL', type: 'url', placeholder: 'https://your-org.atlassian.net', required: true },
       { key: 'JIRA_TOKEN', label: 'API Token', type: 'password', placeholder: 'ATATT3x...', required: true },
@@ -293,6 +308,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-hubspot', name: 'hubspot-mcp', description: 'HubSpot CRM — contacts, companies, deals, and engagement data',
     icon: 'hexagon', category: 'data', author: 'HubSpot', transport: 'stdio',
     runtimes: ['claude', 'amp'], installCmd: 'npx hubspot-mcp',
+    command: 'npx', defaultArgs: ['-y', 'hubspot-mcp'],
     configFields: [{ key: 'HUBSPOT_ACCESS_TOKEN', label: 'Access Token', type: 'password', placeholder: 'pat-...', required: true }],
     installed: false, configured: false,
   },
@@ -300,6 +316,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-google-drive', name: 'google-drive-mcp', description: 'Google Drive — read, search, and manage files and folders',
     icon: 'hard-drive', category: 'data', author: 'Google', transport: 'stdio',
     runtimes: ['claude', 'amp'], installCmd: 'npx google-drive-mcp',
+    command: 'npx', defaultArgs: ['-y', 'google-drive-mcp'],
     configFields: [
       { key: 'GOOGLE_CLIENT_ID', label: 'Client ID', type: 'text', placeholder: '...apps.googleusercontent.com', required: true },
       { key: 'GOOGLE_CLIENT_SECRET', label: 'Client Secret', type: 'password', placeholder: 'GOCSPX-...', required: true },
@@ -310,6 +327,7 @@ export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
     id: 'mcp-sentry', name: '@sentry/mcp', description: 'Sentry error tracking — issues, events, and performance data',
     icon: 'shield', category: 'coding', author: 'Sentry', transport: 'stdio',
     runtimes: ['claude', 'amp'], installCmd: 'npx @sentry/mcp',
+    command: 'npx', defaultArgs: ['-y', '@sentry/mcp'],
     configFields: [{ key: 'SENTRY_AUTH_TOKEN', label: 'Auth Token', type: 'password', placeholder: 'sntrys_...', required: true }],
     installed: false, configured: false,
   },

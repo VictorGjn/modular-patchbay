@@ -1,4 +1,5 @@
 import { type ChannelConfig, KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
+import { useMcpStore, type McpTool } from '../store/mcpStore';
 
 export interface AssembledMessage {
   role: 'system' | 'user';
@@ -41,6 +42,17 @@ export function assembleContext(
 
     systemParts.push(
       `[${kt.label.toUpperCase()}] ${kt.instruction}\nSources:\n${depthDescriptions.join('\n')}`,
+    );
+  }
+
+  // Include available MCP tools
+  const connectedTools: McpTool[] = useMcpStore.getState().getConnectedTools();
+  if (connectedTools.length > 0) {
+    const toolLines = connectedTools.map(
+      (t) => `- ${t.name}: ${t.description || 'No description'}`,
+    );
+    systemParts.push(
+      `[AVAILABLE TOOLS]\nYou have access to the following MCP tools:\n${toolLines.join('\n')}`,
     );
   }
 
