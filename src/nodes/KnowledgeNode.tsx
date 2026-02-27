@@ -1,5 +1,5 @@
 import { memo, useState, useCallback, useEffect, type DragEvent } from 'react';
-import { Position } from '@xyflow/react';
+import { Position, NodeResizer } from '@xyflow/react';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
 import { KNOWLEDGE_TYPES, type KnowledgeType, type ChannelConfig } from '../store/knowledgeBase';
 import { ConnectorTile } from '../components/ConnectorTile';
@@ -91,9 +91,11 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
   }));
 
   return (
+    <>
+    <NodeResizer minWidth={260} minHeight={120} lineStyle={{ borderColor: t.border }} handleStyle={{ background: '#FE5000', width: 8, height: 8, borderRadius: 4 }} />
     <div
-      className="rounded-xl overflow-hidden"
-      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 300 }}
+      className="rounded-xl overflow-hidden h-full flex flex-col"
+      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 260 }}
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
@@ -299,6 +301,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
       )}
       </>}
     </div>
+    </>
   );
 });
 

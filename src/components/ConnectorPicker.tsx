@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
+import { useMcpStore } from '../store/mcpStore';
 import type { ConnectorService, ConnectorDirection } from '../store/knowledgeBase';
 import { ConnectorIcon } from './icons/SectionIcons';
-import { X, Search, Plus, Check } from 'lucide-react';
+import { X, Search, Plus, Check, Plug } from 'lucide-react';
 
 interface AvailableConnector {
   service: ConnectorService;
@@ -12,11 +13,12 @@ interface AvailableConnector {
   directions: ConnectorDirection[];
 }
 
-const AVAILABLE_CONNECTORS: AvailableConnector[] = [
-  { service: 'notion', name: 'Notion', mcpServerId: 'mcp-notion', description: 'Read and write Notion pages and databases', directions: ['read', 'write', 'both'] },
-  { service: 'slack', name: 'Slack', mcpServerId: 'mcp-slack', description: 'Read channels and send messages', directions: ['read', 'write', 'both'] },
-  { service: 'hubspot', name: 'HubSpot', mcpServerId: 'mcp-hubspot', description: 'CRM contacts, companies, and deals', directions: ['read', 'write', 'both'] },
-  { service: 'granola', name: 'Granola', mcpServerId: 'mcp-granola', description: 'Meeting transcripts and notes', directions: ['read'] },
+// Default connectors — supplemented by real MCP servers at runtime
+const BUILT_IN_CONNECTORS: AvailableConnector[] = [
+  { service: 'notion', name: 'Notion', mcpServerId: 'notion', description: 'Read and write Notion pages and databases', directions: ['read', 'write', 'both'] },
+  { service: 'slack', name: 'Slack', mcpServerId: 'slack', description: 'Read channels and send messages', directions: ['read', 'write', 'both'] },
+  { service: 'hubspot', name: 'HubSpot', mcpServerId: 'HubSpotDev', description: 'CRM contacts, companies, and deals', directions: ['read', 'write', 'both'] },
+  { service: 'granola', name: 'Granola', mcpServerId: 'granola', description: 'Meeting transcripts and notes', directions: ['read'] },
   { service: 'github', name: 'GitHub', mcpServerId: 'mcp-github', description: 'Repos, issues, and pull requests', directions: ['read', 'write', 'both'] },
   { service: 'google-drive', name: 'Google Drive', mcpServerId: 'mcp-gdrive', description: 'Documents, sheets, and files', directions: ['read', 'write', 'both'] },
 ];
@@ -44,6 +46,20 @@ export function ConnectorPicker() {
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [showConnectorPicker, setShowConnectorPicker]);
+
+  // Merge built-in connectors with real MCP servers
+  const mcpServers = useMcpStore.getState().servers;
+  const builtInIds = new Set(BUILT_IN_CONNECTORS.map((c) => c.mcpServerId));
+  const extraMcpConnectors: AvailableConnector[] = mcpServers
+    .filter((s) => !builtInIds.has(s.id))
+    .map((s) => ({
+      service: s.id as ConnectorService,
+      name: s.name,
+      mcpServerId: s.id,
+      description: s.command || `MCP server: ${s.id}`,
+      directions: ['read', 'write', 'both'] as ConnectorDirection[],
+    }));
+  const AVAILABLE_CONNECTORS = [...BUILT_IN_CONNECTORS, ...extraMcpConnectors];
 
   if (!showConnectorPicker) return null;
 
