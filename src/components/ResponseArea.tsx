@@ -3,8 +3,9 @@ import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS, KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { Copy, Check, Maximize2, X } from 'lucide-react';
 import { OutputIcon } from './icons/SectionIcons';
+import { useTheme, type ThemePalette } from '../theme';
 
-function renderMarkdown(text: string): React.ReactNode[] {
+function renderMarkdown(text: string, t: ThemePalette): React.ReactNode[] {
   const lines = text.split('\n');
   const nodes: React.ReactNode[] = [];
 
@@ -41,7 +42,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
         i++;
       }
       nodes.push(
-        <pre key={`code-${i}`} style={{ background: '#141417', border: '1px solid #2a2a30', borderRadius: 8, padding: '8px 10px', margin: '6px 0', fontSize: 11, color: '#00ff88', overflow: 'auto' }}>
+        <pre key={`code-${i}`} style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 10px', margin: '6px 0', fontSize: 11, color: t.statusSuccess, overflow: 'auto' }}>
           {codeLines.join('\n')}
         </pre>
       );
@@ -107,6 +108,7 @@ function EmptyState() {
 }
 
 export function ResponseArea() {
+  const t = useTheme();
   const response = useConsoleStore((s) => s.response);
   const running = useConsoleStore((s) => s.running);
   const outputFormat = useConsoleStore((s) => s.outputFormat);
@@ -170,8 +172,8 @@ export function ResponseArea() {
         <div
           className="w-1.5 h-1.5 rounded-full"
           style={{
-            background: running ? '#ffaa00' : response ? '#00ff88' : '#444',
-            boxShadow: running ? '0 0 6px #ffaa0080' : response ? '0 0 6px #00ff8880' : 'none',
+            background: running ? t.statusWarning : response ? t.statusSuccess : t.textFaint,
+            boxShadow: running ? t.statusWarningGlow : response ? t.statusSuccessGlow : 'none',
             animation: running ? 'pulse-glow 1s ease infinite' : 'none',
           }}
         />
@@ -197,7 +199,7 @@ export function ResponseArea() {
             type="button"
             onClick={handleCopy}
             className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-1.5 py-0.5 rounded-md hover-accent-text"
-            style={{ color: copied ? '#00ff88' : '#555' }}
+            style={{ color: copied ? t.statusSuccess : t.textDim }}
           >
             {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
           </button>
@@ -221,12 +223,12 @@ export function ResponseArea() {
         style={{ color: '#bbb', minHeight: 60, maxHeight: expanded ? 'none' : 240 }}
       >
         {running ? (
-          <span style={{ color: '#ffaa00' }}>
+          <span style={{ color: t.statusWarning }}>
             Assembling context... patching signals... routing to model...
           </span>
         ) : displayedText ? (
           <>
-            {renderMarkdown(displayedText)}
+            {renderMarkdown(displayedText, t)}
             {isTyping && (
               <span style={{ color: '#FE5000', animation: 'cursor-blink 0.8s step-end infinite' }}>|</span>
             )}
@@ -287,7 +289,7 @@ export function ResponseArea() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: '#222226', background: '#1c1c20' }}>
-              <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#00ff88', boxShadow: '0 0 6px #00ff8880' }} />
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: t.statusSuccess, boxShadow: t.statusSuccessGlow }} />
               <span className="text-xs tracking-wider uppercase flex-1" style={{ color: '#888' }}>
                 Response -- Expanded
               </span>
@@ -295,7 +297,7 @@ export function ResponseArea() {
                 type="button"
                 onClick={handleCopy}
                 className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text"
-                style={{ color: copied ? '#00ff88' : '#555' }}
+                style={{ color: copied ? t.statusSuccess : t.textDim }}
               >
                 {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
               </button>
@@ -310,7 +312,7 @@ export function ResponseArea() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-4 text-sm leading-relaxed" style={{ color: '#bbb' }}>
-              {renderMarkdown(displayedText)}
+              {renderMarkdown(displayedText, t)}
             </div>
           </div>
         </div>

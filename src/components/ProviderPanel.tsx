@@ -34,10 +34,11 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; style?: Reac
 };
 
 function StatusDot({ status, color }: { status: ProviderStatus; color: string }) {
+  const t = useTheme();
   const fill =
-    status === 'connected' ? '#22c55e' :
+    status === 'connected' ? t.statusSuccess :
     status === 'expired' ? color :
-    '#666';
+    t.textMuted;
   return (
     <Circle
       size={8}
@@ -279,9 +280,9 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
               {testing ? (
                 <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
               ) : testResult === 'ok' ? (
-                <CheckCircle2 size={12} style={{ color: '#22c55e' }} />
+                <CheckCircle2 size={12} style={{ color: t.statusSuccess }} />
               ) : testResult === 'fail' ? (
-                <XCircle size={12} style={{ color: '#ef4444' }} />
+                <XCircle size={12} style={{ color: t.statusError }} />
               ) : (
                 <Zap size={12} />
               )}

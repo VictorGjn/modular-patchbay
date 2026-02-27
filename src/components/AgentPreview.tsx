@@ -82,7 +82,7 @@ export function AgentPreview() {
                 if (line === '---') color = '#FE5000';
                 else if (line.startsWith('#')) color = t.textPrimary;
                 else if (line.match(/^\w[\w-]*:/)) color = '#3498db';
-                else if (line.match(/^\s+\w[\w-]*:/)) color = '#2ecc71';
+                else if (line.match(/^\s+\w[\w-]*:/)) color = t.cableMcp;
                 else if (line.startsWith('- ')) color = t.textSecondary;
                 return (
                   <div key={i}>

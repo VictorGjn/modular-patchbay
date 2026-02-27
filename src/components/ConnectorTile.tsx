@@ -18,11 +18,11 @@ interface ConnectorTileProps {
   onAuthMethodChange?: (method: ConnectorAuthMethod) => void;
 }
 
-const STATUS_COLORS: Record<ConnectorStatus, string> = {
-  connected: '#2ecc71',
-  configured: '#f1c40f',
-  available: '#666',
-};
+function getStatusColor(status: ConnectorStatus, t: ReturnType<typeof useTheme>): string {
+  if (status === 'connected') return t.statusSuccess;
+  if (status === 'configured') return t.statusWarning;
+  return t.textMuted;
+}
 
 const AUTH_OPTIONS: { value: ConnectorAuthMethod; label: string; icon: typeof KeyRound }[] = [
   { value: 'none', label: 'None', icon: Globe },
@@ -36,7 +36,7 @@ export function ConnectorTile({ service, name, status, enabled, showDirection, u
 
   const dirLabel = showDirection === 'read' ? 'READ' : 'WRITE';
   const dirColor = showDirection === 'read' ? '#3498db' : '#FE5000';
-  const statusColor = STATUS_COLORS[status];
+  const statusColor = getStatusColor(status, t);
 
   return (
     <div className="rounded-md nodrag nowheel" style={{ background: enabled ? t.surfaceElevated : 'transparent', transition: 'background 0.12s ease' }}>
@@ -114,7 +114,7 @@ export function ConnectorTile({ service, name, status, enabled, showDirection, u
             className="text-[9px] px-2 py-0.5 rounded cursor-pointer border-none self-start nodrag nowheel"
             style={{
               background: enabled ? 'rgba(0,255,136,0.12)' : 'rgba(255,80,80,0.12)',
-              color: enabled ? '#00ff88' : '#ff5050',
+              color: enabled ? t.statusSuccess : t.statusError,
               fontFamily: "'Space Mono', monospace",
             }}
           >

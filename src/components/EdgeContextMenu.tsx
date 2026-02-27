@@ -33,7 +33,7 @@ export function EdgeContextMenu({ x, y, onDelete, onClose }: EdgeContextMenuProp
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
           onClick={() => { onDelete(); onClose(); }}
         >
-          <Trash2 size={13} style={{ color: '#e74c3c' }} />
+          <Trash2 size={13} style={{ color: t.statusError }} />
           <span>Delete cable</span>
         </button>
       </div>

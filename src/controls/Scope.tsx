@@ -1,11 +1,13 @@
 // Analog mode control — reserved for future use
 import { useRef, useEffect } from 'react';
+import { useTheme } from '../theme';
 
 interface ScopeProps {
   active: boolean;
 }
 
 export function Scope({ active }: ScopeProps) {
+  const t = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<number>(0);
   const phaseRef = useRef(0);
@@ -40,9 +42,9 @@ export function Scope({ active }: ScopeProps) {
       }
 
       // Waveform
-      ctx.strokeStyle = '#00ff88';
+      ctx.strokeStyle = '#00ff88'; // canvas 2d - not theme-aware
       ctx.lineWidth = 1.5;
-      ctx.shadowColor = '#00ff88';
+      ctx.shadowColor = '#00ff88'; // canvas 2d - not theme-aware
       ctx.shadowBlur = active ? 6 : 2;
       ctx.beginPath();
 
@@ -81,7 +83,7 @@ export function Scope({ active }: ScopeProps) {
       />
       <span
         className="absolute top-1 right-1.5 text-[7px] uppercase tracking-wider"
-        style={{ color: '#00ff88', fontFamily: "'Space Mono', monospace", opacity: 0.6 }}
+        style={{ color: t.statusSuccess, fontFamily: "'Space Mono', monospace", opacity: 0.6 }}
       >
         SIGNAL
       </span>

@@ -17,7 +17,7 @@ export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, o
   const [hovered, setHovered] = useState(false);
   const t = useTheme();
 
-  const dotColor = statusColor ?? (active ? '#00ff88' : t.textFaint);
+  const dotColor = statusColor ?? (active ? t.statusSuccess : t.textFaint);
   const borderColor = active
     ? (radioMode ? 'rgba(254,80,0,0.5)' : 'rgba(254,80,0,0.25)')
     : hovered ? t.tileBorderHover : t.border;
