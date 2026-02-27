@@ -1,18 +1,34 @@
 {
   "name": "modular-studio",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "bin": {
-    "modular-studio": "./bin/modular-studio.ts"
+    "modular-studio": "./dist-server/bin/modular-studio.js"
   },
+  "files": [
+    "dist/",
+    "dist-server/",
+    "bin/",
+    "server/",
+    "src/",
+    "index.html",
+    "vite.config.ts",
+    "tsconfig.json",
+    "tsconfig.server.json",
+    "tailwind.config.ts",
+    "postcss.config.js",
+    "package.json"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build:all": "npm run build && npm run build:server",
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "tsx server/index.ts",
-    "studio": "tsx bin/modular-studio.ts"
+    "studio": "tsx bin/modular-studio.ts",
+    "prepublishOnly": "npm run build:all"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.62",
