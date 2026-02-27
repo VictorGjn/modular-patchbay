@@ -46,6 +46,7 @@ export const OutputNode = memo(function OutputNode() {
         <button
           type="button"
           onClick={() => setNodeCollapsed(!nodeCollapsed)}
+          aria-label={nodeCollapsed ? 'Expand output panel' : 'Collapse output panel'}
           className="p-0 border-none bg-transparent cursor-pointer nodrag"
           style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}
         >
@@ -63,7 +64,8 @@ export const OutputNode = memo(function OutputNode() {
             <button
               type="button"
               onClick={() => setViewMode('card')}
-              className="p-0.5 border-none cursor-pointer nodrag rounded"
+              aria-label="Card view"
+              className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]"
               style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}
             >
               <LayoutGrid size={12} />
@@ -71,7 +73,8 @@ export const OutputNode = memo(function OutputNode() {
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className="p-0.5 border-none cursor-pointer nodrag rounded"
+              aria-label="List view"
+              className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]"
               style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}
             >
               <List size={12} />
@@ -82,7 +85,7 @@ export const OutputNode = memo(function OutputNode() {
 
       {nodeCollapsed ? null : <>
       {/* Format checkboxes */}
-      <div className="p-3 overflow-y-auto nowheel" style={{ maxHeight: 360 }}>
+      <div className="p-3 overflow-y-auto nowheel flex-1 min-h-0">
         {viewMode === 'list' ? (
           <div className="flex flex-col gap-0.5">
             {OUTPUT_FORMATS.map((fmt) => {
@@ -92,7 +95,8 @@ export const OutputNode = memo(function OutputNode() {
                   key={fmt.id}
                   type="button"
                   onClick={() => toggleOutputFormat(fmt.id)}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer border-none text-left nodrag"
+                  aria-label={`${active ? 'Disable' : 'Enable'} ${fmt.label} format`}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer border-none text-left nodrag nowheel"
                   style={{
                     background: active ? t.surfaceElevated : 'transparent',
                     border: active ? '1px solid rgba(254,80,0,0.25)' : '1px solid transparent',
@@ -139,7 +143,8 @@ export const OutputNode = memo(function OutputNode() {
                   key={fmt.id}
                   type="button"
                   onClick={() => toggleOutputFormat(fmt.id)}
-                  className="flex flex-col items-center gap-1 p-2 rounded-md cursor-pointer border-none nodrag"
+                  aria-label={`${active ? 'Disable' : 'Enable'} ${fmt.label} format`}
+                  className="flex flex-col items-center gap-1 p-2 rounded-md cursor-pointer border-none nodrag nowheel"
                   style={{
                     background: active ? t.surfaceElevated : 'transparent',
                     border: active ? '1px solid rgba(254,80,0,0.25)' : `1px solid ${t.borderSubtle}`,
@@ -188,7 +193,8 @@ export const OutputNode = memo(function OutputNode() {
         <button
           type="button"
           onClick={() => setShowConnectorPicker(true)}
-          className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag"
+          aria-label="Add output connector"
+          className="w-full min-h-[32px] px-3 py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}

@@ -8,7 +8,7 @@ import { OutputIcon } from '../components/icons/SectionIcons';
 import { JackPort } from '../components/JackPort';
 import { useTheme } from '../theme';
 
-function renderMarkdown(text: string, t: { textPrimary: string; border: string }): React.ReactNode[] {
+function renderMarkdown(text: string, t: { textPrimary: string; border: string; statusSuccess: string }): React.ReactNode[] {
   const lines = text.split('\n');
   const nodes: React.ReactNode[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -26,7 +26,7 @@ function renderMarkdown(text: string, t: { textPrimary: string; border: string }
       const codeLines: string[] = [];
       i++;
       while (i < lines.length && !lines[i].startsWith('```')) { codeLines.push(lines[i]); i++; }
-      nodes.push(<pre key={`code-${i}`} style={{ background: 'rgba(0,0,0,0.15)', border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 10px', margin: '6px 0', fontSize: 11, color: '#00ff88', overflow: 'auto' }}>{codeLines.join('\n')}</pre>);
+      nodes.push(<pre key={`code-${i}`} style={{ background: 'rgba(0,0,0,0.15)', border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 10px', margin: '6px 0', fontSize: 11, color: t.statusSuccess, overflow: 'auto' }}>{codeLines.join('\n')}</pre>);
     } else if (!line.trim()) {
       nodes.push(<div key={i} style={{ height: 8 }} />);
     } else {
@@ -113,8 +113,8 @@ export const ResponseNode = memo(function ResponseNode() {
           <div
             className="w-1.5 h-1.5 rounded-full"
             style={{
-              background: running ? '#ffaa00' : response ? '#00ff88' : t.textFaint,
-              boxShadow: running ? '0 0 6px #ffaa0080' : response ? '0 0 6px #00ff8880' : 'none',
+              background: running ? t.statusWarning : response ? t.statusSuccess : t.textFaint,
+              boxShadow: running ? t.statusWarningGlow : response ? t.statusSuccessGlow : 'none',
               animation: running ? 'pulse-glow 1s ease infinite' : 'none',
             }}
           />
@@ -141,7 +141,7 @@ export const ResponseNode = memo(function ResponseNode() {
               onClick={handleCopy}
               aria-label={copied ? 'Copied to clipboard' : 'Copy response'}
               className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-1.5 py-0.5 rounded-md hover-accent-text nodrag nowheel"
-              style={{ color: copied ? '#00ff88' : t.textDim }}
+              style={{ color: copied ? t.statusSuccess : t.textDim }}
             >
               {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
             </button>
@@ -166,11 +166,11 @@ export const ResponseNode = memo(function ResponseNode() {
           style={{ color: t.responseText, minHeight: 40 }}
         >
           {running && !displayedText ? (
-            <span style={{ color: '#ffaa00' }}>Assembling context... patching signals... routing to model...</span>
+            <span style={{ color: t.statusWarning }}>Assembling context... patching signals... routing to model...</span>
           ) : displayedText ? (
             <>
               {displayedText.startsWith('Error:') ? (
-                <span style={{ color: '#e74c3c' }}>{displayedText}</span>
+                <span style={{ color: t.statusError }}>{displayedText}</span>
               ) : (
                 renderMarkdown(displayedText, t)
               )}
@@ -215,9 +215,9 @@ export const ResponseNode = memo(function ResponseNode() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: t.borderSubtle, background: t.surfaceOpaque }}>
-              <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#00ff88', boxShadow: '0 0 6px #00ff8880' }} />
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: t.statusSuccess, boxShadow: t.statusSuccessGlow }} />
               <span className="text-xs tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>Response -- Expanded</span>
-              <button type="button" onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy response'} className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text" style={{ color: copied ? '#00ff88' : t.textDim }}>
+              <button type="button" onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy response'} className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text" style={{ color: copied ? t.statusSuccess : t.textDim }}>
                 {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
               </button>
               <button type="button" onClick={() => setExpanded(false)} aria-label="Close expanded view" className="cursor-pointer border-none bg-transparent p-1 hover-accent-text" style={{ color: t.textDim }}>
