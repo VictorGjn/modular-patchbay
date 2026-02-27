@@ -20,6 +20,7 @@ export interface McpServerState {
   tools: McpTool[];
   lastError?: string;
   uptime?: number;
+  mcpStatus?: 'enabled' | 'deferred' | 'disabled'; // from Claude Code config
 }
 
 interface McpStore {
@@ -62,9 +63,37 @@ export const useMcpStore = create<McpStore>((set, get) => ({
   loadServers: async () => {
     if (get().loading) return;
     set({ loading: true });
-    const data = await apiFetch<McpServerState[]>(API_BASE);
+
+    // Load from modular-studio config
+    const modularServers = await apiFetch<McpServerState[]>(API_BASE) ?? [];
+
+    // Also load from Claude Code config (~/.claude.json mcpServers)
+    const claudeServers = await apiFetch<Array<{
+      id: string; name: string; type: string; command?: string;
+      args?: string[]; url?: string; env?: Record<string, string>;
+      status: 'enabled' | 'deferred' | 'disabled';
+    }>>('/api/claude-config/mcp') ?? [];
+
+    // Merge: Claude servers that aren't already in modular config
+    const existingIds = new Set(modularServers.map((s) => s.id));
+    const merged: McpServerState[] = [
+      ...modularServers,
+      ...claudeServers
+        .filter((s) => !existingIds.has(s.id))
+        .map((s) => ({
+          id: s.id,
+          name: s.name,
+          command: s.command ?? '',
+          args: s.args ?? [],
+          env: s.env ?? {},
+          status: (s.status === 'enabled' ? 'disconnected' : s.status === 'deferred' ? 'disconnected' : 'disconnected') as McpServerStatus,
+          tools: [],
+          mcpStatus: s.status as 'enabled' | 'deferred' | 'disabled',
+        })),
+    ];
+
     set({
-      servers: data ?? [],
+      servers: merged,
       loaded: true,
       loading: false,
     });

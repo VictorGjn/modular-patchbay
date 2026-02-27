@@ -10,6 +10,7 @@ import mcpRoutes from './routes/mcp.js';
 import llmRoutes from './routes/llm.js';
 import agentSdkRoutes from './routes/agent-sdk.js';
 import knowledgeRoutes from './routes/knowledge.js';
+import claudeConfigRoutes from './routes/claude-config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -34,6 +35,7 @@ export function createApp() {
   app.use('/api/llm', llmRoutes);
   app.use('/api/agent-sdk', agentSdkRoutes);
   app.use('/api/knowledge', knowledgeRoutes);
+  app.use('/api/claude-config', claudeConfigRoutes);
 
   // Serve built frontend
   const distPath = join(__dirname, '..', 'dist');

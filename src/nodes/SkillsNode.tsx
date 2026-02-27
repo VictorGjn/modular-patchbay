@@ -1,26 +1,57 @@
 import { memo, useState, useEffect } from 'react';
 import { Position } from '@xyflow/react';
 import { useConsoleStore } from '../store/consoleStore';
-import { MOCK_AGENTS } from '../store/knowledgeBase';
+import { useSkillsStore } from '../store/skillsStore';
 import { Tile } from '../components/Tile';
 import { JackPort } from '../components/JackPort';
 import { SkillIcon } from '../components/icons/SectionIcons';
 import { useTheme } from '../theme';
 import { Zap, Check, X, Loader2, Download, ChevronDown, ChevronRight, LayoutGrid, List } from 'lucide-react';
 
-const getLinkedAgents = (skillId: string): string[] =>
-  MOCK_AGENTS.filter((a) => a.linkedSkills?.includes(skillId)).map((a) => a.name);
-
 export const SkillsNode = memo(function SkillsNode() {
-  const skills = useConsoleStore((s) => s.skills);
-  const toggleSkill = useConsoleStore((s) => s.toggleSkill);
+  const consoleSkills = useConsoleStore((s) => s.skills);
+  const toggleConsoleSkill = useConsoleStore((s) => s.toggleSkill);
+  const realSkills = useSkillsStore((s) => s.skills);
+  const realLoaded = useSkillsStore((s) => s.loaded);
+  const toggleRealSkill = useSkillsStore((s) => s.toggleSkill);
+
+  // Load real skills on mount
+  useEffect(() => {
+    if (!realLoaded) {
+      useSkillsStore.getState().loadSkills();
+    }
+  }, [realLoaded]);
+
+  // Merge: real Claude skills + registry skills
+  const skills = [
+    ...realSkills.map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description || 'Installed skill',
+      added: true,
+      enabled: s.enabled,
+      source: 'claude' as const,
+    })),
+    ...consoleSkills.filter((s) => s.added).map((s) => ({
+      ...s,
+      source: 'registry' as const,
+    })),
+  ];
+
+  const toggleSkill = (id: string) => {
+    if (realSkills.find((s) => s.id === id)) {
+      toggleRealSkill(id);
+    } else {
+      toggleConsoleSkill(id);
+    }
+  };
   const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
   const suggestedSkills = useConsoleStore((s) => s.suggestedSkills);
   const acceptSuggestedSkill = useConsoleStore((s) => s.acceptSuggestedSkill);
   const dismissSuggestedSkill = useConsoleStore((s) => s.dismissSuggestedSkill);
   const t = useTheme();
 
-  const addedSkills = skills.filter((s) => s.added);
+  const addedSkills = skills.filter((s) => s.added || s.source === 'claude');
 
   const [nodeCollapsed, setNodeCollapsed] = useState(() => {
     try { return localStorage.getItem('skills-node-collapsed') === 'true'; } catch { return false; }
