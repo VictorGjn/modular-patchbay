@@ -23,7 +23,7 @@ import { SkillPicker } from './components/SkillPicker';
 import { Marketplace } from './components/Marketplace';
 import { ConnectorPicker } from './components/ConnectorPicker';
 import { AgentPreview } from './components/AgentPreview';
-import { SettingsModal } from './components/SettingsModal';
+import { SettingsPage } from './components/SettingsPage';
 import { SaveAgentModal } from './components/SaveAgentModal';
 import { useConsoleStore } from './store/consoleStore';
 import { useTheme } from './theme';
@@ -210,7 +210,7 @@ export default function App() {
       <SkillPicker />
       <ConnectorPicker />
       <Marketplace />
-      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsPage open={showSettings} onClose={() => setShowSettings(false)} />
       <SaveAgentModal />
     </div>
   );

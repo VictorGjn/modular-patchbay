@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 export type AuthMethod = 'oauth' | 'api-key';
-export type ProviderStatus = 'disconnected' | 'connected' | 'expired';
+export type ProviderStatus = 'disconnected' | 'connected' | 'configured' | 'error' | 'expired';
 
 export interface ProviderConfig {
   id: string;
@@ -28,6 +28,8 @@ export interface ProviderConfig {
   // Auth header style
   authHeader: 'x-api-key' | 'bearer' | 'query-param';
   headerNote?: string;
+  // Test result
+  lastError?: string;
 }
 
 export const DEFAULT_PROVIDERS: ProviderConfig[] = [
@@ -72,7 +74,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
   },
   {
     id: 'google',
-    name: 'Google (Gemini)',
+    name: 'Google AI',
     authMethod: 'api-key',
     status: 'disconnected',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
@@ -106,32 +108,29 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     authHeader: 'bearer',
     headerNote: 'HTTP-Referer header recommended',
   },
-  {
-    id: 'custom',
-    name: 'Custom / Self-hosted',
-    authMethod: 'api-key',
-    status: 'disconnected',
-    baseUrl: 'http://localhost:11434/v1',
-    models: [
-      { id: 'custom-model', label: 'Custom Model' },
-    ],
-    docsUrl: '',
-    keyPageUrl: '',
-    icon: 'Server',
-    color: '#888888',
-    authHeader: 'bearer',
-    headerNote: 'For Ollama, vLLM, or any OpenAI-compatible API',
-  },
 ];
 
 const STORAGE_KEY = 'modular-providers';
+const API_BASE = '/api';
+
+// Check if backend is available
+let backendAvailable: boolean | null = null;
+async function isBackendAvailable(): Promise<boolean> {
+  if (backendAvailable !== null) return backendAvailable;
+  try {
+    const res = await fetch(`${API_BASE}/providers`, { method: 'GET', signal: AbortSignal.timeout(2000) });
+    backendAvailable = res.ok;
+  } catch {
+    backendAvailable = false;
+  }
+  return backendAvailable;
+}
 
 function loadProviders(): ProviderConfig[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_PROVIDERS;
     const saved = JSON.parse(raw) as Partial<ProviderConfig>[];
-    // Merge saved keys/status into defaults (preserves new models/urls from code updates)
     return DEFAULT_PROVIDERS.map((def) => {
       const s = saved.find((p) => p.id === def.id);
       if (!s) return def;
@@ -139,15 +138,15 @@ function loadProviders(): ProviderConfig[] {
         ...def,
         apiKey: s.apiKey ?? def.apiKey,
         baseUrl: s.baseUrl ?? def.baseUrl,
-        status: (s.apiKey ? 'connected' : 'disconnected') as ProviderStatus,
+        status: (s.apiKey ? 'configured' : 'disconnected') as ProviderStatus,
       };
     }).concat(
-      // Keep any custom providers the user added
       saved.filter((s) => !DEFAULT_PROVIDERS.some((d) => d.id === s.id)).map((s) => ({
-        ...DEFAULT_PROVIDERS[DEFAULT_PROVIDERS.length - 1], // base on 'custom' template
+        ...DEFAULT_PROVIDERS[DEFAULT_PROVIDERS.length - 1],
         ...s,
         id: s.id ?? 'custom-' + Date.now(),
         name: s.name ?? 'Custom',
+        status: (s.apiKey ? 'configured' : 'disconnected') as ProviderStatus,
         models: s.models ?? [{ id: 'custom-model', label: 'Custom Model' }],
       } as ProviderConfig))
     );
@@ -162,6 +161,7 @@ function persistProviders(providers: ProviderConfig[]) {
     name: p.name,
     apiKey: p.apiKey,
     baseUrl: p.baseUrl,
+    status: p.status,
     models: DEFAULT_PROVIDERS.some((d) => d.id === p.id) ? undefined : p.models,
     authHeader: DEFAULT_PROVIDERS.some((d) => d.id === p.id) ? undefined : p.authHeader,
     icon: DEFAULT_PROVIDERS.some((d) => d.id === p.id) ? undefined : p.icon,
@@ -176,23 +176,31 @@ function persistProviders(providers: ProviderConfig[]) {
 interface ProviderStore {
   providers: ProviderConfig[];
   selectedProviderId: string;
+  testing: Record<string, boolean>;
   setProviderKey: (id: string, apiKey: string) => void;
   setProviderBaseUrl: (id: string, baseUrl: string) => void;
   setProviderStatus: (id: string, status: ProviderStatus) => void;
+  setProviderModels: (id: string, models: { id: string; label: string }[]) => void;
   getProviderForModel: (modelId: string) => ProviderConfig | undefined;
   getActiveProvider: () => ProviderConfig | undefined;
   getAllModels: () => { id: string; label: string; providerId: string; providerName: string; providerColor: string }[];
   selectProvider: (id: string) => void;
+  testConnection: (id: string) => Promise<{ ok: boolean; models?: string[]; error?: string }>;
+  saveProvider: (id: string) => Promise<void>;
+  deleteProvider: (id: string) => void;
+  addCustomProvider: () => void;
+  loadFromBackend: () => Promise<void>;
 }
 
 export const useProviderStore = create<ProviderStore>((set, get) => ({
   providers: loadProviders(),
   selectedProviderId: 'anthropic',
+  testing: {},
 
   setProviderKey: (id, apiKey) => {
     set((state) => {
       const providers = state.providers.map((p) =>
-        p.id === id ? { ...p, apiKey, status: (apiKey ? 'connected' : 'disconnected') as ProviderStatus } : p
+        p.id === id ? { ...p, apiKey, status: (apiKey ? 'configured' : 'disconnected') as ProviderStatus } : p
       );
       persistProviders(providers);
       return { providers };
@@ -213,6 +221,16 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
     set((state) => {
       const providers = state.providers.map((p) =>
         p.id === id ? { ...p, status } : p
+      );
+      persistProviders(providers);
+      return { providers };
+    });
+  },
+
+  setProviderModels: (id, models) => {
+    set((state) => {
+      const providers = state.providers.map((p) =>
+        p.id === id ? { ...p, models } : p
       );
       persistProviders(providers);
       return { providers };
@@ -240,18 +258,155 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
   },
 
   selectProvider: (id) => set({ selectedProviderId: id }),
+
+  testConnection: async (id) => {
+    set((state) => ({ testing: { ...state.testing, [id]: true } }));
+    try {
+      const backend = await isBackendAvailable();
+      if (backend) {
+        // Save first, then test via backend
+        const provider = get().providers.find((p) => p.id === id);
+        if (provider) {
+          await fetch(`${API_BASE}/providers/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiKey: provider.apiKey, baseUrl: provider.baseUrl }),
+          });
+        }
+        const res = await fetch(`${API_BASE}/providers/${id}/test`, { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          const models = (data.models || []).map((m: string) => ({ id: m, label: m }));
+          set((state) => ({
+            testing: { ...state.testing, [id]: false },
+            providers: state.providers.map((p) =>
+              p.id === id ? { ...p, status: 'connected' as ProviderStatus, models: models.length ? models : p.models, lastError: undefined } : p
+            ),
+          }));
+          persistProviders(get().providers);
+          return { ok: true, models: data.models };
+        } else {
+          set((state) => ({
+            testing: { ...state.testing, [id]: false },
+            providers: state.providers.map((p) =>
+              p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: data.error } : p
+            ),
+          }));
+          persistProviders(get().providers);
+          return { ok: false, error: data.error };
+        }
+      } else {
+        // No backend — just mark as connected if key exists
+        const provider = get().providers.find((p) => p.id === id);
+        if (provider?.apiKey) {
+          set((state) => ({
+            testing: { ...state.testing, [id]: false },
+            providers: state.providers.map((p) =>
+              p.id === id ? { ...p, status: 'connected' as ProviderStatus, lastError: undefined } : p
+            ),
+          }));
+          persistProviders(get().providers);
+          return { ok: true };
+        }
+        set((state) => ({ testing: { ...state.testing, [id]: false } }));
+        return { ok: false, error: 'No API key configured' };
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Connection failed';
+      set((state) => ({
+        testing: { ...state.testing, [id]: false },
+        providers: state.providers.map((p) =>
+          p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: errorMsg } : p
+        ),
+      }));
+      persistProviders(get().providers);
+      return { ok: false, error: errorMsg };
+    }
+  },
+
+  saveProvider: async (id) => {
+    const provider = get().providers.find((p) => p.id === id);
+    if (!provider) return;
+    persistProviders(get().providers);
+    const backend = await isBackendAvailable();
+    if (backend) {
+      await fetch(`${API_BASE}/providers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: provider.apiKey, baseUrl: provider.baseUrl }),
+      }).catch(() => { /* backend save failed, localStorage still has it */ });
+    }
+  },
+
+  deleteProvider: (id) => {
+    set((state) => {
+      const providers = state.providers.filter((p) => p.id !== id);
+      persistProviders(providers);
+      return { providers };
+    });
+    isBackendAvailable().then((ok) => {
+      if (ok) fetch(`${API_BASE}/providers/${id}`, { method: 'DELETE' }).catch(() => {});
+    });
+  },
+
+  addCustomProvider: () => {
+    const newId = 'custom-' + Date.now();
+    const newProvider: ProviderConfig = {
+      id: newId,
+      name: 'Custom Provider',
+      authMethod: 'api-key',
+      status: 'disconnected',
+      baseUrl: 'http://localhost:11434/v1',
+      models: [{ id: 'custom-model', label: 'Custom Model' }],
+      docsUrl: '',
+      keyPageUrl: '',
+      icon: 'Server',
+      color: '#888888',
+      authHeader: 'bearer',
+      headerNote: 'For Ollama, vLLM, or any OpenAI-compatible API',
+    };
+    set((state) => {
+      const providers = [...state.providers, newProvider];
+      persistProviders(providers);
+      return { providers };
+    });
+  },
+
+  loadFromBackend: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/providers`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        // Merge backend data with defaults
+        const merged = DEFAULT_PROVIDERS.map((def) => {
+          const remote = data.find((d: ProviderConfig) => d.id === def.id);
+          if (!remote) return def;
+          return { ...def, ...remote };
+        });
+        const extras = data.filter((d: ProviderConfig) => !DEFAULT_PROVIDERS.some((def) => def.id === d.id));
+        set({ providers: [...merged, ...extras] });
+        persistProviders(get().providers);
+      }
+    } catch {
+      // Backend not available, use localStorage
+    }
+  },
 }));
+
+// Init: try loading from backend
+isBackendAvailable().then((ok) => {
+  if (ok) useProviderStore.getState().loadFromBackend();
+});
 
 // Backwards-compatible helpers for consoleStore
 export function getStoredApiKey(): string {
-  // Return the key for the provider that owns the currently selected model
   const state = useProviderStore.getState();
   const model = localStorage.getItem('modular-model-override') || '';
   if (model) {
     const provider = state.getProviderForModel(model);
     if (provider?.apiKey) return provider.apiKey;
   }
-  // Fallback: return first connected provider's key
   const connected = state.providers.find((p) => p.status === 'connected');
   return connected?.apiKey ?? '';
 }

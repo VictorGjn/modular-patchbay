@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
+import { useMcpStore } from '../store/mcpStore';
 import { MARKETPLACE_CATEGORIES, RUNTIME_INFO, REGISTRY_PRESETS, type MarketplaceCategory, type Runtime, type InstallScope, type ConfigField } from '../store/registry';
 import { RegistryIcon } from './icons/SectionIcons';
 import { useTheme } from '../theme';
@@ -59,14 +60,29 @@ export function Marketplace() {
     }, 1200);
   }, [installRegistrySkill]);
 
-  const handleMcpInstall = useCallback((mcpId: string) => {
+  const handleMcpInstall = useCallback(async (mcpId: string, envVars: Record<string, string>) => {
     setInstallingId(mcpId);
-    setTimeout(() => {
-      installRegistryMcp(mcpId);
-      setInstallingId(null);
-      setConfiguring(null);
-    }, 1000);
-  }, [installRegistryMcp]);
+    const mcpEntry = registryMcpServers.find((m) => m.id === mcpId);
+    if (!mcpEntry) { setInstallingId(null); return; }
+
+    // Add server via real MCP store
+    const added = await useMcpStore.getState().addServer({
+      name: mcpEntry.name,
+      command: mcpEntry.command,
+      args: mcpEntry.defaultArgs,
+      env: envVars,
+    });
+
+    // If backend succeeded, auto-connect
+    if (added) {
+      await useMcpStore.getState().connectServer(added.id);
+    }
+
+    // Mark as installed in registry display
+    installRegistryMcp(mcpId);
+    setInstallingId(null);
+    setConfiguring(null);
+  }, [installRegistryMcp, registryMcpServers]);
 
   if (!showMarketplace) return null;
 
@@ -403,9 +419,11 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
   installing: boolean;
   configuringOpen: boolean;
   onToggleConfigure: () => void;
-  onInstall: (id: string) => void;
+  onInstall: (id: string, envVars: Record<string, string>) => void;
   t: ReturnType<typeof useTheme>;
 }) {
+  const mcpServers = useMcpStore((s) => s.servers);
+  const isInstalled = mcp.installed || mcpServers.some((s) => s.name === mcp.name);
   return (
     <div
       className="relative"
@@ -444,9 +462,9 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
         </span>
 
         {/* Action */}
-        {mcp.installed ? (
+        {isInstalled ? (
           <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#10B981', background: '#10B98110' }}>
-            <Check size={10} /> Configured
+            <Check size={10} /> Installed
           </span>
         ) : installing ? (
           <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#FE5000', background: '#FE500010' }}>
@@ -483,9 +501,11 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
 
 function McpConfigForm({ mcp, onInstall, t }: {
   mcp: { id: string; configFields: ConfigField[]; installCmd: string };
-  onInstall: (id: string) => void;
+  onInstall: (id: string, envVars: Record<string, string>) => void;
   t: ReturnType<typeof useTheme>;
 }) {
+  const [envValues, setEnvValues] = useState<Record<string, string>>({});
+
   return (
     <div
       className="absolute right-4 mt-0 rounded-md p-3 z-10 flex flex-col gap-2"
@@ -498,6 +518,8 @@ function McpConfigForm({ mcp, onInstall, t }: {
             <input
               type={field.type === 'password' ? 'password' : 'text'}
               placeholder={field.placeholder}
+              value={envValues[field.key] || ''}
+              onChange={(e) => setEnvValues({ ...envValues, [field.key]: e.target.value })}
               className="w-full text-[11px] px-2 py-1 rounded-md outline-none mt-0.5"
               style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
             />
@@ -516,7 +538,7 @@ function McpConfigForm({ mcp, onInstall, t }: {
 
       <button
         type="button"
-        onClick={() => onInstall(mcp.id)}
+        onClick={() => onInstall(mcp.id, envValues)}
         className="w-full py-1.5 rounded-md text-[11px] font-medium cursor-pointer border-none"
         style={{ background: '#FE5000', color: '#fff' }}
       >
