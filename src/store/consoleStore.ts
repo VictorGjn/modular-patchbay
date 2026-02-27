@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG, type Connector, MOCK_CONNECTORS } from './knowledgeBase';
 import { REGISTRY_SKILLS, REGISTRY_MCP_SERVERS, type RegistrySkill, type RegistryMcp, type Runtime, type InstallScope } from './registry';
-import { streamCompletion } from '../services/llmService';
+import { streamCompletion, streamAgentSdk } from '../services/llmService';
 import { assembleContext } from '../services/contextAssembler';
 import { getStoredApiKey, getStoredBaseUrl, getStoredModelOverride } from '../components/SettingsModal';
+import { useProviderStore } from './providerStore';
 
 export interface AgentMeta {
   name: string;
@@ -269,10 +270,17 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       return;
     }
 
-    const apiKey = getStoredApiKey();
-    if (!apiKey) {
-      set({ mockResponse: 'Error: No API key configured. Click the gear icon in the topbar to set your API key.' });
-      return;
+    // Check if using Agent SDK provider
+    const providerState = useProviderStore.getState();
+    const activeProvider = providerState.getActiveProvider();
+    const isAgentSdk = activeProvider?.authMethod === 'claude-agent-sdk';
+
+    if (!isAgentSdk) {
+      const apiKey = getStoredApiKey();
+      if (!apiKey) {
+        set({ mockResponse: 'Error: No API key configured. Click the gear icon in the topbar to set your API key.' });
+        return;
+      }
     }
 
     set({ running: true, mockResponse: '' });
@@ -280,9 +288,38 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     const messages = assembleContext(channels, prompt);
     const modelOverride = getStoredModelOverride();
     const model = modelOverride || get().selectedModel;
-    const baseUrl = getStoredBaseUrl();
 
     let accumulated = '';
+
+    if (isAgentSdk) {
+      // Build system prompt from assembled context (all messages except last user message)
+      const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content);
+      const userPrompt = messages.filter((m) => m.role === 'user').map((m) => m.content).join('\n');
+
+      const controller = streamAgentSdk({
+        prompt: userPrompt || prompt,
+        model,
+        systemPrompt: systemParts.join('\n') || undefined,
+        onChunk: (text) => {
+          accumulated += text;
+          set({ mockResponse: accumulated });
+        },
+        onDone: () => {
+          set({ running: false });
+          (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
+        },
+        onError: (error) => {
+          set({ running: false, mockResponse: `Error: ${error.message}` });
+          (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
+        },
+      });
+
+      (get() as unknown as { _abortController?: AbortController })._abortController = controller;
+      return;
+    }
+
+    const apiKey = getStoredApiKey();
+    const baseUrl = getStoredBaseUrl();
 
     const controller = streamCompletion({
       apiKey,
