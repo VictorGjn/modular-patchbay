@@ -1,13 +1,15 @@
 import { memo, useState, useCallback, useEffect, type DragEvent } from 'react';
 import { Position } from '@xyflow/react';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
-import { KNOWLEDGE_TYPES, type KnowledgeType } from '../store/knowledgeBase';
+import { KNOWLEDGE_TYPES, type KnowledgeType, type ChannelConfig } from '../store/knowledgeBase';
 import { ConnectorTile } from '../components/ConnectorTile';
 import { JackPort } from '../components/JackPort';
 import { useTheme } from '../theme';
+import { useKnowledgeStore, type FileNode } from '../store/knowledgeStore';
 import {
   BookOpen, ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightIcon,
-  LayoutGrid, List, Check, X, Upload, Plug,
+  LayoutGrid, List, Check, X, Upload, Plug, Search, FileText, FileCode, File, Loader2,
+  FolderOpen,
 } from 'lucide-react';
 
 const KNOWLEDGE_TYPE_ORDER: KnowledgeType[] = [
@@ -87,8 +89,6 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
     meta: KNOWLEDGE_TYPES[type],
     items: channels.filter((ch) => ch.knowledgeType === type),
   }));
-
-  const hasAnyChannels = channels.length > 0;
 
   return (
     <div
@@ -181,96 +181,22 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
 
       {/* ── LOCAL FILES SECTION ── */}
       {activeSection === 'files' && (
-        <>
-          <div className="overflow-y-auto nowheel" style={{ maxHeight: 340 }}>
-            {!hasAnyChannels ? (
-              <div
-                className="flex flex-col items-center justify-center py-6 mx-3 my-2 rounded-lg nodrag nowheel"
-                style={{ border: `2px dashed ${t.border}`, background: t.surfaceHover }}
-              >
-                <Upload size={20} style={{ color: t.textFaint, marginBottom: 6 }} />
-                <span className="text-[10px]" style={{ color: t.textDim }}>Drop files here or click Add</span>
-              </div>
-            ) : (
-              <div className="py-1">
-                {grouped.map(({ type, meta, items }) => {
-                  const isCollapsed = items.length === 0 || collapsed[type];
-                  const isEmpty = items.length === 0;
-                  const isDragTarget = dragOverType === type;
-
-                  return (
-                    <div
-                      key={type}
-                      onDragOver={(e) => handleDragOver(e, type)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, type)}
-                      style={{
-                        border: isDragTarget ? `1px dashed ${meta.color}` : '1px solid transparent',
-                        borderRadius: 6,
-                        margin: '0 4px',
-                        transition: 'border-color 150ms ease',
-                      }}
-                    >
-                      {/* Section header */}
-                      <button
-                        type="button"
-                        className="flex items-center gap-1.5 w-full px-3 py-1.5 border-none cursor-pointer nodrag"
-                        style={{ background: 'transparent', opacity: isEmpty ? 0.4 : 1 }}
-                        onClick={() => !isEmpty && toggleCollapse(type)}
-                      >
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: meta.color }} />
-                        <span className="flex-1 text-left" style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em', color: isEmpty ? t.textFaint : t.textSecondary }}>
-                          {meta.label}
-                        </span>
-                        <span className="text-[10px] px-1 rounded-full" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: items.length > 0 ? t.badgeBg : 'transparent', minWidth: 16, textAlign: 'center' }}>
-                          {items.length}
-                        </span>
-                        {!isEmpty && (
-                          <span style={{ color: t.textDim, fontSize: 10, transition: 'transform 200ms ease', display: 'inline-block', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
-                            &#9662;
-                          </span>
-                        )}
-                      </button>
-
-                      {/* Section items */}
-                      <div style={{ maxHeight: isCollapsed ? 0 : items.length * 32 + 4, overflow: 'hidden', transition: 'max-height 200ms ease' }}>
-                        {items.map((ch) => (
-                          <FileRow
-                            key={ch.sourceId}
-                            sourceId={ch.sourceId}
-                            name={ch.name}
-                            enabled={ch.enabled}
-                            depth={ch.depth}
-                            baseTokens={ch.baseTokens}
-                            onToggle={() => toggleChannel(ch.sourceId)}
-                            onDepthChange={(d) => setChannelDepth(ch.sourceId, d)}
-                            onDragStart={(e) => handleDragStart(e, ch.sourceId)}
-                            fmtTokens={fmtTokens}
-                            theme={t}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Add files button */}
-          <div className="px-3 pb-3 pt-1">
-            <button
-              type="button"
-              onClick={() => setShowFilePicker(true)}
-              className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel"
-              style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-            >
-              + Add Files ⌘K
-            </button>
-          </div>
-        </>
+        <LocalFilesSection
+          channels={channels}
+          grouped={grouped}
+          collapsed={collapsed}
+          dragOverType={dragOverType}
+          toggleCollapse={toggleCollapse}
+          toggleChannel={toggleChannel}
+          setChannelDepth={setChannelDepth}
+          handleDragStart={handleDragStart}
+          handleDragOver={handleDragOver}
+          handleDragLeave={handleDragLeave}
+          handleDrop={handleDrop}
+          setShowFilePicker={setShowFilePicker}
+          fmtTokens={fmtTokens}
+          theme={t}
+        />
       )}
 
       {/* ── EXTERNAL SOURCES SECTION ── */}
@@ -375,6 +301,261 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
     </div>
   );
 });
+
+/* ── Local Files Section with real scanning ── */
+
+function getFileIcon(ext?: string) {
+  if (!ext) return File;
+  const e = ext.toLowerCase();
+  if (e === '.md' || e === '.txt') return FileText;
+  if (['.ts', '.tsx', '.js', '.jsx', '.py', '.rs', '.go'].includes(e)) return FileCode;
+  return File;
+}
+
+interface LocalFilesSectionProps {
+  channels: ChannelConfig[];
+  grouped: { type: KnowledgeType; meta: { label: string; color: string; icon: string; instruction: string }; items: ChannelConfig[] }[];
+  collapsed: Record<string, boolean>;
+  dragOverType: KnowledgeType | null;
+  toggleCollapse: (type: KnowledgeType) => void;
+  toggleChannel: (sourceId: string) => void;
+  setChannelDepth: (sourceId: string, depth: number) => void;
+  handleDragStart: (e: DragEvent, sourceId: string) => void;
+  handleDragOver: (e: DragEvent, type: KnowledgeType) => void;
+  handleDragLeave: () => void;
+  handleDrop: (e: DragEvent, type: KnowledgeType) => void;
+  setShowFilePicker: (show: boolean) => void;
+  fmtTokens: (n: number) => string;
+  theme: ReturnType<typeof useTheme>;
+}
+
+function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleCollapse, toggleChannel, setChannelDepth, handleDragStart, handleDragOver, handleDragLeave, handleDrop, setShowFilePicker, fmtTokens, theme: t }: LocalFilesSectionProps) {
+  const { tree, scanning, error, loaded, lastDir, scanDirectory } = useKnowledgeStore();
+  const addFileChannel = useConsoleStore((s) => s.addFileChannel);
+  const readFile = useKnowledgeStore((s) => s.readFile);
+  const [scanDir, setScanDir] = useState(lastDir);
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const hasAnyChannels = channels.length > 0;
+
+  const handleScan = useCallback(() => {
+    if (scanDir.trim()) {
+      void scanDirectory(scanDir.trim());
+    }
+  }, [scanDir, scanDirectory]);
+
+  const handleToggleFile = useCallback((path: string) => {
+    setSelectedFiles((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  }, []);
+
+  const handleAddSelected = useCallback(async () => {
+    for (const path of selectedFiles) {
+      const fullPath = lastDir.replace(/\\/g, '/') + '/' + path;
+      const content = await readFile(fullPath);
+      if (content) addFileChannel(content);
+    }
+    setSelectedFiles(new Set());
+  }, [selectedFiles, lastDir, readFile, addFileChannel]);
+
+  return (
+    <>
+      {/* Scanner UI */}
+      <div className="px-3 pt-2 pb-1">
+        <div className="flex items-center gap-1 nodrag nowheel">
+          <input
+            type="text"
+            value={scanDir}
+            onChange={(e) => setScanDir(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleScan(); }}
+            placeholder="Directory path..."
+            className="flex-1 px-2 py-1 rounded-md text-[10px] border-none outline-none nodrag nowheel"
+            style={{ background: t.surfaceElevated, color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}
+          />
+          <button
+            type="button"
+            onClick={handleScan}
+            disabled={scanning}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] cursor-pointer border-none nodrag nowheel"
+            style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace", opacity: scanning ? 0.6 : 1 }}
+          >
+            {scanning ? <Loader2 size={10} className="animate-spin" /> : <Search size={10} />}
+            Scan
+          </button>
+        </div>
+        {error && (
+          <div className="text-[9px] mt-1 px-1" style={{ color: '#ff5050', fontFamily: "'Space Mono', monospace" }}>{error}</div>
+        )}
+      </div>
+
+      {/* File tree from scan */}
+      {loaded && tree.length > 0 && (
+        <div className="overflow-y-auto nowheel px-1" style={{ maxHeight: 200 }}>
+          {tree.map((node) => (
+            <FileTreeItem
+              key={node.path}
+              node={node}
+              depth={0}
+              selected={selectedFiles}
+              onToggle={handleToggleFile}
+              theme={t}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Add selected button */}
+      {selectedFiles.size > 0 && (
+        <div className="px-3 py-1">
+          <button
+            type="button"
+            onClick={() => void handleAddSelected()}
+            className="w-full py-1 rounded-md text-[10px] cursor-pointer border-none nodrag nowheel"
+            style={{ background: '#00ff8820', color: '#00ff88', fontFamily: "'Space Mono', monospace" }}
+          >
+            + Add {selectedFiles.size} file{selectedFiles.size > 1 ? 's' : ''} as channels
+          </button>
+        </div>
+      )}
+
+      {/* Existing channels grouped by type */}
+      {hasAnyChannels && (
+        <div className="overflow-y-auto nowheel" style={{ maxHeight: 200 }}>
+          <div className="py-1">
+            {grouped.map(({ type, meta, items }) => {
+              const isCollapsed = items.length === 0 || collapsed[type];
+              const isEmpty = items.length === 0;
+              const isDragTarget = dragOverType === type;
+
+              return (
+                <div
+                  key={type}
+                  onDragOver={(e) => handleDragOver(e as unknown as DragEvent, type)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e as unknown as DragEvent, type)}
+                  style={{
+                    border: isDragTarget ? `1px dashed ${meta.color}` : '1px solid transparent',
+                    borderRadius: 6,
+                    margin: '0 4px',
+                    transition: 'border-color 150ms ease',
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 w-full px-3 py-1.5 border-none cursor-pointer nodrag"
+                    style={{ background: 'transparent', opacity: isEmpty ? 0.4 : 1 }}
+                    onClick={() => !isEmpty && toggleCollapse(type)}
+                  >
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: meta.color }} />
+                    <span className="flex-1 text-left" style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em', color: isEmpty ? t.textFaint : t.textSecondary }}>
+                      {meta.label}
+                    </span>
+                    <span className="text-[10px] px-1 rounded-full" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: items.length > 0 ? t.badgeBg : 'transparent', minWidth: 16, textAlign: 'center' }}>
+                      {items.length}
+                    </span>
+                    {!isEmpty && (
+                      <span style={{ color: t.textDim, fontSize: 10, transition: 'transform 200ms ease', display: 'inline-block', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+                        &#9662;
+                      </span>
+                    )}
+                  </button>
+
+                  <div style={{ maxHeight: isCollapsed ? 0 : items.length * 32 + 4, overflow: 'hidden', transition: 'max-height 200ms ease' }}>
+                    {items.map((ch) => (
+                      <FileRow
+                        key={ch.sourceId}
+                        sourceId={ch.sourceId}
+                        name={ch.name}
+                        enabled={ch.enabled}
+                        depth={ch.depth}
+                        baseTokens={ch.baseTokens}
+                        onToggle={() => toggleChannel(ch.sourceId)}
+                        onDepthChange={(d) => setChannelDepth(ch.sourceId, d)}
+                        onDragStart={(e) => handleDragStart(e, ch.sourceId)}
+                        fmtTokens={fmtTokens}
+                        theme={t}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Add files button */}
+      <div className="px-3 pb-3 pt-1">
+        <button
+          type="button"
+          onClick={() => setShowFilePicker(true)}
+          className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel"
+          style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+        >
+          + Add Files ⌘K
+        </button>
+      </div>
+    </>
+  );
+}
+
+/* ── File tree item ── */
+
+interface FileTreeItemProps {
+  node: FileNode;
+  depth: number;
+  selected: Set<string>;
+  onToggle: (path: string) => void;
+  theme: ReturnType<typeof useTheme>;
+}
+
+function FileTreeItem({ node, depth, selected, onToggle, theme: t }: FileTreeItemProps) {
+  const [expanded, setExpanded] = useState(depth < 1);
+  const Icon = node.type === 'directory' ? FolderOpen : getFileIcon(node.extension);
+  const isSelected = selected.has(node.path);
+
+  return (
+    <div>
+      <div
+        className="flex items-center gap-1 px-2 py-0.5 rounded nodrag nowheel cursor-pointer"
+        style={{ paddingLeft: 8 + depth * 12, background: isSelected ? 'rgba(254,80,0,0.1)' : 'transparent' }}
+        onClick={() => {
+          if (node.type === 'directory') setExpanded(!expanded);
+          else onToggle(node.path);
+        }}
+      >
+        {node.type === 'directory' && (
+          <ChevronRightIcon size={10} style={{ color: t.textDim, transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 100ms ease', flexShrink: 0 }} />
+        )}
+        {node.type === 'file' && (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggle(node.path)}
+            className="nodrag nowheel"
+            style={{ width: 10, height: 10, accentColor: '#FE5000', flexShrink: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        )}
+        <Icon size={10} style={{ color: node.type === 'directory' ? '#f1c40f' : t.textDim, flexShrink: 0 }} />
+        <span className="flex-1 truncate" style={{ fontSize: 10, fontFamily: "'Inter', sans-serif", color: t.textSecondary }}>{node.name}</span>
+        {node.type === 'file' && node.tokenEstimate && (
+          <span style={{ fontSize: 9, fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+            ~{node.tokenEstimate >= 1000 ? `${(node.tokenEstimate / 1000).toFixed(1)}K` : node.tokenEstimate}t
+          </span>
+        )}
+      </div>
+      {node.type === 'directory' && expanded && node.children?.map((child) => (
+        <FileTreeItem key={child.path} node={child} depth={depth + 1} selected={selected} onToggle={onToggle} theme={t} />
+      ))}
+    </div>
+  );
+}
 
 /* ── File row with depth name carousel ── */
 
