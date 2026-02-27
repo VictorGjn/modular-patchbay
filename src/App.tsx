@@ -171,6 +171,7 @@ export default function App() {
           edgeTypes={edgeTypes}
           fitView
           fitViewOptions={{ padding: 0.15 }}
+          deleteKeyCode="Delete"
           defaultEdgeOptions={{ type: 'patch' }}
           style={{ background: t.bg }}
           proOptions={{ hideAttribution: true }}
