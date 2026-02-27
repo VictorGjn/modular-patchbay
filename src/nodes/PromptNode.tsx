@@ -1,5 +1,6 @@
 import { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Position, NodeResizer } from '@xyflow/react';
+import { Position } from '@xyflow/react';
+import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { OutputIcon } from '../components/icons/SectionIcons';
@@ -11,7 +12,10 @@ import { useProviderStore } from '../store/providerStore';
 
 // Model metadata — context windows and thinking support
 const MODEL_META: Record<string, { contextWindow: number; thinking: ('low' | 'medium' | 'high')[]; maxOutput: number }> = {
-  // Anthropic / Agent SDK
+  // Anthropic / Agent SDK (aliases)
+  'sonnet': { contextWindow: 200000, thinking: ['low', 'medium', 'high'], maxOutput: 64000 },
+  'opus': { contextWindow: 200000, thinking: ['low', 'medium', 'high'], maxOutput: 32000 },
+  'haiku': { contextWindow: 200000, thinking: [], maxOutput: 8192 },
   'claude-sonnet-4-20250514': { contextWindow: 200000, thinking: ['low', 'medium', 'high'], maxOutput: 64000 },
   'claude-opus-4-0-20250514': { contextWindow: 200000, thinking: ['low', 'medium', 'high'], maxOutput: 32000 },
   'claude-haiku-3-5-20241022': { contextWindow: 200000, thinking: [], maxOutput: 8192 },
@@ -94,7 +98,7 @@ export const PromptNode = memo(function PromptNode() {
 
   return (
     <>
-    <NodeResizer minWidth={340} minHeight={200} lineStyle={{ borderColor: t.border }} handleStyle={{ background: '#FE5000', width: 8, height: 8, borderRadius: 4 }} />
+    <ResizeHandle minWidth={340} minHeight={200} />
     <div
       className="rounded-xl h-full flex flex-col"
       style={{

@@ -1,5 +1,6 @@
 import { memo, useState, useEffect } from 'react';
-import { Position, NodeResizer } from '@xyflow/react';
+import { Position } from '@xyflow/react';
+import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { JackPort } from '../components/JackPort';
@@ -34,7 +35,7 @@ export const OutputNode = memo(function OutputNode() {
 
   return (
     <>
-    <NodeResizer minWidth={220} minHeight={100} lineStyle={{ borderColor: t.border }} handleStyle={{ background: '#FE5000', width: 8, height: 8, borderRadius: 4 }} />
+    <ResizeHandle minWidth={220} minHeight={100} />
     <div
       className="rounded-xl overflow-hidden h-full flex flex-col"
       style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 220 }}

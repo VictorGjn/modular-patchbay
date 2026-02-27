@@ -36,8 +36,8 @@ const TEXT_EXTENSIONS = new Set([
 function isPathSafe(targetPath, allowedDirs) {
     if (targetPath.includes('..'))
         return false;
-    const resolved = resolve(targetPath);
-    return allowedDirs.some((dir) => resolved.startsWith(dir));
+    const resolved = resolve(targetPath).toLowerCase();
+    return allowedDirs.some((dir) => resolved.startsWith(dir.toLowerCase()));
 }
 function isTextFile(ext) {
     return TEXT_EXTENSIONS.has(ext.toLowerCase());

@@ -1,5 +1,6 @@
 import { memo, useState, useEffect, useCallback } from 'react';
-import { Position, NodeResizer } from '@xyflow/react';
+import { Position } from '@xyflow/react';
+import { ResizeHandle } from '../components/ResizeHandle';
 import { useMcpStore, startHealthPolling, type McpServerState, type McpTool } from '../store/mcpStore';
 import { Tile } from '../components/Tile';
 import { JackPort } from '../components/JackPort';
@@ -237,7 +238,7 @@ export const McpNode = memo(function McpNode() {
 
   return (
     <>
-    <NodeResizer minWidth={240} minHeight={120} lineStyle={{ borderColor: t.border }} handleStyle={{ background: '#FE5000', width: 8, height: 8, borderRadius: 4 }} />
+    <ResizeHandle minWidth={240} minHeight={120} />
     <div
       className="rounded-xl overflow-hidden h-full flex flex-col"
       style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 240 }}

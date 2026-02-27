@@ -1,5 +1,6 @@
 import { memo, useState, useCallback, useEffect, type DragEvent } from 'react';
-import { Position, NodeResizer } from '@xyflow/react';
+import { Position } from '@xyflow/react';
+import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
 import { KNOWLEDGE_TYPES, type KnowledgeType, type ChannelConfig } from '../store/knowledgeBase';
 import { ConnectorTile } from '../components/ConnectorTile';
@@ -92,7 +93,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
 
   return (
     <>
-    <NodeResizer minWidth={260} minHeight={120} lineStyle={{ borderColor: t.border }} handleStyle={{ background: '#FE5000', width: 8, height: 8, borderRadius: 4 }} />
+    <ResizeHandle minWidth={260} minHeight={120} />
     <div
       className="rounded-xl overflow-hidden h-full flex flex-col"
       style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 260 }}
@@ -410,16 +411,24 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
         </div>
       )}
 
-      {/* Add selected button */}
+      {/* Selection actions */}
       {selectedFiles.size > 0 && (
-        <div className="px-3 py-1">
+        <div className="px-3 py-1 flex gap-1.5">
           <button
             type="button"
             onClick={() => void handleAddSelected()}
-            className="w-full py-1 rounded-md text-[10px] cursor-pointer border-none nodrag nowheel"
-            style={{ background: '#00ff8820', color: '#00ff88', fontFamily: "'Space Mono', monospace" }}
+            className="flex-1 py-1.5 rounded-md text-[10px] cursor-pointer border-none nodrag nowheel font-semibold tracking-wide"
+            style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace" }}
           >
-            + Add {selectedFiles.size} file{selectedFiles.size > 1 ? 's' : ''} as channels
+            Confirm ({selectedFiles.size})
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedFiles(new Set())}
+            className="py-1.5 px-2 rounded-md text-[10px] cursor-pointer nodrag nowheel"
+            style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace" }}
+          >
+            Reset
           </button>
         </div>
       )}
@@ -517,43 +526,86 @@ interface FileTreeItemProps {
   theme: ReturnType<typeof useTheme>;
 }
 
+/** Collect all file paths under a directory node recursively */
+function collectFilePaths(node: FileNode): string[] {
+  if (node.type === 'file') return [node.path];
+  return (node.children || []).flatMap(collectFilePaths);
+}
+
 function FileTreeItem({ node, depth, selected, onToggle, theme: t }: FileTreeItemProps) {
   const [expanded, setExpanded] = useState(depth < 1);
   const Icon = node.type === 'directory' ? FolderOpen : getFileIcon(node.extension);
-  const isSelected = selected.has(node.path);
+  const isFile = node.type === 'file';
+  const isDir = node.type === 'directory';
+
+  // For directories: check if all children are selected
+  const childPaths = isDir ? collectFilePaths(node) : [];
+  const allChildrenSelected = isDir && childPaths.length > 0 && childPaths.every((p) => selected.has(p));
+  const someChildrenSelected = isDir && childPaths.some((p) => selected.has(p));
+  const isSelected = isFile ? selected.has(node.path) : allChildrenSelected;
+
+  const handleFolderToggle = () => {
+    // Toggle all child files
+    for (const p of childPaths) {
+      if (allChildrenSelected) {
+        // Deselect all
+        if (selected.has(p)) onToggle(p);
+      } else {
+        // Select all not yet selected
+        if (!selected.has(p)) onToggle(p);
+      }
+    }
+  };
 
   return (
     <div>
       <div
-        className="flex items-center gap-1 px-2 py-0.5 rounded nodrag nowheel cursor-pointer"
-        style={{ paddingLeft: 8 + depth * 12, background: isSelected ? 'rgba(254,80,0,0.1)' : 'transparent' }}
-        onClick={() => {
-          if (node.type === 'directory') setExpanded(!expanded);
-          else onToggle(node.path);
-        }}
+        className="flex items-center gap-1 px-2 py-0.5 rounded nodrag nowheel"
+        style={{ paddingLeft: 8 + depth * 12, background: isSelected ? 'rgba(254,80,0,0.1)' : someChildrenSelected ? 'rgba(254,80,0,0.04)' : 'transparent' }}
       >
-        {node.type === 'directory' && (
-          <ChevronRightIcon size={10} style={{ color: t.textDim, transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 100ms ease', flexShrink: 0 }} />
+        {/* Expand/collapse arrow for directories — separate from selection */}
+        {isDir && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            className="p-0 border-none bg-transparent cursor-pointer nodrag"
+            style={{ display: 'flex', alignItems: 'center' }}
+          >
+            <ChevronRightIcon size={10} style={{ color: t.textDim, transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 100ms ease', flexShrink: 0 }} />
+          </button>
         )}
-        {node.type === 'file' && (
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => onToggle(node.path)}
-            className="nodrag nowheel"
-            style={{ width: 10, height: 10, accentColor: '#FE5000', flexShrink: 0 }}
-            onClick={(e) => e.stopPropagation()}
-          />
-        )}
-        <Icon size={10} style={{ color: node.type === 'directory' ? '#f1c40f' : t.textDim, flexShrink: 0 }} />
-        <span className="flex-1 truncate" style={{ fontSize: 10, fontFamily: "'Inter', sans-serif", color: t.textSecondary }}>{node.name}</span>
-        {node.type === 'file' && node.tokenEstimate && (
+
+        {/* Checkbox — for both files and folders */}
+        <input
+          type="checkbox"
+          checked={isSelected}
+          ref={(el) => { if (el && isDir) el.indeterminate = someChildrenSelected && !allChildrenSelected; }}
+          onChange={() => isFile ? onToggle(node.path) : handleFolderToggle()}
+          className="nodrag nowheel"
+          style={{ width: 10, height: 10, accentColor: '#FE5000', flexShrink: 0, cursor: 'pointer' }}
+        />
+
+        {/* Click on name: folders expand, files toggle */}
+        <div
+          className="flex items-center gap-1 flex-1 min-w-0 cursor-pointer"
+          onClick={() => isDir ? setExpanded(!expanded) : onToggle(node.path)}
+        >
+          <Icon size={10} style={{ color: isDir ? '#f1c40f' : t.textDim, flexShrink: 0 }} />
+          <span className="flex-1 truncate" style={{ fontSize: 10, fontFamily: "'Inter', sans-serif", color: t.textSecondary }}>{node.name}</span>
+        </div>
+
+        {isFile && node.tokenEstimate && (
           <span style={{ fontSize: 9, fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
             ~{node.tokenEstimate >= 1000 ? `${(node.tokenEstimate / 1000).toFixed(1)}K` : node.tokenEstimate}t
           </span>
         )}
+        {isDir && childPaths.length > 0 && (
+          <span style={{ fontSize: 9, fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+            {childPaths.length}
+          </span>
+        )}
       </div>
-      {node.type === 'directory' && expanded && node.children?.map((child) => (
+      {isDir && expanded && node.children?.map((child) => (
         <FileTreeItem key={child.path} node={child} depth={depth + 1} selected={selected} onToggle={onToggle} theme={t} />
       ))}
     </div>

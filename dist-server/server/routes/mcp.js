@@ -1,6 +1,31 @@
 import { Router } from 'express';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { mcpManager } from '../mcp/manager.js';
 import { readConfig, writeConfig } from '../config.js';
+/** Look up a server in ~/.claude.json mcpServers if not in manager */
+function getClaudeConfigServer(id) {
+    try {
+        const configPath = join(homedir(), '.claude.json');
+        if (!existsSync(configPath))
+            return null;
+        const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+        const srv = config?.mcpServers?.[id];
+        if (!srv)
+            return null;
+        return {
+            id,
+            name: id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' '),
+            command: srv.command || '',
+            args: srv.args || [],
+            env: srv.env || {},
+        };
+    }
+    catch {
+        return null;
+    }
+}
 const router = Router();
 router.get('/', (_req, res) => {
     const servers = mcpManager.listServers();
@@ -33,6 +58,14 @@ router.post('/', (req, res) => {
 });
 router.post('/:id/connect', async (req, res) => {
     try {
+        // If server not in manager, try to auto-register from Claude config
+        const existing = mcpManager.listServers().find((s) => s.id === req.params.id);
+        if (!existing) {
+            const claudeSrv = getClaudeConfigServer(req.params.id);
+            if (claudeSrv && claudeSrv.command) {
+                mcpManager.addServer(claudeSrv);
+            }
+        }
         const result = await mcpManager.connect(req.params.id);
         const resp = { status: 'ok', data: result };
         res.json(resp);
