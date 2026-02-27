@@ -258,15 +258,7 @@ export interface McpServer {
   description: string;
 }
 
-export const MOCK_MCP_SERVERS: McpServer[] = [
-  { id: 'mcp-gmail', name: 'Gmail', icon: 'mail', connected: true, enabled: true, added: true, capabilities: ['input', 'output'], category: 'communication', description: 'Send and read emails via Gmail' },
-  { id: 'mcp-slack', name: 'Slack', icon: 'hash', connected: true, enabled: true, added: true, capabilities: ['input', 'output'], category: 'communication', description: 'Read channels and send messages' },
-  { id: 'mcp-github', name: 'GitHub', icon: 'github', connected: true, enabled: false, added: false, capabilities: ['input', 'output'], category: 'development', description: 'Repos, issues, and pull requests' },
-  { id: 'mcp-notion', name: 'Notion', icon: 'file-text', connected: true, enabled: false, added: false, capabilities: ['input', 'output'], category: 'productivity', description: 'Read and write Notion pages' },
-  { id: 'mcp-hubspot', name: 'HubSpot', icon: 'hexagon', connected: false, enabled: false, added: false, capabilities: ['input'], category: 'data', description: 'CRM contacts and companies' },
-  { id: 'mcp-firecrawl', name: 'Firecrawl', icon: 'flame', connected: true, enabled: false, added: false, capabilities: ['input'], category: 'data', description: 'Web scraping and crawling' },
-  { id: 'mcp-supabase', name: 'Supabase', icon: 'database', connected: false, enabled: false, added: false, capabilities: ['output'], category: 'data', description: 'Database queries and storage' },
-];
+// MOCK_MCP_SERVERS removed — MCP servers now come from mcpStore (real backend) and registry
 
 // Skill categories
 export type SkillCategory = 'content' | 'analysis' | 'development' | 'domain';
@@ -282,16 +274,7 @@ export interface Skill {
   category: SkillCategory;
 }
 
-export const MOCK_SKILLS: Skill[] = [
-  { id: 'skill-frontend-slides', name: 'Frontend Slides', icon: 'presentation', enabled: true, added: true, description: 'HTML presentations', category: 'content' },
-  { id: 'skill-openai-whisper', name: 'OpenAI Whisper', icon: 'mic', enabled: false, added: false, description: 'Speech-to-text', category: 'content' },
-  { id: 'skill-weather', name: 'Weather', icon: 'cloud', enabled: false, added: false, description: 'Weather data', category: 'domain' },
-  { id: 'skill-coding-agent', name: 'Coding Agent', icon: 'code', enabled: true, added: true, description: 'Code generation', category: 'development' },
-  { id: 'skill-feedback-analyzer', name: 'Feedback Analyzer', icon: 'bar-chart-3', enabled: false, added: false, description: 'Analyze feedback', category: 'analysis' },
-  { id: 'skill-maritime-expert', name: 'Maritime Expert', icon: 'anchor', enabled: true, added: true, description: 'Maritime domain', category: 'domain' },
-  { id: 'skill-github', name: 'GitHub', icon: 'git-branch', enabled: false, added: false, description: 'Repository ops', category: 'development' },
-  { id: 'skill-web-design', name: 'Web Design', icon: 'palette', enabled: false, added: false, description: 'UI guidelines', category: 'content' },
-];
+// MOCK_SKILLS removed — skills now derive from registry.ts installed state
 
 // Mock Agents
 export interface AgentDef {
@@ -335,13 +318,7 @@ export interface Connector {
   hint?: string;
 }
 
-export const MOCK_CONNECTORS: Connector[] = [
-  { id: 'conn-notion-wiki', service: 'notion', name: 'Product Wiki', mcpServerId: 'mcp-notion', direction: 'read', enabled: true, config: { page_id: 'abc123' }, status: 'connected', authMethod: 'oauth', url: 'https://notion.so/product-wiki', hint: 'Product Roadmap Q1' },
-  { id: 'conn-slack-product', service: 'slack', name: '#product-updates', mcpServerId: 'mcp-slack', direction: 'read', enabled: true, config: { channel: 'product-updates' }, status: 'connected', authMethod: 'oauth', hint: 'Latest product announcements' },
-  { id: 'conn-hubspot-crm', service: 'hubspot', name: 'CRM Contacts', mcpServerId: 'mcp-hubspot', direction: 'both', enabled: true, config: { object: 'contacts' }, status: 'configured', authMethod: 'oauth', url: 'https://app.hubspot.com/contacts', hint: 'Feedback DB' },
-  { id: 'conn-granola-notes', service: 'granola', name: 'Meeting Notes', mcpServerId: 'mcp-granola', direction: 'read', enabled: false, config: {}, status: 'available', authMethod: 'api-key' },
-  { id: 'conn-slack-reports', service: 'slack', name: '#reports', mcpServerId: 'mcp-slack', direction: 'write', enabled: true, config: { channel: 'reports' }, status: 'connected', authMethod: 'oauth' },
-];
+// MOCK_CONNECTORS removed — connectors now populated dynamically from MCP server connections
 
 export const PRESETS: Preset[] = [
   {
