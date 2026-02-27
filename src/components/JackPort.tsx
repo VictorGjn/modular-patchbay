@@ -7,14 +7,16 @@ interface JackPortProps {
   label: string;
   color?: string;
   id?: string;
+  /** When set, positions the port absolutely on the node edge at this CSS top value (e.g. '25%', '60px'). */
+  offset?: string;
 }
 
-export function JackPort({ type, position, label, color = '#FE5000', id }: JackPortProps) {
+export function JackPort({ type, position, label, color = '#FE5000', id, offset }: JackPortProps) {
   const isLeft = position === Position.Left;
   const shortLabel = type === 'target' ? 'IN' : 'OUT';
   const t = useTheme();
 
-  return (
+  const inner = (
     <div
       className="flex items-center gap-1.5"
       style={{
