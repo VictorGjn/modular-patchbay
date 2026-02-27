@@ -349,7 +349,7 @@ export const PromptNode = memo(function PromptNode() {
           onClick={() => { if (!running) run(); }}
           disabled={running}
           aria-label={running ? 'Running preview' : 'Run preview'}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-md text-[11px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center nodrag"
+          className="flex items-center gap-2 px-5 py-2.5 rounded text-[13px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center nodrag"
           style={{
             background: running ? '#CC4000' : '#FE5000',
             color: '#fff',
@@ -366,7 +366,7 @@ export const PromptNode = memo(function PromptNode() {
           type="button"
           onClick={() => setShowSaveModal(true)}
           aria-label="Save as agent"
-          className="flex items-center gap-1.5 px-4 py-2 rounded-md text-[11px] font-semibold tracking-wider uppercase cursor-pointer flex-1 justify-center nodrag"
+          className="flex items-center gap-2 px-5 py-2.5 rounded text-[13px] font-semibold tracking-wider uppercase cursor-pointer flex-1 justify-center nodrag"
           style={{
             background: 'transparent',
             border: `1px solid ${t.border}`,

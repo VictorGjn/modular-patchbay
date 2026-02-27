@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useEffect, type DragEvent } from 'react';
+import { memo, useState, useCallback, useEffect, useRef, type DragEvent } from 'react';
 import { Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
@@ -12,6 +12,8 @@ import {
   LayoutGrid, List, Check, X, Upload, Plug, Search, FileText, FileCode, File, Loader2,
   FolderOpen,
 } from 'lucide-react';
+import { Tile } from '../components/Tile';
+import { useAutoListMode } from '../hooks/useAutoListMode';
 
 const KNOWLEDGE_TYPE_ORDER: KnowledgeType[] = [
   'ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact',
@@ -128,19 +130,19 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
               type="button"
               onClick={() => setViewMode('card')}
               aria-label="Card view"
-              className="p-0.5 border-none cursor-pointer nodrag rounded"
+              className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
               style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}
             >
-              <LayoutGrid size={12} />
+              <LayoutGrid size={14} />
             </button>
             <button
               type="button"
               onClick={() => setViewMode('list')}
               aria-label="List view"
-              className="p-0.5 border-none cursor-pointer nodrag rounded"
+              className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
               style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}
             >
-              <List size={12} />
+              <List size={14} />
             </button>
           </div>
         )}
@@ -156,7 +158,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
           type="button"
           onClick={() => setActiveSection('files')}
           aria-label="Local files section"
-          className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none nodrag nowheel"
+          className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded cursor-pointer border-none nodrag nowheel"
           style={{
             background: activeSection === 'files' ? t.surfaceElevated : 'transparent',
             color: activeSection === 'files' ? t.textPrimary : t.textDim,
@@ -171,7 +173,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
           type="button"
           onClick={() => setActiveSection('external')}
           aria-label="External sources section"
-          className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none nodrag nowheel"
+          className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded cursor-pointer border-none nodrag nowheel"
           style={{
             background: activeSection === 'external' ? t.surfaceElevated : 'transparent',
             color: activeSection === 'external' ? t.textPrimary : t.textDim,
@@ -194,6 +196,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
           grouped={grouped}
           collapsed={collapsed}
           dragOverType={dragOverType}
+          viewMode={viewMode}
           toggleCollapse={toggleCollapse}
           toggleChannel={toggleChannel}
           setChannelDepth={setChannelDepth}
@@ -244,7 +247,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
             <button
               type="button"
               onClick={() => setShowConnectorPicker(true)}
-              className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel"
+              className="w-full min-h-[36px] px-4 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel"
               style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3498db'; e.currentTarget.style.color = '#3498db'; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
@@ -329,6 +332,7 @@ interface LocalFilesSectionProps {
   grouped: { type: KnowledgeType; meta: { label: string; color: string; icon: string; instruction: string }; items: ChannelConfig[] }[];
   collapsed: Record<string, boolean>;
   dragOverType: KnowledgeType | null;
+  viewMode: 'card' | 'list';
   toggleCollapse: (type: KnowledgeType) => void;
   toggleChannel: (sourceId: string) => void;
   setChannelDepth: (sourceId: string, depth: number) => void;
@@ -341,13 +345,16 @@ interface LocalFilesSectionProps {
   theme: ReturnType<typeof useTheme>;
 }
 
-function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleCollapse, toggleChannel, setChannelDepth, handleDragStart, handleDragOver, handleDragLeave, handleDrop, setShowFilePicker, fmtTokens, theme: t }: LocalFilesSectionProps) {
+function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMode, toggleCollapse, toggleChannel, setChannelDepth, handleDragStart, handleDragOver, handleDragLeave, handleDrop, setShowFilePicker, fmtTokens, theme: t }: LocalFilesSectionProps) {
   const { tree, scanning, error, loaded, lastDir, scanDirectory } = useKnowledgeStore();
   const addFileChannel = useConsoleStore((s) => s.addFileChannel);
   const readFile = useKnowledgeStore((s) => s.readFile);
   const [scanDir, setScanDir] = useState(lastDir);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const hasAnyChannels = channels.length > 0;
+  const { containerRef: cardContainerRef, autoListMode } = useAutoListMode(240);
+  const effectiveView = autoListMode ? 'list' : viewMode;
+  const allChannelItems = channels.filter((ch) => ch.enabled);
 
   const handleScan = useCallback(() => {
     if (scanDir.trim()) {
@@ -393,7 +400,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
             onClick={handleScan}
             disabled={scanning}
             aria-label="Scan directory"
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] cursor-pointer border-none nodrag nowheel"
+            className="flex items-center gap-1 px-4 py-2 rounded text-[12px] cursor-pointer border-none nodrag nowheel"
             style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace", opacity: scanning ? 0.6 : 1 }}
           >
             {scanning ? <Loader2 size={10} className="animate-spin" /> : <Search size={10} />}
@@ -428,7 +435,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
             type="button"
             onClick={() => void handleAddSelected()}
             aria-label={`Confirm adding ${selectedFiles.size} files`}
-            className="flex-1 py-1.5 rounded-md text-[10px] cursor-pointer border-none nodrag nowheel font-semibold tracking-wide"
+            className="flex-1 py-2 rounded text-[12px] cursor-pointer border-none nodrag nowheel font-semibold tracking-wide"
             style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace" }}
           >
             Confirm ({selectedFiles.size})
@@ -437,7 +444,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
             type="button"
             onClick={() => setSelectedFiles(new Set())}
             aria-label="Reset file selection"
-            className="py-1.5 px-2 rounded-md text-[10px] cursor-pointer nodrag nowheel"
+            className="py-2 px-4 rounded text-[12px] cursor-pointer nodrag nowheel"
             style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace" }}
           >
             Reset
@@ -445,70 +452,94 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
         </div>
       )}
 
-      {/* Existing channels grouped by type */}
+      {/* Existing channels — card or grouped list view */}
       {hasAnyChannels && (
-        <div className="overflow-y-auto nowheel" style={{ maxHeight: 200 }}>
-          <div className="py-1">
-            {grouped.map(({ type, meta, items }) => {
-              const isCollapsed = items.length === 0 || collapsed[type];
-              const isEmpty = items.length === 0;
-              const isDragTarget = dragOverType === type;
-
-              return (
-                <div
-                  key={type}
-                  onDragOver={(e) => handleDragOver(e as unknown as DragEvent, type)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e as unknown as DragEvent, type)}
-                  style={{
-                    border: isDragTarget ? `1px dashed ${meta.color}` : '1px solid transparent',
-                    borderRadius: 6,
-                    margin: '0 4px',
-                    transition: 'border-color 150ms ease',
-                  }}
-                >
-                  <button
-                    type="button"
-                    aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${meta.label} group`}
-                    className="flex items-center gap-1.5 w-full px-3 py-1.5 border-none cursor-pointer nodrag nowheel"
-                    style={{ background: 'transparent', opacity: isEmpty ? 0.4 : 1 }}
-                    onClick={() => !isEmpty && toggleCollapse(type)}
-                  >
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: meta.color }} />
-                    <span className="flex-1 text-left" style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em', color: isEmpty ? t.textFaint : t.textSecondary }}>
-                      {meta.label}
-                    </span>
-                    <span className="text-[10px] px-1 rounded-full" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: items.length > 0 ? t.badgeBg : 'transparent', minWidth: 16, textAlign: 'center' }}>
-                      {items.length}
-                    </span>
-                    {!isEmpty && (
-                      <span style={{ color: t.textDim, fontSize: 10, transition: 'transform 200ms ease', display: 'inline-block', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
-                        &#9662;
-                      </span>
-                    )}
-                  </button>
-
-                  <div style={{ maxHeight: isCollapsed ? 0 : items.length * 32 + 4, overflow: 'hidden', transition: 'max-height 200ms ease' }}>
-                    {items.map((ch) => (
-                      <FileRow
-                        key={ch.sourceId}
-                        sourceId={ch.sourceId}
-                        name={ch.name}
-                        enabled={ch.enabled}
-                        depth={ch.depth}
-                        baseTokens={ch.baseTokens}
-                        onToggle={() => toggleChannel(ch.sourceId)}
-                        onDepthChange={(d) => setChannelDepth(ch.sourceId, d)}
-                        onDragStart={(e) => handleDragStart(e, ch.sourceId)}
-                        fmtTokens={fmtTokens}
-                        theme={t}
-                      />
-                    ))}
-                  </div>
+        <div ref={cardContainerRef} className="overflow-y-auto nowheel" style={{ maxHeight: 240 }}>
+          {effectiveView === 'card' ? (
+            <div className="p-3" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+              {allChannelItems.length === 0 ? (
+                <div className="flex items-center justify-center py-3 w-full">
+                  <span className="text-[11px]" style={{ color: t.textFaint }}>No active channels</span>
                 </div>
-              );
-            })}
-          </div>
+              ) : allChannelItems.map((ch) => {
+                const kType = KNOWLEDGE_TYPE_ORDER[ch.knowledgeType] ?? 'evidence';
+                const meta = KNOWLEDGE_TYPES[kType];
+                return (
+                  <Tile
+                    key={ch.sourceId}
+                    name={ch.name}
+                    active={ch.enabled}
+                    icon={<FileText size={14} />}
+                    subtitle={meta.label}
+                    colorStripe={meta.color}
+                    onClick={() => toggleChannel(ch.sourceId)}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-1">
+              {grouped.map(({ type, meta, items }) => {
+                const isCollapsed = items.length === 0 || collapsed[type];
+                const isEmpty = items.length === 0;
+                const isDragTarget = dragOverType === type;
+
+                return (
+                  <div
+                    key={type}
+                    onDragOver={(e) => handleDragOver(e as unknown as DragEvent, type)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e as unknown as DragEvent, type)}
+                    style={{
+                      border: isDragTarget ? `1px dashed ${meta.color}` : '1px solid transparent',
+                      borderRadius: 6,
+                      margin: '0 4px',
+                      transition: 'border-color 150ms ease',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${meta.label} group`}
+                      className="flex items-center gap-1.5 w-full px-3 py-1.5 border-none cursor-pointer nodrag nowheel"
+                      style={{ background: 'transparent', opacity: isEmpty ? 0.4 : 1 }}
+                      onClick={() => !isEmpty && toggleCollapse(type)}
+                    >
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: meta.color }} />
+                      <span className="flex-1 text-left" style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em', color: isEmpty ? t.textFaint : t.textSecondary }}>
+                        {meta.label}
+                      </span>
+                      <span className="text-[10px] px-1 rounded-full" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: items.length > 0 ? t.badgeBg : 'transparent', minWidth: 16, textAlign: 'center' }}>
+                        {items.length}
+                      </span>
+                      {!isEmpty && (
+                        <span style={{ color: t.textDim, fontSize: 10, transition: 'transform 200ms ease', display: 'inline-block', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+                          &#9662;
+                        </span>
+                      )}
+                    </button>
+
+                    <div style={{ maxHeight: isCollapsed ? 0 : items.length * 32 + 4, overflow: 'hidden', transition: 'max-height 200ms ease' }}>
+                      {items.map((ch) => (
+                        <FileRow
+                          key={ch.sourceId}
+                          sourceId={ch.sourceId}
+                          name={ch.name}
+                          enabled={ch.enabled}
+                          depth={ch.depth}
+                          baseTokens={ch.baseTokens}
+                          onToggle={() => toggleChannel(ch.sourceId)}
+                          onDepthChange={(d) => setChannelDepth(ch.sourceId, d)}
+                          onDragStart={(e) => handleDragStart(e, ch.sourceId)}
+                          fmtTokens={fmtTokens}
+                          theme={t}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -518,7 +549,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
           type="button"
           onClick={() => setShowFilePicker(true)}
           aria-label="Add knowledge files"
-          className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel"
+          className="w-full min-h-[36px] px-4 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
