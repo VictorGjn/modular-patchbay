@@ -3,6 +3,7 @@ import { useThemeStore } from '../store/themeStore';
 import { useTheme } from '../theme';
 import { PRESETS, OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
+import { useMemo } from 'react';
 import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings, ShoppingBag } from 'lucide-react';
 import { OutputIcon } from './icons/SectionIcons';
 import { useProviderStore } from '../store/providerStore';
@@ -50,7 +51,9 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
   const skills = useConsoleStore((s) => s.skills);
   const agentMeta = useConsoleStore((s) => s.agentMeta);
   const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
-  const allModels = useProviderStore((s) => s.getAllModels());
+  const getAllModels = useProviderStore((s) => s.getAllModels);
+  const providers = useProviderStore((s) => s.providers);
+  const allModels = useMemo(() => getAllModels(), [getAllModels, providers]);
 
   const handleExport = () => {
     const content = exportAsAgent({ channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta });
