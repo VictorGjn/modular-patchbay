@@ -288,9 +288,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     const isAgentSdk = activeProvider?.authMethod === 'claude-agent-sdk';
 
     if (!isAgentSdk) {
-      const apiKey = getStoredApiKey();
-      if (!apiKey) {
-        set({ mockResponse: 'Error: No API key configured. Click the gear icon in the topbar to set your API key.' });
+      if (!activeProvider?.apiKey) {
+        set({ mockResponse: 'Error: No API key configured. Open Settings → Providers to add your API key.' });
         return;
       }
     }
@@ -298,8 +297,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     set({ running: true, mockResponse: '' });
 
     const messages = assembleContext(channels, prompt);
-    const modelOverride = getStoredModelOverride();
-    const model = modelOverride || get().selectedModel;
+    const model = get().agentConfig.model;
 
     let accumulated = '';
 
@@ -330,12 +328,9 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       return;
     }
 
-    const apiKey = getStoredApiKey();
-    const baseUrl = getStoredBaseUrl();
-
     const controller = streamCompletion({
-      apiKey,
-      baseUrl,
+      apiKey: activeProvider?.apiKey || '',
+      baseUrl: activeProvider?.baseUrl,
       model,
       messages,
       onChunk: (text) => {

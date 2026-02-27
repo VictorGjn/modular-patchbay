@@ -324,7 +324,11 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
             body: JSON.stringify({ apiKey: provider.apiKey, baseUrl: provider.baseUrl }),
           });
         }
-        const res = await fetch(`${API_BASE}/providers/${id}/test`, { method: 'POST' });
+        const res = await fetch(`${API_BASE}/providers/${id}/test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey: provider?.apiKey, baseUrl: provider?.baseUrl }),
+        });
         const data = await res.json();
         if (data.status === 'ok') {
           const models = (data.models || []).map((m: string) => ({ id: m, label: m }));
