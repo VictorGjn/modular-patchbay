@@ -139,7 +139,7 @@ function loadProviders(): ProviderConfig[] {
         ...def,
         apiKey: s.apiKey ?? def.apiKey,
         baseUrl: s.baseUrl ?? def.baseUrl,
-        status: s.apiKey ? 'connected' : 'disconnected',
+        status: (s.apiKey ? 'connected' : 'disconnected') as ProviderStatus,
       };
     }).concat(
       // Keep any custom providers the user added
