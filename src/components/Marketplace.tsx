@@ -109,7 +109,7 @@ export function Marketplace() {
       className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={() => setShowMarketplace(false)}
     >
-      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)' }} />
+      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.90)', backdropFilter: 'blur(4px)', zIndex: 9999 }} />
 
       <div
         className="relative flex flex-col rounded-md overflow-hidden"

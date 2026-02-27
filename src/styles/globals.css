@@ -78,3 +78,20 @@ html, body, #root {
   box-shadow: none !important;
   padding: 0 !important;
 }
+
+/* B14: Zoom controls visibility */
+.zoom-controls .react-flow__controls-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+.zoom-controls .react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+.zoom-controls .react-flow__controls-button svg {
+  max-width: 14px;
+  max-height: 14px;
+}
