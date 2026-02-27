@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG, type Connector, MOCK_CONNECTORS } from './knowledgeBase';
+import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_AGENTS, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG, type Connector } from './knowledgeBase';
 import { REGISTRY_SKILLS, REGISTRY_MCP_SERVERS, type RegistrySkill, type RegistryMcp, type Runtime, type InstallScope } from './registry';
+import type { FileContent } from './knowledgeStore';
 import { streamCompletion, streamAgentSdk } from '../services/llmService';
 import { assembleContext } from '../services/contextAssembler';
 import { getStoredApiKey, getStoredBaseUrl, getStoredModelOverride } from '../components/SettingsModal';
@@ -130,6 +131,9 @@ export interface ConsoleState {
   // Marketplace actions
   installRegistrySkill: (id: string, target: Runtime | 'all', scope: InstallScope) => void;
   installRegistryMcp: (id: string) => void;
+
+  // File knowledge actions
+  addFileChannel: (file: FileContent) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -160,10 +164,18 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   registryMcpServers: REGISTRY_MCP_SERVERS.map((s) => ({ ...s })),
   agentConfig: { ...DEFAULT_AGENT_CONFIG },
   agentMeta: { name: '', description: '', icon: 'brain', category: 'general' },
-  mcpServers: MOCK_MCP_SERVERS.map((s) => ({ ...s })),
-  skills: MOCK_SKILLS.map((s) => ({ ...s })),
+  mcpServers: [] as McpServer[],
+  skills: REGISTRY_SKILLS.filter((s) => s.installed).map((s) => ({
+    id: s.id,
+    name: s.name,
+    icon: s.icon,
+    enabled: true,
+    added: true,
+    description: s.description,
+    category: s.category === 'coding' ? 'development' as const : s.category === 'research' ? 'analysis' as const : s.category === 'design' ? 'content' as const : s.category === 'writing' ? 'content' as const : s.category === 'domain' ? 'domain' as const : 'content' as const,
+  })),
   agents: MOCK_AGENTS.map((a) => ({ ...a })),
-  connectors: MOCK_CONNECTORS.map((c) => ({ ...c })),
+  connectors: [] as Connector[],
   pendingKnowledge: [],
   suggestedSkills: [],
 
@@ -509,19 +521,59 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   },
 
   installRegistrySkill: (id: string, target: Runtime | 'all', scope: InstallScope) => {
-    set({
-      registrySkills: get().registrySkills.map((s) =>
-        s.id === id ? { ...s, installed: true, installedTarget: target, installedScope: scope } : s,
-      ),
-    });
+    const regSkill = get().registrySkills.find((s) => s.id === id);
+    const updatedRegistry = get().registrySkills.map((s) =>
+      s.id === id ? { ...s, installed: true, installedTarget: target, installedScope: scope } : s,
+    );
+    const alreadyInSkills = get().skills.some((s) => s.id === id);
+    const updatedSkills = alreadyInSkills ? get().skills : regSkill ? [...get().skills, {
+      id: regSkill.id,
+      name: regSkill.name,
+      icon: regSkill.icon,
+      enabled: true,
+      added: true,
+      description: regSkill.description,
+      category: (regSkill.category === 'coding' ? 'development' : regSkill.category === 'research' ? 'analysis' : regSkill.category === 'design' || regSkill.category === 'writing' ? 'content' : regSkill.category === 'domain' ? 'domain' : 'content') as Skill['category'],
+    }] : get().skills;
+    set({ registrySkills: updatedRegistry, skills: updatedSkills });
   },
 
   installRegistryMcp: (id: string) => {
-    set({
-      registryMcpServers: get().registryMcpServers.map((s) =>
-        s.id === id ? { ...s, installed: true, configured: true } : s,
-      ),
-    });
+    const regMcp = get().registryMcpServers.find((s) => s.id === id);
+    const updatedRegistry = get().registryMcpServers.map((s) =>
+      s.id === id ? { ...s, installed: true, configured: true } : s,
+    );
+    // Sync to mcpServers for UI components that read consoleStore.mcpServers
+    const alreadyInMcp = get().mcpServers.some((s) => s.id === id);
+    const updatedMcp = alreadyInMcp ? get().mcpServers : regMcp ? [...get().mcpServers, {
+      id: regMcp.id,
+      name: regMcp.name,
+      icon: regMcp.icon,
+      connected: true,
+      enabled: true,
+      added: true,
+      capabilities: ['input', 'output'],
+      category: (regMcp.category === 'coding' ? 'development' : regMcp.category === 'research' ? 'data' : regMcp.category === 'writing' ? 'productivity' : regMcp.category === 'data' ? 'data' : 'data') as McpServer['category'],
+      description: regMcp.description,
+    }] : get().mcpServers;
+    set({ registryMcpServers: updatedRegistry, mcpServers: updatedMcp });
+  },
+
+  addFileChannel: (file: FileContent) => {
+    const { channels } = get();
+    const sourceId = `file:${file.path}`;
+    if (channels.some((ch) => ch.sourceId === sourceId)) return;
+    const newChannel: ChannelConfig = {
+      sourceId,
+      name: file.path.split('/').pop() ?? file.path,
+      path: file.path,
+      category: 'knowledge',
+      knowledgeType: (file.knowledgeType as KnowledgeType) || 'evidence',
+      enabled: true,
+      depth: 0,
+      baseTokens: file.tokenEstimate,
+    };
+    set({ channels: [...channels, newChannel], selectedPreset: '' });
   },
 }));
 
