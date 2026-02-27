@@ -1,15 +1,20 @@
 import { memo, useState, useCallback, useEffect, type DragEvent } from 'react';
 import { Position } from '@xyflow/react';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
-import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/knowledgeBase';
+import { KNOWLEDGE_TYPES, type KnowledgeType } from '../store/knowledgeBase';
 import { ConnectorTile } from '../components/ConnectorTile';
 import { JackPort } from '../components/JackPort';
 import { useTheme } from '../theme';
-import { BookOpen, ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightIcon, LayoutGrid, List, Check, X } from 'lucide-react';
+import {
+  BookOpen, ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightIcon,
+  LayoutGrid, List, Check, X, Upload, Plug,
+} from 'lucide-react';
 
 const KNOWLEDGE_TYPE_ORDER: KnowledgeType[] = [
   'ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact',
 ];
+
+const DEPTH_NAMES = ['Summary', 'Key Points', 'Details', 'Full', 'Verbatim'];
 
 export const KnowledgeNode = memo(function KnowledgeNode() {
   const channels = useConsoleStore((s) => s.channels);
@@ -33,6 +38,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
   const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
     try { return (localStorage.getItem('knowledge-node-view') as 'card' | 'list') || 'card'; } catch { return 'card'; }
   });
+  const [activeSection, setActiveSection] = useState<'files' | 'external'>('files');
   const readConnectors = connectors.filter((c) => c.direction === 'read' || c.direction === 'both');
 
   useEffect(() => {
@@ -137,132 +143,182 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
 
       {/* Content — hidden when collapsed */}
       {nodeCollapsed ? null : <>
-      <div className="overflow-y-auto nowheel" style={{ maxHeight: 340 }}>
-        {!hasAnyChannels ? (
-          <div className="flex items-center justify-center py-6">
-            <span className="text-xs" style={{ color: t.textFaint }}>No sources loaded</span>
-          </div>
-        ) : (
-          <div className="py-1">
-            {grouped.map(({ type, meta, items }) => {
-              const isCollapsed = items.length === 0 || collapsed[type];
-              const isEmpty = items.length === 0;
-              const isDragTarget = dragOverType === type;
 
-              return (
-                <div
-                  key={type}
-                  onDragOver={(e) => handleDragOver(e, type)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, type)}
-                  style={{
-                    border: isDragTarget ? `1px dashed ${meta.color}` : '1px solid transparent',
-                    borderRadius: 6,
-                    margin: '0 4px',
-                    transition: 'border-color 150ms ease',
-                  }}
-                >
-                  {/* Section header */}
-                  <button
-                    type="button"
-                    className="flex items-center gap-1.5 w-full px-3 py-1.5 border-none cursor-pointer nodrag"
-                    style={{
-                      background: 'transparent',
-                      opacity: isEmpty ? 0.4 : 1,
-                    }}
-                    onClick={() => !isEmpty && toggleCollapse(type)}
-                  >
-                    <span
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: meta.color }}
-                    />
-                    <span
-                      className="flex-1 text-left"
-                      style={{
-                        fontSize: 10,
-                        fontFamily: "'Space Mono', monospace",
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        color: isEmpty ? t.textFaint : t.textSecondary,
-                      }}
-                    >
-                      {meta.label}
-                    </span>
-                    <span
-                      className="text-[10px] px-1 rounded-full"
-                      style={{
-                        fontFamily: "'Space Mono', monospace",
-                        color: t.textDim,
-                        background: items.length > 0 ? t.badgeBg : 'transparent',
-                        minWidth: 16,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {items.length}
-                    </span>
-                    {!isEmpty && (
-                      <span
-                        style={{ color: t.textDim, fontSize: 10, transition: 'transform 200ms ease', display: 'inline-block', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
-                      >
-                        &#9662;
-                      </span>
-                    )}
-                  </button>
-
-                  {/* Section items */}
-                  <div
-                    style={{
-                      maxHeight: isCollapsed ? 0 : items.length * 32 + 4,
-                      overflow: 'hidden',
-                      transition: 'max-height 200ms ease',
-                    }}
-                  >
-                    {items.map((ch) => (
-                      <FileRow
-                        key={ch.sourceId}
-                        sourceId={ch.sourceId}
-                        name={ch.name}
-                        enabled={ch.enabled}
-                        depth={ch.depth}
-                        baseTokens={ch.baseTokens}
-                        onToggle={() => toggleChannel(ch.sourceId)}
-                        onDepthChange={(d) => setChannelDepth(ch.sourceId, d)}
-                        onDragStart={(e) => handleDragStart(e, ch.sourceId)}
-                        fmtTokens={fmtTokens}
-                        theme={t}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+      {/* Section tabs */}
+      <div className="flex px-3 pt-2 gap-1 nodrag nowheel">
+        <button
+          type="button"
+          onClick={() => setActiveSection('files')}
+          className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none nodrag nowheel"
+          style={{
+            background: activeSection === 'files' ? t.surfaceElevated : 'transparent',
+            color: activeSection === 'files' ? t.textPrimary : t.textDim,
+            fontFamily: "'Space Mono', monospace",
+            fontWeight: activeSection === 'files' ? 600 : 400,
+            transition: 'all 0.12s ease',
+          }}
+        >
+          <Upload size={10} /> Local Files
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSection('external')}
+          className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none nodrag nowheel"
+          style={{
+            background: activeSection === 'external' ? t.surfaceElevated : 'transparent',
+            color: activeSection === 'external' ? t.textPrimary : t.textDim,
+            fontFamily: "'Space Mono', monospace",
+            fontWeight: activeSection === 'external' ? 600 : 400,
+            transition: 'all 0.12s ease',
+          }}
+        >
+          <Plug size={10} /> External Sources
+          {readConnectors.length > 0 && (
+            <span className="text-[8px] px-1 rounded-full" style={{ background: t.badgeBg, color: t.textDim }}>{readConnectors.length}</span>
+          )}
+        </button>
       </div>
 
-      {/* Connectors section */}
-      {readConnectors.length > 0 && (
-        <div className="px-3 pt-1 pb-2">
-          <div className="flex items-center gap-2 mb-1.5">
-            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
-            <span className="text-[9px] tracking-wider uppercase" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Connectors</span>
-            <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            {readConnectors.map((c) => (
-              <ConnectorTile
-                key={c.id}
-                service={c.service}
-                name={c.name}
+      {/* ── LOCAL FILES SECTION ── */}
+      {activeSection === 'files' && (
+        <>
+          <div className="overflow-y-auto nowheel" style={{ maxHeight: 340 }}>
+            {!hasAnyChannels ? (
+              <div
+                className="flex flex-col items-center justify-center py-6 mx-3 my-2 rounded-lg nodrag nowheel"
+                style={{ border: `2px dashed ${t.border}`, background: t.surfaceHover }}
+              >
+                <Upload size={20} style={{ color: t.textFaint, marginBottom: 6 }} />
+                <span className="text-[10px]" style={{ color: t.textDim }}>Drop files here or click Add</span>
+              </div>
+            ) : (
+              <div className="py-1">
+                {grouped.map(({ type, meta, items }) => {
+                  const isCollapsed = items.length === 0 || collapsed[type];
+                  const isEmpty = items.length === 0;
+                  const isDragTarget = dragOverType === type;
 
-                status={c.status}
-                enabled={c.enabled}
-                showDirection="read"
-                onClick={() => toggleConnector(c.id)}
-              />
-            ))}
+                  return (
+                    <div
+                      key={type}
+                      onDragOver={(e) => handleDragOver(e, type)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, type)}
+                      style={{
+                        border: isDragTarget ? `1px dashed ${meta.color}` : '1px solid transparent',
+                        borderRadius: 6,
+                        margin: '0 4px',
+                        transition: 'border-color 150ms ease',
+                      }}
+                    >
+                      {/* Section header */}
+                      <button
+                        type="button"
+                        className="flex items-center gap-1.5 w-full px-3 py-1.5 border-none cursor-pointer nodrag"
+                        style={{ background: 'transparent', opacity: isEmpty ? 0.4 : 1 }}
+                        onClick={() => !isEmpty && toggleCollapse(type)}
+                      >
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: meta.color }} />
+                        <span className="flex-1 text-left" style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em', color: isEmpty ? t.textFaint : t.textSecondary }}>
+                          {meta.label}
+                        </span>
+                        <span className="text-[10px] px-1 rounded-full" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: items.length > 0 ? t.badgeBg : 'transparent', minWidth: 16, textAlign: 'center' }}>
+                          {items.length}
+                        </span>
+                        {!isEmpty && (
+                          <span style={{ color: t.textDim, fontSize: 10, transition: 'transform 200ms ease', display: 'inline-block', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+                            &#9662;
+                          </span>
+                        )}
+                      </button>
+
+                      {/* Section items */}
+                      <div style={{ maxHeight: isCollapsed ? 0 : items.length * 32 + 4, overflow: 'hidden', transition: 'max-height 200ms ease' }}>
+                        {items.map((ch) => (
+                          <FileRow
+                            key={ch.sourceId}
+                            sourceId={ch.sourceId}
+                            name={ch.name}
+                            enabled={ch.enabled}
+                            depth={ch.depth}
+                            baseTokens={ch.baseTokens}
+                            onToggle={() => toggleChannel(ch.sourceId)}
+                            onDepthChange={(d) => setChannelDepth(ch.sourceId, d)}
+                            onDragStart={(e) => handleDragStart(e, ch.sourceId)}
+                            fmtTokens={fmtTokens}
+                            theme={t}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
+
+          {/* Add files button */}
+          <div className="px-3 pb-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setShowFilePicker(true)}
+              className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel"
+              style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+            >
+              + Add Files ⌘K
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── EXTERNAL SOURCES SECTION ── */}
+      {activeSection === 'external' && (
+        <>
+          <div className="overflow-y-auto nowheel px-3 py-2" style={{ maxHeight: 340 }}>
+            {readConnectors.length === 0 ? (
+              <div
+                className="flex flex-col items-center justify-center py-6 rounded-lg nodrag nowheel"
+                style={{ border: `2px dashed ${t.border}`, background: t.surfaceHover }}
+              >
+                <Plug size={20} style={{ color: t.textFaint, marginBottom: 6 }} />
+                <span className="text-[10px]" style={{ color: t.textDim }}>No connectors configured</span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {readConnectors.map((c) => (
+                  <ConnectorTile
+                    key={c.id}
+                    service={c.service}
+                    name={c.name}
+                    status={c.status}
+                    enabled={c.enabled}
+                    showDirection="read"
+                    url={c.url}
+                    hint={c.hint}
+                    authMethod={c.authMethod}
+                    onClick={() => toggleConnector(c.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Add connector button */}
+          <div className="px-3 pb-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setShowConnectorPicker(true)}
+              className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel"
+              style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3498db'; e.currentTarget.style.color = '#3498db'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+            >
+              + Add Connector
+            </button>
+          </div>
+        </>
       )}
 
       {/* Feedback ghost tiles */}
@@ -279,34 +335,19 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
               <div
                 key={item.id}
                 className="ghost-tile flex items-center gap-2 px-2.5 py-1.5 rounded-md nodrag"
-                style={{
-                  border: `1px dashed #00d4ff40`,
-                  background: t.isDark ? 'rgba(0,212,255,0.04)' : 'rgba(0,212,255,0.06)',
-                }}
+                style={{ border: `1px dashed #00d4ff40`, background: t.isDark ? 'rgba(0,212,255,0.04)' : 'rgba(0,212,255,0.06)' }}
               >
-                <span
-                  className="flex-1 truncate text-[10px]"
-                  style={{ fontFamily: "'Inter', sans-serif", color: t.textSecondary }}
-                >
+                <span className="flex-1 truncate text-[10px]" style={{ fontFamily: "'Inter', sans-serif", color: t.textSecondary }}>
                   {item.name}
                 </span>
-                <span
-                  className="text-[8px] tracking-wide uppercase px-1 rounded"
-                  style={{ color: '#00d4ff', fontFamily: "'Space Mono', monospace", background: 'rgba(0,212,255,0.1)' }}
-                >
+                <span className="text-[8px] tracking-wide uppercase px-1 rounded" style={{ color: '#00d4ff', fontFamily: "'Space Mono', monospace", background: 'rgba(0,212,255,0.1)' }}>
                   {item.type}
                 </span>
                 <button
                   type="button"
                   onClick={() => acceptPendingKnowledge(item.id)}
                   className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
-                  style={{
-                    height: 16,
-                    fontSize: 9,
-                    fontFamily: "'Space Mono', monospace",
-                    background: 'rgba(0,255,136,0.12)',
-                    color: '#00ff88',
-                  }}
+                  style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: 'rgba(0,255,136,0.12)', color: '#00ff88' }}
                 >
                   <Check size={8} /> Add
                 </button>
@@ -314,13 +355,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                   type="button"
                   onClick={() => dismissPendingKnowledge(item.id)}
                   className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
-                  style={{
-                    height: 16,
-                    fontSize: 9,
-                    fontFamily: "'Space Mono', monospace",
-                    background: 'rgba(255,80,80,0.12)',
-                    color: '#ff5050',
-                  }}
+                  style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: 'rgba(255,80,80,0.12)', color: '#ff5050' }}
                 >
                   <X size={8} />
                 </button>
@@ -330,42 +365,18 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         </div>
       )}
 
-      {/* Feedback input port (shown when no pending items yet) */}
+      {/* Feedback input port */}
       {pendingKnowledge.length === 0 && (
         <div className="px-3 py-1 flex justify-end">
           <JackPort type="target" position={Position.Right} label="FEEDBACK" color="#00d4ff" id="knowledge-feedback-in" />
         </div>
       )}
-
-      {/* Add buttons */}
-      <div className="px-3 pb-3 pt-1 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setShowFilePicker(true)}
-          className="flex-1 py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag"
-          style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-        >
-          + Add  ⌘K
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowConnectorPicker(true)}
-          className="py-1.5 px-2 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag"
-          style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3498db'; e.currentTarget.style.color = '#3498db'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-        >
-          + MCP
-        </button>
-      </div>
       </>}
     </div>
   );
 });
 
-/* ── File row with inline depth carousel ── */
+/* ── File row with depth name carousel ── */
 
 interface FileRowProps {
   sourceId: string;
@@ -380,14 +391,17 @@ interface FileRowProps {
   theme: ReturnType<typeof useTheme>;
 }
 
+const DEPTH_DISPLAY = ['Sum', 'Key', 'Det', 'Full', 'Verb'];
+
 function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepthChange, onDragStart, fmtTokens, theme: t }: FileRowProps) {
   const [hovered, setHovered] = useState(false);
   const [leftHover, setLeftHover] = useState(false);
   const [rightHover, setRightHover] = useState(false);
 
   const eff = getEffectiveTokens({ sourceId, name, path: '', category: 'knowledge', knowledgeType: 'evidence', enabled, depth, baseTokens });
-  const depthLabel = DEPTH_LEVELS[depth]?.label ?? 'Full';
-  const maxDepth = DEPTH_LEVELS.length - 1;
+  const maxDepth = DEPTH_DISPLAY.length - 1;
+  const depthName = DEPTH_DISPLAY[depth] ?? DEPTH_DISPLAY[0];
+  const depthFull = DEPTH_NAMES[depth] ?? DEPTH_NAMES[0];
 
   return (
     <div
@@ -396,55 +410,28 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className="flex items-center gap-1.5 px-3 nodrag"
-      style={{
-        height: 28,
-        background: hovered ? t.surfaceHover : 'transparent',
-        borderRadius: 4,
-        transition: 'background 100ms ease',
-        cursor: 'grab',
-      }}
+      style={{ height: 28, background: hovered ? t.surfaceHover : 'transparent', borderRadius: 4, transition: 'background 100ms ease', cursor: 'grab' }}
     >
       {/* Toggle dot */}
       <button
         type="button"
         className="flex-shrink-0 rounded-full border-none cursor-pointer p-0 nodrag nowheel"
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        style={{
-          width: 8,
-          height: 8,
-          background: enabled ? '#00ff88' : t.textFaint,
-          boxShadow: enabled ? '0 0 4px #00ff8866' : 'none',
-          transition: 'background 150ms ease, box-shadow 150ms ease',
-        }}
+        style={{ width: 8, height: 8, background: enabled ? '#00ff88' : t.textFaint, boxShadow: enabled ? '0 0 4px #00ff8866' : 'none', transition: 'background 150ms ease, box-shadow 150ms ease' }}
         title={enabled ? 'Disable' : 'Enable'}
       />
 
       {/* Filename */}
-      <span
-        className="flex-1 truncate"
-        style={{
-          fontSize: 11,
-          fontFamily: "'Inter', sans-serif",
-          color: enabled ? t.textPrimary : t.textDim,
-          minWidth: 0,
-        }}
-      >
+      <span className="flex-1 truncate" style={{ fontSize: 11, fontFamily: "'Inter', sans-serif", color: enabled ? t.textPrimary : t.textDim, minWidth: 0 }}>
         {name}
       </span>
 
-      {/* Depth carousel */}
+      {/* Depth carousel with names */}
       <div className="flex items-center gap-0 flex-shrink-0 nodrag nowheel">
         <button
           type="button"
           className="border-none cursor-pointer p-0 flex items-center justify-center nodrag nowheel"
-          style={{
-            width: 16,
-            height: 16,
-            background: 'transparent',
-            color: leftHover ? '#FE5000' : t.textDim,
-            opacity: depth <= 0 ? 0.3 : 1,
-            transition: 'color 100ms ease',
-          }}
+          style={{ width: 16, height: 16, background: 'transparent', color: leftHover ? '#FE5000' : t.textDim, opacity: depth <= 0 ? 0.3 : 1, transition: 'color 100ms ease' }}
           onMouseEnter={() => setLeftHover(true)}
           onMouseLeave={() => setLeftHover(false)}
           onClick={(e) => { e.stopPropagation(); if (depth > 0) onDepthChange(depth - 1); }}
@@ -453,29 +440,15 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
           <ChevronLeft size={12} />
         </button>
         <span
-          style={{
-            fontSize: 10,
-            fontFamily: "'Space Mono', monospace",
-            color: t.textMuted,
-            minWidth: 28,
-            textAlign: 'center',
-            userSelect: 'none',
-          }}
-          title={depthLabel}
+          style={{ fontSize: 9, fontFamily: "'Space Mono', monospace", color: t.textMuted, minWidth: 32, textAlign: 'center', userSelect: 'none' }}
+          title={depthFull}
         >
-          {depth}/{maxDepth}
+          {depthName}
         </span>
         <button
           type="button"
           className="border-none cursor-pointer p-0 flex items-center justify-center nodrag nowheel"
-          style={{
-            width: 16,
-            height: 16,
-            background: 'transparent',
-            color: rightHover ? '#FE5000' : t.textDim,
-            opacity: depth >= maxDepth ? 0.3 : 1,
-            transition: 'color 100ms ease',
-          }}
+          style={{ width: 16, height: 16, background: 'transparent', color: rightHover ? '#FE5000' : t.textDim, opacity: depth >= maxDepth ? 0.3 : 1, transition: 'color 100ms ease' }}
           onMouseEnter={() => setRightHover(true)}
           onMouseLeave={() => setRightHover(false)}
           onClick={(e) => { e.stopPropagation(); if (depth < maxDepth) onDepthChange(depth + 1); }}
@@ -486,16 +459,7 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
       </div>
 
       {/* Token count */}
-      <span
-        className="flex-shrink-0"
-        style={{
-          fontSize: 10,
-          fontFamily: "'Space Mono', monospace",
-          color: t.textDim,
-          minWidth: 30,
-          textAlign: 'right',
-        }}
-      >
+      <span className="flex-shrink-0" style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", color: t.textDim, minWidth: 30, textAlign: 'right' }}>
         {fmtTokens(eff)}
       </span>
     </div>
