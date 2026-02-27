@@ -23,8 +23,12 @@ router.put('/:id', (req, res) => {
     const config = readConfig();
     const idx = config.providers.findIndex((p) => p.id === req.params.id);
     if (idx === -1) {
-        const resp = { status: 'error', error: 'Provider not found' };
-        res.status(404).json(resp);
+        // Upsert: create if not found
+        const newProvider = { id: req.params.id, name: req.params.id, type: 'custom', apiKey: '', baseUrl: '', ...req.body };
+        config.providers.push(newProvider);
+        writeConfig(config);
+        const resp = { status: 'ok', data: newProvider };
+        res.json(resp);
         return;
     }
     config.providers[idx] = { ...config.providers[idx], ...req.body };
@@ -47,15 +51,26 @@ router.delete('/:id', (req, res) => {
 });
 router.post('/:id/test', async (req, res) => {
     const config = readConfig();
-    const provider = config.providers.find((p) => p.id === req.params.id);
+    let provider = config.providers.find((p) => p.id === req.params.id);
+    // Allow testing with inline credentials from request body
+    if (!provider && req.body?.apiKey) {
+        provider = { id: req.params.id, name: req.params.id, type: 'custom', apiKey: req.body.apiKey, baseUrl: req.body.baseUrl || '' };
+    }
     if (!provider) {
-        const resp = { status: 'error', error: 'Provider not found' };
+        const resp = { status: 'error', error: 'Provider not found and no apiKey provided' };
         res.status(404).json(resp);
         return;
     }
+    // Determine provider type from id or type field
+    const providerType = provider.type || req.params.id;
+    const baseUrl = provider.baseUrl || (providerType.includes('anthropic') ? 'https://api.anthropic.com/v1' :
+        providerType.includes('openai') ? 'https://api.openai.com/v1' :
+            providerType.includes('google') ? 'https://generativelanguage.googleapis.com/v1beta' :
+                providerType.includes('openrouter') ? 'https://openrouter.ai/api/v1' :
+                    '');
     try {
-        if (provider.type === 'anthropic') {
-            const response = await fetch(`${provider.baseUrl}/messages`, {
+        if (providerType.includes('anthropic')) {
+            const response = await fetch(`${baseUrl}/messages`, {
                 method: 'POST',
                 headers: {
                     'x-api-key': provider.apiKey,
@@ -76,11 +91,12 @@ router.post('/:id/test', async (req, res) => {
         }
         else {
             // OpenAI, OpenRouter, Google, Custom — hit /models
-            const url = provider.type === 'google'
-                ? `${provider.baseUrl}/models?key=${provider.apiKey}`
-                : `${provider.baseUrl}/models`;
+            const isGoogle = providerType.includes('google');
+            const url = isGoogle
+                ? `${baseUrl}/models?key=${provider.apiKey}`
+                : `${baseUrl}/models`;
             const headers = {};
-            if (provider.type !== 'google') {
+            if (!isGoogle) {
                 headers['Authorization'] = `Bearer ${provider.apiKey}`;
             }
             const response = await fetch(url, { headers });

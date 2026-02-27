@@ -58,6 +58,7 @@ export const PromptNode = memo(function PromptNode() {
   // Real models from authenticated providers
   const getAllModels = useProviderStore((s) => s.getAllModels);
   const providers = useProviderStore((s) => s.providers);
+  const selectedProviderId = useProviderStore((s) => s.selectedProviderId);
   const selectProvider = useProviderStore((s) => s.selectProvider);
   const allModels = useMemo(() => getAllModels(), [getAllModels, providers]);
   const connectedModels = useMemo(() => {
@@ -222,7 +223,7 @@ export const PromptNode = memo(function PromptNode() {
                 Model
               </label>
               <select
-                value={`${useProviderStore.getState().selectedProviderId}::${agentConfig.model}`}
+                value={`${selectedProviderId}::${agentConfig.model}`}
                 onChange={(e) => {
                   const [pid, ...rest] = e.target.value.split('::');
                   selectProvider(pid);
