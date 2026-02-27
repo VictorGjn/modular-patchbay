@@ -60,7 +60,7 @@ const initialNodes: Node[] = [
   // Center — Hero Prompt node (merged with Agent)
   { id: 'prompt', type: 'prompt', position: { x: 420, y: 120 }, data: {} },
   // Right column
-  { id: 'output', type: 'output', position: { x: 920, y: 40 }, data: {} },
+  { id: 'output', type: 'output', position: { x: 920, y: 120 }, data: {} },
   { id: 'response', type: 'response', position: { x: 920, y: 520 }, data: {} },
 ];
 
