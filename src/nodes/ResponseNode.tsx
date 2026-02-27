@@ -1,5 +1,6 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import { Position } from '@xyflow/react';
+import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS, KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { Copy, Check, Maximize2, X } from 'lucide-react';
@@ -101,12 +102,13 @@ export const ResponseNode = memo(function ResponseNode() {
 
   return (
     <>
+      <ResizeHandle minWidth={300} minHeight={120} />
       <div
-        className="rounded-xl overflow-hidden"
-        style={{ background: t.responseBg, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, width: 420, minHeight: 100 }}
+        className="rounded-xl overflow-hidden h-full flex flex-col"
+        style={{ background: t.responseBg, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 300, minHeight: 100 }}
       >
         {/* Header */}
-        <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 shrink-0" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
           <JackPort type="target" position={Position.Left} label="INPUT" color="#FE5000" id="response-in" />
           <div
             className="w-1.5 h-1.5 rounded-full"
@@ -137,7 +139,8 @@ export const ResponseNode = memo(function ResponseNode() {
             <button
               type="button"
               onClick={handleCopy}
-              className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-1.5 py-0.5 rounded-md hover-accent-text nodrag"
+              aria-label={copied ? 'Copied to clipboard' : 'Copy response'}
+              className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-1.5 py-0.5 rounded-md hover-accent-text nodrag nowheel"
               style={{ color: copied ? '#00ff88' : t.textDim }}
             >
               {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
@@ -148,7 +151,8 @@ export const ResponseNode = memo(function ResponseNode() {
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              className="cursor-pointer border-none bg-transparent p-0.5 rounded-md hover-accent-text nodrag"
+              aria-label="Expand response fullscreen"
+              className="cursor-pointer border-none bg-transparent p-0.5 rounded-md hover-accent-text nodrag nowheel min-w-[28px] min-h-[28px]"
               style={{ color: t.textDim }}
             >
               <Maximize2 size={12} />
@@ -158,8 +162,8 @@ export const ResponseNode = memo(function ResponseNode() {
 
         {/* Content */}
         <div
-          className="px-4 py-3 text-sm leading-relaxed overflow-y-auto nowheel"
-          style={{ color: t.responseText, minHeight: 40, maxHeight: 240 }}
+          className="px-4 py-3 text-sm leading-relaxed overflow-y-auto nowheel flex-1 min-h-0"
+          style={{ color: t.responseText, minHeight: 40 }}
         >
           {running && !displayedText ? (
             <span style={{ color: '#ffaa00' }}>Assembling context... patching signals... routing to model...</span>
@@ -186,7 +190,7 @@ export const ResponseNode = memo(function ResponseNode() {
 
         {/* Source list */}
         {response && !running && activeChannels.length > 0 && (
-          <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5" style={{ borderColor: t.borderSubtle }}>
+          <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5 shrink-0" style={{ borderColor: t.borderSubtle }}>
             <span className="text-[11px] tracking-wider font-semibold self-center mr-1" style={{ color: t.textFaint }}>Sources:</span>
             {activeChannels.map((ch) => {
               const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
@@ -213,10 +217,10 @@ export const ResponseNode = memo(function ResponseNode() {
             <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: t.borderSubtle, background: t.surfaceOpaque }}>
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#00ff88', boxShadow: '0 0 6px #00ff8880' }} />
               <span className="text-xs tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>Response -- Expanded</span>
-              <button type="button" onClick={handleCopy} className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text" style={{ color: copied ? '#00ff88' : t.textDim }}>
+              <button type="button" onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy response'} className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text" style={{ color: copied ? '#00ff88' : t.textDim }}>
                 {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
               </button>
-              <button type="button" onClick={() => setExpanded(false)} className="cursor-pointer border-none bg-transparent p-1 hover-accent-text" style={{ color: t.textDim }}>
+              <button type="button" onClick={() => setExpanded(false)} aria-label="Close expanded view" className="cursor-pointer border-none bg-transparent p-1 hover-accent-text" style={{ color: t.textDim }}>
                 <X size={16} />
               </button>
             </div>

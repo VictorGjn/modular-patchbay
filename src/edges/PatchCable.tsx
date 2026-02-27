@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
-import { type EdgeProps, getSmoothStepPath, useReactFlow } from '@xyflow/react';
+import { type EdgeProps, getSmoothStepPath, useReactFlow, EdgeLabelRenderer } from '@xyflow/react';
 import { useTheme } from '../theme';
 import { EdgeContextMenu } from '../components/EdgeContextMenu';
+import { useConsoleStore } from '../store/consoleStore';
 
 export function PatchCable({
   id,
@@ -13,14 +14,17 @@ export function PatchCable({
   targetPosition,
   style,
   selected,
+  data,
 }: EdgeProps) {
   const t = useTheme();
   const color = (style?.stroke as string) ?? '#FE5000';
+  const label = (data?.label as string) ?? '';
   const [hovered, setHovered] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const { setEdges } = useReactFlow();
+  const running = useConsoleStore((s) => s.running);
 
-  const [path] = getSmoothStepPath({
+  const [path, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
     targetX,
@@ -44,8 +48,24 @@ export function PatchCable({
     setContextMenu({ x: e.clientX, y: e.clientY });
   }, []);
 
+  // Unique marker id per edge color
+  const markerId = `arrow-${id}`;
+
   return (
     <>
+      <defs>
+        <marker
+          id={markerId}
+          markerWidth="12"
+          markerHeight="12"
+          refX="10"
+          refY="6"
+          orient="auto"
+          markerUnits="userSpaceOnUse"
+        >
+          <path d="M2,2 L10,6 L2,10" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </marker>
+      </defs>
       <g
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -75,6 +95,7 @@ export function PatchCable({
           stroke={color}
           strokeWidth={selected ? 5 : 4}
           strokeLinecap="round"
+          markerEnd={`url(#${markerId})`}
           style={{
             filter: selected
               ? `drop-shadow(0 0 8px ${color})`
@@ -91,17 +112,17 @@ export function PatchCable({
           strokeWidth={selected ? 2 : 1.5}
           strokeLinecap="round"
         />
-        {/* Animated dash on hover/selected */}
-        {isActive && (
+        {/* Animated dash on hover/selected OR when running */}
+        {(isActive || running) && (
           <path
             d={path}
             fill="none"
-            stroke="rgba(255,255,255,0.15)"
+            stroke={running ? `${color}40` : 'rgba(255,255,255,0.15)'}
             strokeWidth={selected ? 5 : 4}
             strokeLinecap="round"
-            strokeDasharray="8 12"
+            strokeDasharray={running ? '6 8' : '8 12'}
             style={{
-              animation: 'cable-dash 0.8s linear infinite',
+              animation: running ? 'cable-dash 0.6s linear infinite' : 'cable-dash 0.8s linear infinite',
             }}
           />
         )}
@@ -125,6 +146,31 @@ export function PatchCable({
           </g>
         )}
       </g>
+      {/* Edge label */}
+      {label && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              pointerEvents: 'none',
+              fontSize: 10,
+              fontWeight: 500,
+              color: t.textMuted,
+              background: t.surfaceOpaque,
+              padding: '1px 6px',
+              borderRadius: 4,
+              border: `1px solid ${t.borderSubtle}`,
+              opacity: isActive ? 1 : 0.6,
+              transition: 'opacity 0.2s ease',
+              letterSpacing: '0.02em',
+              textTransform: 'uppercase',
+            }}
+          >
+            {label}
+          </div>
+        </EdgeLabelRenderer>
+      )}
       {contextMenu && (
         <foreignObject x={0} y={0} width={1} height={1} style={{ overflow: 'visible' }}>
           <EdgeContextMenu

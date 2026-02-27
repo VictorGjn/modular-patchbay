@@ -48,6 +48,21 @@ const dark = {
   // Response
   responseBg: 'rgba(28, 28, 32, 0.9)',
   responseText: '#bbb',
+  // Status
+  statusSuccess: '#00ff88',
+  statusError: '#ff3344',
+  statusWarning: '#ffaa00',
+  statusInfo: '#3498db',
+  statusSuccessBg: 'rgba(0,255,136,0.07)',
+  statusErrorBg: 'rgba(255,51,68,0.08)',
+  statusWarningBg: 'rgba(255,170,0,0.08)',
+  statusSuccessGlow: '0 0 6px rgba(0,255,136,0.5)',
+  statusErrorGlow: '0 0 6px rgba(255,51,68,0.5)',
+  statusWarningGlow: '0 0 6px rgba(255,170,0,0.5)',
+  // Semantic cable/port colors (these are "role" colors, not status)
+  cableSkills: '#f1c40f',
+  cableMcp: '#2ecc71',
+  cableKnowledge: '#e74c3c',
 };
 
 const light = {
@@ -98,6 +113,21 @@ const light = {
   // Response
   responseBg: 'rgba(255,255,255,0.95)',
   responseText: '#444',
+  // Status
+  statusSuccess: '#16a34a',
+  statusError: '#dc2626',
+  statusWarning: '#ca8a04',
+  statusInfo: '#2563eb',
+  statusSuccessBg: 'rgba(22,163,74,0.08)',
+  statusErrorBg: 'rgba(220,38,38,0.08)',
+  statusWarningBg: 'rgba(202,138,4,0.08)',
+  statusSuccessGlow: '0 0 6px rgba(22,163,74,0.3)',
+  statusErrorGlow: '0 0 6px rgba(220,38,38,0.3)',
+  statusWarningGlow: '0 0 6px rgba(202,138,4,0.3)',
+  // Semantic cable/port colors
+  cableSkills: '#B45309',
+  cableMcp: '#16a34a',
+  cableKnowledge: '#dc2626',
 };
 
 export type ThemePalette = typeof dark;
