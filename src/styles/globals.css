@@ -70,3 +70,11 @@ html, body, #root {
 ::-webkit-scrollbar-thumb:hover {
   background: #3a3a40;
 }
+
+/* Remove default ReactFlow node background/border/shadow */
+.react-flow__node {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
