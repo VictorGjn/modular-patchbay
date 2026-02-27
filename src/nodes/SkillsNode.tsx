@@ -62,7 +62,7 @@ export const SkillsNode = memo(function SkillsNode() {
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 shrink-0" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
-        <button type="button" onClick={() => setNodeCollapsed(!nodeCollapsed)} className="p-0 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}>
+        <button type="button" onClick={() => setNodeCollapsed(!nodeCollapsed)} aria-label={nodeCollapsed ? 'Expand skills panel' : 'Collapse skills panel'} className="p-0 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}>
           {nodeCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
         </button>
         <Zap size={14} style={{ color: t.textSecondary }} />
@@ -70,11 +70,11 @@ export const SkillsNode = memo(function SkillsNode() {
         <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>{activeSkills.length}</span>
         {!nodeCollapsed && (
           <div className="flex items-center gap-0.5">
-            <button type="button" onClick={() => setViewMode('card')} className="p-0.5 border-none cursor-pointer nodrag rounded" style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}><LayoutGrid size={12} /></button>
-            <button type="button" onClick={() => setViewMode('list')} className="p-0.5 border-none cursor-pointer nodrag rounded" style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}><List size={12} /></button>
+            <button type="button" onClick={() => setViewMode('card')} aria-label="Card view" className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]" style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}><LayoutGrid size={12} /></button>
+            <button type="button" onClick={() => setViewMode('list')} aria-label="List view" className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]" style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}><List size={12} /></button>
           </div>
         )}
-        <JackPort type="source" position={Position.Right} label="OUTPUT" color="#f1c40f" id="skills-out" />
+        <JackPort type="source" position={Position.Right} label="OUTPUT" color={t.cableSkills} id="skills-out" />
       </div>
 
       {nodeCollapsed ? null : <>
@@ -97,8 +97,8 @@ export const SkillsNode = memo(function SkillsNode() {
                 <span className="text-[11px]" style={{ color: t.textFaint }}>No skills active</span>
               </div>
             ) : activeSkills.map((skill) => (
-              <button key={skill.id} type="button" onClick={() => toggleSkill(skill.id)} className="flex items-center gap-2 px-2 rounded-md border-none cursor-pointer nodrag" style={{ height: 28, background: 'transparent', transition: 'background 100ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#00ff88', boxShadow: '0 0 4px #00ff8866' }} />
+              <button key={skill.id} type="button" onClick={() => toggleSkill(skill.id)} aria-label={`Remove ${skill.name}`} className="flex items-center gap-2 px-2 rounded-md border-none cursor-pointer nodrag nowheel" style={{ height: 28, background: 'transparent', transition: 'background 100ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.statusSuccess, boxShadow: t.statusSuccessGlow }} />
                 <span className="flex-1 truncate text-[11px]" style={{ color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}>{skill.name}</span>
                 <X size={10} style={{ color: t.textDim }} />
               </button>
@@ -112,22 +112,22 @@ export const SkillsNode = memo(function SkillsNode() {
         <div className="px-3 pt-1 pb-2 shrink-0">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
-            <span className="text-[11px] tracking-wider font-semibold" style={{ color: '#f1c40f', fontFamily: "'Space Mono', monospace" }}>Suggest</span>
-            <JackPort type="target" position={Position.Right} label="SUGGEST" color="#f1c40f" id="skills-feedback-in" />
+            <span className="text-[11px] tracking-wider font-semibold" style={{ color: t.cableSkills, fontFamily: "'Space Mono', monospace" }}>Suggest</span>
+            <JackPort type="target" position={Position.Right} label="SUGGEST" color={t.cableSkills} id="skills-feedback-in" />
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
           </div>
           <div className="flex flex-col gap-1">
             {suggestedSkills.map((skill) => (
-              <div key={skill.id} className="ghost-tile flex items-center gap-2 px-2 py-1.5 rounded-md nodrag" style={{ border: `1px dashed #f1c40f40`, background: t.isDark ? 'rgba(241,196,15,0.04)' : 'rgba(241,196,15,0.06)' }}>
+              <div key={skill.id} className="ghost-tile flex items-center gap-2 px-2 py-1.5 rounded-md nodrag" style={{ border: `1px dashed ${t.cableSkills}40`, background: t.cableSkills + '0a' }}>
                 <span className="flex-1 truncate text-[10px]" style={{ fontFamily: "'Inter', sans-serif", color: t.textSecondary }}>{skill.name}</span>
                 {skill.installed ? (
-                  <span style={{ color: '#00ff88' }}><Check size={12} /></span>
+                  <span style={{ color: t.statusSuccess }}><Check size={12} /></span>
                 ) : skill.installing ? (
-                  <span style={{ color: '#f1c40f', animation: 'pulse-glow 1s ease-in-out infinite' }}><Loader2 size={12} /></span>
+                  <span style={{ color: t.cableSkills, animation: 'pulse-glow 1s ease-in-out infinite' }}><Loader2 size={12} /></span>
                 ) : (
                   <>
-                    <button type="button" onClick={() => acceptSuggestedSkill(skill.id)} className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag" style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: 'rgba(241,196,15,0.15)', color: '#f1c40f' }}><Download size={8} /> Install</button>
-                    <button type="button" onClick={() => dismissSuggestedSkill(skill.id)} className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag" style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: 'rgba(255,80,80,0.12)', color: '#ff5050' }}><X size={8} /></button>
+                    <button type="button" onClick={() => acceptSuggestedSkill(skill.id)} aria-label={`Install ${skill.name}`} className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag nowheel" style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: t.cableSkills + '26', color: t.cableSkills }}><Download size={8} /> Install</button>
+                    <button type="button" onClick={() => dismissSuggestedSkill(skill.id)} aria-label={`Dismiss ${skill.name}`} className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag nowheel" style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: t.statusErrorBg, color: t.statusError }}><X size={8} /></button>
                   </>
                 )}
               </div>
@@ -138,13 +138,13 @@ export const SkillsNode = memo(function SkillsNode() {
 
       {suggestedSkills.length === 0 && (
         <div className="px-3 py-1 flex justify-end shrink-0">
-          <JackPort type="target" position={Position.Right} label="SUGGEST" color="#f1c40f" id="skills-feedback-in" />
+          <JackPort type="target" position={Position.Right} label="SUGGEST" color={t.cableSkills} id="skills-feedback-in" />
         </div>
       )}
 
       {/* Library button */}
       <div className="px-3 pb-3 pt-1 shrink-0">
-        <button type="button" onClick={() => setShowLibrary(true)} className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag flex items-center justify-center gap-1.5" style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}>
+        <button type="button" onClick={() => setShowLibrary(true)} aria-label="Open skill library" className="w-full min-h-[32px] px-3 py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel flex items-center justify-center gap-1.5" style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}>
           <Library size={12} /> Library
         </button>
       </div>

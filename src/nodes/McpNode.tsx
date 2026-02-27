@@ -12,12 +12,12 @@ import {
   Loader2, AlertCircle, Wrench, Library,
 } from 'lucide-react';
 
-const STATUS_COLORS: Record<McpServerState['status'], string> = {
-  connected: '#00ff88',
-  connecting: '#f1c40f',
-  error: '#ff3344',
-  disconnected: '#555',
-};
+function getStatusColor(status: McpServerState['status'], t: ReturnType<typeof useTheme>): string {
+  if (status === 'connected') return t.statusSuccess;
+  if (status === 'connecting') return t.statusWarning;
+  if (status === 'error') return t.statusError;
+  return t.textDim;
+}
 
 function ToolList({ tools, t }: { tools: McpTool[]; t: ReturnType<typeof useTheme> }) {
   return (
@@ -61,17 +61,17 @@ function ServerRow({
       >
         {/* Status dot / spinner */}
         {server.status === 'connecting' ? (
-          <Loader2 size={10} className="animate-spin flex-shrink-0" style={{ color: '#f1c40f' }} />
+          <Loader2 size={10} className="animate-spin flex-shrink-0" style={{ color: t.statusWarning }} />
         ) : server.status === 'error' ? (
           <span title={server.lastError || 'Error'}>
-            <AlertCircle size={10} className="flex-shrink-0" style={{ color: '#ff3344' }} />
+            <AlertCircle size={10} className="flex-shrink-0" style={{ color: t.statusError }} />
           </span>
         ) : (
           <span
             className="w-2 h-2 rounded-full flex-shrink-0"
             style={{
-              background: STATUS_COLORS[server.status],
-              boxShadow: server.status === 'connected' ? '0 0 4px #00ff8866' : 'none',
+              background: getStatusColor(server.status, t),
+              boxShadow: server.status === 'connected' ? t.statusSuccessGlow : 'none',
             }}
           />
         )}
@@ -81,6 +81,7 @@ function ServerRow({
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
+            aria-label={expanded ? 'Collapse tools' : 'Expand tools'}
             className="p-0 border-none bg-transparent cursor-pointer nodrag nowheel"
             style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}
           >
@@ -102,8 +103,8 @@ function ServerRow({
             style={{
               fontFamily: "'Space Mono', monospace",
               fontWeight: 600,
-              background: server.mcpStatus === 'deferred' ? '#f1c40f20' : '#ff334420',
-              color: server.mcpStatus === 'deferred' ? '#f1c40f' : '#ff3344',
+              background: server.mcpStatus === 'deferred' ? t.statusWarningBg : t.statusErrorBg,
+              color: server.mcpStatus === 'deferred' ? t.statusWarning : t.statusError,
             }}
           >
             {server.mcpStatus}
@@ -125,6 +126,7 @@ function ServerRow({
           <button
             type="button"
             onClick={() => connectServer(server.id)}
+            aria-label={`Connect ${server.name}`}
             className="text-[9px] px-1.5 py-0.5 rounded border-none cursor-pointer nodrag nowheel"
             style={{
               background: 'transparent',
@@ -132,7 +134,7 @@ function ServerRow({
               color: t.textDim,
               transition: 'border-color 150ms ease, color 150ms ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#00ff88'; e.currentTarget.style.color = '#00ff88'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.statusSuccess; e.currentTarget.style.color = t.statusSuccess; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
           >
             Connect
@@ -141,6 +143,7 @@ function ServerRow({
           <button
             type="button"
             onClick={() => disconnectServer(server.id)}
+            aria-label={`Disconnect ${server.name}`}
             className="text-[9px] px-1.5 py-0.5 rounded border-none cursor-pointer nodrag nowheel"
             style={{
               background: 'transparent',
@@ -148,7 +151,7 @@ function ServerRow({
               color: t.textFaint,
               transition: 'border-color 150ms ease, color 150ms ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ff3344'; e.currentTarget.style.color = '#ff3344'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.statusError; e.currentTarget.style.color = t.statusError; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.borderSubtle; e.currentTarget.style.color = t.textFaint; }}
           >
             Stop
@@ -248,6 +251,7 @@ export const McpNode = memo(function McpNode() {
         <button
           type="button"
           onClick={() => setNodeCollapsed(!nodeCollapsed)}
+          aria-label={nodeCollapsed ? 'Expand MCP panel' : 'Collapse MCP panel'}
           className="p-0 border-none bg-transparent cursor-pointer nodrag"
           style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}
         >
@@ -265,7 +269,8 @@ export const McpNode = memo(function McpNode() {
             <button
               type="button"
               onClick={() => setViewMode('card')}
-              className="p-0.5 border-none cursor-pointer nodrag rounded"
+              aria-label="Card view"
+              className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]"
               style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}
             >
               <LayoutGrid size={12} />
@@ -273,14 +278,15 @@ export const McpNode = memo(function McpNode() {
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className="p-0.5 border-none cursor-pointer nodrag rounded"
+              aria-label="List view"
+              className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]"
               style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}
             >
               <List size={12} />
             </button>
           </div>
         )}
-        <JackPort type="source" position={Position.Right} label="OUTPUT" color="#2ecc71" id="mcp-out" />
+        <JackPort type="source" position={Position.Right} label="OUTPUT" color={t.cableMcp} id="mcp-out" />
       </div>
 
       {nodeCollapsed ? null : <>
@@ -299,7 +305,7 @@ export const McpNode = memo(function McpNode() {
                 active={server.status === 'connected'}
                 icon={<McpIcon icon="plug" size={14} />}
                 subtitle={server.status}
-                statusColor={STATUS_COLORS[server.status]}
+                statusColor={getStatusColor(server.status, t)}
                 onClick={() => {
                   if (server.status === 'disconnected' || server.status === 'error') {
                     useMcpStore.getState().connectServer(server.id);
@@ -328,7 +334,8 @@ export const McpNode = memo(function McpNode() {
         <button
           type="button"
           onClick={() => setShowLibrary(true)}
-          className="w-full py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag flex items-center justify-center gap-1.5"
+          aria-label="Open MCP library"
+          className="w-full min-h-[32px] px-3 py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel flex items-center justify-center gap-1.5"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}

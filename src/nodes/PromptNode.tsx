@@ -114,8 +114,8 @@ export const PromptNode = memo(function PromptNode() {
       <div className="flex items-center justify-between px-3 py-2 shrink-0" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
         <div className="flex items-center gap-2">
           <JackPort type="target" position={Position.Left} label="KNOW" color="#3498db" id="prompt-knowledge-in" />
-          <JackPort type="target" position={Position.Left} label="SKILLS" color="#f1c40f" id="prompt-skills-in" />
-          <JackPort type="target" position={Position.Left} label="MCP" color="#2ecc71" id="prompt-mcp-in" />
+          <JackPort type="target" position={Position.Left} label="SKILLS" color={t.cableSkills} id="prompt-skills-in" />
+          <JackPort type="target" position={Position.Left} label="MCP" color={t.cableMcp} id="prompt-mcp-in" />
         </div>
         <div className="flex flex-col items-center">
           <span
@@ -332,7 +332,7 @@ export const PromptNode = memo(function PromptNode() {
         style={{ borderTop: `1px solid ${t.borderSubtle}` }}
       >
         <JackPort type="source" position={Position.Left} label="KB OUT" color="#00d4ff" id="prompt-knowledge-out" />
-        <JackPort type="source" position={Position.Left} label="SKILL OUT" color="#f1c40f" id="prompt-skills-out" />
+        <JackPort type="source" position={Position.Left} label="SKILL OUT" color={t.cableSkills} id="prompt-skills-out" />
         <span
           className="ml-auto text-[11px] tracking-wide font-semibold"
           style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}

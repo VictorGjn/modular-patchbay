@@ -283,7 +283,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                   onClick={() => acceptPendingKnowledge(item.id)}
                   aria-label={`Accept ${item.name}`}
                   className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
-                  style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: 'rgba(0,255,136,0.12)', color: '#00ff88' }}
+                  style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: t.statusSuccessBg, color: t.statusSuccess }}
                 >
                   <Check size={8} /> Add
                 </button>
@@ -292,7 +292,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                   onClick={() => dismissPendingKnowledge(item.id)}
                   aria-label={`Dismiss ${item.name}`}
                   className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
-                  style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: 'rgba(255,80,80,0.12)', color: '#ff5050' }}
+                  style={{ height: 16, fontSize: 9, fontFamily: "'Space Mono', monospace", background: t.statusErrorBg, color: t.statusError }}
                 >
                   <X size={8} />
                 </button>
@@ -401,7 +401,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
           </button>
         </div>
         {error && (
-          <div className="text-[9px] mt-1 px-1" style={{ color: '#ff5050', fontFamily: "'Space Mono', monospace" }}>{error}</div>
+          <div className="text-[9px] mt-1 px-1" style={{ color: t.statusError, fontFamily: "'Space Mono', monospace" }}>{error}</div>
         )}
       </div>
 
@@ -469,7 +469,8 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, toggleC
                 >
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 w-full px-3 py-1.5 border-none cursor-pointer nodrag"
+                    aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${meta.label} group`}
+                    className="flex items-center gap-1.5 w-full px-3 py-1.5 border-none cursor-pointer nodrag nowheel"
                     style={{ background: 'transparent', opacity: isEmpty ? 0.4 : 1 }}
                     onClick={() => !isEmpty && toggleCollapse(type)}
                   >
@@ -605,7 +606,7 @@ function FileTreeItem({ node, depth, selected, onToggle, theme: t }: FileTreeIte
           className="flex items-center gap-1 flex-1 min-w-0 cursor-pointer"
           onClick={() => isDir ? setExpanded(!expanded) : onToggle(node.path)}
         >
-          <Icon size={10} style={{ color: isDir ? '#f1c40f' : t.textDim, flexShrink: 0 }} />
+          <Icon size={10} style={{ color: isDir ? t.statusWarning : t.textDim, flexShrink: 0 }} />
           <span className="flex-1 truncate" style={{ fontSize: 10, fontFamily: "'Inter', sans-serif", color: t.textSecondary }}>{node.name}</span>
         </div>
 
@@ -669,7 +670,7 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
         className="flex-shrink-0 rounded-full border-none cursor-pointer p-0 nodrag nowheel"
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
         aria-label={enabled ? `Disable ${name}` : `Enable ${name}`}
-        style={{ width: 8, height: 8, background: enabled ? '#00ff88' : t.textFaint, boxShadow: enabled ? '0 0 4px #00ff8866' : 'none', transition: 'background 150ms ease, box-shadow 150ms ease' }}
+        style={{ width: 8, height: 8, background: enabled ? t.statusSuccess : t.textFaint, boxShadow: enabled ? t.statusSuccessGlow : 'none', transition: 'background 150ms ease, box-shadow 150ms ease' }}
         title={enabled ? 'Disable' : 'Enable'}
       />
 
