@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useCallback } from 'react';
+import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useMcpStore, startHealthPolling, type McpServerState, type McpTool } from '../store/mcpStore';
@@ -11,6 +11,7 @@ import {
   Plug, ChevronDown, ChevronRight, LayoutGrid, List,
   Loader2, AlertCircle, Wrench, Library,
 } from 'lucide-react';
+import { useAutoListMode } from '../hooks/useAutoListMode';
 
 function getStatusColor(status: McpServerState['status'], t: ReturnType<typeof useTheme>): string {
   if (status === 'connected') return t.statusSuccess;
@@ -182,6 +183,9 @@ export const McpNode = memo(function McpNode() {
     try { return (localStorage.getItem('mcp-node-view') as 'card' | 'list') || 'list'; } catch { return 'list'; }
   });
 
+  const { containerRef: cardContainerRef, autoListMode } = useAutoListMode(240);
+  const effectiveView = autoListMode ? 'list' : viewMode;
+
   // Load servers on mount + auto-reconnect previously connected
   useEffect(() => {
     if (loaded) return;
@@ -270,19 +274,19 @@ export const McpNode = memo(function McpNode() {
               type="button"
               onClick={() => setViewMode('card')}
               aria-label="Card view"
-              className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]"
+              className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
               style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}
             >
-              <LayoutGrid size={12} />
+              <LayoutGrid size={14} />
             </button>
             <button
               type="button"
               onClick={() => setViewMode('list')}
               aria-label="List view"
-              className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]"
+              className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
               style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}
             >
-              <List size={12} />
+              <List size={14} />
             </button>
           </div>
         )}
@@ -291,11 +295,11 @@ export const McpNode = memo(function McpNode() {
 
       {nodeCollapsed ? null : <>
       {/* Active MCP servers only */}
-      <div className="flex-1 p-3 overflow-y-auto nowheel">
-        {viewMode === 'card' ? (
-          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))' }}>
+      <div ref={cardContainerRef} className="flex-1 p-3 overflow-y-auto nowheel">
+        {effectiveView === 'card' ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
             {activeServers.length === 0 ? (
-              <div className="col-span-full flex items-center justify-center py-3">
+              <div className="flex items-center justify-center py-3 w-full">
                 <span className="text-[11px]" style={{ color: t.textFaint }}>No MCP servers active</span>
               </div>
             ) : activeServers.map((server) => (
@@ -335,12 +339,12 @@ export const McpNode = memo(function McpNode() {
           type="button"
           onClick={() => setShowLibrary(true)}
           aria-label="Open MCP library"
-          className="w-full min-h-[32px] px-3 py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel flex items-center justify-center gap-1.5"
+          className="w-full min-h-[36px] px-4 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel flex items-center justify-center gap-1.5"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
-          <Library size={12} /> Library
+          <Library size={14} /> Library
         </button>
       </div>
       </>}

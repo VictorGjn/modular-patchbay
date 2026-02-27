@@ -65,19 +65,19 @@ export const OutputNode = memo(function OutputNode() {
               type="button"
               onClick={() => setViewMode('card')}
               aria-label="Card view"
-              className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]"
+              className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
               style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}
             >
-              <LayoutGrid size={12} />
+              <LayoutGrid size={14} />
             </button>
             <button
               type="button"
               onClick={() => setViewMode('list')}
               aria-label="List view"
-              className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]"
+              className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
               style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}
             >
-              <List size={12} />
+              <List size={14} />
             </button>
           </div>
         )}
@@ -194,7 +194,7 @@ export const OutputNode = memo(function OutputNode() {
           type="button"
           onClick={() => setShowConnectorPicker(true)}
           aria-label="Add output connector"
-          className="w-full min-h-[32px] px-3 py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel"
+          className="w-full min-h-[36px] px-4 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}

@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useCallback } from 'react';
+import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
@@ -9,6 +9,7 @@ import { SkillIcon } from '../components/icons/SectionIcons';
 import { LibraryPicker, type LibraryItem } from '../components/LibraryPicker';
 import { useTheme } from '../theme';
 import { Zap, Check, X, Loader2, Download, ChevronDown, ChevronRight, LayoutGrid, List, Library } from 'lucide-react';
+import { useAutoListMode } from '../hooks/useAutoListMode';
 
 export const SkillsNode = memo(function SkillsNode() {
   const registrySkills = useConsoleStore((s) => s.registrySkills);
@@ -50,6 +51,9 @@ export const SkillsNode = memo(function SkillsNode() {
   const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
     try { return (localStorage.getItem('skills-node-view') as 'card' | 'list') || 'list'; } catch { return 'list'; }
   });
+  const { containerRef: cardContainerRef, autoListMode } = useAutoListMode(240);
+  const effectiveView = autoListMode ? 'list' : viewMode;
+
   useEffect(() => { try { localStorage.setItem('skills-node-collapsed', String(nodeCollapsed)); } catch {} }, [nodeCollapsed]);
   useEffect(() => { try { localStorage.setItem('skills-node-view', viewMode); } catch {} }, [viewMode]);
 
@@ -70,8 +74,8 @@ export const SkillsNode = memo(function SkillsNode() {
         <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>{activeSkills.length}</span>
         {!nodeCollapsed && (
           <div className="flex items-center gap-0.5">
-            <button type="button" onClick={() => setViewMode('card')} aria-label="Card view" className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]" style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}><LayoutGrid size={12} /></button>
-            <button type="button" onClick={() => setViewMode('list')} aria-label="List view" className="p-0.5 border-none cursor-pointer nodrag rounded min-w-[28px] min-h-[28px]" style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}><List size={12} /></button>
+            <button type="button" onClick={() => setViewMode('card')} aria-label="Card view" className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center" style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}><LayoutGrid size={14} /></button>
+            <button type="button" onClick={() => setViewMode('list')} aria-label="List view" className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center" style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}><List size={14} /></button>
           </div>
         )}
         <JackPort type="source" position={Position.Right} label="OUTPUT" color={t.cableSkills} id="skills-out" />
@@ -79,11 +83,11 @@ export const SkillsNode = memo(function SkillsNode() {
 
       {nodeCollapsed ? null : <>
       {/* Active skills */}
-      <div className="flex-1 p-3 overflow-y-auto nowheel">
-        {viewMode === 'card' ? (
-          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))' }}>
+      <div ref={cardContainerRef} className="flex-1 p-3 overflow-y-auto nowheel">
+        {effectiveView === 'card' ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
             {activeSkills.length === 0 ? (
-              <div className="col-span-full flex items-center justify-center py-3">
+              <div className="flex items-center justify-center py-3 w-full">
                 <span className="text-[11px]" style={{ color: t.textFaint }}>No skills active</span>
               </div>
             ) : activeSkills.map((skill) => (
@@ -144,7 +148,7 @@ export const SkillsNode = memo(function SkillsNode() {
 
       {/* Library button */}
       <div className="px-3 pb-3 pt-1 shrink-0">
-        <button type="button" onClick={() => setShowLibrary(true)} aria-label="Open skill library" className="w-full min-h-[32px] px-3 py-1.5 rounded-md text-[11px] tracking-wide uppercase cursor-pointer nodrag nowheel flex items-center justify-center gap-1.5" style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}>
+        <button type="button" onClick={() => setShowLibrary(true)} aria-label="Open skill library" className="w-full min-h-[36px] px-4 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel flex items-center justify-center gap-1.5" style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}>
           <Library size={12} /> Library
         </button>
       </div>

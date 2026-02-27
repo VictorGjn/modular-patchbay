@@ -29,7 +29,7 @@ export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, o
       onDoubleClick={(e) => onDoubleClick?.(e)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="tile relative flex flex-col items-start justify-between p-2 rounded-md cursor-pointer border-none outline-none text-left"
+      className="tile relative flex flex-col items-center justify-between p-2 rounded-md cursor-pointer border-none outline-none text-center"
       style={{
         width: 112,
         height: 84,
@@ -73,7 +73,7 @@ export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, o
 
       {/* Name */}
       <span
-        className="text-[10px] leading-tight block pr-3"
+        className="text-[10px] leading-tight block px-1"
         style={{
           fontFamily: "'Inter', sans-serif",
           fontWeight: 500,
