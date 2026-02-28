@@ -57,18 +57,25 @@ const CONTENT_RULES: { patterns: RegExp[]; type: KnowledgeType; weight: number; 
   { patterns: [/\b(generated|exported|changelog|release note|meeting note|transcript|minutes|summary|recap|output)\b/gi, /\b(v\d+\.\d+\.\d+|sprint \d|week of|date:)/gi, /\b(action item|todo|follow.?up|decision)\b/gi], type: 'artifact', weight: 3, minMatches: 2 },
 ];
 
-// Depth suggestion based on content characteristics
+// Depth suggestion based on category + content size
+// depth 0 = Full (100%), 1 = Detail (75%), 2 = Summary (50%), 3 = Headlines (25%), 4 = Mention (10%)
 const DEPTH_RULES: { test: (content: string, type: KnowledgeType) => boolean; depth: number }[] = [
-  // Short files → full depth
-  { test: (c) => c.length < 2000, depth: 0 },
-  // Ground truth → always detailed
-  { test: (_, t) => t === 'ground-truth', depth: 1 },
-  // Long evidence/framework → summary
-  { test: (c, t) => c.length > 8000 && (t === 'evidence' || t === 'framework'), depth: 2 },
-  // Artifacts → brief unless short
-  { test: (_, t) => t === 'artifact', depth: 2 },
-  // Signals → detailed (every quote matters)
+  // Ground truth → always full (specs, schemas, contracts — every line matters)
+  { test: (_, t) => t === 'ground-truth', depth: 0 },
+  // Signals → full (every user quote matters)
   { test: (_, t) => t === 'signal', depth: 0 },
+  // Short files → full regardless of type
+  { test: (c) => c.length < 2000, depth: 0 },
+  // Hypothesis → detailed (need full context to validate)
+  { test: (_, t) => t === 'hypothesis', depth: 1 },
+  // Evidence → detail for short, summary for long
+  { test: (c, t) => t === 'evidence' && c.length > 8000, depth: 2 },
+  { test: (_, t) => t === 'evidence', depth: 1 },
+  // Framework → summary (use structure, not verbatim)
+  { test: (c, t) => t === 'framework' && c.length > 8000, depth: 2 },
+  { test: (_, t) => t === 'framework', depth: 1 },
+  // Artifacts → headlines (may be outdated, just reference)
+  { test: (_, t) => t === 'artifact', depth: 3 },
 ];
 
 export interface ClassificationResult {
