@@ -234,7 +234,9 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                     status={c.status}
                     enabled={c.enabled}
                     showDirection="read"
+                    scope={c.hint}
                     onClick={() => toggleConnector(c.id)}
+                    onScopeChange={(scope) => useConsoleStore.getState().updateConnectorScope(c.id, scope)}
                     onOpenSettings={() => useConsoleStore.getState().setShowSettings(true, 'mcp')}
                   />
                 ))}
