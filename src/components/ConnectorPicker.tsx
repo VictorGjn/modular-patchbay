@@ -24,9 +24,9 @@ const BUILT_IN_CONNECTORS: AvailableConnector[] = [
 ];
 
 const DIR_COLORS: Record<ConnectorDirection, { color: string; bg: string; bgHover: string }> = {
-  read: { color: '#3498db', bg: '#3498db12', bgHover: '#3498db25' },
-  write: { color: '#FE5000', bg: '#FE500012', bgHover: '#FE500025' },
-  both: { color: '#9b59b6', bg: '#9b59b612', bgHover: '#9b59b625' },
+  read: { color: '#6aafe6', bg: '#3498db10', bgHover: '#3498db1a' },
+  write: { color: '#ff8c55', bg: '#FE500010', bgHover: '#FE50001a' },
+  both: { color: '#b88ad4', bg: '#9b59b610', bgHover: '#9b59b61a' },
 };
 
 export function ConnectorPicker() {
@@ -128,11 +128,12 @@ export function ConnectorPicker() {
                       key={dir}
                       type="button"
                       onClick={() => handleAdd(ac, dir)}
-                      className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none uppercase"
+                      className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
                       style={{
                         color: DIR_COLORS[dir].color,
                         background: DIR_COLORS[dir].bg,
                         fontWeight: 600,
+                        letterSpacing: '0.05em',
                         transition: 'background 0.15s ease',
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = DIR_COLORS[dir].bgHover; }}
@@ -146,11 +147,12 @@ export function ConnectorPicker() {
                     <button
                       type="button"
                       onClick={() => handleAdd(ac, 'both')}
-                      className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none uppercase"
+                      className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
                       style={{
                         color: DIR_COLORS.both.color,
                         background: DIR_COLORS.both.bg,
                         fontWeight: 600,
+                        letterSpacing: '0.05em',
                         transition: 'background 0.15s ease',
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = DIR_COLORS.both.bgHover; }}
