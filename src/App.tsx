@@ -37,10 +37,8 @@ import { McpNode } from './nodes/McpNode';
 import { SkillsNode } from './nodes/SkillsNode';
 import { OutputNode } from './nodes/OutputNode';
 import { ResponseNode } from './nodes/ResponseNode';
-import { InstructionNode } from './nodes/InstructionNode';
-import { WorkflowNode } from './nodes/WorkflowNode';
+import { AgentNode } from './nodes/AgentNode';
 import { AgentPreviewNode } from './nodes/AgentPreviewNode';
-import { IdentityNode } from './nodes/IdentityNode';
 import { PatchCable } from './edges/PatchCable';
 import { FeedbackEdge } from './edges/FeedbackEdge';
 
@@ -51,10 +49,8 @@ const nodeTypes = {
   skills: SkillsNode,
   output: OutputNode,
   response: ResponseNode,
-  instruction: InstructionNode,
-  workflow: WorkflowNode,
+  agent: AgentNode,
   agentPreview: AgentPreviewNode,
-  identity: IdentityNode,
 };
 
 const edgeTypes = {
@@ -67,10 +63,8 @@ const initialNodes: Node[] = [
   { id: 'knowledge', type: 'knowledge', position: { x: 50, y: 60 }, data: {} },
   { id: 'skills', type: 'skills', position: { x: 50, y: 340 }, data: {} },
   { id: 'mcp', type: 'mcp', position: { x: 50, y: 620 }, data: {} },
-  // Middle column - Agent Architecture
-  { id: 'identity', type: 'identity', position: { x: 340, y: -120 }, data: {} },
-  { id: 'instruction', type: 'instruction', position: { x: 340, y: 60 }, data: {} },
-  { id: 'workflow', type: 'workflow', position: { x: 340, y: 360 }, data: {} },
+  // Middle column - Unified Agent
+  { id: 'agent', type: 'agent', position: { x: 340, y: -120 }, data: {} },
   // Center — Hero Prompt node
   { id: 'prompt', type: 'prompt', position: { x: 700, y: 120 }, data: {} },
   // Right column
@@ -81,20 +75,12 @@ const initialNodes: Node[] = [
 ];
 
 const initialEdges: Edge[] = [
-  // Identity -> Instruction
-  { id: 'e-identity-instruction', source: 'identity', target: 'instruction', sourceHandle: 'identity-out', targetHandle: 'instruction-identity-in', type: 'patch', style: { stroke: '#FE5000' }, data: { label: 'identity' } },
-  // Left sources -> Instruction
-  { id: 'e-knowledge-instruction', source: 'knowledge', target: 'instruction', sourceHandle: 'knowledge-out', targetHandle: 'instruction-knowledge-in', type: 'patch', style: { stroke: '#3498db' }, data: { label: 'knowledge' } },
-  { id: 'e-skills-instruction', source: 'skills', target: 'instruction', sourceHandle: 'skills-out', targetHandle: 'instruction-skills-in', type: 'patch', style: { stroke: '#f1c40f' }, data: { label: 'skills' } },
-  { id: 'e-mcp-instruction', source: 'mcp', target: 'instruction', sourceHandle: 'mcp-out', targetHandle: 'instruction-mcp-in', type: 'patch', style: { stroke: '#2ecc71' }, data: { label: 'tools' } },
-  // Instruction -> Workflow
-  { id: 'e-instruction-workflow', source: 'instruction', target: 'workflow', sourceHandle: 'instruction-workflow-out', targetHandle: 'workflow-in', type: 'patch', style: { stroke: '#e67e22' }, data: { label: 'instruction' } },
-  // Skills/MCP -> Workflow (for tool references)
-  { id: 'e-skills-workflow', source: 'skills', target: 'workflow', sourceHandle: 'skills-out', targetHandle: 'workflow-skills-in', type: 'patch', style: { stroke: '#f1c40f' }, data: { label: 'skills' } },
-  { id: 'e-mcp-workflow', source: 'mcp', target: 'workflow', sourceHandle: 'mcp-out', targetHandle: 'workflow-mcp-in', type: 'patch', style: { stroke: '#2ecc71' }, data: { label: 'tools' } },
-  // Instruction/Workflow -> Prompt
-  { id: 'e-instruction-prompt', source: 'instruction', target: 'prompt', sourceHandle: 'instruction-prompt-out', targetHandle: 'prompt-knowledge-in', type: 'patch', style: { stroke: '#9b59b6' }, data: { label: 'instruction' } },
-  { id: 'e-workflow-prompt', source: 'workflow', target: 'prompt', sourceHandle: 'workflow-out', targetHandle: 'prompt-skills-in', type: 'patch', style: { stroke: '#e67e22' }, data: { label: 'workflow' } },
+  // Left sources -> Agent
+  { id: 'e-knowledge-agent', source: 'knowledge', target: 'agent', sourceHandle: 'knowledge-out', targetHandle: 'agent-knowledge-in', type: 'patch', style: { stroke: '#3498db' }, data: { label: 'knowledge' } },
+  { id: 'e-skills-agent', source: 'skills', target: 'agent', sourceHandle: 'skills-out', targetHandle: 'agent-skills-in', type: 'patch', style: { stroke: '#f1c40f' }, data: { label: 'skills' } },
+  { id: 'e-mcp-agent', source: 'mcp', target: 'agent', sourceHandle: 'mcp-out', targetHandle: 'agent-mcp-in', type: 'patch', style: { stroke: '#2ecc71' }, data: { label: 'tools' } },
+  // Agent -> Prompt
+  { id: 'e-agent-prompt', source: 'agent', target: 'prompt', sourceHandle: 'agent-prompt-out', targetHandle: 'prompt-knowledge-in', type: 'patch', style: { stroke: '#9b59b6' }, data: { label: 'agent' } },
   // Prompt -> Output/Response
   { id: 'e-prompt-output', source: 'prompt', target: 'output', sourceHandle: 'prompt-out', targetHandle: 'output-in', type: 'patch', style: { stroke: '#FE5000' }, data: { label: 'output' } },
   { id: 'e-prompt-response', source: 'prompt', target: 'response', sourceHandle: 'prompt-out', targetHandle: 'response-in', type: 'patch', style: { stroke: '#FE5000' }, data: { label: 'response' } },
@@ -149,8 +135,7 @@ export default function App() {
         knowledge: '#3498db',
         skills: '#f1c40f',
         mcp: '#2ecc71',
-        instruction: '#9b59b6',
-        workflow: '#e67e22',
+        agent: '#9b59b6',
         prompt: '#FE5000',
         output: '#FE5000',
         response: '#FE5000',
@@ -159,8 +144,7 @@ export default function App() {
         knowledge: 'knowledge',
         skills: 'skills',
         mcp: 'tools',
-        instruction: 'instruction',
-        workflow: 'workflow',
+        agent: 'agent',
         prompt: 'output',
         output: 'response',
       };
