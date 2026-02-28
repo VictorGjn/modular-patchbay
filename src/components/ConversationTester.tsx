@@ -214,7 +214,9 @@ export function ConversationTester() {
     }
   }, [inputText, streaming, messages, addMessage, setInputText, setStreaming, updateLastAssistant]);
 
-  // Run all tests function
+  // Run all tests state (must be before handleRunAllTests callback)
+  const [runningAllTests, setRunningAllTests] = useState(false);
+
   const handleRunAllTests = useCallback(async () => {
     if (runningAllTests || testCases.length === 0) return;
 
@@ -297,9 +299,6 @@ export function ConversationTester() {
   const [showSaveTest, setShowSaveTest] = useState(false);
   const [testName, setTestName] = useState('');
   const [testExpected, setTestExpected] = useState('');
-
-  // Run all tests state
-  const [runningAllTests, setRunningAllTests] = useState(false);
 
   const tabs = [
     { id: 'chat', label: 'Chat', icon: <MessageSquare size={10} /> },
