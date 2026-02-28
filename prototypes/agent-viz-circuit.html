@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Viz — Circuit Board</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e0e0e0; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 40px; }
+
+  .chip {
+    position: relative;
+    width: 780px;
+    background: #111118;
+    border: 2px solid #2a2a35;
+    border-radius: 16px;
+    padding: 0;
+    box-shadow: 0 0 60px rgba(254,80,0,0.06), 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  /* Corner notch marks like a real IC */
+  .chip::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: 50%;
+    transform: translateX(-50%);
+    width: 40px; height: 6px;
+    background: #FE5000;
+    border-radius: 0 0 4px 4px;
+  }
+
+  /* Die — the center brain */
+  .die {
+    margin: 32px auto 0;
+    width: 280px;
+    background: linear-gradient(135deg, #1a1a24 0%, #14141c 100%);
+    border: 1.5px solid #FE500040;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+  }
+  .die-emoji { font-size: 28px; margin-bottom: 6px; }
+  .die-name { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; color: #fff; letter-spacing: 0.1em; text-transform: uppercase; }
+  .die-model { font-size: 10px; color: #FE5000; font-family: 'Space Mono', monospace; margin-top: 4px; letter-spacing: 0.05em; }
+  .die-objective { font-size: 11px; color: #888; margin-top: 8px; line-height: 1.5; }
+  .die-version { position: absolute; top: 8px; right: 10px; font-size: 8px; color: #555; font-family: 'Space Mono', monospace; }
+
+  /* Pin rows */
+  .board { display: flex; margin-top: 20px; }
+  .pin-col {
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+  }
+  .pin-col.left { align-items: flex-start; }
+  .pin-col.right { align-items: flex-end; }
+
+  /* Center trace area */
+  .traces {
+    flex: 1;
+    position: relative;
+    min-height: 300px;
+  }
+  .traces svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* Individual pin */
+  .pin {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: #ffffff05;
+    border: 1px solid #ffffff08;
+    width: 100%;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: default;
+  }
+  .pin:hover { border-color: #ffffff15; background: #ffffff08; }
+  .pin.left { flex-direction: row; }
+  .pin.right { flex-direction: row-reverse; }
+
+  .pin-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px var(--pin-color);
+  }
+  .pin-bar {
+    height: 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .pin-label {
+    font-size: 9px;
+    font-family: 'Space Mono', monospace;
+    color: #999;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .pin.left .pin-label { text-align: left; }
+  .pin.right .pin-label { text-align: right; }
+
+  .pin-type {
+    font-size: 7px;
+    font-family: 'Space Mono', monospace;
+    padding: 1px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* Section labels */
+  .section-label {
+    font-size: 8px;
+    font-family: 'Space Mono', monospace;
+    color: #444;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 0;
+    margin-bottom: 2px;
+  }
+  .pin-col.left .section-label { text-align: left; padding-left: 10px; }
+  .pin-col.right .section-label { text-align: right; padding-right: 10px; }
+
+  /* Workflow strip at bottom */
+  .workflow-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 20px 40px 24px;
+    border-top: 1px solid #1a1a24;
+    margin-top: 12px;
+  }
+  .wf-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .wf-circle {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid #FE500060;
+    background: #FE500010;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #FE5000;
+  }
+  .wf-label {
+    font-size: 8px;
+    color: #666;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.04em;
+    max-width: 70px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .wf-arrow {
+    width: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, #FE500040, #FE500020);
+    margin: 0 4px;
+    margin-bottom: 18px;
+    position: relative;
+  }
+  .wf-arrow::after {
+    content: '▸';
+    position: absolute;
+    right: -4px;
+    top: -7px;
+    color: #FE500060;
+    font-size: 12px;
+  }
+  .wf-loop {
+    position: relative;
+    margin-bottom: 18px;
+  }
+  .wf-loop-label {
+    font-size: 7px;
+    color: #FE500080;
+    font-family: 'Space Mono', monospace;
+    position: absolute;
+    bottom: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  /* Bottom bar — context gauge */
+  .gauge-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px 16px;
+  }
+  .gauge-label {
+    font-size: 8px;
+    color: #555;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .gauge-track {
+    flex: 1;
+    height: 6px;
+    background: #1a1a24;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .gauge-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #FE5000, #ff8c55);
+    transition: width 0.5s ease;
+  }
+  .gauge-value {
+    font-size: 10px;
+    color: #FE5000;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Constraints row */
+  .constraints {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding: 0 24px 4px;
+    flex-wrap: wrap;
+  }
+  .constraint {
+    font-size: 8px;
+    font-family: 'Space Mono', monospace;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.04em;
+  }
+  .constraint.on { background: #2ecc7115; color: #2ecc71; }
+  .constraint.off { background: #ffffff06; color: #444; }
+</style>
+</head>
+<body>
+
+<div class="chip">
+  <!-- Pin 1 notch (already via ::before) -->
+
+  <!-- Die / Brain -->
+  <div class="die">
+    <div class="die-version">v2.3.1</div>
+    <div class="die-emoji">🧠</div>
+    <div class="die-name">Senior PM Agent</div>
+    <div class="die-model">claude-opus-4 · temp 0.5 · formal</div>
+    <div class="die-objective">Synthesize product insights from multiple data sources into actionable strategy recommendations</div>
+  </div>
+
+  <!-- Constraints strip -->
+  <div style="padding-top: 16px;">
+    <div class="constraints">
+      <span class="constraint on">✓ Never fabricate</span>
+      <span class="constraint on">✓ Ask before actions</span>
+      <span class="constraint on">✓ Stay in scope</span>
+      <span class="constraint on">✓ Use only tools</span>
+      <span class="constraint off">✗ Word limit</span>
+    </div>
+  </div>
+
+  <!-- Board: left pins (inputs) — traces — right pins (outputs) -->
+  <div class="board">
+    <!-- Left: Knowledge inputs -->
+    <div class="pin-col left">
+      <div class="section-label">📥 Knowledge</div>
+
+      <div class="pin left">
+        <div class="pin-dot" style="--pin-color: #e74c3c; background: #e74c3c;"></div>
+        <div style="display:flex; flex-direction:column; flex:1; min-width:0;">
+          <span class="pin-label">Spec v4.2</span>
+          <div class="pin-bar" style="width: 100%; background: #e74c3c80;"></div>
+        </div>
+        <span class="pin-type" style="background:#e74c3c18;color:#e74c3c;">TRUTH</span>
+      </div>
+
+      <div class="pin left">
+        <div class="pin-dot" style="--pin-color: #f1c40f; background: #f1c40f;"></div>
+        <div style="display:flex; flex-direction:column; flex:1; min-width:0;">
+          <span class="pin-label">User Feedback Q4</span>
+          <div class="pin-bar" style="width: 75%; background: #f1c40f80;"></div>
+        </div>
+        <span class="pin-type" style="background:#f1c40f18;color:#f1c40f;">SIGNAL</span>
+      </div>
+
+      <div class="pin left">
+        <div class="pin-dot" style="--pin-color: #3498db; background: #3498db;"></div>
+        <div style="display:flex; flex-direction:column; flex:1; min-width:0;">
+          <span class="pin-label">Savings Analysis</span>
+          <div class="pin-bar" style="width: 50%; background: #3498db80;"></div>
+        </div>
+        <span class="pin-type" style="background:#3498db18;color:#3498db;">EVIDENCE</span>
+      </div>
+
+      <div class="pin left">
+        <div class="pin-dot" style="--pin-color: #2ecc71; background: #2ecc71;"></div>
+        <div style="display:flex; flex-direction:column; flex:1; min-width:0;">
+          <span class="pin-label">Anthropic Guide</span>
+          <div class="pin-bar" style="width: 25%; background: #2ecc7180;"></div>
+        </div>
+        <span class="pin-type" style="background:#2ecc7118;color:#2ecc71;">FRAME</span>
+      </div>
+
+      <div class="pin left">
+        <div class="pin-dot" style="--pin-color: #9b59b6; background: #9b59b6;"></div>
+        <div style="display:flex; flex-direction:column; flex:1; min-width:0;">
+          <span class="pin-label">TCE Optimizer RFC</span>
+          <div class="pin-bar" style="width: 75%; background: #9b59b680;"></div>
+        </div>
+        <span class="pin-type" style="background:#9b59b618;color:#9b59b6;">HYPO</span>
+      </div>
+
+      <div class="pin left">
+        <div class="pin-dot" style="--pin-color: #95a5a6; background: #95a5a6;"></div>
+        <div style="display:flex; flex-direction:column; flex:1; min-width:0;">
+          <span class="pin-label">Meeting Notes Feb</span>
+          <div class="pin-bar" style="width: 25%; background: #95a5a680;"></div>
+        </div>
+        <span class="pin-type" style="background:#95a5a618;color:#95a5a6;">ARTIFACT</span>
+      </div>
+    </div>
+
+    <!-- Center: Traces (SVG) -->
+    <div class="traces">
+      <svg viewBox="0 0 420 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Traces from left pins to center -->
+        <path d="M0,30 C80,30 60,80 140,80" stroke="#e74c3c" stroke-width="1.5" opacity="0.3" />
+        <path d="M0,72 C80,72 60,100 140,100" stroke="#f1c40f" stroke-width="1.5" opacity="0.3" />
+        <path d="M0,114 C80,114 60,120 140,120" stroke="#3498db" stroke-width="1.5" opacity="0.3" />
+        <path d="M0,156 C80,156 60,140 140,140" stroke="#2ecc71" stroke-width="1.5" opacity="0.3" />
+        <path d="M0,198 C80,198 60,160 140,160" stroke="#9b59b6" stroke-width="1.5" opacity="0.3" />
+        <path d="M0,240 C80,240 60,180 140,180" stroke="#95a5a6" stroke-width="1.5" opacity="0.3" />
+
+        <!-- Central bus / data highway -->
+        <rect x="140" y="60" width="140" height="140" rx="8" fill="#FE500005" stroke="#FE500020" stroke-width="1" stroke-dasharray="4 4" />
+        <text x="210" y="135" text-anchor="middle" fill="#FE500040" font-family="Space Mono, monospace" font-size="8" letter-spacing="0.1em">CONTEXT BUS</text>
+
+        <!-- Traces from center to right pins -->
+        <path d="M280,80 C340,80 320,40 420,40" stroke="#FE5000" stroke-width="1.5" opacity="0.3" />
+        <path d="M280,110 C340,110 320,95 420,95" stroke="#FE5000" stroke-width="1.5" opacity="0.3" />
+        <path d="M280,140 C340,140 320,150 420,150" stroke="#FE5000" stroke-width="1.5" opacity="0.3" />
+        <path d="M280,170 C340,170 320,210 420,210" stroke="#3498db" stroke-width="1.5" opacity="0.3" />
+        <path d="M280,190 C340,190 320,260 420,260" stroke="#3498db" stroke-width="1.5" opacity="0.3" />
+
+        <!-- Animated data pulse -->
+        <circle r="3" fill="#FE5000" opacity="0.6">
+          <animateMotion dur="3s" repeatCount="indefinite" path="M0,30 C80,30 60,80 140,80 L280,80 C340,80 320,40 420,40" />
+        </circle>
+        <circle r="3" fill="#f1c40f" opacity="0.6">
+          <animateMotion dur="4s" repeatCount="indefinite" path="M0,72 C80,72 60,100 140,100 L280,140 C340,140 320,150 420,150" />
+        </circle>
+        <circle r="2" fill="#3498db" opacity="0.5">
+          <animateMotion dur="3.5s" repeatCount="indefinite" path="M0,114 C80,114 60,120 140,120 L280,170 C340,170 320,210 420,210" />
+        </circle>
+      </svg>
+    </div>
+
+    <!-- Right: Tools & Output -->
+    <div class="pin-col right">
+      <div class="section-label">🔧 Tools</div>
+
+      <div class="pin right">
+        <div class="pin-dot" style="--pin-color: #FE5000; background: #FE5000;"></div>
+        <span class="pin-label">Notion</span>
+        <span class="pin-type" style="background:#FE500018;color:#FE5000;">R/W</span>
+      </div>
+
+      <div class="pin right">
+        <div class="pin-dot" style="--pin-color: #FE5000; background: #FE5000;"></div>
+        <span class="pin-label">Slack</span>
+        <span class="pin-type" style="background:#FE500018;color:#FE5000;">WRITE</span>
+      </div>
+
+      <div class="pin right">
+        <div class="pin-dot" style="--pin-color: #FE5000; background: #FE5000;"></div>
+        <span class="pin-label">GitHub</span>
+        <span class="pin-type" style="background:#FE500018;color:#FE5000;">READ</span>
+      </div>
+
+      <div class="section-label" style="margin-top: 8px;">⚡ Skills</div>
+
+      <div class="pin right">
+        <div class="pin-dot" style="--pin-color: #3498db; background: #3498db;"></div>
+        <span class="pin-label">web-search</span>
+      </div>
+
+      <div class="pin right">
+        <div class="pin-dot" style="--pin-color: #3498db; background: #3498db;"></div>
+        <span class="pin-label">firecrawl</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workflow strip -->
+  <div class="workflow-strip">
+    <div class="wf-step">
+      <div class="wf-circle">1</div>
+      <div class="wf-label">Gather</div>
+    </div>
+    <div class="wf-arrow"></div>
+    <div class="wf-step">
+      <div class="wf-circle">2</div>
+      <div class="wf-label">Analyze</div>
+    </div>
+    <div class="wf-arrow"></div>
+    <div class="wf-step">
+      <div class="wf-circle">3</div>
+      <div class="wf-label">Synthesize</div>
+    </div>
+    <div class="wf-arrow"></div>
+    <div class="wf-step wf-loop">
+      <div class="wf-circle" style="border-color: #f1c40f60; color: #f1c40f; background: #f1c40f10;">4</div>
+      <div class="wf-label">Verify</div>
+      <div class="wf-loop-label">↻ if incomplete (max 3)</div>
+    </div>
+    <div class="wf-arrow"></div>
+    <div class="wf-step">
+      <div class="wf-circle" style="border-color: #2ecc7160; color: #2ecc71; background: #2ecc7110;">5</div>
+      <div class="wf-label">Deliver</div>
+    </div>
+  </div>
+
+  <!-- Context gauge -->
+  <div class="gauge-bar">
+    <span class="gauge-label">Context</span>
+    <div class="gauge-track">
+      <div class="gauge-fill" style="width: 72%;"></div>
+    </div>
+    <span class="gauge-value">82K / 114K</span>
+  </div>
+</div>
+
+</body>
+</html>

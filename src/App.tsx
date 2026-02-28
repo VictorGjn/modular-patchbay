@@ -22,7 +22,7 @@ import { McpPicker } from './components/McpPicker';
 import { SkillPicker } from './components/SkillPicker';
 import { Marketplace } from './components/Marketplace';
 import { ConnectorPicker } from './components/ConnectorPicker';
-import { AgentPreview } from './components/AgentPreview';
+import { AgentCard } from './components/AgentCard';
 import { SettingsPage } from './components/SettingsPage';
 import { SaveAgentModal } from './components/SaveAgentModal';
 import { ConversationTester } from './components/ConversationTester';
@@ -234,7 +234,7 @@ export default function App() {
 
       {/* Accessibility: aria-live region for canvas state announcements */}
       <div aria-live="polite" className="sr-only" id="canvas-announcements" />
-      <AgentPreview />
+      <AgentCard />
       <ConversationTester />
       <TokenBudget />
       <FilePicker />
