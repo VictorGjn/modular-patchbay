@@ -131,7 +131,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
               onClick={() => setViewMode('card')}
               aria-label="Card view"
               className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
-              style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}
+              style={{ background: viewMode === 'card' ? '#FE500020' : 'transparent', color: viewMode === 'card' ? '#FE5000' : t.textFaint }}
             >
               <LayoutGrid size={14} />
             </button>
@@ -140,7 +140,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
               onClick={() => setViewMode('list')}
               aria-label="List view"
               className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center"
-              style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}
+              style={{ background: viewMode === 'list' ? '#FE500020' : 'transparent', color: viewMode === 'list' ? '#FE5000' : t.textFaint }}
             >
               <List size={14} />
             </button>
@@ -751,3 +751,4 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
     </div>
   );
 }
+

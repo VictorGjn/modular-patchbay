@@ -177,13 +177,13 @@ export const ResponseNode = memo(function ResponseNode() {
               {isTyping && <span style={{ color: '#FE5000', animation: 'cursor-blink 0.8s step-end infinite' }}>|</span>}
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-3 gap-1.5">
+            <div className="flex flex-col items-center justify-center py-6 gap-2">
               <div className="flex gap-1.5">
                 {[0, 1, 2, 3, 4].map((i) => (
-                  <div key={i} className="w-[3px] h-[14px] rounded-full" style={{ background: t.border, animation: `pulse-glow 2s ease ${i * 0.2}s infinite` }} />
+                  <div key={i} className="w-[3px] h-[14px] rounded-full" style={{ background: t.border, opacity: 0.5 + (i * 0.1) }} />
                 ))}
               </div>
-              <span className="text-[10px] tracking-widest uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>AWAITING SIGNAL</span>
+              <span className="text-[10px] tracking-widest uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>RUN YOUR AGENT TO SEE RESULTS</span>
             </div>
           )}
         </div>
@@ -224,7 +224,7 @@ export const ResponseNode = memo(function ResponseNode() {
                 <X size={16} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 py-4 text-sm leading-relaxed" style={{ color: t.responseText }}>
+            <div className="flex-1 overflow-y-auto nowheel px-6 py-4 text-sm leading-relaxed" style={{ color: t.responseText }}>
               {renderMarkdown(displayedText, t)}
             </div>
           </div>
