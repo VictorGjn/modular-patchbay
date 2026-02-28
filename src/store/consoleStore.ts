@@ -32,6 +32,40 @@ export interface SuggestedSkill {
   installed?: boolean;
 }
 
+export interface InstructionState {
+  persona: string;
+  tone: 'formal' | 'neutral' | 'casual';
+  expertise: number; // 1-5 slider
+  constraints: {
+    neverMakeUp: boolean;
+    askBeforeActions: boolean;
+    stayInScope: boolean;
+    useOnlyTools: boolean;
+    limitWords: boolean;
+    wordLimit: number;
+    customConstraints: string;
+    scopeDefinition: string;
+  };
+  objectives: {
+    primary: string;
+    successCriteria: string[];
+    failureModes: string[];
+  };
+  rawPrompt: string;
+  autoSync: boolean;
+}
+
+export interface WorkflowStep {
+  id: string;
+  label: string;
+  action: string;
+  tool: string; // dropdown from connected MCP/skills
+  condition: 'always' | 'if' | 'unless';
+  conditionValue?: string;
+  loopTarget?: string;
+  loopMax?: number;
+}
+
 export interface ConsoleState {
   channels: ChannelConfig[];
   prompt: string;
@@ -70,6 +104,10 @@ export interface ConsoleState {
   // Feedback state
   pendingKnowledge: PendingKnowledgeItem[];
   suggestedSkills: SuggestedSkill[];
+
+  // Agent Architecture Phase 1 state
+  instructionState: InstructionState;
+  workflowSteps: WorkflowStep[];
 
   // Computed
   totalTokens: () => number;
@@ -133,6 +171,23 @@ export interface ConsoleState {
 
   // File knowledge actions
   addFileChannel: (file: FileContent) => void;
+
+  // Agent Architecture Phase 1 actions
+  setInstructionPersona: (persona: string) => void;
+  setInstructionTone: (tone: 'formal' | 'neutral' | 'casual') => void;
+  setInstructionExpertise: (expertise: number) => void;
+  setInstructionConstraints: (constraints: Partial<InstructionState['constraints']>) => void;
+  setInstructionObjectives: (objectives: Partial<InstructionState['objectives']>) => void;
+  setInstructionRawPrompt: (rawPrompt: string) => void;
+  setInstructionAutoSync: (autoSync: boolean) => void;
+  addWorkflowStep: (step: Omit<WorkflowStep, 'id'>) => void;
+  updateWorkflowStep: (id: string, updates: Partial<WorkflowStep>) => void;
+  removeWorkflowStep: (id: string) => void;
+  reorderWorkflowSteps: (fromIndex: number, toIndex: number) => void;
+
+  // Batch updaters (used by new Phase 1 nodes)
+  updateInstruction: (patch: Partial<InstructionState>) => void;
+  updateWorkflowSteps: (steps: WorkflowStep[]) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -177,6 +232,31 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   connectors: [] as Connector[],
   pendingKnowledge: [],
   suggestedSkills: [],
+
+  // Agent Architecture Phase 1 initial state
+  instructionState: {
+    persona: '',
+    tone: 'neutral',
+    expertise: 3,
+    constraints: {
+      neverMakeUp: false,
+      askBeforeActions: false,
+      stayInScope: false,
+      useOnlyTools: false,
+      limitWords: false,
+      wordLimit: 500,
+      customConstraints: '',
+      scopeDefinition: '',
+    },
+    objectives: {
+      primary: '',
+      successCriteria: [],
+      failureModes: [],
+    },
+    rawPrompt: '',
+    autoSync: true,
+  },
+  workflowSteps: [],
 
   totalTokens: () => {
     const { channels, prompt } = get();
@@ -568,6 +648,77 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       baseTokens: file.tokenEstimate,
     };
     set({ channels: [...channels, newChannel], selectedPreset: '' });
+  },
+
+  // Agent Architecture Phase 1 action implementations
+  setInstructionPersona: (persona: string) => {
+    set({ instructionState: { ...get().instructionState, persona } });
+  },
+
+  setInstructionTone: (tone: 'formal' | 'neutral' | 'casual') => {
+    set({ instructionState: { ...get().instructionState, tone } });
+  },
+
+  setInstructionExpertise: (expertise: number) => {
+    set({ instructionState: { ...get().instructionState, expertise: Math.max(1, Math.min(5, expertise)) } });
+  },
+
+  setInstructionConstraints: (constraints: Partial<InstructionState['constraints']>) => {
+    set({
+      instructionState: {
+        ...get().instructionState,
+        constraints: { ...get().instructionState.constraints, ...constraints }
+      }
+    });
+  },
+
+  setInstructionObjectives: (objectives: Partial<InstructionState['objectives']>) => {
+    set({
+      instructionState: {
+        ...get().instructionState,
+        objectives: { ...get().instructionState.objectives, ...objectives }
+      }
+    });
+  },
+
+  setInstructionRawPrompt: (rawPrompt: string) => {
+    set({ instructionState: { ...get().instructionState, rawPrompt } });
+  },
+
+  setInstructionAutoSync: (autoSync: boolean) => {
+    set({ instructionState: { ...get().instructionState, autoSync } });
+  },
+
+  addWorkflowStep: (step: Omit<WorkflowStep, 'id'>) => {
+    const newStep: WorkflowStep = { ...step, id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
+    set({ workflowSteps: [...get().workflowSteps, newStep] });
+  },
+
+  updateWorkflowStep: (id: string, updates: Partial<WorkflowStep>) => {
+    set({
+      workflowSteps: get().workflowSteps.map((step) =>
+        step.id === id ? { ...step, ...updates } : step
+      ),
+    });
+  },
+
+  removeWorkflowStep: (id: string) => {
+    set({ workflowSteps: get().workflowSteps.filter((step) => step.id !== id) });
+  },
+
+  reorderWorkflowSteps: (fromIndex: number, toIndex: number) => {
+    const steps = [...get().workflowSteps];
+    const [moved] = steps.splice(fromIndex, 1);
+    steps.splice(toIndex, 0, moved);
+    set({ workflowSteps: steps });
+  },
+
+  // Batch updaters
+  updateInstruction: (patch: Partial<InstructionState>) => {
+    set({ instructionState: { ...get().instructionState, ...patch } });
+  },
+  updateWorkflowSteps: (steps: WorkflowStep[]) => {
+    set({ workflowSteps: steps });
   },
 }));
 
