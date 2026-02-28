@@ -19,7 +19,8 @@ const KNOWLEDGE_TYPE_ORDER: KnowledgeType[] = [
   'ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact',
 ];
 
-const DEPTH_NAMES = ['Summary', 'Key Points', 'Details', 'Full', 'Verbatim'];
+// Matches DEPTH_LEVELS: 0=Full (most), 4=Mention (least)
+const DEPTH_NAMES = ['Full', 'Detail', 'Summary', 'Headlines', 'Mention'];
 
 export const KnowledgeNode = memo(function KnowledgeNode() {
   const channels = useConsoleStore((s) => s.channels);
@@ -673,7 +674,9 @@ interface FileRowProps {
   theme: ReturnType<typeof useTheme>;
 }
 
-const DEPTH_DISPLAY = ['Sum', 'Key', 'Det', 'Full', 'Verb'];
+// Bar fill percentages: depth 0 = Full (100%), depth 4 = Mention (10%)
+const DEPTH_BAR_PCT = [100, 75, 50, 25, 10];
+const DEPTH_SHORT = ['Full', 'Det', 'Sum', 'Hdl', 'Mnt'];
 
 function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepthChange, onDragStart, fmtTokens, theme: t }: FileRowProps) {
   const [hovered, setHovered] = useState(false);
@@ -681,9 +684,13 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
   const [rightHover, setRightHover] = useState(false);
 
   const eff = getEffectiveTokens({ sourceId, name, path: '', category: 'knowledge', knowledgeType: 'evidence', enabled, depth, baseTokens });
-  const maxDepth = DEPTH_DISPLAY.length - 1;
-  const depthName = DEPTH_DISPLAY[depth] ?? DEPTH_DISPLAY[0];
-  const depthFull = DEPTH_NAMES[depth] ?? DEPTH_NAMES[0];
+  const maxDepth = DEPTH_NAMES.length - 1;
+  const barPct = DEPTH_BAR_PCT[depth] ?? 50;
+  const depthLabel = DEPTH_SHORT[depth] ?? 'Sum';
+  const depthFull = DEPTH_NAMES[depth] ?? 'Summary';
+
+  // Bar color: green for full, fading to dim for mention
+  const barColor = depth === 0 ? '#2ecc71' : depth === 1 ? '#3498db' : depth === 2 ? '#f1c40f' : depth === 3 ? '#e67e22' : '#95a5a6';
 
   return (
     <div
@@ -709,37 +716,57 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
         {name}
       </span>
 
-      {/* Depth carousel with names */}
-      <div className="flex items-center gap-0 flex-shrink-0 nodrag nowheel">
+      {/* Depth: arrow ◂ | bar graph + label | arrow ▸ */}
+      <div className="flex items-center gap-0 flex-shrink-0 nodrag nowheel" title={`${depthFull} — ${barPct}% of document`}>
+        {/* Left arrow: MORE context (decrease depth index) */}
         <button
           type="button"
           className="border-none cursor-pointer p-0 flex items-center justify-center nodrag nowheel"
-          style={{ width: 16, height: 16, background: 'transparent', color: leftHover ? '#FE5000' : t.textDim, opacity: depth <= 0 ? 0.3 : 1, transition: 'color 100ms ease' }}
+          style={{ width: 14, height: 16, background: 'transparent', color: leftHover ? '#FE5000' : t.textDim, opacity: depth <= 0 ? 0.25 : 1, transition: 'color 100ms ease' }}
           onMouseEnter={() => setLeftHover(true)}
           onMouseLeave={() => setLeftHover(false)}
           onClick={(e) => { e.stopPropagation(); if (depth > 0) onDepthChange(depth - 1); }}
           disabled={depth <= 0}
-          aria-label="Decrease depth"
+          aria-label="More context"
         >
-          <ChevronLeft size={12} />
+          <ChevronLeft size={11} />
         </button>
-        <span
-          style={{ fontSize: 9, fontFamily: "'Space Mono', monospace", color: t.textMuted, minWidth: 32, textAlign: 'center', userSelect: 'none' }}
-          title={depthFull}
-        >
-          {depthName}
-        </span>
+
+        {/* Bar graph */}
+        <div className="flex items-center gap-1" style={{ minWidth: 56 }}>
+          <div
+            className="rounded-sm overflow-hidden"
+            style={{ width: 28, height: 8, background: `${barColor}18`, flexShrink: 0 }}
+          >
+            <div
+              className="h-full rounded-sm"
+              style={{
+                width: `${barPct}%`,
+                background: barColor,
+                opacity: enabled ? 0.8 : 0.3,
+                transition: 'width 0.2s ease, opacity 0.15s',
+              }}
+            />
+          </div>
+          <span
+            style={{ fontSize: 8, fontFamily: "'Space Mono', monospace", color: t.textMuted, userSelect: 'none', letterSpacing: '0.03em' }}
+          >
+            {depthLabel}
+          </span>
+        </div>
+
+        {/* Right arrow: LESS context (increase depth index) */}
         <button
           type="button"
           className="border-none cursor-pointer p-0 flex items-center justify-center nodrag nowheel"
-          style={{ width: 16, height: 16, background: 'transparent', color: rightHover ? '#FE5000' : t.textDim, opacity: depth >= maxDepth ? 0.3 : 1, transition: 'color 100ms ease' }}
+          style={{ width: 14, height: 16, background: 'transparent', color: rightHover ? '#FE5000' : t.textDim, opacity: depth >= maxDepth ? 0.25 : 1, transition: 'color 100ms ease' }}
           onMouseEnter={() => setRightHover(true)}
           onMouseLeave={() => setRightHover(false)}
           onClick={(e) => { e.stopPropagation(); if (depth < maxDepth) onDepthChange(depth + 1); }}
           disabled={depth >= maxDepth}
-          aria-label="Increase depth"
+          aria-label="Less context"
         >
-          <ChevronRight size={12} />
+          <ChevronRight size={11} />
         </button>
       </div>
 
