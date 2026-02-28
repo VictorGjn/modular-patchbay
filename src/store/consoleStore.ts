@@ -190,6 +190,7 @@ export interface ConsoleState {
   toggleConnector: (id: string) => void;
   addConnector: (connector: Connector) => void;
   removeConnector: (id: string) => void;
+  updateConnectorScope: (id: string, scope: string) => void;
   setExportTarget: (target: ExportTarget) => void;
 
   // Feedback actions
@@ -529,6 +530,10 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
 
   removeConnector: (id: string) => {
     set({ connectors: get().connectors.filter((c) => c.id !== id) });
+  },
+
+  updateConnectorScope: (id: string, scope: string) => {
+    set({ connectors: get().connectors.map((c) => c.id === id ? { ...c, hint: scope } : c) });
   },
 
   setExportTarget: (target) => set({ exportTarget: target }),
