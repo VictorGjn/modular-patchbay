@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings, ShoppingBag } from 'lucide-react';
 import { OutputIcon } from './icons/SectionIcons';
 import { useProviderStore } from '../store/providerStore';
+import { VersionIndicator } from './VersionIndicator';
 
 function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: string; onChange: (v: string) => void; children: React.ReactNode; t: ReturnType<typeof useTheme>; ariaLabel?: string }) {
   return (
@@ -104,6 +105,9 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
           </option>
         ))}
       </TopbarSelect>
+
+      {/* Version indicator */}
+      <VersionIndicator />
 
       {/* Preset selector */}
       <TopbarSelect value={selectedPreset} onChange={loadPreset} t={t} ariaLabel="Select preset">

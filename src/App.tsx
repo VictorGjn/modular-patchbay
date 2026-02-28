@@ -26,6 +26,7 @@ import { AgentPreview } from './components/AgentPreview';
 import { SettingsPage } from './components/SettingsPage';
 import { SaveAgentModal } from './components/SaveAgentModal';
 import { ConversationTester } from './components/ConversationTester';
+import './store/versionStore'; // activate version subscription
 import { useConsoleStore } from './store/consoleStore';
 import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
