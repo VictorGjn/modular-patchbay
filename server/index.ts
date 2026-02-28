@@ -11,6 +11,7 @@ import llmRoutes from './routes/llm.js';
 import agentSdkRoutes from './routes/agent-sdk.js';
 import knowledgeRoutes from './routes/knowledge.js';
 import claudeConfigRoutes from './routes/claude-config.js';
+import skillsSearchRoutes from './routes/skills-search.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -36,6 +37,7 @@ export function createApp() {
   app.use('/api/agent-sdk', agentSdkRoutes);
   app.use('/api/knowledge', knowledgeRoutes);
   app.use('/api/claude-config', claudeConfigRoutes);
+  app.use('/api/skills', skillsSearchRoutes);
 
   // Global error handler — prevent server crashes
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
