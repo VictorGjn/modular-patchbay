@@ -54,7 +54,7 @@ export function ConnectorTile({ service, name, status, enabled, showDirection, u
         <span className="text-[10px] flex-1 truncate" style={{ color: enabled ? t.textPrimary : t.textSecondary, fontFamily: "'Inter', sans-serif", fontWeight: enabled ? 500 : 400 }}>
           {name}
         </span>
-        <span className="text-[9px] px-1.5 py-0.5 rounded shrink-0 uppercase" style={{ background: dirColor, color: '#000', fontFamily: "'Space Mono', monospace", fontWeight: 700, lineHeight: 1, letterSpacing: '0.03em' }}>
+        <span className="text-[8px] px-1.5 py-0.5 rounded shrink-0 uppercase" style={{ background: `${dirColor}18`, color: dirColor, fontFamily: "'Space Mono', monospace", fontWeight: 600, lineHeight: 1, letterSpacing: '0.05em' }}>
           {dirLabel}
         </span>
         <div className="rounded-full shrink-0" style={{ width: 6, height: 6, background: statusColor, boxShadow: status === 'connected' ? `0 0 4px ${statusColor}80` : 'none' }} />
