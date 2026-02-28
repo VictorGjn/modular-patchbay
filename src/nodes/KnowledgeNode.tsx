@@ -229,13 +229,12 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                     key={c.id}
                     service={c.service}
                     name={c.name}
+                    mcpServerId={c.mcpServerId}
                     status={c.status}
                     enabled={c.enabled}
                     showDirection="read"
-                    url={c.url}
-                    hint={c.hint}
-                    authMethod={c.authMethod}
                     onClick={() => toggleConnector(c.id)}
+                    onOpenSettings={() => useConsoleStore.getState().setShowSettings(true, 'mcp')}
                   />
                 ))}
               </div>

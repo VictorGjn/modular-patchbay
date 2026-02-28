@@ -108,7 +108,8 @@ export default function App() {
   const run = useConsoleStore((s) => s.run);
   const running = useConsoleStore((s) => s.running);
 
-  const [showSettings, setShowSettings] = useState(false);
+  const showSettings = useConsoleStore((s) => s.showSettings);
+  const setShowSettings = useConsoleStore((s) => s.setShowSettings);
   const importInputRef = useRef<HTMLInputElement>(null);
   const handleImportClick = useCallback(() => importInputRef.current?.click(), []);
   const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,7 +194,7 @@ export default function App() {
   return (
     <div className="w-full h-full flex flex-col" style={{ background: t.bg }}>
       <input ref={importInputRef} type="file" accept=".md,.yaml,.yml,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
-      <Topbar onImportClick={handleImportClick} onSettingsClick={() => setShowSettings(true)} />
+      <Topbar onImportClick={handleImportClick} onSettingsClick={() => setShowSettings(true, 'providers')} />
 
       {/* React Flow Canvas */}
       <div className="flex-1 overflow-hidden relative">
