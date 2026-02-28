@@ -183,21 +183,26 @@ function loadProviders(): ProviderConfig[] {
   }
 }
 
+const DEFAULT_PROVIDER_IDS = new Set(DEFAULT_PROVIDERS.map((d) => d.id));
+
 function persistProviders(providers: ProviderConfig[]) {
-  const toSave = providers.map((p) => ({
-    id: p.id,
-    name: p.name,
-    apiKey: p.apiKey,
-    baseUrl: p.baseUrl,
-    status: p.status,
-    models: DEFAULT_PROVIDERS.some((d) => d.id === p.id) ? undefined : p.models,
-    authHeader: DEFAULT_PROVIDERS.some((d) => d.id === p.id) ? undefined : p.authHeader,
-    icon: DEFAULT_PROVIDERS.some((d) => d.id === p.id) ? undefined : p.icon,
-    color: DEFAULT_PROVIDERS.some((d) => d.id === p.id) ? undefined : p.color,
-    docsUrl: DEFAULT_PROVIDERS.some((d) => d.id === p.id) ? undefined : p.docsUrl,
-    keyPageUrl: DEFAULT_PROVIDERS.some((d) => d.id === p.id) ? undefined : p.keyPageUrl,
-    headerNote: DEFAULT_PROVIDERS.some((d) => d.id === p.id) ? undefined : p.headerNote,
-  }));
+  const toSave = providers.map((p) => {
+    const isDefault = DEFAULT_PROVIDER_IDS.has(p.id);
+    return {
+      id: p.id,
+      name: p.name,
+      apiKey: p.apiKey,
+      baseUrl: p.baseUrl,
+      status: p.status,
+      models: isDefault ? undefined : p.models,
+      authHeader: isDefault ? undefined : p.authHeader,
+      icon: isDefault ? undefined : p.icon,
+      color: isDefault ? undefined : p.color,
+      docsUrl: isDefault ? undefined : p.docsUrl,
+      keyPageUrl: isDefault ? undefined : p.keyPageUrl,
+      headerNote: isDefault ? undefined : p.headerNote,
+    };
+  });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
 }
 

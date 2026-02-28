@@ -4,9 +4,16 @@ import type { ProviderConfig, ApiResponse } from '../types.js';
 
 const router = Router();
 
+function maskApiKey(key: string): string {
+  if (!key || key.length <= 4) return '****';
+  return '****' + key.slice(-4);
+}
+
 router.get('/', (_req, res) => {
   const config = readConfig();
-  const resp: ApiResponse<ProviderConfig[]> = { status: 'ok', data: config.providers };
+  // Never expose full API keys in GET responses
+  const masked = config.providers.map((p) => ({ ...p, apiKey: maskApiKey(p.apiKey) }));
+  const resp: ApiResponse<ProviderConfig[]> = { status: 'ok', data: masked };
   res.json(resp);
 });
 

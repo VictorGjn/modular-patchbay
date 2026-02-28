@@ -20,30 +20,29 @@ export const KNOWLEDGE_TYPES: Record<KnowledgeType, { label: string; color: stri
   'artifact':     { label: 'Artifact',     color: '#95a5a6', icon: '⚪', instruction: 'May be outdated. Cross-reference with current ground truth.' },
 };
 
-// Auto-classify knowledge type based on path
+// Classification rules — ordered by priority (first match wins)
+const KNOWLEDGE_TYPE_RULES: [string[], KnowledgeType, string[]?][] = [
+  // [keywords, type, excludeKeywords?]
+  [['signal', 'feedback', 'user feedback'], 'signal'],
+  [['discovery', '_temp_'], 'hypothesis'],
+  [['roadmap', 'plans/', 'plan/'], 'framework'],
+  [['intel', 'competitors', 'competitive', 'research', 'savings-analysis'], 'evidence'],
+  [['cmo-handoff', 'release', 'demo', 'newsletter'], 'artifact'],
+  [['sales prep', 'event prep', 'executive profiler'], 'artifact'],
+  [['products'], 'ground-truth', ['feedback']],
+  [['clients/'], 'ground-truth', ['feedback']],
+  [['companies'], 'evidence'],
+  [['voyage-preparation', 'navarea-map'], 'ground-truth'],
+];
+
 export function classifyKnowledgeType(path: string): KnowledgeType {
   const p = path.toLowerCase();
-  // Signals
-  if (p.includes('signal') || p.includes('feedback') || p.includes('user feedback')) return 'signal';
-  // Hypotheses
-  if (p.includes('discovery') || p.includes('_temp_')) return 'hypothesis';
-  // Frameworks
-  if (p.includes('roadmap') || p.includes('plans/') || p.includes('plan/')) return 'framework';
-  // Intel / Evidence
-  if (p.includes('intel') || p.includes('competitors') || p.includes('competitive') || p.includes('research') || p.includes('savings-analysis')) return 'evidence';
-  // Artifacts
-  if (p.includes('cmo-handoff') || p.includes('release') || p.includes('demo') || p.includes('newsletter')) return 'artifact';
-  // Sales prep / agents
-  if (p.includes('sales prep') || p.includes('event prep') || p.includes('executive profiler')) return 'artifact';
-  // Products = ground truth (what we actually ship)
-  if (p.includes('products') && !p.includes('feedback')) return 'ground-truth';
-  // Clients knowledge = ground truth
-  if (p.includes('clients/') && !p.includes('feedback')) return 'ground-truth';
-  // Companies
-  if (p.includes('companies')) return 'evidence';
-  // Voyage preparation (code = ground truth)
-  if (p.includes('voyage-preparation') || p.includes('navarea-map')) return 'ground-truth';
-  // Default
+  for (const [keywords, type, excludes] of KNOWLEDGE_TYPE_RULES) {
+    if (keywords.some((kw) => p.includes(kw))) {
+      if (excludes && excludes.some((ex) => p.includes(ex))) continue;
+      return type;
+    }
+  }
   return 'evidence';
 }
 

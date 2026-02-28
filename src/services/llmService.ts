@@ -1,3 +1,26 @@
+// Shared SSE stream parser — avoids duplicating line-by-line SSE parsing
+async function parseSSEStream(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  onData: (data: string) => boolean | void, // return true to stop
+): Promise<void> {
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith('data: ')) continue;
+      const data = trimmed.slice(6);
+      if (data === '[DONE]') return;
+      if (onData(data)) return;
+    }
+  }
+}
+
 export interface StreamAgentSdkParams {
   prompt: string;
   model?: string;
@@ -29,38 +52,19 @@ export function streamAgentSdk(params: StreamAgentSdkParams): AbortController {
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No response body');
 
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data: ')) continue;
-          const data = trimmed.slice(6);
-          if (data === '[DONE]') {
-            onDone();
-            return;
+      await parseSSEStream(reader, (data) => {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.type === 'text' && parsed.content) {
+            onChunk(parsed.content);
+          } else if (parsed.type === 'error') {
+            onError(new Error(parsed.message));
+            return true;
           }
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.type === 'text' && parsed.content) {
-              onChunk(parsed.content);
-            } else if (parsed.type === 'error') {
-              onError(new Error(parsed.message));
-              return;
-            }
-          } catch {
-            // skip malformed
-          }
+        } catch {
+          // skip malformed
         }
-      }
+      });
       onDone();
     })
     .catch((err: unknown) => {
@@ -126,40 +130,18 @@ export function streamCompletion(params: StreamCompletionParams): AbortControlle
         throw new Error('No response body');
       }
 
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data: ')) continue;
-
-          const data = trimmed.slice(6);
-          if (data === '[DONE]') {
-            onDone();
-            return;
+      await parseSSEStream(reader, (data) => {
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            onChunk(content);
           }
-
-          try {
-            const parsed = JSON.parse(data);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              onChunk(content);
-            }
-          } catch {
-            // Skip malformed JSON chunks
-          }
+        } catch {
+          // Skip malformed JSON chunks
         }
-      }
+      });
 
-      // Stream ended without [DONE]
       onDone();
     })
     .catch((err: unknown) => {
