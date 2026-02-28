@@ -1,11 +1,18 @@
 import { memo, useState, useMemo } from 'react';
 import { Position } from '@xyflow/react';
 import { JackPort } from '../../components/JackPort';
-import { useConsoleStore, type AgentPattern, type VerificationConfig, type ErrorHandling } from '../../store/consoleStore';
+import { Tooltip } from '../../components/ds/Tooltip';
+import { Avatar } from '../../components/ds/Avatar';
+import { Badge } from '../../components/ds/Badge';
+import { Chip } from '../../components/ds/Chip';
+import { Tabs, type Tab } from '../../components/ds/Tabs';
+import { StatusDot } from '../../components/ds/StatusDot';
+import { Progress } from '../../components/ds/Progress';
+import { useConsoleStore, type AgentPattern } from '../../store/consoleStore';
 import { useVersionStore } from '../../store/versionStore';
 import { useTheme } from '../../theme';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../../store/knowledgeBase';
-import { BarChart3, Cpu, Layers, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { BarChart3, Cpu, Layers, Shield, AlertTriangle, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
 
 type VizMode = 'card' | 'circuit' | 'layers';
 
@@ -137,26 +144,24 @@ export const TestAgentNode = memo(function TestAgentNode() {
           borderBottom: `1px solid ${t.borderSubtle}`,
         }}
       >
-        <span style={{ fontSize: 32 }}>{agentMeta.avatar || '\uD83E\uDD16'}</span>
+        <Avatar emoji={agentMeta.avatar || '🤖'} size="lg" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span
-              className="truncate"
-              style={{ fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: t.textPrimary, letterSpacing: '0.06em', textTransform: 'uppercase' }}
-            >
-              {agentMeta.name || 'Untitled Agent'}
-            </span>
-            <span style={{ fontSize: 9, fontFamily: "'Space Mono', monospace", padding: '2px 8px', borderRadius: 4, background: '#FE500015', color: '#FE5000', fontWeight: 600, flexShrink: 0 }}>
-              v{currentVersion}
-            </span>
+            <Tooltip content="Test preview of your assembled agent">
+              <span
+                className="truncate"
+                style={{ fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: t.textPrimary, letterSpacing: '0.06em', textTransform: 'uppercase' }}
+              >
+                {agentMeta.name || 'Untitled Agent'}
+              </span>
+            </Tooltip>
+            <Badge variant="info">v{currentVersion}</Badge>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            <span style={{ fontSize: 10, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
-              {modelShort}
-            </span>
-            <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 3, background: `${patternInfo.color}15`, color: patternInfo.color, fontFamily: "'Space Mono', monospace", fontWeight: 600 }}>
+            <Chip>{modelShort}</Chip>
+            <Chip variant={patternInfo.color === '#2ecc71' ? 'success' : patternInfo.color === '#e74c3c' ? 'error' : patternInfo.color === '#f1c40f' ? 'warning' : 'info'}>
               {patternInfo.icon} {patternInfo.label}
-            </span>
+            </Chip>
           </div>
         </div>
 
@@ -198,22 +203,17 @@ export const TestAgentNode = memo(function TestAgentNode() {
       </div>
 
       {/* View toggle */}
-      <div className="flex items-center gap-1 px-4 py-1.5 nodrag" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-        {[
-          { id: 'card' as VizMode, icon: BarChart3, label: 'Card' },
-          { id: 'circuit' as VizMode, icon: Cpu, label: 'Circuit' },
-          { id: 'layers' as VizMode, icon: Layers, label: 'Layers' },
-        ].map((v) => {
-          const Icon = v.icon;
-          const active = vizMode === v.id;
-          return (
-            <button key={v.id} type="button" onClick={() => setVizMode(v.id)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded cursor-pointer border-none nodrag"
-              style={{ background: active ? '#FE500015' : 'transparent', color: active ? '#FE5000' : t.textDim, fontFamily: "'Space Mono', monospace", fontSize: 9, fontWeight: active ? 700 : 400, letterSpacing: '0.05em', transition: 'all 0.15s' }}>
-              <Icon size={10} />{v.label}
-            </button>
-          );
-        })}
+      <div className="flex items-center gap-1 px-4" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+        <Tabs
+          tabs={[
+            { id: 'card', label: 'Card', icon: <BarChart3 size={10} /> },
+            { id: 'circuit', label: 'Circuit', icon: <Cpu size={10} /> },
+            { id: 'layers', label: 'Layers', icon: <Layers size={10} /> },
+          ] satisfies Tab[]}
+          active={vizMode}
+          onChange={(id) => setVizMode(id as VizMode)}
+          size="sm"
+        />
       </div>
 
       {/* Viz content */}
@@ -225,29 +225,36 @@ export const TestAgentNode = memo(function TestAgentNode() {
 
       {/* Bottom bar */}
       <div className="flex items-center gap-3 px-4 py-2" style={{ borderTop: `1px solid ${t.borderSubtle}`, background: t.surfaceElevated }}>
-        <div className="flex items-center gap-1">
-          <Shield size={10} style={{ color: verification.enabled ? '#2ecc71' : '#333' }} />
-          <span style={{ fontSize: 8, fontFamily: "'Space Mono', monospace", color: verification.enabled ? '#2ecc71' : '#444' }}>
-            {verification.enabled ? VERIFY_LABELS[verification.strategy] : 'No verify'}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <AlertTriangle size={10} style={{ color: errorHandling.onStepFailure !== 'abort' ? '#f1c40f' : '#333' }} />
-          <span style={{ fontSize: 8, fontFamily: "'Space Mono', monospace", color: errorHandling.onStepFailure !== 'abort' ? '#f1c40f' : '#444' }}>
-            {errorHandling.onStepFailure === 'abort' ? 'No recovery' : `On fail: ${errorHandling.onStepFailure}`}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <CheckCircle size={10} style={{ color: evaluation.enabled ? '#3498db' : '#333' }} />
-          <span style={{ fontSize: 8, fontFamily: "'Space Mono', monospace", color: evaluation.enabled ? '#3498db' : '#444' }}>
-            {evaluation.enabled ? `${evaluation.criteria.length} criteria` : 'No eval'}
-          </span>
-        </div>
-        <div className="flex-1" />
-        <div className="flex items-center gap-2">
-          <div style={{ width: 50, height: 4, background: '#ffffff08', borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ width: `${Math.min((totalTokens / (agentConfig.maxTokens || 100000)) * 100, 100)}%`, height: '100%', borderRadius: 2, background: '#FE5000', transition: 'width 0.3s' }} />
+        <Tooltip content={verification.enabled ? `Verification: ${VERIFY_LABELS[verification.strategy]}` : 'No verification configured'}>
+          <div className="flex items-center gap-1">
+            <StatusDot status={verification.enabled ? 'success' : 'info'} />
+            <span style={{ fontSize: 8, fontFamily: "'Space Mono', monospace", color: verification.enabled ? t.statusSuccess : t.textDim }}>
+              {verification.enabled ? VERIFY_LABELS[verification.strategy] : 'No verify'}
+            </span>
           </div>
+        </Tooltip>
+        <Tooltip content={errorHandling.onStepFailure === 'abort' ? 'No error recovery' : `On failure: ${errorHandling.onStepFailure}`}>
+          <div className="flex items-center gap-1">
+            <StatusDot status={errorHandling.onStepFailure !== 'abort' ? 'warning' : 'info'} />
+            <span style={{ fontSize: 8, fontFamily: "'Space Mono', monospace", color: errorHandling.onStepFailure !== 'abort' ? t.statusWarning : t.textDim }}>
+              {errorHandling.onStepFailure === 'abort' ? 'No recovery' : `On fail: ${errorHandling.onStepFailure}`}
+            </span>
+          </div>
+        </Tooltip>
+        <Tooltip content={evaluation.enabled ? `${evaluation.criteria.length} evaluation criteria` : 'No evaluation configured'}>
+          <div className="flex items-center gap-1">
+            <StatusDot status={evaluation.enabled ? 'success' : 'info'} />
+            <span style={{ fontSize: 8, fontFamily: "'Space Mono', monospace", color: evaluation.enabled ? '#3498db' : t.textDim }}>
+              {evaluation.enabled ? `${evaluation.criteria.length} criteria` : 'No eval'}
+            </span>
+          </div>
+        </Tooltip>
+        <div className="flex-1" />
+        <div className="flex items-center gap-2" style={{ width: 80 }}>
+          <Progress value={Math.min((totalTokens / (agentConfig.maxTokens || 100000)) * 100, 100)} className="flex-1" />
+          <span style={{ fontSize: 9, fontFamily: "'Space Mono', monospace", color: '#FE5000', fontWeight: 700 }}>
+            {totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(0)}K` : totalTokens}
+          </span>
         </div>
       </div>
 
@@ -422,29 +429,110 @@ function LayersView() {
   const instructionState = useConsoleStore((s) => s.instructionState);
   const workflowSteps = useConsoleStore((s) => s.workflowSteps);
   const verification = useConsoleStore((s) => s.verification);
+  const mcpServers = useConsoleStore((s) => s.mcpServers);
+  const skills = useConsoleStore((s) => s.skills);
+  const connectors = useConsoleStore((s) => s.connectors);
+  const agentMeta = useConsoleStore((s) => s.agentMeta);
+  const outputFormats = useConsoleStore((s) => s.outputFormats);
+
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggle = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const activeChannels = useMemo(() => channels.filter((c) => c.enabled), [channels]);
+  const addedMcp = useMemo(() => mcpServers.filter((m) => m.added), [mcpServers]);
+  const addedSkills = useMemo(() => skills.filter((s) => s.added), [skills]);
+  const enabledConnectors = useMemo(() => connectors.filter((c) => c.enabled), [connectors]);
   const constraints = instructionState.constraints;
+  const activeConstraints = [constraints.neverMakeUp, constraints.askBeforeActions, constraints.stayInScope, constraints.useOnlyTools, constraints.limitWords].filter(Boolean).length;
+
+  const identityPct = Math.min(((agentMeta.name ? 33 : 0) + (agentMeta.description ? 33 : 0) + (instructionState.persona ? 34 : 0)), 100);
+  const knowledgePct = activeChannels.length > 0 ? Math.min(activeChannels.length * 20, 100) : 0;
+  const instructionsPct = Math.min(activeConstraints * 15 + (instructionState.objectives.primary ? 25 : 0), 100);
+  const workflowPct = workflowSteps.length > 0 ? Math.min(workflowSteps.length * 25, 100) : 0;
+  const totalTools = addedMcp.length + addedSkills.length + enabledConnectors.length;
+  const toolsPct = totalTools > 0 ? Math.min(totalTools * 20, 100) : 0;
+  const outputPct = outputFormats.length > 0 ? 100 : 0;
 
   const layers = [
-    { icon: '\uD83D\uDCDA', title: 'Knowledge', color: '#3498db', count: `${activeChannels.length} sources`, pct: 100 },
-    { icon: '\uD83D\uDCCB', title: 'Instructions', color: '#f1c40f', count: `${[constraints.neverMakeUp, constraints.askBeforeActions, constraints.stayInScope, constraints.useOnlyTools, constraints.limitWords].filter(Boolean).length}/5 guards`, pct: 82 },
-    { icon: '\u26A1', title: 'Workflow', color: '#e74c3c', count: `${workflowSteps.length} steps`, pct: 65 },
-    { icon: '\uD83D\uDEE1', title: 'Verification', color: '#2ecc71', count: verification.enabled ? VERIFY_LABELS[verification.strategy] : 'Off', pct: verification.enabled ? 50 : 15 },
+    {
+      key: 'identity', icon: '🪪', title: 'Identity', color: '#9b59b6', pct: identityPct,
+      count: [agentMeta.name, agentMeta.description, instructionState.persona].filter(Boolean).length + '/3',
+      items: [
+        { label: 'Name', value: agentMeta.name || '—' },
+        { label: 'Description', value: agentMeta.description || '—' },
+        { label: 'Persona', value: instructionState.persona || '—' },
+      ],
+    },
+    {
+      key: 'knowledge', icon: '📚', title: 'Knowledge', color: '#3498db', pct: knowledgePct,
+      count: `${activeChannels.length} sources`,
+      items: activeChannels.map((ch) => ({ label: KNOWLEDGE_TYPES[ch.knowledgeType]?.icon + ' ' + ch.name, value: DEPTH_LEVELS[ch.depth]?.label ?? 'Full' })),
+    },
+    {
+      key: 'instructions', icon: '📋', title: 'Instructions', color: '#f1c40f', pct: instructionsPct,
+      count: `${activeConstraints}/5 guards`,
+      items: [
+        { label: 'No fabrication', value: constraints.neverMakeUp ? '✓' : '✗' },
+        { label: 'Ask before actions', value: constraints.askBeforeActions ? '✓' : '✗' },
+        { label: 'Stay in scope', value: constraints.stayInScope ? '✓' : '✗' },
+        { label: 'Use only tools', value: constraints.useOnlyTools ? '✓' : '✗' },
+        { label: 'Limit words', value: constraints.limitWords ? `✓ (${instructionState.constraints.wordLimit})` : '✗' },
+      ],
+    },
+    {
+      key: 'workflow', icon: '⚡', title: 'Workflow', color: '#e74c3c', pct: workflowPct,
+      count: `${workflowSteps.length} steps`,
+      items: workflowSteps.map((s, i) => ({ label: `Step ${i + 1}`, value: s.label || s.action })),
+    },
+    {
+      key: 'tools', icon: '🔧', title: 'Tools', color: '#2ecc71', pct: toolsPct,
+      count: `${addedMcp.length} MCP · ${addedSkills.length} Skills · ${enabledConnectors.length} Conn`,
+      items: [
+        ...addedMcp.map((m) => ({ label: '⚙ ' + m.name, value: 'MCP' })),
+        ...addedSkills.map((s) => ({ label: '✦ ' + s.name, value: 'Skill' })),
+        ...enabledConnectors.map((c) => ({ label: '↔ ' + c.name, value: 'Connector' })),
+      ],
+    },
+    {
+      key: 'output', icon: '📤', title: 'Output', color: '#e67e22', pct: outputPct,
+      count: outputFormats.length > 0 ? outputFormats.join(', ') : 'Not set',
+      items: outputFormats.map((f) => ({ label: f, value: '✓' })),
+    },
   ];
 
   return (
     <div className="flex flex-col gap-[2px] p-3">
       {layers.map((l) => (
-        <div key={l.title} className="rounded overflow-hidden" style={{ background: `${l.color}05`, border: `1px solid ${l.color}15` }}>
-          <div className="flex items-center gap-2 px-3 py-2">
+        <div key={l.key} className="rounded overflow-hidden" style={{ background: `${l.color}05`, border: `1px solid ${l.color}15` }}>
+          <button
+            type="button"
+            onClick={() => toggle(l.key)}
+            className="flex items-center gap-2 px-3 py-2 w-full border-none cursor-pointer nodrag nowheel"
+            style={{ background: 'transparent' }}
+          >
+            {expanded[l.key] ? <ChevronDown size={10} style={{ color: l.color, flexShrink: 0 }} /> : <ChevronRight size={10} style={{ color: l.color, flexShrink: 0 }} />}
             <span style={{ fontSize: 14 }}>{l.icon}</span>
             <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: l.color }}>{l.title}</span>
             <span style={{ fontSize: 10, color: t.textMuted, flex: 1, textAlign: 'right' }}>{l.count}</span>
-          </div>
+          </button>
           <div style={{ height: 2, background: `${l.color}10` }}>
             <div style={{ width: `${l.pct}%`, height: '100%', background: l.color, opacity: 0.4, transition: 'width 0.4s' }} />
           </div>
+          {expanded[l.key] && l.items.length > 0 && (
+            <div className="px-3 py-2 flex flex-col gap-0.5" style={{ borderTop: `1px solid ${l.color}10` }}>
+              {l.items.map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span style={{ fontSize: 9, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
+                  <span style={{ fontSize: 9, color: t.textDim, flexShrink: 0 }}>{item.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {expanded[l.key] && l.items.length === 0 && (
+            <div className="px-3 py-1.5" style={{ borderTop: `1px solid ${l.color}10` }}>
+              <span style={{ fontSize: 9, color: t.textFaint }}>None configured</span>
+            </div>
+          )}
         </div>
       ))}
     </div>
