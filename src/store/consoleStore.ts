@@ -5,6 +5,7 @@ import type { FileContent } from './knowledgeStore';
 import { streamCompletion, streamAgentSdk } from '../services/llmService';
 import { assembleContext } from '../services/contextAssembler';
 import { useProviderStore } from './providerStore';
+import { REACT_CODE_REVIEWER_PRESET } from './demoPreset';
 
 // Module-level abort controller for run cancellation (avoids type-punning the store)
 let _runAbortController: AbortController | undefined;
@@ -283,6 +284,9 @@ export interface ConsoleState {
   updateVerification: (patch: Partial<VerificationConfig>) => void;
   updateErrorHandling: (patch: Partial<ErrorHandling>) => void;
   updateEvaluation: (patch: Partial<EvaluationConfig>) => void;
+
+  // Demo preset
+  loadDemoPreset: () => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -816,6 +820,21 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   updateVerification: (patch) => set({ verification: { ...get().verification, ...patch } }),
   updateErrorHandling: (patch) => set({ errorHandling: { ...get().errorHandling, ...patch } }),
   updateEvaluation: (patch) => set({ evaluation: { ...get().evaluation, ...patch } }),
+
+  // Demo preset
+  loadDemoPreset: () => {
+    const preset = REACT_CODE_REVIEWER_PRESET;
+    set({
+      agentMeta: { ...preset.agentMeta },
+      instructionState: { ...preset.instructionState },
+      workflowSteps: [...preset.workflowSteps],
+      channels: [...preset.channels],
+      skills: [...preset.skills],
+      mcpServers: [...preset.mcpServers],
+      selectedPreset: '',
+      response: '',
+    });
+  },
 }));
 
 export { getEffectiveTokens };
