@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG, type Connector } from './knowledgeBase';
+import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG, type Connector, classifyKnowledge } from './knowledgeBase';
 import { REGISTRY_SKILLS, REGISTRY_MCP_SERVERS, type RegistrySkill, type RegistryMcp, type Runtime, type InstallScope } from './registry';
 import type { FileContent } from './knowledgeStore';
 import { streamCompletion, streamAgentSdk } from '../services/llmService';
@@ -628,14 +628,17 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     const { channels } = get();
     const sourceId = `file:${file.path}`;
     if (channels.some((ch) => ch.sourceId === sourceId)) return;
+
+    // Smart classification: use content + path for type & depth
+    const classification = classifyKnowledge(file.path, file.content);
     const newChannel: ChannelConfig = {
       sourceId,
       name: file.path.split('/').pop() ?? file.path,
       path: file.path,
       category: 'knowledge',
-      knowledgeType: (file.knowledgeType as KnowledgeType) || 'evidence',
+      knowledgeType: (file.knowledgeType as KnowledgeType) || classification.knowledgeType,
       enabled: true,
-      depth: 0,
+      depth: classification.depth,
       baseTokens: file.tokenEstimate,
     };
     set({ channels: [...channels, newChannel], selectedPreset: '' });

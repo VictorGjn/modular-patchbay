@@ -21,8 +21,7 @@ export const KNOWLEDGE_TYPES: Record<KnowledgeType, { label: string; color: stri
 };
 
 // Classification rules — ordered by priority (first match wins)
-const KNOWLEDGE_TYPE_RULES: [string[], KnowledgeType, string[]?][] = [
-  // [keywords, type, excludeKeywords?]
+const PATH_RULES: [string[], KnowledgeType, string[]?][] = [
   [['signal', 'feedback', 'user feedback'], 'signal'],
   [['discovery', '_temp_'], 'hypothesis'],
   [['roadmap', 'plans/', 'plan/'], 'framework'],
@@ -35,15 +34,129 @@ const KNOWLEDGE_TYPE_RULES: [string[], KnowledgeType, string[]?][] = [
   [['voyage-preparation', 'navarea-map'], 'ground-truth'],
 ];
 
-export function classifyKnowledgeType(path: string): KnowledgeType {
+// Content-based classification — patterns in the actual file content
+// Each rule: [contentPatterns, type, weight]
+// Weight breaks ties when multiple patterns match; highest wins
+const CONTENT_RULES: { patterns: RegExp[]; type: KnowledgeType; weight: number; minMatches?: number }[] = [
+  // Ground truth — specs, schemas, configs, contracts, definitions
+  { patterns: [/^#{1,2}\s*(spec|specification|schema|api|contract|definition|interface)/mi, /\b(MUST|SHALL|REQUIRED)\b/g, /```(json|yaml|graphql|proto|sql)\b/g, /\b(version|v\d+\.\d+)/gi], type: 'ground-truth', weight: 10, minMatches: 2 },
+
+  // Signal — feedback, interviews, requests, complaints, feature asks
+  { patterns: [/\b(user said|customer|feedback|interview|request(ed)?|pain point|frustrat|complain|asked for|wants? to|need(s|ed)?)\b/gi, /\b(nps|csat|satisfaction|churn|retention)\b/gi, /[""][^""]{10,}[""]/g, /\b(quote|verbatim)\b/gi], type: 'signal', weight: 8, minMatches: 2 },
+
+  // Evidence — data, analysis, metrics, benchmarks, reports
+  { patterns: [/\b(analysis|benchmark|comparison|metric|kpi|data|report|finding|result|measured|observed)\b/gi, /\d+(\.\d+)?%/g, /\b(increase|decrease|growth|decline|trend)\b/gi, /\|\s*\w+\s*\|/g], type: 'evidence', weight: 7, minMatches: 2 },
+
+  // Framework — methodologies, templates, processes, how-to guides
+  { patterns: [/\b(framework|methodology|process|template|playbook|checklist|step \d|phase \d|stage \d)\b/gi, /\b(when to|how to|best practice|guideline|principle|pattern)\b/gi, /^\s*[-*]\s*\[[ x]\]/gm, /\b(input|output|trigger|criteria)\b/gi], type: 'framework', weight: 6, minMatches: 2 },
+
+  // Hypothesis — proposals, ideas, explorations, RFC, what-if
+  { patterns: [/\b(hypothesis|proposal|rfc|suggest(ion)?|idea|explore|what if|could we|might|experiment|assumption|validate)\b/gi, /\b(pro(s)?|con(s)?|trade-?off|risk|upside|downside)\b/gi, /\b(option [a-c]|alternative|approach \d)\b/gi], type: 'hypothesis', weight: 5, minMatches: 2 },
+
+  // Artifact — generated outputs, exports, changelogs, release notes, meeting notes
+  { patterns: [/\b(generated|exported|changelog|release note|meeting note|transcript|minutes|summary|recap|output)\b/gi, /\b(v\d+\.\d+\.\d+|sprint \d|week of|date:)/gi, /\b(action item|todo|follow.?up|decision)\b/gi], type: 'artifact', weight: 3, minMatches: 2 },
+];
+
+// Depth suggestion based on content characteristics
+const DEPTH_RULES: { test: (content: string, type: KnowledgeType) => boolean; depth: number }[] = [
+  // Short files → full depth
+  { test: (c) => c.length < 2000, depth: 0 },
+  // Ground truth → always detailed
+  { test: (_, t) => t === 'ground-truth', depth: 1 },
+  // Long evidence/framework → summary
+  { test: (c, t) => c.length > 8000 && (t === 'evidence' || t === 'framework'), depth: 2 },
+  // Artifacts → brief unless short
+  { test: (_, t) => t === 'artifact', depth: 2 },
+  // Signals → detailed (every quote matters)
+  { test: (_, t) => t === 'signal', depth: 0 },
+];
+
+export interface ClassificationResult {
+  knowledgeType: KnowledgeType;
+  depth: number;
+  confidence: 'high' | 'medium' | 'low';
+  reason: string;
+}
+
+/**
+ * Classify a knowledge source by path + content.
+ * Path rules take precedence (explicit folder structure = intentional).
+ * Content rules are scored by pattern match count × weight.
+ */
+export function classifyKnowledgeType(path: string, content?: string): KnowledgeType {
+  return classifyKnowledge(path, content).knowledgeType;
+}
+
+export function classifyKnowledge(path: string, content?: string): ClassificationResult {
   const p = path.toLowerCase();
-  for (const [keywords, type, excludes] of KNOWLEDGE_TYPE_RULES) {
+
+  // 1. Path-based rules first (high confidence — user organized it there)
+  for (const [keywords, type, excludes] of PATH_RULES) {
     if (keywords.some((kw) => p.includes(kw))) {
       if (excludes && excludes.some((ex) => p.includes(ex))) continue;
-      return type;
+      const depth = suggestDepth(content || '', type);
+      return { knowledgeType: type, depth, confidence: 'high', reason: `Path matches "${keywords.find((kw) => p.includes(kw))}"` };
     }
   }
-  return 'evidence';
+
+  // 2. Content-based classification (if content available)
+  if (content && content.length > 50) {
+    const scores: { type: KnowledgeType; score: number; matches: number }[] = [];
+
+    for (const rule of CONTENT_RULES) {
+      let totalMatches = 0;
+      let patternsHit = 0;
+
+      for (const pattern of rule.patterns) {
+        // Reset regex state for global patterns
+        pattern.lastIndex = 0;
+        const matches = content.match(pattern);
+        if (matches && matches.length > 0) {
+          patternsHit++;
+          totalMatches += matches.length;
+        }
+      }
+
+      const minMatches = rule.minMatches ?? 1;
+      if (patternsHit >= minMatches) {
+        scores.push({ type: rule.type, score: totalMatches * rule.weight, matches: patternsHit });
+      }
+    }
+
+    if (scores.length > 0) {
+      scores.sort((a, b) => b.score - a.score);
+      const best = scores[0];
+      const confidence = best.score > 30 ? 'high' : best.score > 10 ? 'medium' : 'low';
+      const depth = suggestDepth(content, best.type);
+      return { knowledgeType: best.type, depth, confidence, reason: `Content analysis: ${best.matches} pattern groups, score ${best.score}` };
+    }
+  }
+
+  // 3. File extension fallback
+  const ext = path.split('.').pop()?.toLowerCase();
+  if (ext) {
+    const extMap: Record<string, KnowledgeType> = {
+      json: 'ground-truth', yaml: 'ground-truth', yml: 'ground-truth', toml: 'ground-truth',
+      sql: 'ground-truth', graphql: 'ground-truth', proto: 'ground-truth',
+      csv: 'evidence', tsv: 'evidence', xlsx: 'evidence',
+      py: 'artifact', ts: 'artifact', js: 'artifact', tsx: 'artifact', jsx: 'artifact',
+      log: 'artifact', txt: 'evidence',
+    };
+    if (extMap[ext]) {
+      const depth = suggestDepth(content || '', extMap[ext]);
+      return { knowledgeType: extMap[ext], depth, confidence: 'low', reason: `File extension .${ext}` };
+    }
+  }
+
+  const depth = suggestDepth(content || '', 'evidence');
+  return { knowledgeType: 'evidence', depth, confidence: 'low', reason: 'Default' };
+}
+
+function suggestDepth(content: string, type: KnowledgeType): number {
+  for (const rule of DEPTH_RULES) {
+    if (rule.test(content, type)) return rule.depth;
+  }
+  return 1; // default: detailed
 }
 
 // Output format types
