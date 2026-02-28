@@ -4,6 +4,7 @@ import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { JackPort } from '../components/JackPort';
+import { Tooltip } from '../components/ds/Tooltip';
 import { ConnectorTile } from '../components/ConnectorTile';
 import { OutputIcon } from '../components/icons/SectionIcons';
 import { useTheme } from '../theme';
@@ -54,9 +55,11 @@ export const OutputNode = memo(function OutputNode() {
           {nodeCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
         </button>
         <ArrowUpRight size={14} style={{ color: t.textSecondary }} />
-        <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}>
-          Output
-        </span>
+        <Tooltip content="Choose output format and destination connectors for your agent's responses">
+          <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}>
+            Output
+          </span>
+        </Tooltip>
         <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>
           {outputFormats.length}
         </span>

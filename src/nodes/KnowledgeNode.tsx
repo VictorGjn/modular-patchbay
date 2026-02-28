@@ -5,6 +5,7 @@ import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
 import { KNOWLEDGE_TYPES, type KnowledgeType, type ChannelConfig } from '../store/knowledgeBase';
 import { ConnectorTile } from '../components/ConnectorTile';
 import { JackPort } from '../components/JackPort';
+import { Tooltip } from '../components/ds/Tooltip';
 import { useTheme } from '../theme';
 import { useKnowledgeStore, type FileNode } from '../store/knowledgeStore';
 import {
@@ -113,12 +114,14 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
           {nodeCollapsed ? <ChevronRightIcon size={14} /> : <ChevronDown size={14} />}
         </button>
         <BookOpen size={14} style={{ color: t.textSecondary }} />
-        <span
-          className="text-xs font-medium tracking-wide uppercase flex-1"
-          style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}
-        >
-          Knowledge
-        </span>
+        <Tooltip content="Add files, docs, and context sources for your agent's knowledge base">
+          <span
+            className="text-xs font-medium tracking-wide uppercase flex-1"
+            style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}
+          >
+            Knowledge
+          </span>
+        </Tooltip>
         <span
           className="text-[10px] px-1.5 py-0.5 rounded-md"
           style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}

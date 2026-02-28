@@ -6,6 +6,7 @@ import { OUTPUT_FORMATS, KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { Copy, Check, Maximize2, X } from 'lucide-react';
 import { OutputIcon } from '../components/icons/SectionIcons';
 import { JackPort } from '../components/JackPort';
+import { Tooltip } from '../components/ds/Tooltip';
 import { useTheme } from '../theme';
 
 function renderMarkdown(text: string, t: { textPrimary: string; border: string; statusSuccess: string }): React.ReactNode[] {
@@ -118,9 +119,11 @@ export const ResponseNode = memo(function ResponseNode() {
               animation: running ? 'pulse-glow 1s ease infinite' : 'none',
             }}
           />
-          <span className="text-xs tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>
-            {running ? 'Processing...' : response ? 'Response' : 'Output'}
-          </span>
+          <Tooltip content="Live streaming output from your agent's response">
+            <span className="text-xs tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>
+              {running ? 'Processing...' : response ? 'Response' : 'Output'}
+            </span>
+          </Tooltip>
 
           {formatInfo && response && (
             <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md" style={{ color: t.textDim, background: t.badgeBg }}>

@@ -4,6 +4,7 @@ import { ResizeHandle } from '../components/ResizeHandle';
 import { useMcpStore, startHealthPolling, type McpServerState, type McpTool } from '../store/mcpStore';
 import { Tile } from '../components/Tile';
 import { JackPort } from '../components/JackPort';
+import { Tooltip } from '../components/ds/Tooltip';
 import { McpIcon } from '../components/icons/SectionIcons';
 import { LibraryPicker, type LibraryItem } from '../components/LibraryPicker';
 import { useTheme } from '../theme';
@@ -262,9 +263,11 @@ export const McpNode = memo(function McpNode() {
           {nodeCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
         </button>
         <Plug size={14} style={{ color: t.textSecondary }} />
-        <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}>
-          MCP
-        </span>
+        <Tooltip content="Connect Model Context Protocol servers to give your agent external tools and APIs">
+          <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}>
+            MCP
+          </span>
+        </Tooltip>
         <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>
           {connectedCount}
         </span>
