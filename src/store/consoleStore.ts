@@ -6,6 +6,8 @@ import { streamCompletion, streamAgentSdk } from '../services/llmService';
 import { assembleContext } from '../services/contextAssembler';
 import { useProviderStore } from './providerStore';
 import { REACT_CODE_REVIEWER_PRESET } from './demoPreset';
+import { DEMO_PRESETS } from './demoPresets';
+import type { OutputTemplateConfig } from './outputTemplates';
 
 // Module-level abort controller for run cancellation (avoids type-punning the store)
 let _runAbortController: AbortController | undefined;
@@ -191,6 +193,9 @@ export interface ConsoleState {
   instructionState: InstructionState;
   workflowSteps: WorkflowStep[];
 
+  // Output template configs (per-target structured output)
+  outputTemplateConfig: Record<string, OutputTemplateConfig>;
+
   // Agent Architecture Phase 2: Anthropic methodology
   agentPattern: AgentPattern;
   verification: VerificationConfig;
@@ -285,8 +290,12 @@ export interface ConsoleState {
   updateErrorHandling: (patch: Partial<ErrorHandling>) => void;
   updateEvaluation: (patch: Partial<EvaluationConfig>) => void;
 
+  // Output template config
+  setOutputTemplateConfig: (target: string, config: OutputTemplateConfig) => void;
+  removeOutputTemplateConfig: (target: string) => void;
+
   // Demo preset
-  loadDemoPreset: () => void;
+  loadDemoPreset: (presetId?: string) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -358,6 +367,9 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     autoSync: true,
   },
   workflowSteps: [],
+
+  // Output template configs
+  outputTemplateConfig: {} as Record<string, OutputTemplateConfig>,
 
   // Agent Architecture Phase 2 defaults
   agentPattern: 'prompt-chain' as AgentPattern,
@@ -821,9 +833,36 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   updateErrorHandling: (patch) => set({ errorHandling: { ...get().errorHandling, ...patch } }),
   updateEvaluation: (patch) => set({ evaluation: { ...get().evaluation, ...patch } }),
 
+  // Output template config
+  setOutputTemplateConfig: (target: string, config: OutputTemplateConfig) => {
+    set({ outputTemplateConfig: { ...get().outputTemplateConfig, [target]: config } });
+  },
+  removeOutputTemplateConfig: (target: string) => {
+    const next = { ...get().outputTemplateConfig };
+    delete next[target];
+    set({ outputTemplateConfig: next });
+  },
+
   // Demo preset
-  loadDemoPreset: () => {
-    const preset = REACT_CODE_REVIEWER_PRESET;
+  loadDemoPreset: (presetId?: string) => {
+    // If no presetId, load the legacy React Code Reviewer
+    if (!presetId) {
+      const preset = REACT_CODE_REVIEWER_PRESET;
+      set({
+        agentMeta: { ...preset.agentMeta },
+        instructionState: { ...preset.instructionState },
+        workflowSteps: [...preset.workflowSteps],
+        channels: [...preset.channels],
+        skills: [...preset.skills],
+        mcpServers: [...preset.mcpServers],
+        selectedPreset: '',
+        response: '',
+      });
+      return;
+    }
+    // Look up in DEMO_PRESETS
+    const preset = DEMO_PRESETS[presetId];
+    if (!preset) return;
     set({
       agentMeta: { ...preset.agentMeta },
       instructionState: { ...preset.instructionState },

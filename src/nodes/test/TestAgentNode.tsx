@@ -1,17 +1,17 @@
 import { memo, useState, useMemo } from 'react';
 import { Position } from '@xyflow/react';
-import { JackPort } from '../components/JackPort';
-import { Tooltip } from '../components/ds/Tooltip';
-import { Avatar } from '../components/ds/Avatar';
-import { Badge } from '../components/ds/Badge';
-import { Chip } from '../components/ds/Chip';
-import { Tabs, type Tab } from '../components/ds/Tabs';
-import { StatusDot } from '../components/ds/StatusDot';
-import { Progress } from '../components/ds/Progress';
-import { useConsoleStore, type AgentPattern } from '../store/consoleStore';
-import { useVersionStore } from '../store/versionStore';
-import { useTheme } from '../theme';
-import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/knowledgeBase';
+import { JackPort } from '../../components/JackPort';
+import { Tooltip } from '../../components/ds/Tooltip';
+import { Avatar } from '../../components/ds/Avatar';
+import { Badge } from '../../components/ds/Badge';
+import { Chip } from '../../components/ds/Chip';
+import { Tabs, type Tab } from '../../components/ds/Tabs';
+import { StatusDot } from '../../components/ds/StatusDot';
+import { Progress } from '../../components/ds/Progress';
+import { useConsoleStore, type AgentPattern } from '../../store/consoleStore';
+import { useVersionStore } from '../../store/versionStore';
+import { useTheme } from '../../theme';
+import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../../store/knowledgeBase';
 import { BarChart3, Cpu, Layers, Shield, AlertTriangle, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
 
 type VizMode = 'card' | 'circuit' | 'layers';
@@ -20,12 +20,12 @@ const TYPE_ORDER: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'fram
 const DEPTH_BAR_PCT = [100, 75, 50, 25, 10];
 
 const PATTERN_LABELS: Record<AgentPattern, { label: string; icon: string; color: string }> = {
-  'prompt-chain': { label: 'Prompt Chain', icon: '⛓', color: '#FE5000' },
-  'routing': { label: 'Routing', icon: '🔀', color: '#3498db' },
-  'parallelization': { label: 'Parallel', icon: '⚡', color: '#f1c40f' },
-  'orchestrator-workers': { label: 'Orchestrator', icon: '🎭', color: '#9b59b6' },
-  'evaluator-optimizer': { label: 'Eval-Optimize', icon: '🔄', color: '#2ecc71' },
-  'autonomous-agent': { label: 'Autonomous', icon: '🤖', color: '#e74c3c' },
+  'prompt-chain': { label: 'Prompt Chain', icon: '\u26D3', color: '#FE5000' },
+  'routing': { label: 'Routing', icon: '\uD83D\uDD00', color: '#3498db' },
+  'parallelization': { label: 'Parallel', icon: '\u26A1', color: '#f1c40f' },
+  'orchestrator-workers': { label: 'Orchestrator', icon: '\uD83C\uDFAD', color: '#9b59b6' },
+  'evaluator-optimizer': { label: 'Eval-Optimize', icon: '\uD83D\uDD04', color: '#2ecc71' },
+  'autonomous-agent': { label: 'Autonomous', icon: '\uD83E\uDD16', color: '#e74c3c' },
 };
 
 const VERIFY_LABELS: Record<string, string> = {
@@ -34,8 +34,8 @@ const VERIFY_LABELS: Record<string, string> = {
 
 // ─── Radar SVG ──────────────────────────────────────────────────────
 
-function Radar({ axes, size = 120 }: { axes: { label: string; value: number; color: string }[]; size?: number }) {
-  const cx = size / 2, cy = size / 2, r = size / 2 - 16;
+function Radar({ axes, size = 160 }: { axes: { label: string; value: number; color: string }[]; size?: number }) {
+  const cx = size / 2, cy = size / 2, r = size / 2 - 20;
   const n = axes.length, step = (Math.PI * 2) / n, start = -Math.PI / 2;
   const pt = (i: number, pct: number) => ({ x: cx + r * pct * Math.cos(start + i * step), y: cy + r * pct * Math.sin(start + i * step) });
 
@@ -45,42 +45,42 @@ function Radar({ axes, size = 120 }: { axes: { label: string; value: number; col
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       {[0.25, 0.5, 0.75, 1].map((pct) => {
         const path = axes.map((_, i) => pt(i, pct)).map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ') + 'Z';
-        return <path key={pct} d={path} fill="none" stroke="#ffffff06" strokeWidth="1" />;
+        return <path key={pct} d={path} fill="none" stroke="#ffffff08" strokeWidth="1" />;
       })}
       {axes.map((a, i) => {
-        const end = pt(i, 1), lbl = pt(i, 1.25);
+        const end = pt(i, 1), lbl = pt(i, 1.22);
         return (
           <g key={i}>
-            <line x1={cx} y1={cy} x2={end.x} y2={end.y} stroke="#ffffff06" strokeWidth="1" />
-            <text x={lbl.x} y={lbl.y} textAnchor="middle" dominantBaseline="middle" fill="#555" fontSize="6" fontFamily="'Space Mono', monospace">{a.label}</text>
+            <line x1={cx} y1={cy} x2={end.x} y2={end.y} stroke="#ffffff08" strokeWidth="1" />
+            <text x={lbl.x} y={lbl.y} textAnchor="middle" dominantBaseline="middle" fill="#666" fontSize="7" fontFamily="'Space Mono', monospace">{a.label}</text>
           </g>
         );
       })}
-      <path d={dataPath} fill="#FE500012" stroke="#FE5000" strokeWidth="1.5" />
-      {axes.map((a, i) => { const p = pt(i, a.value); return <circle key={i} cx={p.x} cy={p.y} r="2.5" fill={a.color} stroke="#111" strokeWidth="1" />; })}
+      <path d={dataPath} fill="#FE500015" stroke="#FE5000" strokeWidth="1.5" />
+      {axes.map((a, i) => { const p = pt(i, a.value); return <circle key={i} cx={p.x} cy={p.y} r="3" fill={a.color} stroke="#111" strokeWidth="1" />; })}
     </svg>
   );
 }
 
-// ─── Main Node ──────────────────────────────────────────────────────
+// ─── Main Test Agent Node ───────────────────────────────────────────
 
-export const AgentPreviewNode = memo(function AgentPreviewNode() {
+export const TestAgentNode = memo(function TestAgentNode() {
   const t = useTheme();
   const [vizMode, setVizMode] = useState<VizMode>('card');
 
+  const agentMeta = useConsoleStore((s) => s.agentMeta);
+  const selectedModel = useConsoleStore((s) => s.selectedModel);
   const channels = useConsoleStore((s) => s.channels);
+  const instructionState = useConsoleStore((s) => s.instructionState);
+  const workflowSteps = useConsoleStore((s) => s.workflowSteps);
   const mcpServers = useConsoleStore((s) => s.mcpServers);
   const skills = useConsoleStore((s) => s.skills);
   const connectors = useConsoleStore((s) => s.connectors);
-  const instructionState = useConsoleStore((s) => s.instructionState);
-  const workflowSteps = useConsoleStore((s) => s.workflowSteps);
-  const agentMeta = useConsoleStore((s) => s.agentMeta);
   const agentConfig = useConsoleStore((s) => s.agentConfig);
-  const selectedModel = useConsoleStore((s) => s.selectedModel);
   const agentPattern = useConsoleStore((s) => s.agentPattern);
   const verification = useConsoleStore((s) => s.verification);
-  const errorHandling = useConsoleStore((s) => s.errorHandling);
   const evaluation = useConsoleStore((s) => s.evaluation);
+  const errorHandling = useConsoleStore((s) => s.errorHandling);
   const currentVersion = useVersionStore((s) => s.currentVersion);
 
   const activeChannels = useMemo(() => channels.filter((c) => c.enabled), [channels]);
@@ -92,8 +92,6 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
     activeChannels.reduce((s, c) => s + Math.round(c.baseTokens * (DEPTH_LEVELS[c.depth]?.pct ?? 0.5)), 0),
   [activeChannels]);
 
-  const budgetMax = agentConfig.maxTokens || 100000;
-  const budgetPct = Math.min((totalTokens / budgetMax) * 100, 100);
   const patternInfo = PATTERN_LABELS[agentPattern];
 
   // Radar axes
@@ -123,80 +121,110 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
   }, [instructionState, activeChannels, workflowSteps, addedMcp, enabledConnectors, addedSkills, verification, evaluation, errorHandling]);
 
   const completenessColor = completeness >= 80 ? '#2ecc71' : completeness >= 50 ? '#f1c40f' : '#e74c3c';
+  const modelShort = selectedModel.split('/').pop()?.split('-').slice(0, 3).join('-') ?? selectedModel;
 
   return (
     <div
       className="rounded-xl overflow-hidden nowheel"
       style={{
-        width: 480,
+        width: 440,
         background: t.surfaceOpaque,
-        border: `2px solid #FE500040`,
-        boxShadow: `0 0 30px #FE500008, 0 8px 32px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.1)'}`,
+        border: `2px solid #FE500050`,
+        boxShadow: `0 0 40px #FE500010, 0 8px 32px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.1)'}`,
       }}
     >
       {/* Input port */}
-      <JackPort type="target" position={Position.Left} label="AGENT IN" color="#FE5000" id="agent-preview-in" />
+      <JackPort type="target" position={Position.Left} label="IN" color="#FE5000" id="test-agent-in" />
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3" style={{ background: `linear-gradient(135deg, #FE500010 0%, transparent 100%)`, borderBottom: `1px solid ${t.borderSubtle}` }}>
-        <Avatar emoji={agentMeta.icon || '🤖'} size="md" />
+      <div
+        className="flex items-center gap-3 px-5 py-4"
+        style={{
+          background: `linear-gradient(135deg, #FE500012 0%, transparent 100%)`,
+          borderBottom: `1px solid ${t.borderSubtle}`,
+        }}
+      >
+        <Avatar emoji={agentMeta.avatar || '🤖'} size="lg" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <Tooltip content="Preview of your assembled agent configuration, readiness score, and export">
-              <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 13, fontWeight: 700, color: t.textPrimary, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            <Tooltip content="Test preview of your assembled agent">
+              <span
+                className="truncate"
+                style={{ fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: t.textPrimary, letterSpacing: '0.06em', textTransform: 'uppercase' }}
+              >
                 {agentMeta.name || 'Untitled Agent'}
               </span>
             </Tooltip>
             <Badge variant="info">v{currentVersion}</Badge>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            <Chip>{selectedModel.split('/').pop()?.split('-').slice(0, 3).join('-')}</Chip>
+            <Chip>{modelShort}</Chip>
             <Chip variant={patternInfo.color === '#2ecc71' ? 'success' : patternInfo.color === '#e74c3c' ? 'error' : patternInfo.color === '#f1c40f' ? 'warning' : 'info'}>
               {patternInfo.icon} {patternInfo.label}
             </Chip>
           </div>
         </div>
+
         {/* Completeness ring */}
-        <div className="relative flex items-center justify-center" style={{ width: 40, height: 40 }}>
-          <svg width="40" height="40" viewBox="0 0 40 40">
-            <circle cx="20" cy="20" r="16" fill="none" stroke="#ffffff08" strokeWidth="3" />
-            <circle cx="20" cy="20" r="16" fill="none" stroke={completenessColor} strokeWidth="3"
-              strokeDasharray={`${completeness * 1.005} 100.5`} strokeLinecap="round"
-              transform="rotate(-90 20 20)" style={{ transition: 'stroke-dasharray 0.5s' }} />
+        <div className="relative flex items-center justify-center shrink-0" style={{ width: 48, height: 48 }}>
+          <svg width="48" height="48" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="19" fill="none" stroke="#ffffff08" strokeWidth="3" />
+            <circle cx="24" cy="24" r="19" fill="none" stroke={completenessColor} strokeWidth="3"
+              strokeDasharray={`${completeness * 1.194} 119.4`} strokeLinecap="round"
+              transform="rotate(-90 24 24)" style={{ transition: 'stroke-dasharray 0.5s' }} />
           </svg>
-          <span style={{ position: 'absolute', fontSize: 9, fontFamily: "'Space Mono', monospace", fontWeight: 700, color: completenessColor }}>
+          <span style={{ position: 'absolute', fontSize: 11, fontFamily: "'Space Mono', monospace", fontWeight: 700, color: completenessColor }}>
             {completeness}
           </span>
         </div>
       </div>
 
+      {/* Stats row */}
+      <div className="flex items-center gap-4 px-5 py-2.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+        {[
+          { label: 'KNOW', value: activeChannels.length, color: '#3498db' },
+          { label: 'TOOLS', value: addedMcp.length + enabledConnectors.length, color: '#2ecc71' },
+          { label: 'SKILLS', value: addedSkills.length, color: '#9b59b6' },
+          { label: 'STEPS', value: workflowSteps.length, color: '#e67e22' },
+        ].map((stat) => (
+          <div key={stat.label} className="flex flex-col items-center gap-0.5">
+            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 14, fontWeight: 700, color: stat.color }}>
+              {stat.value}
+            </span>
+            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 7, color: t.textDim, letterSpacing: '0.08em' }}>
+              {stat.label}
+            </span>
+          </div>
+        ))}
+        <div className="flex-1" />
+        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#FE5000', fontWeight: 700 }}>
+          {totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(0)}K` : totalTokens}t
+        </span>
+      </div>
+
       {/* View toggle */}
-      <div className="flex items-center gap-1 px-3" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+      <div className="flex items-center gap-1 px-4" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
         <Tabs
           tabs={[
-            { id: 'card', label: 'Card', icon: <BarChart3 size={9} /> },
-            { id: 'circuit', label: 'Circuit', icon: <Cpu size={9} /> },
-            { id: 'layers', label: 'Layers', icon: <Layers size={9} /> },
+            { id: 'card', label: 'Card', icon: <BarChart3 size={10} /> },
+            { id: 'circuit', label: 'Circuit', icon: <Cpu size={10} /> },
+            { id: 'layers', label: 'Layers', icon: <Layers size={10} /> },
           ] satisfies Tab[]}
           active={vizMode}
           onChange={(id) => setVizMode(id as VizMode)}
           size="sm"
         />
-        <div className="flex-1" />
-        <span style={{ fontSize: 9, color: t.textMuted, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {instructionState.objectives.primary || 'No objective set'}
-        </span>
       </div>
 
       {/* Viz content */}
-      <div className="nowheel nodrag" style={{ maxHeight: 400, overflowY: 'auto' }}>
+      <div className="nowheel nodrag" style={{ minHeight: 200, maxHeight: 360, overflowY: 'auto' }}>
         {vizMode === 'card' && <CardView radarAxes={radarAxes} />}
         {vizMode === 'circuit' && <CircuitView />}
         {vizMode === 'layers' && <LayersView />}
       </div>
 
-      {/* Bottom bar: Verification + Error + Eval status */}
-      <div className="flex items-center gap-3 px-3 py-2" style={{ borderTop: `1px solid ${t.borderSubtle}`, background: t.surfaceElevated }}>
+      {/* Bottom bar */}
+      <div className="flex items-center gap-3 px-4 py-2" style={{ borderTop: `1px solid ${t.borderSubtle}`, background: t.surfaceElevated }}>
         <Tooltip content={verification.enabled ? `Verification: ${VERIFY_LABELS[verification.strategy]}` : 'No verification configured'}>
           <div className="flex items-center gap-1">
             <StatusDot status={verification.enabled ? 'success' : 'info'} />
@@ -205,7 +233,6 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
             </span>
           </div>
         </Tooltip>
-
         <Tooltip content={errorHandling.onStepFailure === 'abort' ? 'No error recovery' : `On failure: ${errorHandling.onStepFailure}`}>
           <div className="flex items-center gap-1">
             <StatusDot status={errorHandling.onStepFailure !== 'abort' ? 'warning' : 'info'} />
@@ -214,7 +241,6 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
             </span>
           </div>
         </Tooltip>
-
         <Tooltip content={evaluation.enabled ? `${evaluation.criteria.length} evaluation criteria` : 'No evaluation configured'}>
           <div className="flex items-center gap-1">
             <StatusDot status={evaluation.enabled ? 'success' : 'info'} />
@@ -223,22 +249,22 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
             </span>
           </div>
         </Tooltip>
-
         <div className="flex-1" />
-
-        {/* Context gauge */}
         <div className="flex items-center gap-2" style={{ width: 80 }}>
-          <Progress value={budgetPct} className="flex-1" />
+          <Progress value={Math.min((totalTokens / (agentConfig.maxTokens || 100000)) * 100, 100)} className="flex-1" />
           <span style={{ fontSize: 9, fontFamily: "'Space Mono', monospace", color: '#FE5000', fontWeight: 700 }}>
             {totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(0)}K` : totalTokens}
           </span>
         </div>
       </div>
+
+      {/* Output port */}
+      <JackPort type="source" position={Position.Right} label="AGENT" color="#FE5000" id="test-agent-out" />
     </div>
   );
 });
 
-// ─── Card View (inline) ─────────────────────────────────────────────
+// ─── Card View ──────────────────────────────────────────────────────
 
 function CardView({ radarAxes }: { radarAxes: { label: string; value: number; color: string }[] }) {
   const t = useTheme();
@@ -253,14 +279,14 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
   const constraints = instructionState.constraints;
 
   return (
-    <div className="flex gap-0" style={{ minHeight: 180 }}>
+    <div className="flex gap-0" style={{ minHeight: 200 }}>
       {/* Left: Radar */}
-      <div className="flex flex-col items-center justify-center px-3 shrink-0" style={{ width: 150, borderRight: `1px solid ${t.borderSubtle}` }}>
-        <Radar axes={radarAxes} size={120} />
+      <div className="flex flex-col items-center justify-center px-3 shrink-0" style={{ width: 180, borderRight: `1px solid ${t.borderSubtle}` }}>
+        <Radar axes={radarAxes} size={160} />
         <div className="flex items-center gap-1 mt-1">
           <span style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>EXP</span>
           <div className="flex gap-0.5">
-            {[1, 2, 3, 4, 5].map((i) => <div key={i} style={{ width: 6, height: 6, borderRadius: 2, background: i <= instructionState.expertise ? '#FE5000' : '#FE500020' }} />)}
+            {[1, 2, 3, 4, 5].map((i) => <div key={i} style={{ width: 7, height: 7, borderRadius: 2, background: i <= instructionState.expertise ? '#FE5000' : '#FE500020' }} />)}
           </div>
           <span style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace", marginLeft: 4 }}>{instructionState.tone}</span>
         </div>
@@ -269,17 +295,17 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
       {/* Right: Details grid */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Knowledge */}
-        <div className="flex-1 p-2" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-          <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Knowledge</div>
+        <div className="flex-1 p-2.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+          <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Knowledge</div>
           {activeChannels.length === 0 ? <span style={{ fontSize: 9, color: t.textFaint }}>None</span> : (
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1">
               {activeChannels.map((ch) => {
                 const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
                 const pct = DEPTH_BAR_PCT[ch.depth] ?? 50;
                 return (
                   <div key={ch.sourceId} className="flex items-center gap-1.5">
-                    <span style={{ fontSize: 8 }}>{kt.icon}</span>
-                    <span style={{ fontSize: 8, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{ch.name}</span>
+                    <span style={{ fontSize: 9 }}>{kt.icon}</span>
+                    <span style={{ fontSize: 9, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{ch.name}</span>
                     <div style={{ width: 30, height: 3, background: `${kt.color}15`, borderRadius: 2, flexShrink: 0, overflow: 'hidden' }}>
                       <div style={{ width: `${pct}%`, height: '100%', background: kt.color, opacity: 0.7, borderRadius: 2 }} />
                     </div>
@@ -291,15 +317,15 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
         </div>
 
         {/* Workflow */}
-        <div className="p-2" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-          <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Workflow</div>
+        <div className="p-2.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+          <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Workflow</div>
           <div className="flex items-center gap-0 flex-wrap">
             {workflowSteps.length === 0 ? <span style={{ fontSize: 9, color: t.textFaint }}>None</span> : workflowSteps.map((step, i) => (
               <div key={step.id} className="flex items-center">
-                <div style={{ width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #FE500040', background: '#FE500008', fontFamily: "'Space Mono', monospace", fontSize: 8, fontWeight: 700, color: '#FE5000' }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #FE500040', background: '#FE500008', fontFamily: "'Space Mono', monospace", fontSize: 9, fontWeight: 700, color: '#FE5000' }}>
                   {i + 1}
                 </div>
-                {i < workflowSteps.length - 1 && <div style={{ width: 12, height: 1, background: '#ffffff10' }} />}
+                {i < workflowSteps.length - 1 && <div style={{ width: 14, height: 1, background: '#ffffff10' }} />}
               </div>
             ))}
           </div>
@@ -307,21 +333,21 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
 
         {/* Tools + Constraints */}
         <div className="flex">
-          <div className="flex-1 p-2">
-            <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Tools</div>
+          <div className="flex-1 p-2.5">
+            <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Tools</div>
             <div className="flex gap-1 flex-wrap">
               {[...connectors.filter((c) => c.enabled), ...mcpServers.filter((m) => m.added), ...skills.filter((s) => s.added)].slice(0, 6).map((item) => (
-                <span key={'id' in item ? item.id : item.name} style={{ fontSize: 7, fontFamily: "'Space Mono', monospace", padding: '1px 4px', borderRadius: 3, background: '#FE500010', color: '#ff8c55' }}>
+                <span key={'id' in item ? item.id : item.name} style={{ fontSize: 8, fontFamily: "'Space Mono', monospace", padding: '1px 5px', borderRadius: 3, background: '#FE500010', color: '#ff8c55' }}>
                   {'service' in item ? item.name : item.name}
                 </span>
               ))}
-              {connectors.filter((c) => c.enabled).length + mcpServers.filter((m) => m.added).length + skills.filter((s) => s.added).length === 0 && <span style={{ fontSize: 8, color: t.textFaint }}>None</span>}
+              {connectors.filter((c) => c.enabled).length + mcpServers.filter((m) => m.added).length + skills.filter((s) => s.added).length === 0 && <span style={{ fontSize: 9, color: t.textFaint }}>None</span>}
             </div>
           </div>
-          <div className="p-2 shrink-0" style={{ borderLeft: `1px solid ${t.borderSubtle}`, width: 100 }}>
-            <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Guard</div>
+          <div className="p-2.5 shrink-0" style={{ borderLeft: `1px solid ${t.borderSubtle}`, width: 100 }}>
+            <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Guard</div>
             {[{ l: 'No fabricate', on: constraints.neverMakeUp }, { l: 'Ask first', on: constraints.askBeforeActions }, { l: 'In scope', on: constraints.stayInScope }].map((c) => (
-              <div key={c.l} style={{ fontSize: 7, color: c.on ? '#2ecc71' : '#333', fontFamily: "'Space Mono', monospace" }}>{c.on ? '✓' : '✗'} {c.l}</div>
+              <div key={c.l} style={{ fontSize: 8, color: c.on ? '#2ecc71' : '#333', fontFamily: "'Space Mono', monospace" }}>{c.on ? '\u2713' : '\u2717'} {c.l}</div>
             ))}
           </div>
         </div>
@@ -330,7 +356,7 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
   );
 }
 
-// ─── Circuit View (simplified inline) ───────────────────────────────
+// ─── Circuit View ───────────────────────────────────────────────────
 
 function CircuitView() {
   const t = useTheme();
@@ -353,21 +379,19 @@ function CircuitView() {
 
   return (
     <div className="flex px-2 py-2" style={{ minHeight: h }}>
-      {/* Left pins */}
-      <div className="flex flex-col gap-1 shrink-0" style={{ width: 140 }}>
+      <div className="flex flex-col gap-1 shrink-0" style={{ width: 150 }}>
         {left.map((ch) => {
           const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
           return (
             <div key={ch.sourceId} className="flex items-center gap-1.5 px-1.5 py-0.5 rounded" style={{ background: '#ffffff04' }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: kt.color, boxShadow: `0 0 3px ${kt.color}60` }} />
-              <span style={{ fontSize: 8, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ch.name}</span>
+              <span style={{ fontSize: 9, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ch.name}</span>
             </div>
           );
         })}
-        {left.length === 0 && <span style={{ fontSize: 8, color: t.textFaint, padding: 4 }}>No inputs</span>}
+        {left.length === 0 && <span style={{ fontSize: 9, color: t.textFaint, padding: 4 }}>No inputs</span>}
       </div>
 
-      {/* Traces */}
       <div className="flex-1 relative" style={{ minWidth: 80 }}>
         <svg width="100%" height="100%" viewBox={`0 0 200 ${h}`} preserveAspectRatio="none">
           <rect x="70" y="5" width="60" height={h - 10} rx="4" fill="#FE500003" stroke="#FE500012" strokeWidth="1" strokeDasharray="3 3" />
@@ -381,25 +405,17 @@ function CircuitView() {
             const y = 14 + i * 28;
             return <path key={i} d={`M130,${10 + (i / Math.max(rows - 1, 1)) * (h - 20)} C160,${10 + (i / Math.max(rows - 1, 1)) * (h - 20)} 160,${y} 200,${y}`} stroke="#FE5000" strokeWidth="1" opacity="0.15" fill="none" />;
           })}
-          {left.slice(0, 2).map((ch, i) => {
-            const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
-            const y = 14 + i * 28;
-            const busY = 10 + (i / Math.max(rows - 1, 1)) * (h - 20);
-            const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-            return <circle key={i} r="2" fill={kt.color} opacity="0.5">{!prefersReduced && <animateMotion dur={`${2 + i}s`} repeatCount="indefinite" path={`M0,${y} C40,${y} 40,${busY} 70,${busY}`} />}</circle>;
-          })}
         </svg>
       </div>
 
-      {/* Right pins */}
-      <div className="flex flex-col gap-1 shrink-0" style={{ width: 120 }}>
+      <div className="flex flex-col gap-1 shrink-0" style={{ width: 130 }}>
         {right.map((pin) => (
           <div key={pin.name} className="flex items-center gap-1.5 px-1.5 py-0.5 rounded justify-end" style={{ background: '#ffffff04' }}>
-            <span style={{ fontSize: 8, color: t.textSecondary }}>{pin.name}</span>
+            <span style={{ fontSize: 9, color: t.textSecondary }}>{pin.name}</span>
             <div style={{ width: 5, height: 5, borderRadius: '50%', background: pin.color, boxShadow: `0 0 3px ${pin.color}60` }} />
           </div>
         ))}
-        {right.length === 0 && <span style={{ fontSize: 8, color: t.textFaint, padding: 4, textAlign: 'right' }}>No tools</span>}
+        {right.length === 0 && <span style={{ fontSize: 9, color: t.textFaint, padding: 4, textAlign: 'right' }}>No tools</span>}
       </div>
     </div>
   );
@@ -429,18 +445,12 @@ function LayersView() {
   const constraints = instructionState.constraints;
   const activeConstraints = [constraints.neverMakeUp, constraints.askBeforeActions, constraints.stayInScope, constraints.useOnlyTools, constraints.limitWords].filter(Boolean).length;
 
-  // Identity completeness: name + description + persona
   const identityPct = Math.min(((agentMeta.name ? 33 : 0) + (agentMeta.description ? 33 : 0) + (instructionState.persona ? 34 : 0)), 100);
-  // Knowledge completeness: at least 1 source = 100%, 0 = 0%
   const knowledgePct = activeChannels.length > 0 ? Math.min(activeChannels.length * 20, 100) : 0;
-  // Instructions completeness: constraints + objectives
   const instructionsPct = Math.min(activeConstraints * 15 + (instructionState.objectives.primary ? 25 : 0), 100);
-  // Workflow completeness
   const workflowPct = workflowSteps.length > 0 ? Math.min(workflowSteps.length * 25, 100) : 0;
-  // Tools completeness
   const totalTools = addedMcp.length + addedSkills.length + enabledConnectors.length;
   const toolsPct = totalTools > 0 ? Math.min(totalTools * 20, 100) : 0;
-  // Output completeness
   const outputPct = outputFormats.length > 0 ? 100 : 0;
 
   const layers = [
@@ -491,36 +501,36 @@ function LayersView() {
   ];
 
   return (
-    <div className="flex flex-col gap-[2px] p-2">
+    <div className="flex flex-col gap-[2px] p-3">
       {layers.map((l) => (
         <div key={l.key} className="rounded overflow-hidden" style={{ background: `${l.color}05`, border: `1px solid ${l.color}15` }}>
           <button
             type="button"
             onClick={() => toggle(l.key)}
-            className="flex items-center gap-2 px-3 py-1.5 w-full border-none cursor-pointer nodrag nowheel"
+            className="flex items-center gap-2 px-3 py-2 w-full border-none cursor-pointer nodrag nowheel"
             style={{ background: 'transparent' }}
           >
-            {expanded[l.key] ? <ChevronDown size={9} style={{ color: l.color, flexShrink: 0 }} /> : <ChevronRight size={9} style={{ color: l.color, flexShrink: 0 }} />}
-            <span style={{ fontSize: 12 }}>{l.icon}</span>
-            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: l.color }}>{l.title}</span>
-            <span style={{ fontSize: 9, color: t.textMuted, flex: 1, textAlign: 'right' }}>{l.count}</span>
+            {expanded[l.key] ? <ChevronDown size={10} style={{ color: l.color, flexShrink: 0 }} /> : <ChevronRight size={10} style={{ color: l.color, flexShrink: 0 }} />}
+            <span style={{ fontSize: 14 }}>{l.icon}</span>
+            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: l.color }}>{l.title}</span>
+            <span style={{ fontSize: 10, color: t.textMuted, flex: 1, textAlign: 'right' }}>{l.count}</span>
           </button>
           <div style={{ height: 2, background: `${l.color}10` }}>
             <div style={{ width: `${l.pct}%`, height: '100%', background: l.color, opacity: 0.4, transition: 'width 0.4s' }} />
           </div>
           {expanded[l.key] && l.items.length > 0 && (
-            <div className="px-3 py-1.5 flex flex-col gap-0.5" style={{ borderTop: `1px solid ${l.color}10` }}>
+            <div className="px-3 py-2 flex flex-col gap-0.5" style={{ borderTop: `1px solid ${l.color}10` }}>
               {l.items.map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span style={{ fontSize: 8, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
-                  <span style={{ fontSize: 8, color: t.textDim, flexShrink: 0 }}>{item.value}</span>
+                  <span style={{ fontSize: 9, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
+                  <span style={{ fontSize: 9, color: t.textDim, flexShrink: 0 }}>{item.value}</span>
                 </div>
               ))}
             </div>
           )}
           {expanded[l.key] && l.items.length === 0 && (
-            <div className="px-3 py-1" style={{ borderTop: `1px solid ${l.color}10` }}>
-              <span style={{ fontSize: 8, color: t.textFaint }}>None configured</span>
+            <div className="px-3 py-1.5" style={{ borderTop: `1px solid ${l.color}10` }}>
+              <span style={{ fontSize: 9, color: t.textFaint }}>None configured</span>
             </div>
           )}
         </div>

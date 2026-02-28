@@ -1,5 +1,6 @@
 import { type ConsoleState, type AgentMeta, type ExportTarget } from '../store/consoleStore';
 import { KNOWLEDGE_TYPES, OUTPUT_FORMATS, type McpServer, type Skill, type Connector } from '../store/knowledgeBase';
+import { type OutputTemplateConfig, templateConfigToSchema } from '../store/outputTemplates';
 
 const MODEL_SHORT: Record<string, string> = {
   'claude-opus-4': 'claude-opus-4',
@@ -21,6 +22,7 @@ export interface ExportConfig {
   agentMeta: AgentMeta;
   agentConfig?: ConsoleState['agentConfig'];
   connectors?: Connector[];
+  outputTemplateConfig?: Record<string, OutputTemplateConfig>;
 }
 
 interface AgentData {
@@ -324,6 +326,9 @@ export function exportForOpenClaw(config: ExportConfig): string {
 
 export function exportGenericJSON(config: ExportConfig): string {
   const data = buildAgentData(config);
+  const templates = config.outputTemplateConfig
+    ? Object.fromEntries(Object.entries(config.outputTemplateConfig).map(([k, v]) => [k, templateConfigToSchema(v)]))
+    : undefined;
   const obj = {
     modular_version: '1.0',
     agent: {
@@ -339,6 +344,7 @@ export function exportGenericJSON(config: ExportConfig): string {
       output_formats: data.output_format,
       token_budget: data.token_budget,
       connectors: data.connectors,
+      ...(templates && Object.keys(templates).length > 0 ? { output: { templates } } : {}),
     },
   };
   return JSON.stringify(obj, null, 2);

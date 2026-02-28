@@ -1,4 +1,4 @@
-// Pre-built MCP server configurations — 100 most common servers
+// Pre-built MCP server configurations — curated MCP servers
 // Each entry includes command, args, env var names, and metadata
 
 import type { ConfigField, MarketplaceCategory, McpTransport, Runtime } from './registry';
@@ -82,10 +82,10 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
 
   // ─── SEARCH & WEB ──────────────────────────────────────
   {
-    id: 'mcp-brave-search', name: 'Brave Search', npmPackage: '@anthropic/mcp-brave-search',
+    id: 'mcp-brave-search', name: 'Brave Search', npmPackage: '@modelcontextprotocol/server-brave-search',
     description: 'Web and local search powered by Brave Search API',
-    icon: 'search', category: 'research', author: 'Brave', transport: 'stdio',
-    runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@anthropic/mcp-brave-search'],
+    icon: 'search', category: 'research', author: 'MCP Official', transport: 'stdio',
+    runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-brave-search'],
     configFields: [{ key: 'BRAVE_API_KEY', label: 'API Key', type: 'password', placeholder: 'BSA...', required: true }],
     website: 'https://brave.com/search/api/', tags: ['search', 'web', 'brave'],
   },
@@ -114,18 +114,18 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     website: 'https://firecrawl.dev', tags: ['scraping', 'crawling', 'web', 'extract'],
   },
   {
-    id: 'mcp-puppeteer', name: 'Puppeteer', npmPackage: '@anthropic/mcp-puppeteer',
+    id: 'mcp-puppeteer', name: 'Puppeteer', npmPackage: '@modelcontextprotocol/server-puppeteer',
     description: 'Browser automation — screenshots, navigation, form filling, scraping',
-    icon: 'globe', category: 'research', author: 'Anthropic', transport: 'stdio',
-    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@anthropic/mcp-puppeteer'],
+    icon: 'globe', category: 'research', author: 'MCP Official', transport: 'stdio',
+    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-puppeteer'],
     configFields: [],
     tags: ['browser', 'automation', 'screenshots', 'scraping'],
   },
   {
-    id: 'mcp-playwright', name: 'Playwright', npmPackage: '@anthropic/mcp-playwright',
+    id: 'mcp-playwright', name: 'Playwright', npmPackage: '@playwright/mcp',
     description: 'Browser automation with Playwright — cross-browser testing and scraping',
-    icon: 'globe', category: 'research', author: 'Anthropic', transport: 'stdio',
-    runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@anthropic/mcp-playwright'],
+    icon: 'globe', category: 'research', author: 'Microsoft', transport: 'stdio',
+    runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@playwright/mcp'],
     configFields: [],
     tags: ['browser', 'playwright', 'testing', 'automation'],
   },
@@ -287,10 +287,10 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     website: 'https://turso.tech', tags: ['turso', 'sqlite', 'edge', 'database'],
   },
   {
-    id: 'mcp-pinecone', name: 'Pinecone', npmPackage: '@anthropic/mcp-pinecone',
+    id: 'mcp-pinecone', name: 'Pinecone', npmPackage: '@pinecone-database/mcp',
     description: 'Pinecone vector database — upsert, query, delete vectors',
     icon: 'database', category: 'data', author: 'Pinecone', transport: 'stdio',
-    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@anthropic/mcp-pinecone'],
+    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@pinecone-database/mcp'],
     configFields: [{ key: 'PINECONE_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true }],
     website: 'https://pinecone.io', tags: ['pinecone', 'vector', 'embeddings', 'rag'],
   },
@@ -371,10 +371,10 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     website: 'https://notion.so', tags: ['notion', 'docs', 'wiki', 'database', 'pages'],
   },
   {
-    id: 'mcp-google-drive', name: 'Google Drive', npmPackage: '@anthropic/mcp-google-drive',
+    id: 'mcp-google-drive', name: 'Google Drive', npmPackage: '@modelcontextprotocol/server-gdrive',
     description: 'Google Drive — search, read, create files and folders',
-    icon: 'hard-drive', category: 'data', author: 'Google', transport: 'stdio',
-    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@anthropic/mcp-google-drive'],
+    icon: 'hard-drive', category: 'data', author: 'MCP Official', transport: 'stdio',
+    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-gdrive'],
     configFields: [
       { key: 'GOOGLE_CLIENT_ID', label: 'OAuth Client ID', type: 'text', placeholder: '', required: true },
       { key: 'GOOGLE_CLIENT_SECRET', label: 'OAuth Client Secret', type: 'password', placeholder: '', required: true },
@@ -404,10 +404,10 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     tags: ['google-calendar', 'events', 'scheduling', 'calendar'],
   },
   {
-    id: 'mcp-google-maps', name: 'Google Maps', npmPackage: '@anthropic/mcp-google-maps',
+    id: 'mcp-google-maps', name: 'Google Maps', npmPackage: '@modelcontextprotocol/server-google-maps',
     description: 'Google Maps — geocoding, directions, places, distance matrix',
-    icon: 'map-pin', category: 'data', author: 'Google', transport: 'stdio',
-    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@anthropic/mcp-google-maps'],
+    icon: 'map-pin', category: 'data', author: 'MCP Official', transport: 'stdio',
+    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-google-maps'],
     configFields: [{ key: 'GOOGLE_MAPS_API_KEY', label: 'API Key', type: 'password', placeholder: 'AIza...', required: true }],
     tags: ['google-maps', 'geocoding', 'directions', 'places'],
   },
@@ -498,10 +498,10 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     website: 'https://stripe.com', tags: ['stripe', 'payments', 'billing', 'subscriptions'],
   },
   {
-    id: 'mcp-shopify', name: 'Shopify', npmPackage: '@anthropic/mcp-shopify',
+    id: 'mcp-shopify', name: 'Shopify', npmPackage: '@shopify/dev-mcp',
     description: 'Shopify store — products, orders, customers, inventory',
     icon: 'shopping-bag', category: 'data', author: 'Shopify', transport: 'stdio',
-    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@anthropic/mcp-shopify'],
+    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@shopify/dev-mcp'],
     configFields: [
       { key: 'SHOPIFY_STORE_URL', label: 'Store URL', type: 'url', placeholder: 'your-store.myshopify.com', required: true },
       { key: 'SHOPIFY_ACCESS_TOKEN', label: 'Access Token', type: 'password', placeholder: 'shpat_...', required: true },
@@ -865,7 +865,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     description: 'Weather data — current conditions, forecasts, historical data',
     icon: 'cloud', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'weather-mcp'],
-    configFields: [{ key: 'OPENWEATHER_API_KEY', label: 'OpenWeatherMap API Key', type: 'password', placeholder: '', required: false }],
+    configFields: [{ key: 'OPENWEATHER_API_KEY', label: 'OpenWeatherMap API Key', type: 'password', placeholder: '', required: true }],
     tags: ['weather', 'forecast', 'climate', 'temperature'],
   },
   {
@@ -1002,7 +1002,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     icon: 'layout', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'trello-mcp'],
     configFields: [
-      { key: 'TRELLO_API_KEY', label: 'API Key', type: 'text', placeholder: '', required: true },
+      { key: 'TRELLO_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true },
       { key: 'TRELLO_TOKEN', label: 'Token', type: 'password', placeholder: '', required: true },
     ],
     tags: ['trello', 'boards', 'kanban', 'cards'],
@@ -1032,10 +1032,10 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     tags: ['circleci', 'ci-cd', 'pipelines', 'automation'],
   },
   {
-    id: 'mcp-upstash', name: 'Upstash', npmPackage: '@anthropic/mcp-upstash',
+    id: 'mcp-upstash', name: 'Upstash', npmPackage: '@upstash/mcp-server',
     description: 'Upstash — serverless Redis and Kafka, QStash message queue',
     icon: 'database', category: 'data', author: 'Upstash', transport: 'stdio',
-    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@anthropic/mcp-upstash'],
+    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@upstash/mcp-server'],
     configFields: [
       { key: 'UPSTASH_REDIS_REST_URL', label: 'Redis REST URL', type: 'url', placeholder: '', required: true },
       { key: 'UPSTASH_REDIS_REST_TOKEN', label: 'Redis REST Token', type: 'password', placeholder: '', required: true },
@@ -1103,6 +1103,76 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'AMPLITUDE_SECRET_KEY', label: 'Secret Key', type: 'password', placeholder: '', required: true },
     ],
     tags: ['amplitude', 'analytics', 'events', 'product'],
+  },
+
+  // ─── DOMAIN-SPECIFIC ─────────────────────────────────
+  {
+    id: 'mcp-context7', name: 'Context7', npmPackage: '@upstash/context7-mcp',
+    description: 'Pull up-to-date library documentation and code examples on demand',
+    icon: 'book-open', category: 'domain', author: 'Upstash', transport: 'stdio',
+    runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@upstash/context7-mcp'],
+    configFields: [],
+    tags: ['docs', 'documentation', 'libraries', 'context'],
+  },
+  {
+    id: 'mcp-aws-kb-retrieval', name: 'AWS KB Retrieval', npmPackage: '@modelcontextprotocol/server-aws-kb-retrieval',
+    description: 'Retrieve from AWS Bedrock Knowledge Bases using RAG',
+    icon: 'database', category: 'domain', author: 'MCP Official', transport: 'stdio',
+    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-aws-kb-retrieval'],
+    configFields: [
+      { key: 'AWS_ACCESS_KEY_ID', label: 'Access Key ID', type: 'text', placeholder: 'AKIA...', required: true },
+      { key: 'AWS_SECRET_ACCESS_KEY', label: 'Secret Access Key', type: 'password', placeholder: '', required: true },
+      { key: 'AWS_REGION', label: 'Region', type: 'text', placeholder: 'us-east-1', required: true },
+    ],
+    repo: 'https://github.com/modelcontextprotocol/servers', tags: ['aws', 'bedrock', 'rag', 'knowledge-base'],
+  },
+  {
+    id: 'mcp-everart', name: 'EverArt', npmPackage: '@modelcontextprotocol/server-everart',
+    description: 'AI image generation with multiple models via EverArt platform',
+    icon: 'image', category: 'design', author: 'MCP Official', transport: 'stdio',
+    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-everart'],
+    configFields: [{ key: 'EVERART_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true }],
+    repo: 'https://github.com/modelcontextprotocol/servers', tags: ['image', 'generation', 'ai-art', 'design'],
+  },
+  {
+    id: 'mcp-greptile', name: 'Greptile', npmPackage: '@greptile/mcp-server',
+    description: 'AI-powered codebase search and understanding',
+    icon: 'search', category: 'coding', author: 'Greptile', transport: 'stdio',
+    runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@greptile/mcp-server'],
+    configFields: [{ key: 'GREPTILE_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true }],
+    website: 'https://greptile.com', tags: ['code-search', 'codebase', 'ai', 'understanding'],
+  },
+  {
+    id: 'mcp-e2b', name: 'E2B Code Interpreter', npmPackage: '@e2b/mcp-server',
+    description: 'Sandboxed code execution — run Python, JS, and more in secure cloud sandbox',
+    icon: 'terminal', category: 'coding', author: 'E2B', transport: 'stdio',
+    runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@e2b/mcp-server'],
+    configFields: [{ key: 'E2B_API_KEY', label: 'API Key', type: 'password', placeholder: 'e2b_...', required: true }],
+    website: 'https://e2b.dev', tags: ['sandbox', 'code-execution', 'interpreter', 'python'],
+  },
+  {
+    id: 'mcp-hubspot-dev', name: 'HubSpot Developer', npmPackage: '@hubspot/mcp-server',
+    description: 'HubSpot developer tools — CMS, projects, functions, deploy',
+    icon: 'hexagon', category: 'domain', author: 'HubSpot', transport: 'stdio',
+    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@hubspot/mcp-server'],
+    configFields: [{ key: 'HUBSPOT_PORTAL_ID', label: 'Portal ID', type: 'text', placeholder: '', required: true }],
+    website: 'https://developers.hubspot.com', tags: ['hubspot', 'cms', 'developer', 'deploy'],
+  },
+  {
+    id: 'mcp-medical-ref', name: 'Medical Reference', npmPackage: 'medical-ref-mcp',
+    description: 'Medical terminology, drug interactions, clinical guidelines lookup',
+    icon: 'heart', category: 'domain', author: 'Community', transport: 'stdio',
+    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'medical-ref-mcp'],
+    configFields: [],
+    tags: ['medical', 'healthcare', 'drugs', 'clinical'],
+  },
+  {
+    id: 'mcp-legal', name: 'Legal Research', npmPackage: 'legal-mcp',
+    description: 'Legal document search — case law, statutes, regulations',
+    icon: 'scale', category: 'domain', author: 'Community', transport: 'stdio',
+    runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'legal-mcp'],
+    configFields: [],
+    tags: ['legal', 'law', 'case-law', 'regulations'],
   },
 ];
 
