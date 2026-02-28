@@ -161,6 +161,7 @@ router.get('/project-mcp', (req: Request, res: Response) => {
         args: cfg.args as string[] | undefined,
         url: cfg.url as string | undefined,
         env: cfg.env as Record<string, string> | undefined,
+        headers: cfg.headers as Record<string, string> | undefined,
         status,
       };
     });

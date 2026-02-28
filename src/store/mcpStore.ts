@@ -13,9 +13,12 @@ export type McpServerStatus = 'disconnected' | 'connecting' | 'connected' | 'err
 export interface McpServerState {
   id: string;
   name: string;
+  type?: 'stdio' | 'sse' | 'http';
   command: string;
   args: string[];
   env: Record<string, string>;
+  url?: string;
+  headers?: Record<string, string>;
   status: McpServerStatus;
   tools: McpTool[];
   lastError?: string;
@@ -29,7 +32,7 @@ interface McpStore {
   loading: boolean;
 
   loadServers: () => Promise<void>;
-  addServer: (config: { name: string; command: string; args: string[]; env: Record<string, string> }) => Promise<McpServerState | null>;
+  addServer: (config: { name: string; type?: 'stdio' | 'sse' | 'http'; command: string; args: string[]; env: Record<string, string>; url?: string; headers?: Record<string, string> }) => Promise<McpServerState | null>;
   connectServer: (id: string) => Promise<void>;
   disconnectServer: (id: string) => Promise<void>;
   removeServer: (id: string) => Promise<void>;
@@ -71,7 +74,7 @@ export const useMcpStore = create<McpStore>((set, get) => ({
     const claudeServers = await apiFetch<Array<{
       id: string; name: string; type: string; command?: string;
       args?: string[]; url?: string; env?: Record<string, string>;
-      status: 'enabled' | 'deferred' | 'disabled';
+      headers?: Record<string, string>; status: 'enabled' | 'deferred' | 'disabled';
     }>>('/api/claude-config/mcp') ?? [];
 
     // Merge: Claude servers that aren't already in modular config
@@ -83,9 +86,12 @@ export const useMcpStore = create<McpStore>((set, get) => ({
         .map((s) => ({
           id: s.id,
           name: s.name,
+          type: s.type as 'stdio' | 'sse' | 'http' | undefined,
           command: s.command ?? '',
           args: s.args ?? [],
           env: s.env ?? {},
+          url: s.url,
+          headers: s.headers,
           status: (s.status === 'enabled' ? 'disconnected' : s.status === 'deferred' ? 'disconnected' : 'disconnected') as McpServerStatus,
           tools: [],
           mcpStatus: s.status as 'enabled' | 'deferred' | 'disabled',

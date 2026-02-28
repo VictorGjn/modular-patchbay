@@ -1,4 +1,3 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { existsSync, readFileSync } from "node:fs";
@@ -22,6 +21,7 @@ router.post("/chat", async (req: Request, res: Response) => {
   res.setHeader("Connection", "keep-alive");
 
   try {
+    const { query } = await import("@anthropic-ai/claude-agent-sdk");
     for await (const message of query({
       prompt,
       options: {

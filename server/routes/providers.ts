@@ -79,6 +79,12 @@ router.post('/:id/test', async (req, res) => {
     ''
   );
 
+  if (!baseUrl) {
+    const resp: ApiResponse = { status: 'error', error: 'No base URL configured for this provider' };
+    res.status(400).json(resp);
+    return;
+  }
+
   try {
     if (providerType.includes('anthropic')) {
       const response = await fetch(`${baseUrl}/messages`, {
