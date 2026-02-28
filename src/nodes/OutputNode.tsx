@@ -43,6 +43,7 @@ export const OutputNode = memo(function OutputNode() {
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
         <JackPort type="target" position={Position.Left} label="INPUT" color="#FE5000" id="output-in" />
+        <JackPort type="source" position={Position.Right} label="OUT" color="#FE5000" id="output-out" />
         <button
           type="button"
           onClick={() => setNodeCollapsed(!nodeCollapsed)}
