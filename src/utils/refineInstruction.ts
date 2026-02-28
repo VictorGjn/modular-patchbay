@@ -75,25 +75,45 @@ export async function refineField(
   if (!systemPrompt) throw new Error(`Unknown field: ${field}`);
 
   const { API_BASE } = await import('../config');
-  const res = await fetch(`${API_BASE}/llm/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      provider: provider.id,
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userInput },
-      ],
-      temperature: 0.3,
-      maxTokens: 1024,
-    }),
-  });
 
-  if (!res.ok) throw new Error(`LLM error: ${res.status}`);
+  let raw: string;
+  if (provider.id === 'claude-agent-sdk' || provider.authMethod === 'claude-agent-sdk') {
+    // Use agent-sdk endpoint for Claude Agent SDK
+    const modelId = typeof model === 'object' ? (model as { id: string }).id : (model as string);
+    const res = await fetch(`${API_BASE}/agent-sdk/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: userInput,
+        model: modelId,
+        systemPrompt,
+        maxTurns: 1,
+      }),
+    });
+    if (!res.ok) throw new Error(`Agent SDK error: ${res.status}`);
+    raw = await res.text();
+  } else {
+    const modelId = typeof model === 'object' ? (model as { id: string }).id : (model as string);
+    const res = await fetch(`${API_BASE}/llm/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: provider.id,
+        model: modelId,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userInput },
+        ],
+        temperature: 0.3,
+        maxTokens: 1024,
+      }),
+    });
+    if (!res.ok) throw new Error(`LLM error: ${res.status}`);
+    raw = await res.text();
+  }
 
-  const raw = await res.text();
-  const text = parseSSEResponse(raw, provider.type);
+  const providerType = (provider.id === 'claude-agent-sdk' || provider.id === 'anthropic') ? 'anthropic' : 'openai';
+  const text = parseSSEResponse(raw, providerType);
 
   if (field === 'full') {
     try {
