@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+﻿import { useState, useRef, useEffect, useCallback } from 'react';
 import { API_BASE } from '../config';
 import { useConversationStore } from '../store/conversationStore';
 import { useConsoleStore } from '../store/consoleStore';
@@ -172,7 +172,7 @@ export function ConversationTester() {
 
       // Determine provider
       const model = store.selectedModel;
-      const provider = providers.providers.find((p: Provider) => p.configured);
+      const provider = providers.providers.find((p: Provider) => p.status === 'connected' || p.status === 'configured');
       const useAgentSdk = provider?.authMethod === 'claude-agent-sdk';
 
       let accumulated = '';
@@ -239,7 +239,7 @@ export function ConversationTester() {
 
         // Determine provider
         const model = store.selectedModel;
-        const provider = providers.providers.find((p: Provider) => p.configured);
+        const provider = providers.providers.find((p: Provider) => p.status === 'connected' || p.status === 'configured');
         const useAgentSdk = provider?.authMethod === 'claude-agent-sdk';
 
         let result = '';
@@ -398,7 +398,7 @@ export function ConversationTester() {
                           >
                             {msg.content}
                           </ReactMarkdown>
-                        ) : streaming ? '▍' : ''
+                        ) : streaming ? 'â–' : ''
                       ) : (
                         msg.content || ''
                       )}
@@ -586,3 +586,4 @@ export function ConversationTester() {
     </>
   );
 }
+
