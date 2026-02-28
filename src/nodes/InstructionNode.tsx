@@ -1,12 +1,13 @@
-import { memo, useState, useEffect, useMemo } from 'react';
+import { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import { Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { JackPort } from '../components/JackPort';
 import { useConsoleStore } from '../store/consoleStore';
 import { useTheme } from '../theme';
+import { refineField, type RefinedAgent } from '../utils/refineInstruction';
 import {
   ChevronDown, ChevronRight, User, ShieldCheck, Target, FileText,
-  Plus, X, ToggleLeft, ToggleRight,
+  Plus, X, ToggleLeft, ToggleRight, Sparkles, Loader2,
 } from 'lucide-react';
 
 type Tab = 'persona' | 'constraints' | 'objectives' | 'raw';
@@ -70,10 +71,33 @@ function compileInstructions(state: ReturnType<typeof useConsoleStore.getState>[
   return lines.join('\n');
 }
 
+function RefineButton({ loading, onClick, t }: { loading: boolean; onClick: () => void; t: ReturnType<typeof useTheme> }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className="flex items-center gap-1 text-[9px] px-2 py-1 rounded-md cursor-pointer border-none nodrag"
+      style={{
+        background: loading ? t.surfaceElevated : '#FE500018',
+        color: loading ? t.textDim : '#FE5000',
+        fontFamily: "'Space Mono', monospace",
+        opacity: loading ? 0.6 : 1,
+      }}
+      title="AI transforms your brain dump into polished agent instructions (Anthropic metaprompt)"
+    >
+      {loading ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+      {loading ? 'Generating...' : 'Generate ✨'}
+    </button>
+  );
+}
+
 export const InstructionNode = memo(function InstructionNode() {
   const t = useTheme();
   const [collapsed, setCollapsed] = useState(false);
   const [tab, setTab] = useState<Tab>('persona');
+  const [refining, setRefining] = useState<string | null>(null);
+  const [refineError, setRefineError] = useState<string | null>(null);
 
   // Instruction state from store
   const instructionState = useConsoleStore((s) => s.instructionState);
@@ -95,6 +119,71 @@ export const InstructionNode = memo(function InstructionNode() {
     fontFamily: "'Space Mono', monospace",
     fontSize: 11,
   };
+
+  const handleRefineAll = useCallback(async () => {
+    // Collect everything the user has typed as a brain dump
+    const dump = [
+      persona,
+      constraints.customConstraints,
+      constraints.scopeDefinition,
+      objectives.primary,
+      ...objectives.successCriteria,
+      ...objectives.failureModes,
+    ].filter(Boolean).join('\n');
+    if (!dump.trim()) return;
+    setRefining('persona');
+    setRefineError(null);
+    try {
+      const result = await refineField('full', dump) as RefinedAgent;
+      updateInstruction({
+        persona: result.persona,
+        tone: result.tone,
+        expertise: result.expertise,
+        objectives: {
+          primary: result.objectives.primary,
+          successCriteria: result.objectives.successCriteria,
+          failureModes: result.objectives.failureModes,
+        },
+        constraints: {
+          ...constraints,
+          customConstraints: result.constraints.join('\n'),
+          scopeDefinition: result.scopeDefinition,
+        },
+      });
+    } catch (e) {
+      setRefineError(e instanceof Error ? e.message : 'Refinement failed');
+    } finally {
+      setRefining(null);
+    }
+  }, [persona, constraints, objectives, updateInstruction]);
+
+  const handleRefineConstraints = useCallback(async () => {
+    if (!constraints.customConstraints.trim()) return;
+    setRefining('constraints');
+    setRefineError(null);
+    try {
+      const refined = await refineField('constraints', constraints.customConstraints);
+      updateInstruction({ constraints: { ...constraints, customConstraints: refined } });
+    } catch (e) {
+      setRefineError(e instanceof Error ? e.message : 'Refinement failed');
+    } finally {
+      setRefining(null);
+    }
+  }, [constraints, updateInstruction]);
+
+  const handleRefineScope = useCallback(async () => {
+    if (!constraints.scopeDefinition.trim()) return;
+    setRefining('scope');
+    setRefineError(null);
+    try {
+      const refined = await refineField('scope', constraints.scopeDefinition);
+      updateInstruction({ constraints: { ...constraints, scopeDefinition: refined } });
+    } catch (e) {
+      setRefineError(e instanceof Error ? e.message : 'Refinement failed');
+    } finally {
+      setRefining(null);
+    }
+  }, [constraints, updateInstruction]);
 
   const tabIcons: Record<Tab, typeof User> = {
     persona: User,
@@ -176,11 +265,14 @@ export const InstructionNode = memo(function InstructionNode() {
           <div className="flex-1 overflow-y-auto nowheel nodrag p-3 flex flex-col gap-2.5" style={{ minHeight: 200 }}>
             {tab === 'persona' && (
               <>
-                <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>You are...</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Describe your agent</label>
+                  <RefineButton loading={refining === 'persona'} onClick={handleRefineAll} t={t} />
+                </div>
                 <textarea
                   value={persona}
                   onChange={(e) => updateInstruction({ persona: e.target.value })}
-                  placeholder="A senior React engineer with deep expertise in performance optimization and accessibility..."
+                  placeholder="Brain dump anything about your agent... e.g. 'customer support for saas, friendly, knows our docs, never makes stuff up, escalates billing issues' → hit Generate ✨ to fill all tabs"
                   className="w-full text-xs px-3 py-2 rounded-lg outline-none resize-y nowheel nodrag"
                   style={{ ...inputStyle, minHeight: 80 }}
                 />
@@ -253,23 +345,29 @@ export const InstructionNode = memo(function InstructionNode() {
 
                 {constraints.stayInScope && (
                   <>
-                    <label className="text-[9px] tracking-wider uppercase font-semibold mt-1" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Scope Definition</label>
+                    <div className="flex items-center justify-between mt-1">
+                      <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Scope Definition</label>
+                      <RefineButton loading={refining === 'scope'} onClick={handleRefineScope} t={t} />
+                    </div>
                     <input
                       type="text"
                       value={constraints.scopeDefinition}
                       onChange={(e) => updateInstruction({ constraints: { ...constraints, scopeDefinition: e.target.value } })}
-                      placeholder="This agent handles... It does NOT handle..."
+                      placeholder="e.g. 'frontend bugs only, no backend, no infra' → Refine ✨"
                       className="w-full text-[11px] px-2 py-1.5 rounded outline-none nodrag"
                       style={inputStyle}
                     />
                   </>
                 )}
 
-                <label className="text-[9px] tracking-wider uppercase font-semibold mt-2" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Custom Constraints</label>
+                <div className="flex items-center justify-between mt-2">
+                  <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Custom Constraints</label>
+                  <RefineButton loading={refining === 'constraints'} onClick={handleRefineConstraints} t={t} />
+                </div>
                 <textarea
                   value={constraints.customConstraints}
                   onChange={(e) => updateInstruction({ constraints: { ...constraints, customConstraints: e.target.value } })}
-                  placeholder="One constraint per line..."
+                  placeholder="Brain dump rules... e.g. 'no pii, always cite, max 3 paragraphs, french only' → hit Refine ✨"
                   className="w-full text-xs px-3 py-2 rounded-lg outline-none resize-y nowheel nodrag"
                   style={{ ...inputStyle, minHeight: 48 }}
                 />
@@ -278,12 +376,15 @@ export const InstructionNode = memo(function InstructionNode() {
 
             {tab === 'objectives' && (
               <>
-                <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Primary Objective</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Primary Objective</label>
+                  <RefineButton loading={refining === 'persona'} onClick={handleRefineAll} t={t} />
+                </div>
                 <input
                   type="text"
                   value={objectives.primary}
                   onChange={(e) => updateInstruction({ objectives: { ...objectives, primary: e.target.value } })}
-                  placeholder="Help users debug React applications"
+                  placeholder="Brain dump what this agent does... → Refine ✨ fills everything"
                   className="w-full text-xs px-3 py-2 rounded-lg outline-none nodrag"
                   style={inputStyle}
                 />
@@ -352,6 +453,13 @@ export const InstructionNode = memo(function InstructionNode() {
                   <Plus size={10} /> Add failure mode
                 </button>
               </>
+            )}
+
+            {refineError && (
+              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px] mx-0 mb-1" style={{ background: t.statusErrorBg, color: t.statusError }}>
+                <X size={10} className="shrink-0 cursor-pointer" onClick={() => setRefineError(null)} />
+                {refineError}
+              </div>
             )}
 
             {tab === 'raw' && (
