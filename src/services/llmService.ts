@@ -1,4 +1,6 @@
-// Shared SSE stream parser — avoids duplicating line-by-line SSE parsing
+﻿import { API_BASE } from '../config';
+
+// Shared SSE stream parser â€” avoids duplicating line-by-line SSE parsing
 async function parseSSEStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   onData: (data: string) => boolean | void, // return true to stop
@@ -37,7 +39,7 @@ export function streamAgentSdk(params: StreamAgentSdkParams): AbortController {
 
   const controller = new AbortController();
 
-  fetch('/api/agent-sdk/chat', {
+  fetch(`${API_BASE}/agent-sdk/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, model, systemPrompt, maxTurns }),

@@ -130,7 +130,8 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
 ];
 
 const STORAGE_KEY = 'modular-providers';
-const API_BASE = '/api';
+import { API_BASE } from '../config';
+
 
 // Check if backend is available with TTL cache
 let backendAvailable: boolean | null = null;

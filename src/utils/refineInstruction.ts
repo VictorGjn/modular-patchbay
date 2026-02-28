@@ -74,7 +74,8 @@ export async function refineField(
 
   if (!systemPrompt) throw new Error(`Unknown field: ${field}`);
 
-  const res = await fetch('/api/llm/chat', {
+  const { API_BASE } = await import('../config');
+  const res = await fetch(`${API_BASE}/llm/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
