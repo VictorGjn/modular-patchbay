@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { exportForTarget, downloadAgentFile, downloadAllTargets, TARGET_META, type ExportConfig } from '../utils/agentExport';
+import { exportAgentYaml } from '../utils/agentExportYaml';
 
 const ICON_OPTIONS: { id: string; Icon: LucideIcon }[] = [
   { id: 'brain', Icon: Brain },
@@ -150,6 +151,22 @@ export function SaveAgentModal() {
 
   const handleExportAll = () => {
     downloadAllTargets(config);
+  };
+
+  const handleExportYaml = () => {
+    const yamlContent = exportAgentYaml();
+    const name = agentMeta.name || 'modular-agent';
+    const safeName = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+    const blob = new Blob([yamlContent], { type: 'text/yaml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${safeName}.yaml`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   if (!showSaveModal) return null;
@@ -407,6 +424,19 @@ export function SaveAgentModal() {
               >
                 <Package size={13} />
                 Export All Targets
+              </button>
+              <button
+                type="button"
+                onClick={handleExportYaml}
+                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer"
+                style={{
+                  background: 'transparent',
+                  border: `1px solid ${t.borderSubtle}`,
+                  color: t.textMuted,
+                }}
+              >
+                <FileText size={13} />
+                Export as YAML
               </button>
             </div>
           </div>
