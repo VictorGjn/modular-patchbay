@@ -43,6 +43,8 @@ export interface AgentMeta {
   description: string;
   icon: string;
   category: string;
+  tags: string[];
+  avatar: string;
 }
 
 export type ExportTarget = 'claude' | 'amp' | 'codex' | 'vibe-kanban' | 'openclaw' | 'generic';
@@ -312,7 +314,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   registrySkills: REGISTRY_SKILLS.map((s) => ({ ...s })),
   registryMcpServers: REGISTRY_MCP_SERVERS.map((s) => ({ ...s })),
   agentConfig: { ...DEFAULT_AGENT_CONFIG },
-  agentMeta: { name: '', description: '', icon: 'brain', category: 'general' },
+  agentMeta: { name: '', description: '', icon: 'brain', category: 'general', tags: [], avatar: '🤖' },
   mcpServers: [] as McpServer[],
   skills: REGISTRY_SKILLS.filter((s) => s.installed).map((s) => ({
     id: s.id,

@@ -40,6 +40,7 @@ import { ResponseNode } from './nodes/ResponseNode';
 import { InstructionNode } from './nodes/InstructionNode';
 import { WorkflowNode } from './nodes/WorkflowNode';
 import { AgentPreviewNode } from './nodes/AgentPreviewNode';
+import { IdentityNode } from './nodes/IdentityNode';
 import { PatchCable } from './edges/PatchCable';
 import { FeedbackEdge } from './edges/FeedbackEdge';
 
@@ -53,6 +54,7 @@ const nodeTypes = {
   instruction: InstructionNode,
   workflow: WorkflowNode,
   agentPreview: AgentPreviewNode,
+  identity: IdentityNode,
 };
 
 const edgeTypes = {
@@ -66,6 +68,7 @@ const initialNodes: Node[] = [
   { id: 'skills', type: 'skills', position: { x: 50, y: 340 }, data: {} },
   { id: 'mcp', type: 'mcp', position: { x: 50, y: 620 }, data: {} },
   // Middle column - Agent Architecture
+  { id: 'identity', type: 'identity', position: { x: 340, y: -120 }, data: {} },
   { id: 'instruction', type: 'instruction', position: { x: 340, y: 60 }, data: {} },
   { id: 'workflow', type: 'workflow', position: { x: 340, y: 360 }, data: {} },
   // Center — Hero Prompt node
@@ -78,6 +81,8 @@ const initialNodes: Node[] = [
 ];
 
 const initialEdges: Edge[] = [
+  // Identity -> Instruction
+  { id: 'e-identity-instruction', source: 'identity', target: 'instruction', sourceHandle: 'identity-out', targetHandle: 'instruction-identity-in', type: 'patch', style: { stroke: '#FE5000' }, data: { label: 'identity' } },
   // Left sources -> Instruction
   { id: 'e-knowledge-instruction', source: 'knowledge', target: 'instruction', sourceHandle: 'knowledge-out', targetHandle: 'instruction-knowledge-in', type: 'patch', style: { stroke: '#3498db' }, data: { label: 'knowledge' } },
   { id: 'e-skills-instruction', source: 'skills', target: 'instruction', sourceHandle: 'skills-out', targetHandle: 'instruction-skills-in', type: 'patch', style: { stroke: '#f1c40f' }, data: { label: 'skills' } },

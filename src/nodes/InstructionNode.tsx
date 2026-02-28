@@ -214,9 +214,10 @@ export const InstructionNode = memo(function InstructionNode() {
         }}
         onClick={() => setCollapsed(!collapsed)}
       >
-        <JackPort id="instruction-knowledge-in" type="target" position={Position.Left} color={t.cableKnowledge} label="KNOW" side="left" />
-        <JackPort id="instruction-skills-in" type="target" position={Position.Left} color={t.cableSkills} label="SKILLS" side="left" style={{ top: '50%' }} />
-        <JackPort id="instruction-mcp-in" type="target" position={Position.Left} color={t.cableMcp} label="MCP" side="left" style={{ top: '75%' }} />
+        <JackPort id="instruction-identity-in" type="target" position={Position.Left} color="#FE5000" label="ID" side="left" />
+        <JackPort id="instruction-knowledge-in" type="target" position={Position.Left} color={t.cableKnowledge} label="KNOW" side="left" style={{ top: '40%' }} />
+        <JackPort id="instruction-skills-in" type="target" position={Position.Left} color={t.cableSkills} label="SKILLS" side="left" style={{ top: '60%' }} />
+        <JackPort id="instruction-mcp-in" type="target" position={Position.Left} color={t.cableMcp} label="MCP" side="left" style={{ top: '80%' }} />
 
         <button type="button" className="p-0 border-none bg-transparent cursor-pointer" style={{ color: t.textDim }} aria-label={collapsed ? 'Expand' : 'Collapse'}>
           {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
