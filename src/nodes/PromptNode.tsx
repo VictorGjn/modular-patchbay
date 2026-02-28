@@ -5,6 +5,7 @@ import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { OutputIcon } from '../components/icons/SectionIcons';
 import { JackPort } from '../components/JackPort';
+import { Tooltip } from '../components/ds/Tooltip';
 import { useTheme } from '../theme';
 import { Play, Download, Settings } from 'lucide-react';
 
@@ -118,12 +119,14 @@ export const PromptNode = memo(function PromptNode() {
           <JackPort type="target" position={Position.Left} label="MCP" color={t.cableMcp} id="prompt-mcp-in" />
         </div>
         <div className="flex flex-col items-center">
-          <span
-            className="text-xs font-bold tracking-[3px] uppercase"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, fontSize: 12 }}
-          >
-            PROMPT
-          </span>
+          <Tooltip content="Compose the user prompt, select model, and run your agent">
+            <span
+              className="text-xs font-bold tracking-[3px] uppercase"
+              style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, fontSize: 12 }}
+            >
+              PROMPT
+            </span>
+          </Tooltip>
           <span
             className="text-[10px]"
             style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}

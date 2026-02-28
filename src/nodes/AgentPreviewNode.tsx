@@ -1,6 +1,7 @@
 import { memo, useState, useMemo } from 'react';
 import { Position } from '@xyflow/react';
 import { JackPort } from '../components/JackPort';
+import { Tooltip } from '../components/ds/Tooltip';
 import { useConsoleStore, type AgentPattern, type VerificationConfig, type ErrorHandling } from '../store/consoleStore';
 import { useVersionStore } from '../store/versionStore';
 import { useTheme } from '../theme';
@@ -135,9 +136,11 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
         <span style={{ fontSize: 28 }}>{agentMeta.icon || '🤖'}</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 13, fontWeight: 700, color: t.textPrimary, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              {agentMeta.name || 'Untitled Agent'}
-            </span>
+            <Tooltip content="Preview of your assembled agent configuration, readiness score, and export">
+              <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 13, fontWeight: 700, color: t.textPrimary, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                {agentMeta.name || 'Untitled Agent'}
+              </span>
+            </Tooltip>
             <span style={{ fontSize: 8, fontFamily: "'Space Mono', monospace", padding: '1px 6px', borderRadius: 4, background: '#FE500015', color: '#FE5000', fontWeight: 600 }}>
               v{currentVersion}
             </span>
