@@ -52,6 +52,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
   const skills = useConsoleStore((s) => s.skills);
   const agentMeta = useConsoleStore((s) => s.agentMeta);
   const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
+  const loadDemoPreset = useConsoleStore((s) => s.loadDemoPreset);
   const getAllModels = useProviderStore((s) => s.getAllModels);
   const providers = useProviderStore((s) => s.providers);
   const allModels = useMemo(() => getAllModels(), [getAllModels, providers]);
@@ -140,6 +141,19 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       )}
 
       <div className="flex-1" />
+
+      {/* Load Demo */}
+      <button
+        type="button"
+        onClick={loadDemoPreset}
+        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+        style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
+        aria-label="Load Demo Preset"
+      >
+        🎯 Load Demo
+      </button>
 
       {/* Marketplace */}
       <button

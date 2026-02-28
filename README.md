@@ -1,135 +1,161 @@
 # Modular Studio
 
-**The visual design-time layer for AI agents**
+> The visual agent builder. Design AI agents, not just prompts.
 
-Modular Studio is a visual node-graph builder where you compose AI agents by connecting knowledge sources, skills, MCP tools, and output targets. Design your agent on an interactive canvas, test it with real LLM calls, then export to any runtime — Claude, OpenAI, Codex, AMP, or OpenClaw.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-![Modular Studio](./screenshot.png)
+![Modular Studio](./prototypes/light-full.png)
+
+## What is this?
+
+Modular Studio is a visual canvas for building AI agents through **context engineering**—the emerging paradigm of designing agents through layered context assembly rather than monolithic prompting. Think Figma for AI agents: drag, connect, and configure modular components to create sophisticated AI workflows that adapt to your specific needs.
+
+## Key Features
+
+• **Visual Canvas Interface** — Drag-and-drop components with real-time connections and data flow visualization
+• **Mixing Console Metaphor** — Audio-inspired controls for fine-tuning agent behavior and context layers
+• **Multi-Modal Knowledge Sources** — Seamlessly integrate documents, APIs, databases, and real-time data streams
+• **MCP Server Integration** — Native support for Model Context Protocol servers and tool ecosystems
+• **Workflow Orchestration** — Design multi-step reasoning patterns based on Anthropic's proven agent architectures
+• **Universal Export** — Deploy to Claude Code, Amp, Codex, Gemini, Vibe Kanban, OpenClaw, and more
+• **Context Engineering** — Advanced prompt composition with identity, instructions, constraints, and dynamic workflows
+• **Real-time Agent Preview** — Live visualization of your agent's capabilities and token usage
+
+## Architecture
+
+Modular Studio is built around three core concepts:
+
+### Canvas Nodes
+- **Identity Node**: Define agent personality, role, and metadata
+- **Instruction Node**: Configure behavior, expertise level, and objectives
+- **Knowledge Node**: Connect documents, databases, and information sources
+- **Skills Node**: Attach reusable capabilities and tools
+- **MCP Node**: Integrate Model Context Protocol servers
+- **Workflow Node**: Design step-by-step reasoning patterns
+- **Output Node**: Configure response format and structure
+
+### Mixing Console Metaphor
+Inspired by audio production, the console provides precision controls for:
+- **Channel Strips**: Individual knowledge source controls with EQ-style depth adjustments
+- **Crossfader**: Balance between different knowledge types (ground-truth vs hypothesis)
+- **Master Bus**: Global agent configuration and output formatting
+- **Effects Chain**: Apply constraints, verification, and evaluation layers
+
+### Context Engineering
+Move beyond simple prompting to engineered context assembly:
+- **Layered Context**: Structured identity + instructions + knowledge + tools
+- **Dynamic Workflows**: Conditional step execution with loop and branching support
+- **Token Budget Management**: Optimize context windows with smart depth controls
+- **Multi-format Output**: Generate markdown, JSON, structured data, and more
+
+## Agent Definition Format
+
+Modular Studio exports agents in a standardized YAML format:
+
+```yaml
+version: '1.0'
+kind: agent
+identity:
+  name: react-code-reviewer
+  display_name: React Code Reviewer
+  description: Senior React engineer specializing in code quality and accessibility
+  avatar: 🔍
+  tags: ['react', 'code-review', 'typescript', 'accessibility']
+
+instructions:
+  persona: You are a senior React engineer with 8+ years of experience
+  tone: professional
+  expertise: 5
+  constraints:
+    - Never approve code without proper TypeScript types
+    - Always check for accessibility violations
+    - Enforce consistent coding standards
+  objectives:
+    primary: Provide thorough, actionable code reviews
+    success_criteria:
+      - Identify potential bugs and performance issues
+      - Suggest accessibility improvements
+      - Maintain code consistency across the project
+
+context:
+  knowledge:
+    - type: file
+      ref: react-style-guide.md
+      knowledge_type: framework
+      depth: 2
+    - type: file
+      ref: accessibility-checklist.md
+      knowledge_type: evidence
+      depth: 3
+
+  skills:
+    - ref: clean-code
+      source: registry
+
+  mcp_servers:
+    - name: github
+      description: GitHub repository access
+      transport: stdio
+
+workflow:
+  steps:
+    - id: analyze
+      action: Read the code diff and understand the changes
+      condition: always
+    - id: style-check
+      action: Verify code follows React/TypeScript best practices
+      tool: clean-code
+    - id: accessibility
+      action: Check for accessibility violations and improvements
+    - id: categorize
+      action: Classify issues by severity (critical/major/minor)
+    - id: review
+      action: Write comprehensive review with specific suggestions
+```
 
 ## Quick Start
 
 ```bash
-# Clone and run
-git clone https://github.com/VictorGjn/modular-patchbay.git
-cd modular-patchbay && git checkout feat/ui-modernization
+# Install dependencies
 npm install
-npm run build:all
-node dist-server/bin/modular-studio.js --open
 
-# Or (after npm publish)
-npx modular-studio
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Run tests
+npm test
 ```
 
-The studio opens at `http://localhost:4800`. Use `--port 3000` to change the port.
+Open `http://localhost:3000` to start designing your first agent.
 
-## Features
+## Export Targets
 
-- **Visual node-graph canvas** — Drag, connect, and arrange nodes on a React Flow canvas with minimap, zoom controls, and dot-grid background
-- **Real LLM integration** — Stream completions from OpenAI, Anthropic, Google AI, OpenRouter, or use the Claude Agent SDK (zero-config if `claude` CLI is authenticated)
-- **MCP server management** — Connect MCP servers via stdio transport, discover tools automatically, execute them during agent runs, and monitor health with live status indicators
-- **Knowledge system with epistemic types** — Classify sources as Ground Truth, Signal, Evidence, Framework, Hypothesis, or Artifact. Each type carries instructions that shape how the LLM uses that context
-- **Depth control** — Dial each knowledge source from Summary → Key Points → Details → Full → Verbatim to control token usage
-- **Multi-format output** — Markdown, HTML Slides, Email Draft, Code, CSV, JSON, Diagram, Slack Post — auto-detected from your prompt
-- **External connectors** — Read from and write to services (Notion, Google Docs, Slack, Gmail, etc.) via configurable connectors
-- **Dark / Light theme** — System-aware with manual toggle
-- **Agent export** — Save your agent as a `.md` definition targeting Claude, AMP, Codex, OpenClaw, or a generic format. Download individual targets or all at once
-- **Preset system** — Load pre-configured canvas setups to get started quickly
-- **Marketplace** — Browse and install skills, MCP servers, and presets from a curated registry
-- **Feedback edges** — The agent can suggest new knowledge sources and skills back to their respective nodes for human review
+Modular Studio agents can be deployed to:
 
-## Architecture
+- **Claude Code** — Direct integration with Anthropic's CLI tool
+- **Amp** — Reusable agent definitions for the Amp platform
+- **Codex** — OpenAI-compatible agent configurations
+- **Gemini** — Google AI agent specifications
+- **Vibe Kanban** — BloopAI's workflow automation platform
+- **OpenClaw** — Open-source agent runtime
+- **Generic JSON** — Universal format for custom integrations
 
-```
-Frontend                          Backend
-─────────────────────────        ─────────────────────────
-React 19 + TypeScript             Express 5
-@xyflow/react (React Flow)       @modelcontextprotocol/sdk
-Zustand (state management)       Claude Agent SDK
-Tailwind CSS 4                   LLM streaming proxy (SSE)
-Lucide icons                     MCP Manager (stdio transport)
-```
+## Tech Stack
 
-Everything runs locally via a single command:
-
-```
-npx modular-studio
-    │
-    └── Express server (port 4800)
-        ├── Serves built React app from dist/
-        ├── /api/providers/*   — LLM provider CRUD + connection test
-        ├── /api/mcp/*         — MCP server lifecycle + tool discovery
-        ├── /api/llm/chat      — Streaming LLM proxy (SSE)
-        └── /api/agent-sdk/*   — Claude Agent SDK integration
-```
-
-### Canvas Topology
-
-```
-Knowledge ─┐
-Skills ────┤──→ Prompt (Agent) ──→ Output
-MCP Tools ─┘         │              Response
-                     │
-              Feedback edges
-         (enrich knowledge, discover skills)
-```
-
-| Cable Color | Meaning |
-|-------------|---------|
-| Blue `#3498db` | Knowledge → Prompt |
-| Yellow `#f1c40f` | Skills → Prompt |
-| Green `#2ecc71` | MCP → Prompt |
-| Orange `#FE5000` | Prompt → Output / Response |
-| Cyan dashed `#00d4ff` | Feedback (Prompt → Knowledge) |
-| Yellow dashed | Feedback (Prompt → Skills) |
-
-## Configuration
-
-### LLM Providers
-
-Open **Settings → Providers** to add API keys:
-
-| Provider | Auth | Base URL |
-|----------|------|----------|
-| Anthropic | `x-api-key` header | `https://api.anthropic.com/v1` |
-| OpenAI | Bearer token | `https://api.openai.com/v1` |
-| Google AI | API key (query param) | `https://generativelanguage.googleapis.com/v1beta` |
-| OpenRouter | Bearer token | `https://openrouter.ai/api/v1` |
-| Claude Agent SDK | Zero-config | Requires `claude` CLI authenticated |
-
-You can also add custom providers with any OpenAI-compatible endpoint.
-
-### MCP Servers
-
-Configure MCP servers in **Settings → MCP Servers** or install them from the **Marketplace**. Each server connects via stdio transport and exposes tools that appear in the MCP node on the canvas.
-
-### General Settings
-
-- **Theme**: System / Light / Dark
-- **Edge routing**: Straight or smoothstep
-- **Grid snap**: Toggle snap-to-grid
-- **Minimap**: Show/hide the minimap overlay
-
-## Models
-
-The Prompt node supports these models out of the box:
-
-- Claude Opus 4, Claude Sonnet 4
-- GPT-4o, GPT-4o Mini
-- Llama 3.1 70B
-- DeepSeek V3
-- Gemini 2.5 Pro
-
-Select your model in the Prompt node's **Advanced** drawer, or from the Topbar dropdown.
-
-## Contributing
-
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feat/my-feature`)
-3. Run the dev server: `npm run dev` (frontend on `:5173`) + `npm run server` (backend on `:4800`)
-4. Make your changes
-5. `npm run build:all` to verify the production build
-6. Open a PR
+- **Frontend**: React 18 + TypeScript + Vite
+- **Canvas**: ReactFlow for visual node editing
+- **Styling**: Tailwind CSS with custom design system
+- **State**: Zustand for predictable state management
+- **UI Components**: Custom design system with modular theming
+- **Export**: Multi-format agent definition generation
 
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+*Context engineering is the future of AI agent development. Start building with Modular Studio today.*
