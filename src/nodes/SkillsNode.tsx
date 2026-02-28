@@ -5,6 +5,7 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useSkillsStore } from '../store/skillsStore';
 import { Tile } from '../components/Tile';
 import { JackPort } from '../components/JackPort';
+import { Tooltip } from '../components/ds/Tooltip';
 import { SkillIcon } from '../components/icons/SectionIcons';
 import { LibraryPicker, type LibraryItem } from '../components/LibraryPicker';
 import { useTheme } from '../theme';
@@ -70,7 +71,9 @@ export const SkillsNode = memo(function SkillsNode() {
           {nodeCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
         </button>
         <Zap size={14} style={{ color: t.textSecondary }} />
-        <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}>Skills</span>
+        <Tooltip content="Equip your agent with reusable skill modules for specialized capabilities">
+          <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}>Skills</span>
+        </Tooltip>
         <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>{activeSkills.length}</span>
         {!nodeCollapsed && (
           <div className="flex items-center gap-0.5">
