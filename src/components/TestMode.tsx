@@ -113,13 +113,13 @@ export function TestMode() {
     {
       id: 'test-agent',
       type: 'testAgent',
-      position: { x: 500, y: 40 },
+      position: { x: 420, y: 20 },
       data: {},
     },
     {
       id: 'test-response',
       type: 'testResponse',
-      position: { x: 850, y: 60 },
+      position: { x: 950, y: 60 },
       data: { response, running },
     },
   ], [handleRun, running, response]);
