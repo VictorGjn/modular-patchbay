@@ -114,6 +114,8 @@ export interface ConsoleState {
   showConnectorPicker: boolean;
   showMarketplace: boolean;
   activeMarketplaceTab: 'skills' | 'mcp' | 'presets';
+  showSettings: boolean;
+  activeSettingsTab: 'providers' | 'mcp' | 'skills';
   response: string;
   exportTarget: ExportTarget;
 
@@ -162,6 +164,7 @@ export interface ConsoleState {
   setShowSaveModal: (show: boolean) => void;
   setShowConnectorPicker: (show: boolean) => void;
   setShowMarketplace: (show: boolean, tab?: 'skills' | 'mcp' | 'presets') => void;
+  setShowSettings: (show: boolean, tab?: 'providers' | 'mcp' | 'skills') => void;
   setAgentMeta: (meta: Partial<AgentMeta>) => void;
   setChannelKnowledgeType: (sourceId: string, typeIndex: number) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
@@ -244,6 +247,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   showConnectorPicker: false,
   showMarketplace: false,
   activeMarketplaceTab: 'skills' as const,
+  showSettings: false,
+  activeSettingsTab: 'providers' as const,
   response: '',
   exportTarget: 'claude' as ExportTarget,
   registrySkills: REGISTRY_SKILLS.map((s) => ({ ...s })),
@@ -366,6 +371,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setShowSaveModal: (show: boolean) => set({ showSaveModal: show }),
   setShowConnectorPicker: (show: boolean) => set({ showConnectorPicker: show }),
   setShowMarketplace: (show: boolean, tab?: 'skills' | 'mcp' | 'presets') => set({ showMarketplace: show, ...(tab ? { activeMarketplaceTab: tab } : {}) }),
+  setShowSettings: (show: boolean, tab?: 'providers' | 'mcp' | 'skills') => set({ showSettings: show, ...(tab ? { activeSettingsTab: tab } : {}) }),
   setAgentMeta: (meta: Partial<AgentMeta>) => set({ agentMeta: { ...get().agentMeta, ...meta } }),
 
   setChannelKnowledgeType: (sourceId: string, typeIndex: number) => {

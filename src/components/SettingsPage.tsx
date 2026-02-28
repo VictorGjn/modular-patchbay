@@ -10,6 +10,7 @@ import { useProviderStore, type ProviderConfig, type ProviderStatus } from '../s
 import { useThemeStore, type Theme } from '../store/themeStore';
 import { useMcpStore, type McpServerState } from '../store/mcpStore';
 import { useSkillsStore } from '../store/skillsStore';
+import { useConsoleStore } from '../store/consoleStore';
 
 type SettingsTab = 'providers' | 'mcp' | 'skills' | 'general';
 
@@ -978,7 +979,13 @@ function GeneralTab() {
 
 export function SettingsPage({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTheme();
-  const [activeTab, setActiveTab] = useState<SettingsTab>('providers');
+  const storeTab = useConsoleStore((s) => s.activeSettingsTab);
+  const [activeTab, setActiveTab] = useState<SettingsTab>(storeTab || 'providers');
+
+  // Sync when store tab changes (e.g. opened from connector tile)
+  useEffect(() => {
+    if (open && storeTab) setActiveTab(storeTab as SettingsTab);
+  }, [open, storeTab]);
   const modalRef = useRef<HTMLDivElement>(null);
 
   const handleFocusTrap = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
