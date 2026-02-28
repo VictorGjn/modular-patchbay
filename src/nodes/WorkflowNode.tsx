@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from 'react';
+import { memo, useState, useCallback, useMemo } from 'react';
 import { Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { JackPort } from '../components/JackPort';
@@ -67,7 +67,8 @@ export const WorkflowNode = memo(function WorkflowNode() {
   // Get available tools from MCP store
   const mcpServers = useMcpStore((s) => s.servers);
   const connectedServers = mcpServers.filter(s => s.status === 'connected');
-  const skills = useConsoleStore((s) => s.channels.filter(ch => ch.type === 'skill'));
+  const channels = useConsoleStore((s) => s.channels);
+  const skills = useMemo(() => channels.filter(ch => (ch as any).type === 'skill'), [channels]);
 
   const toolOptions = [
     { value: '', label: '— no tool —' },

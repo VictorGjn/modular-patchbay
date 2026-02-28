@@ -12,8 +12,91 @@ import { streamCompletion, streamAgentSdk, type StreamCompletionParams, type Str
 import { assembleContext } from '../services/contextAssembler';
 import { useProviderStore } from '../store/providerStore';
 import { compileWorkflow } from '../nodes/WorkflowNode';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type Provider = ReturnType<typeof useProviderStore.getState>['providers'][number];
+
+// Backend-proxy streaming function
+async function streamThroughBackend({
+  providerId,
+  model,
+  messages,
+  temperature,
+  maxTokens,
+  onChunk,
+  onDone,
+  onError,
+}: {
+  providerId: string;
+  model: string;
+  messages: { role: string; content: string }[];
+  temperature?: number;
+  maxTokens?: number;
+  onChunk: (text: string) => void;
+  onDone: () => void;
+  onError: (error: Error) => void;
+}): Promise<AbortController> {
+  const controller = new AbortController();
+
+  const response = await fetch('/api/llm/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider: providerId, model, messages, temperature, maxTokens }),
+    signal: controller.signal,
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    onError(new Error(`Backend error ${response.status}: ${body || response.statusText}`));
+    return controller;
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    onError(new Error('No response body'));
+    return controller;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        const data = trimmed.slice(6);
+        if (data === '[DONE]') {
+          onDone();
+          return controller;
+        }
+
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            onChunk(content);
+          }
+        } catch {
+          // Skip malformed JSON chunks
+        }
+      }
+    }
+    onDone();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return controller;
+    onError(err instanceof Error ? err : new Error(String(err)));
+  }
+
+  return controller;
+}
 
 export function ConversationTester() {
   const t = useTheme();
@@ -84,7 +167,7 @@ export function ConversationTester() {
       const history = messages
         .filter((m) => m.role !== 'system')
         .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-      history.push({ role: 'user', content: userContent || text });
+      history.push({ role: 'user', content: text });
 
       // Determine provider
       const model = store.selectedModel;
@@ -112,11 +195,12 @@ export function ConversationTester() {
             { role: 'system', content: fullSystem },
             ...history,
           ];
-          streamCompletion({
-            apiKey: provider?.apiKey || '',
-            baseUrl: provider?.baseUrl,
+          streamThroughBackend({
+            providerId: provider?.id || '',
             model,
             messages: allMessages,
+            temperature: 0.7,
+            maxTokens: 4096,
             onChunk,
             onDone: resolve,
             onError: reject,
@@ -130,10 +214,92 @@ export function ConversationTester() {
     }
   }, [inputText, streaming, messages, addMessage, setInputText, setStreaming, updateLastAssistant]);
 
+  // Run all tests function
+  const handleRunAllTests = useCallback(async () => {
+    if (runningAllTests || testCases.length === 0) return;
+
+    setRunningAllTests(true);
+    const { updateTestCase } = useConversationStore.getState();
+
+    for (const testCase of testCases) {
+      try {
+        const store = useConsoleStore.getState();
+        const providers = useProviderStore.getState();
+
+        // Build system prompt from instructions + workflow + context
+        const instructionPrompt = store.instructionState.rawPrompt || '';
+        const workflowPrompt = compileWorkflow(store.workflowSteps);
+        const assembled = assembleContext(store.channels, testCase.input, store.agentConfig);
+        const contextSystem = assembled.find((m) => m.role === 'system')?.content || '';
+
+        const fullSystem = [instructionPrompt, workflowPrompt, contextSystem].filter(Boolean).join('\n\n');
+
+        // Determine provider
+        const model = store.selectedModel;
+        const provider = providers.providers.find((p: Provider) => p.configured);
+        const useAgentSdk = provider?.authMethod === 'claude-agent-sdk';
+
+        let result = '';
+
+        await new Promise<void>((resolve, reject) => {
+          if (useAgentSdk) {
+            streamAgentSdk({
+              prompt: testCase.input,
+              model,
+              systemPrompt: fullSystem,
+              onChunk: (chunk: string) => { result += chunk; },
+              onDone: resolve,
+              onError: reject,
+            });
+          } else {
+            const allMessages = [
+              { role: 'system', content: fullSystem },
+              { role: 'user', content: testCase.input },
+            ];
+            streamThroughBackend({
+              providerId: provider?.id || '',
+              model,
+              messages: allMessages,
+              temperature: 0.7,
+              maxTokens: 4096,
+              onChunk: (chunk: string) => { result += chunk; },
+              onDone: resolve,
+              onError: reject,
+            });
+          }
+        });
+
+        // Update test case with result
+        const passed = testCase.expectedBehavior
+          ? result.toLowerCase().includes(testCase.expectedBehavior.toLowerCase())
+          : null;
+
+        updateTestCase(testCase.id, {
+          lastResult: result.substring(0, 200) + (result.length > 200 ? '...' : ''),
+          passed,
+        });
+
+        // Small delay between tests to avoid overwhelming
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Test failed';
+        updateTestCase(testCase.id, {
+          lastResult: `Error: ${errorMessage}`,
+          passed: false,
+        });
+      }
+    }
+
+    setRunningAllTests(false);
+  }, [runningAllTests, testCases]);
+
   // Save test case modal
   const [showSaveTest, setShowSaveTest] = useState(false);
   const [testName, setTestName] = useState('');
   const [testExpected, setTestExpected] = useState('');
+
+  // Run all tests state
+  const [runningAllTests, setRunningAllTests] = useState(false);
 
   const tabs = [
     { id: 'chat', label: 'Chat', icon: <MessageSquare size={10} /> },
@@ -218,7 +384,24 @@ export function ConversationTester() {
                         wordBreak: 'break-word',
                       }}
                     >
-                      {msg.content || (streaming && msg.role === 'assistant' ? '▍' : '')}
+                      {msg.role === 'assistant' ? (
+                        msg.content ? (
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              p: ({ children }) => <span>{children}</span>,
+                              code: ({ children }) => <code style={{ background: t.isDark ? '#ffffff15' : '#00000015', padding: '2px 4px', borderRadius: '3px' }}>{children}</code>,
+                              pre: ({ children }) => <pre style={{ background: t.isDark ? '#ffffff15' : '#00000015', padding: '8px', borderRadius: '6px', overflow: 'auto', fontSize: '10px' }}>{children}</pre>,
+                              strong: ({ children }) => <strong style={{ fontWeight: 'bold' }}>{children}</strong>,
+                              em: ({ children }) => <em style={{ fontStyle: 'italic' }}>{children}</em>,
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                        ) : streaming ? '▍' : ''
+                      ) : (
+                        msg.content || ''
+                      )}
                     </div>
                   </div>
                 ))}
@@ -268,6 +451,20 @@ export function ConversationTester() {
           {/* Tests tab */}
           {activeTab === 'tests' && (
             <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
+              {/* Run All Tests button */}
+              {testCases.length > 0 && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={runningAllTests ? <Play size={10} className="animate-spin" /> : <Play size={10} />}
+                  onClick={handleRunAllTests}
+                  disabled={runningAllTests}
+                  className="self-start"
+                >
+                  {runningAllTests ? 'Running Tests...' : 'Run All Tests'}
+                </Button>
+              )}
+
               {/* Add test form */}
               <div className="flex flex-col gap-2 p-3 rounded-lg" style={{ background: t.surfaceElevated, border: `1px solid ${t.borderSubtle}` }}>
                 <span className="text-[9px] font-semibold tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
