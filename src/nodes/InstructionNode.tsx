@@ -11,6 +11,8 @@ import {
 
 type Tab = 'persona' | 'constraints' | 'objectives' | 'raw';
 
+const TONE_OPTIONS: ('formal' | 'neutral' | 'casual')[] = ['formal', 'neutral', 'casual'];
+
 const CONSTRAINT_TOGGLES = [
   { key: 'neverMakeUp' as const, label: 'Never make up information — cite sources' },
   { key: 'askBeforeActions' as const, label: 'Ask before taking external actions' },
