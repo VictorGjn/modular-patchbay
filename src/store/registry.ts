@@ -252,6 +252,24 @@ export const REGISTRY_PRESETS: RegistryPreset[] = [
     mcpServers: ['mcp-puppeteer'],
     canvasDescription: 'Design Specs → Agent (Claude Sonnet) → HTML/CSS | Skills: Web Design, HTML Style, Image Gen | MCP: Puppeteer',
   },
+  {
+    id: 'preset-senior-pm', name: 'Senior PM', description: 'Discovery synthesis specialist — turns messy brainstorms into prioritized product strategy with RICE framework',
+    icon: 'user', skills: ['feedback-analyzer', 'roadmap-builder'],
+    mcpServers: ['mcp-notion', 'mcp-slack'],
+    canvasDescription: 'Knowledge + Signals → Agent (Claude Opus) → Synthesis Report | Skills: Feedback Analyzer, Roadmap Builder | MCP: Notion, Slack',
+  },
+  {
+    id: 'preset-feedback-manager', name: 'Feedback Manager', description: 'Feedback lifecycle specialist — organizes, challenges, and maintains the single source of truth for user feedback',
+    icon: 'inbox', skills: ['feedback-analyzer'],
+    mcpServers: ['mcp-gmail', 'mcp-notion', 'mcp-slack'],
+    canvasDescription: 'Gmail + Signals → Agent (Claude Sonnet) → Feedback Reports | Skills: Feedback Analyzer | MCP: Gmail, Notion, Slack',
+  },
+  {
+    id: 'preset-competitor-scraper', name: 'Competitor Feature Scraper', description: 'Scrapes competitor websites to extract product features, claims, and screenshots for competitive comparison',
+    icon: 'search', skills: ['web-search'],
+    mcpServers: ['mcp-firecrawl'],
+    canvasDescription: 'Competitor Knowledge → Agent (Claude Sonnet) → Feature Profiles | Skills: Web Search | MCP: Firecrawl',
+  },
 ];
 
 // Runtime display info
