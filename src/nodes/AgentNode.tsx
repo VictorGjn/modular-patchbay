@@ -4,13 +4,11 @@ import { ResizeHandle } from '../components/ResizeHandle';
 import { JackPort } from '../components/JackPort';
 import { Tooltip } from '../components/ds/Tooltip';
 import { useConsoleStore } from '../store/consoleStore';
-import { useMcpStore } from '../store/mcpStore';
 import { useTheme } from '../theme';
 import { refineField, type RefinedAgent } from '../utils/refineInstruction';
-import { compileWorkflow, type WorkflowStep } from './WorkflowNode';
 import {
   ChevronDown, ChevronRight, User, ShieldCheck, Target, FileText,
-  ListOrdered, Plus, X, GripVertical, RotateCw,
+  Plus, X,
   ToggleLeft, ToggleRight, Sparkles, Loader2, Bot,
 } from 'lucide-react';
 
@@ -25,7 +23,9 @@ const CONSTRAINT_TOGGLES = [
   { key: 'limitWords' as const, label: 'Limit response length' },
 ];
 
-function compileInstructions(state: ReturnType<typeof useConsoleStore.getState>['instructionState']): string {
+type InstructionState = ReturnType<typeof useConsoleStore.getState>['instructionState'];
+
+function compileInstructions(state: InstructionState): string {
   const lines: string[] = [];
   if (state.persona.trim()) {
     lines.push('## Persona');
@@ -60,15 +60,6 @@ function compileInstructions(state: ReturnType<typeof useConsoleStore.getState>[
     lines.push('');
   }
   return lines.join('\n');
-}
-
-function newStep(): WorkflowStep {
-  return {
-    id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    label: '', action: '', tool: '',
-    condition: 'always', conditionText: '',
-    loopTarget: '', loopMax: 3,
-  };
 }
 
 // ── Section header with collapse chevron ──
@@ -127,36 +118,19 @@ export const AgentNode = memo(function AgentNode() {
   const [personaOpen, setPersonaOpen] = useState(true);
   const [constraintsOpen, setConstraintsOpen] = useState(true);
   const [objectivesOpen, setObjectivesOpen] = useState(true);
-  const [workflowOpen, setWorkflowOpen] = useState(true);
   const [rawOpen, setRawOpen] = useState(false);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [refining, setRefining] = useState<string | null>(null);
   const [refineError, setRefineError] = useState<string | null>(null);
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-
   // Store
   const agentMeta = useConsoleStore((s) => s.agentMeta);
   const setAgentMeta = useConsoleStore((s) => s.setAgentMeta);
   const instructionState = useConsoleStore((s) => s.instructionState);
   const updateInstruction = useConsoleStore((s) => s.updateInstruction);
-  const workflowSteps = useConsoleStore((s) => s.workflowSteps);
-  const updateWorkflowSteps = useConsoleStore((s) => s.updateWorkflowSteps);
 
   const { persona, tone, expertise, constraints, objectives, rawPrompt, autoSync } = instructionState;
-
-  // MCP + skills for workflow tool picker
-  const mcpServers = useMcpStore((s) => s.servers);
-  const connectedServers = mcpServers.filter(s => s.status === 'connected');
-  const channels = useConsoleStore((s) => s.channels);
-  const skills = useMemo(() => channels.filter(ch => (ch as any).type === 'skill'), [channels]);
-
-  const toolOptions = [
-    { value: '', label: '— no tool —' },
-    ...connectedServers.map(s => ({ value: `mcp:${s.id}`, label: `⚡ ${s.name}` })),
-    ...skills.map(s => ({ value: `skill:${s.name}`, label: `📚 ${s.name}` })),
-  ];
 
   // Auto-compile
   const compiled = useMemo(() => compileInstructions(instructionState), [instructionState]);
@@ -216,29 +190,6 @@ export const AgentNode = memo(function AgentNode() {
     } catch (e) { setRefineError(e instanceof Error ? e.message : 'Refinement failed'); }
     finally { setRefining(null); }
   }, [constraints, updateInstruction]);
-
-  // ── Workflow handlers ──
-  const updateStep = useCallback((idx: number, patch: Partial<WorkflowStep>) => {
-    const next = [...workflowSteps];
-    next[idx] = { ...next[idx], ...patch };
-    updateWorkflowSteps(next);
-  }, [workflowSteps, updateWorkflowSteps]);
-
-  const removeStep = useCallback((idx: number) => {
-    updateWorkflowSteps(workflowSteps.filter((_, i) => i !== idx));
-  }, [workflowSteps, updateWorkflowSteps]);
-
-  const addStep = useCallback(() => {
-    updateWorkflowSteps([...workflowSteps, newStep()]);
-  }, [workflowSteps, updateWorkflowSteps]);
-
-  const moveStep = useCallback((from: number, to: number) => {
-    if (to < 0 || to >= workflowSteps.length) return;
-    const next = [...workflowSteps];
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    updateWorkflowSteps(next);
-  }, [workflowSteps, updateWorkflowSteps]);
 
   return (
     <div
@@ -492,78 +443,6 @@ export const AgentNode = memo(function AgentNode() {
               className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none nodrag"
               style={{ background: t.surfaceElevated, color: t.textSecondary }}
             ><Plus size={10} /> Add failure mode</button>
-          </div>
-        )}
-
-        {/* ═══ WORKFLOW ═══ */}
-        <SectionHeader label="Workflow" icon={<ListOrdered size={10} style={{ color: '#e67e22' }} />} collapsed={!workflowOpen} onToggle={() => setWorkflowOpen(!workflowOpen)} t={t} />
-        {workflowOpen && (
-          <div>
-            {workflowSteps.map((step, idx) => (
-              <div key={step.id} className="flex flex-col gap-1.5 px-3 py-2.5" style={{ borderBottom: `1px solid ${t.borderSubtle}`, background: dragIdx === idx ? '#FE500008' : 'transparent' }}>
-                <div className="flex items-center gap-1.5">
-                  <button type="button" className="p-0 border-none bg-transparent cursor-grab nodrag" style={{ color: t.textDim }}
-                    draggable onDragStart={() => setDragIdx(idx)} onDragEnd={() => setDragIdx(null)}
-                    onDragOver={(e) => { e.preventDefault(); if (dragIdx !== null && dragIdx !== idx) moveStep(dragIdx, idx); }}
-                  ><GripVertical size={12} /></button>
-                  <span className="text-[9px] shrink-0 w-4 text-center font-bold" style={{ color: '#FE5000', fontFamily: "'Space Mono', monospace" }}>{idx + 1}</span>
-                  <input type="text" value={step.label} onChange={(e) => updateStep(idx, { label: e.target.value })}
-                    placeholder={`Step ${idx + 1}`} className="flex-1 text-[11px] font-semibold px-2 py-1 rounded outline-none nodrag" style={{ ...inputStyle, fontWeight: 600 }}
-                  />
-                  <button type="button" onClick={() => removeStep(idx)} className="p-0.5 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim }}><X size={11} /></button>
-                </div>
-                <input type="text" value={step.action} onChange={(e) => updateStep(idx, { action: e.target.value })}
-                  placeholder="What the agent does in this step..."
-                  className="w-full text-[11px] px-2 py-1 rounded outline-none nodrag" style={inputStyle}
-                />
-                <div className="flex gap-1.5">
-                  <select value={step.tool} onChange={(e) => updateStep(idx, { tool: e.target.value })}
-                    className="flex-1 text-[10px] px-2 py-1 rounded outline-none cursor-pointer nodrag" style={{ ...inputStyle, appearance: 'none' as const }}
-                  >
-                    {toolOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                  </select>
-                  <select value={step.condition} onChange={(e) => updateStep(idx, { condition: e.target.value as 'always' | 'if' | 'unless' })}
-                    className="text-[10px] px-2 py-1 rounded outline-none cursor-pointer nodrag" style={{ ...inputStyle, width: 72, appearance: 'none' as const }}
-                  >
-                    <option value="always">Always</option>
-                    <option value="if">If...</option>
-                    <option value="unless">Unless...</option>
-                  </select>
-                </div>
-                {step.condition !== 'always' && (
-                  <input type="text" value={step.conditionText} onChange={(e) => updateStep(idx, { conditionText: e.target.value })}
-                    placeholder={step.condition === 'if' ? 'condition is true...' : 'condition is true...'}
-                    className="w-full text-[10px] px-2 py-1 rounded outline-none nodrag" style={inputStyle}
-                  />
-                )}
-                {workflowSteps.length > 1 && (
-                  <div className="flex items-center gap-1.5">
-                    <RotateCw size={9} style={{ color: t.textDim }} />
-                    <select value={step.loopTarget} onChange={(e) => updateStep(idx, { loopTarget: e.target.value })}
-                      className="text-[10px] px-1.5 py-0.5 rounded outline-none cursor-pointer nodrag" style={{ ...inputStyle, width: 'auto', appearance: 'none' as const }}
-                    >
-                      <option value="">No loop</option>
-                      {workflowSteps.map((s, j) => j !== idx && <option key={s.id} value={s.id}>→ Step {j + 1}{s.label ? `: ${s.label}` : ''}</option>)}
-                    </select>
-                    {step.loopTarget && (
-                      <span className="text-[9px]" style={{ color: t.textDim }}>
-                        max <input type="number" min={1} max={10} value={step.loopMax} onChange={(e) => updateStep(idx, { loopMax: parseInt(e.target.value) || 3 })} className="w-8 text-center text-[9px] px-0.5 rounded outline-none nodrag" style={inputStyle} />×
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-            <button type="button" onClick={addStep}
-              className="flex items-center justify-center gap-1.5 w-full text-[10px] py-2.5 cursor-pointer border-none nodrag"
-              style={{ background: 'transparent', color: '#FE5000', fontFamily: "'Space Mono', monospace", fontWeight: 600 }}
-            ><Plus size={12} /> ADD STEP</button>
-            {workflowSteps.length === 0 && (
-              <div className="px-4 py-4 text-center text-[10px]" style={{ color: t.textFaint }}>
-                <ListOrdered size={18} style={{ margin: '0 auto 6px', opacity: 0.3 }} />
-                <div>Define step-by-step reasoning plan</div>
-              </div>
-            )}
           </div>
         )}
 
