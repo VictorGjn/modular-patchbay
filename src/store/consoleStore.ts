@@ -87,15 +87,60 @@ export interface InstructionState {
   autoSync: boolean;
 }
 
+// Anthropic's 5 workflow patterns + true agent
+export type AgentPattern = 'prompt-chain' | 'routing' | 'parallelization' | 'orchestrator-workers' | 'evaluator-optimizer' | 'autonomous-agent';
+
+// Verification: how the agent checks its own work (Anthropic's highest-leverage improvement)
+export interface VerificationConfig {
+  enabled: boolean;
+  strategy: 'rules' | 'llm-judge' | 'cross-reference' | 'checklist' | 'none';
+  rules: string[]; // e.g. "All claims must cite a source", "No empty sections"
+  crossRefSources: string[]; // sourceIds to cross-reference against
+  confidenceRequired: boolean; // mark High/Medium/Low on findings
+  autoRetryOnFail: boolean;
+  maxRetries: number;
+}
+
+// Error handling per step
+export interface ErrorHandling {
+  onStepFailure: 'retry' | 'skip' | 'fallback' | 'abort';
+  retryCount: number;
+  fallbackAction: string; // what to do instead
+  checkpointEnabled: boolean; // save progress mid-workflow
+  timeoutSeconds: number; // 0 = no timeout
+  gracefulDegradation: boolean; // continue with partial results
+}
+
+// Evaluation criteria
+export interface EvaluationConfig {
+  enabled: boolean;
+  criteria: EvalCriterion[];
+  expectedOutputFormat: string; // e.g. "markdown with H2 sections", "JSON with 'recommendations' array"
+  qualityRubric: string; // freeform description of what "good" looks like
+}
+
+export interface EvalCriterion {
+  id: string;
+  name: string;
+  description: string;
+  weight: number; // 1-5
+  type: 'boolean' | 'scale' | 'regex' | 'contains';
+  value?: string; // regex pattern or required content
+}
+
 export interface WorkflowStep {
   id: string;
   label: string;
   action: string;
-  tool: string; // dropdown from connected MCP/skills
+  tool: string;
   condition: 'always' | 'if' | 'unless';
   conditionValue?: string;
   loopTarget?: string;
   loopMax?: number;
+  // Error handling per step
+  onError?: 'retry' | 'skip' | 'fallback' | 'abort';
+  retryCount?: number;
+  fallbackAction?: string;
 }
 
 export interface ConsoleState {
@@ -142,6 +187,12 @@ export interface ConsoleState {
   // Agent Architecture Phase 1 state
   instructionState: InstructionState;
   workflowSteps: WorkflowStep[];
+
+  // Agent Architecture Phase 2: Anthropic methodology
+  agentPattern: AgentPattern;
+  verification: VerificationConfig;
+  errorHandling: ErrorHandling;
+  evaluation: EvaluationConfig;
 
   // Computed
   totalTokens: () => number;
@@ -224,6 +275,12 @@ export interface ConsoleState {
   // Batch updaters (used by new Phase 1 nodes)
   updateInstruction: (patch: Partial<InstructionState>) => void;
   updateWorkflowSteps: (steps: WorkflowStep[]) => void;
+
+  // Phase 2 actions
+  setAgentPattern: (pattern: AgentPattern) => void;
+  updateVerification: (patch: Partial<VerificationConfig>) => void;
+  updateErrorHandling: (patch: Partial<ErrorHandling>) => void;
+  updateEvaluation: (patch: Partial<EvaluationConfig>) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -295,6 +352,32 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     autoSync: true,
   },
   workflowSteps: [],
+
+  // Agent Architecture Phase 2 defaults
+  agentPattern: 'prompt-chain' as AgentPattern,
+  verification: {
+    enabled: false,
+    strategy: 'none' as const,
+    rules: [],
+    crossRefSources: [],
+    confidenceRequired: false,
+    autoRetryOnFail: false,
+    maxRetries: 2,
+  },
+  errorHandling: {
+    onStepFailure: 'abort' as const,
+    retryCount: 1,
+    fallbackAction: '',
+    checkpointEnabled: false,
+    timeoutSeconds: 0,
+    gracefulDegradation: false,
+  },
+  evaluation: {
+    enabled: false,
+    criteria: [],
+    expectedOutputFormat: '',
+    qualityRubric: '',
+  },
 
   totalTokens: () => {
     const { channels, prompt } = get();
@@ -725,6 +808,12 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   updateWorkflowSteps: (steps: WorkflowStep[]) => {
     set({ workflowSteps: steps });
   },
+
+  // Phase 2 actions
+  setAgentPattern: (pattern) => set({ agentPattern: pattern }),
+  updateVerification: (patch) => set({ verification: { ...get().verification, ...patch } }),
+  updateErrorHandling: (patch) => set({ errorHandling: { ...get().errorHandling, ...patch } }),
+  updateEvaluation: (patch) => set({ evaluation: { ...get().evaluation, ...patch } }),
 }));
 
 export { getEffectiveTokens };
