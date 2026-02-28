@@ -6,6 +6,38 @@ import { streamCompletion, streamAgentSdk } from '../services/llmService';
 import { assembleContext } from '../services/contextAssembler';
 import { useProviderStore } from './providerStore';
 
+// Module-level abort controller for run cancellation (avoids type-punning the store)
+let _runAbortController: AbortController | undefined;
+
+// Category mapping helpers (DRY — used in multiple places)
+function mapSkillCategory(cat: string): 'content' | 'analysis' | 'development' | 'domain' {
+  if (cat === 'coding') return 'development';
+  if (cat === 'research') return 'analysis';
+  if (cat === 'design' || cat === 'writing') return 'content';
+  if (cat === 'domain') return 'domain';
+  return 'content';
+}
+
+function mapMcpCategory(cat: string): 'communication' | 'development' | 'data' | 'productivity' {
+  if (cat === 'coding') return 'development';
+  if (cat === 'research') return 'data';
+  if (cat === 'writing') return 'productivity';
+  return 'data';
+}
+
+// Generic list helpers for toggle/add/remove by ID
+function toggleItemById<T extends { id: string; enabled: boolean }>(items: T[], id: string): T[] {
+  return items.map((item) => item.id === id ? { ...item, enabled: !item.enabled } : item);
+}
+
+function addItemById<T extends { id: string; added: boolean; enabled: boolean }>(items: T[], id: string): T[] {
+  return items.map((item) => item.id === id ? { ...item, added: true, enabled: true } : item);
+}
+
+function removeItemById<T extends { id: string; added: boolean; enabled: boolean }>(items: T[], id: string): T[] {
+  return items.map((item) => item.id === id ? { ...item, added: false, enabled: false } : item);
+}
+
 export interface AgentMeta {
   name: string;
   description: string;
@@ -226,7 +258,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     enabled: true,
     added: true,
     description: s.description,
-    category: s.category === 'coding' ? 'development' as const : s.category === 'research' ? 'analysis' as const : s.category === 'design' ? 'content' as const : s.category === 'writing' ? 'content' as const : s.category === 'domain' ? 'domain' as const : 'content' as const,
+    category: mapSkillCategory(s.category),
   })),
   agents: [],
   connectors: [] as Connector[],
@@ -395,15 +427,15 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         },
         onDone: () => {
           set({ running: false });
-          (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
+          _runAbortController = undefined;
         },
         onError: (error) => {
           set({ running: false, response: `Error: ${error.message}` });
-          (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
+          _runAbortController = undefined;
         },
       });
 
-      (get() as unknown as { _abortController?: AbortController })._abortController = controller;
+      _runAbortController = controller;
       return;
     }
 
@@ -419,30 +451,30 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       onDone: () => {
         set({ running: false });
         // Clear stored controller
-        (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
-        // Inject mock feedback data if no pending items exist
-        if (get().pendingKnowledge.length === 0) {
+        _runAbortController = undefined;
+        // Inject mock feedback data only in dev mode
+        if (import.meta.env.DEV && get().pendingKnowledge.length === 0) {
           get().addPendingKnowledge({ id: `pk-${Date.now()}`, name: 'run-summary.md', type: 'evidence', content: 'Auto-generated run summary', fromRun: 'latest' });
         }
-        if (get().suggestedSkills.length === 0) {
+        if (import.meta.env.DEV && get().suggestedSkills.length === 0) {
           get().addSuggestedSkill({ id: `ss-${Date.now()}`, name: 'web-search', description: 'Search the web', installCmd: 'npx modular-skills install web-search' });
         }
       },
       onError: (error) => {
         set({ running: false, response: `Error: ${error.message}` });
-        (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
+        _runAbortController = undefined;
       },
     });
 
     // Store controller for cancellation
-    (get() as unknown as { _abortController?: AbortController })._abortController = controller;
+    _runAbortController = controller;
   },
 
   cancelRun: () => {
-    const ctrl = (get() as unknown as { _abortController?: AbortController })._abortController;
+    const ctrl = _runAbortController;
     if (ctrl) ctrl.abort();
     set({ running: false });
-    (get() as unknown as { _abortController?: AbortController })._abortController = undefined;
+    _runAbortController = undefined;
   },
 
   clearChannels: () => set({ channels: [], selectedPreset: '', response: '' }),
@@ -453,53 +485,12 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setAgentPlanningMode: (planningMode: PlanningMode) => set({ agentConfig: { ...get().agentConfig, planningMode } }),
   setAgentMaxTokens: (maxTokens: number) => set({ agentConfig: { ...get().agentConfig, maxTokens } }),
 
-  toggleMcp: (id: string) => {
-    set({
-      mcpServers: get().mcpServers.map((s) =>
-        s.id === id ? { ...s, enabled: !s.enabled } : s,
-      ),
-    });
-  },
-
-  addMcp: (id: string) => {
-    set({
-      mcpServers: get().mcpServers.map((s) =>
-        s.id === id ? { ...s, added: true, enabled: true } : s,
-      ),
-    });
-  },
-
-  removeMcp: (id: string) => {
-    set({
-      mcpServers: get().mcpServers.map((s) =>
-        s.id === id ? { ...s, added: false, enabled: false } : s,
-      ),
-    });
-  },
-
-  toggleSkill: (id: string) => {
-    set({
-      skills: get().skills.map((s) =>
-        s.id === id ? { ...s, enabled: !s.enabled } : s,
-      ),
-    });
-  },
-
-  addSkill: (id: string) => {
-    set({
-      skills: get().skills.map((s) =>
-        s.id === id ? { ...s, added: true, enabled: true } : s,
-      ),
-    });
-  },
-
-  removeSkill: (id: string) => {
-    set({
-      skills: get().skills.map((s) =>
-        s.id === id ? { ...s, added: false, enabled: false } : s,
-      ),
-    });
-  },
+  toggleMcp: (id: string) => { set({ mcpServers: toggleItemById(get().mcpServers, id) }); },
+  addMcp: (id: string) => { set({ mcpServers: addItemById(get().mcpServers, id) }); },
+  removeMcp: (id: string) => { set({ mcpServers: removeItemById(get().mcpServers, id) }); },
+  toggleSkill: (id: string) => { set({ skills: toggleItemById(get().skills, id) }); },
+  addSkill: (id: string) => { set({ skills: addItemById(get().skills, id) }); },
+  removeSkill: (id: string) => { set({ skills: removeItemById(get().skills, id) }); },
 
   loadAgent: (id: string) => {
     const agent = get().agents.find((a) => a.id === id);
@@ -607,7 +598,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       enabled: true,
       added: true,
       description: regSkill.description,
-      category: (regSkill.category === 'coding' ? 'development' : regSkill.category === 'research' ? 'analysis' : regSkill.category === 'design' || regSkill.category === 'writing' ? 'content' : regSkill.category === 'domain' ? 'domain' : 'content') as Skill['category'],
+      category: mapSkillCategory(regSkill.category) as Skill['category'],
     }] : get().skills;
     set({ registrySkills: updatedRegistry, skills: updatedSkills });
   },
@@ -627,7 +618,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       enabled: true,
       added: true,
       capabilities: ['input', 'output'],
-      category: (regMcp.category === 'coding' ? 'development' : regMcp.category === 'research' ? 'data' : regMcp.category === 'writing' ? 'productivity' : regMcp.category === 'data' ? 'data' : 'data') as McpServer['category'],
+      category: mapMcpCategory(regMcp.category) as McpServer['category'],
       description: regMcp.description,
     }] : get().mcpServers;
     set({ registryMcpServers: updatedRegistry, mcpServers: updatedMcp });

@@ -29,7 +29,7 @@ interface KnowledgeStore {
   readFile: (path: string) => Promise<FileContent | null>;
 }
 
-const API_BASE = 'http://localhost:4800/api/knowledge';
+const API_BASE = '/api/knowledge';
 
 export const useKnowledgeStore = create<KnowledgeStore>((set) => ({
   tree: [],

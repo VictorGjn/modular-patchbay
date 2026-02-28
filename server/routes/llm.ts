@@ -11,9 +11,11 @@ interface ChatRequest {
 }
 
 const router = Router();
+const MAX_TOKENS_LIMIT = 32768; // Server-side cap to prevent cost attacks
 
 router.post('/chat', async (req, res) => {
-  const { provider: providerId, model, messages, temperature, maxTokens } = req.body as ChatRequest;
+  const { provider: providerId, model, messages, temperature, maxTokens: rawMaxTokens } = req.body as ChatRequest;
+  const maxTokens = rawMaxTokens ? Math.min(rawMaxTokens, MAX_TOKENS_LIMIT) : undefined;
 
   if (!providerId || !model || !messages) {
     const resp: ApiResponse = { status: 'error', error: 'Missing required fields: provider, model, messages' };

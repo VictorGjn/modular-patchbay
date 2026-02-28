@@ -5,19 +5,6 @@ interface GhostSuggestion {
   reason: string;
 }
 
-/** Flatten a knowledge tree (reserved for when real tree data is available) */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/*
-function flattenTree(tree: KnowledgeSource[]): KnowledgeSource[] {
-  const result: KnowledgeSource[] = [];
-  for (const node of tree) {
-    result.push(node);
-    if (node.children) result.push(...flattenTree(node.children));
-  }
-  return result;
-}
-*/
-
 const KEYWORD_MAP: Record<string, string[]> = {
   'knowledge-clients-client-a': ['client-a', 'vessel-a', 'vessel-a', 'vessel-a', 'contact', 'chemical tanker'],
   'knowledge-clients-clientb': ['clientb', 'client-b', 'vessel-b', 'vessel-b', 'vessel-b', 'combination carrier'],

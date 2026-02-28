@@ -28,7 +28,7 @@ router.post("/chat", async (req: Request, res: Response) => {
         model: model || undefined,
         allowedTools: ["Read", "Edit", "Bash", "Glob", "Grep", "WebSearch", "WebFetch"],
         permissionMode: "acceptEdits",
-        maxTurns: maxTurns || 10,
+        maxTurns: Math.min(maxTurns || 10, 25), // Cap to prevent runaway agents
         systemPrompt: systemPrompt || undefined,
         ...(mcpServers ? { mcpServers } : {}),
       },

@@ -25,6 +25,7 @@ import { ConnectorPicker } from './components/ConnectorPicker';
 import { AgentPreview } from './components/AgentPreview';
 import { SettingsPage } from './components/SettingsPage';
 import { SaveAgentModal } from './components/SaveAgentModal';
+import { ConversationTester } from './components/ConversationTester';
 import { useConsoleStore } from './store/consoleStore';
 import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
@@ -232,6 +233,7 @@ export default function App() {
       {/* Accessibility: aria-live region for canvas state announcements */}
       <div aria-live="polite" className="sr-only" id="canvas-announcements" />
       <AgentPreview />
+      <ConversationTester />
       <TokenBudget />
       <FilePicker />
       <McpPicker />
