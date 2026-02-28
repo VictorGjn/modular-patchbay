@@ -1,4 +1,5 @@
 // Marketplace registry — curated skills, MCP servers, and presets
+import { MCP_REGISTRY, type McpRegistryEntry } from './mcp-registry';
 
 export type MarketplaceCategory = 'all' | 'research' | 'coding' | 'data' | 'design' | 'writing' | 'domain';
 export type McpTransport = 'stdio' | 'sse';
@@ -190,7 +191,29 @@ export const REGISTRY_SKILLS: RegistrySkill[] = [
   },
 ];
 
-export const REGISTRY_MCP_SERVERS: RegistryMcp[] = [
+// Convert MCP_REGISTRY entries to RegistryMcp format for the marketplace
+function registryEntryToMcp(entry: McpRegistryEntry): RegistryMcp {
+  return {
+    id: entry.id,
+    name: entry.name,
+    description: entry.description,
+    icon: entry.icon,
+    category: entry.category,
+    author: entry.author,
+    transport: entry.transport,
+    runtimes: entry.runtimes,
+    installCmd: `npx -y ${entry.npmPackage}`,
+    command: entry.command,
+    defaultArgs: entry.defaultArgs,
+    configFields: entry.configFields,
+    installed: false,
+    configured: false,
+  };
+}
+
+export const REGISTRY_MCP_SERVERS: RegistryMcp[] = MCP_REGISTRY.map(registryEntryToMcp);
+
+export const _LEGACY_REGISTRY_MCP_SERVERS: RegistryMcp[] = [
   {
     id: 'mcp-notion', name: '@notionhq/mcp', description: 'Read and write Notion pages, databases, and blocks',
     icon: 'book-open', category: 'writing', author: 'Notion', transport: 'stdio',
