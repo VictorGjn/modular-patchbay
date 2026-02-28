@@ -225,7 +225,7 @@ export const REGISTRY_PRESETS: RegistryPreset[] = [
   {
     id: 'preset-research-analyst', name: 'Research Analyst', description: 'Web search, scraping, and analysis tools for deep research',
     icon: 'search', skills: ['web-search', 'feedback-analyzer', 'find-skills'],
-    mcpServers: ['mcp-brave', 'mcp-firecrawl', 'mcp-puppeteer'],
+    mcpServers: ['mcp-brave-search', 'mcp-firecrawl', 'mcp-puppeteer'],
     canvasDescription: 'Web Sources → Agent (Claude Opus) → Markdown Report | Skills: Web Search, Feedback Analyzer | MCP: Brave, Firecrawl, Puppeteer',
   },
   {

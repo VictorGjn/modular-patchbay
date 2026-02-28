@@ -29,6 +29,8 @@
     "server": "node --import tsx/esm server/index.ts",
     "studio": "node --import tsx/esm bin/modular-studio.ts",
     "prepublishOnly": "npm run build:all",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -60,10 +62,12 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "jsdom": "^28.1.0",
     "tailwindcss": "^4.2.1",
     "tsx": "^4.19.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
   }
 }
