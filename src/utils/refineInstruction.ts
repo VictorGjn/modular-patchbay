@@ -116,14 +116,22 @@ export async function refineField(
   const text = parseSSEResponse(raw, providerType);
 
   if (field === 'full') {
-    try {
-      return JSON.parse(text) as RefinedAgent;
-    } catch {
-      // Try to extract JSON from the response
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) return JSON.parse(match[0]) as RefinedAgent;
-      throw new Error('Could not parse agent structure from LLM response');
+    // Try direct parse first
+    try { return JSON.parse(text) as RefinedAgent; } catch { /* continue */ }
+
+    // Extract JSON from markdown code fence: ```json { ... } ```
+    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenceMatch) {
+      try { return JSON.parse(fenceMatch[1].trim()) as RefinedAgent; } catch { /* continue */ }
     }
+
+    // Extract first { ... } block (greedy)
+    const braceMatch = text.match(/\{[\s\S]*\}/);
+    if (braceMatch) {
+      try { return JSON.parse(braceMatch[0]) as RefinedAgent; } catch { /* continue */ }
+    }
+
+    throw new Error('Could not parse agent structure from LLM response');
   }
 
   return text;
@@ -140,13 +148,15 @@ function parseSSEResponse(raw: string, providerType: string): string {
 
     try {
       const parsed = JSON.parse(data);
-      if (providerType === 'anthropic') {
-        if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-          chunks.push(parsed.delta.text);
-        }
-      } else {
-        const delta = parsed.choices?.[0]?.delta?.content;
-        if (delta) chunks.push(delta);
+      // Agent SDK format: {"type":"text","content":"..."}
+      if (parsed.type === 'text' && parsed.content) {
+        chunks.push(parsed.content);
+      // Anthropic format: {"type":"content_block_delta","delta":{"text":"..."}}
+      } else if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+        chunks.push(parsed.delta.text);
+      // OpenAI format: {"choices":[{"delta":{"content":"..."}}]}
+      } else if (parsed.choices?.[0]?.delta?.content) {
+        chunks.push(parsed.choices[0].delta.content);
       }
     } catch {
       // skip unparseable lines
