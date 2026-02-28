@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { API_BASE } from '../config';
 
 export interface InstalledSkill {
   id: string;
@@ -26,7 +27,7 @@ export const useSkillsStore = create<SkillsStore>((set, get) => ({
     if (get().loading) return;
     set({ loading: true });
     try {
-      const res = await fetch('/api/claude-config/skills');
+          const res = await fetch(`${API_BASE}/claude-config/skills`);
       if (!res.ok) {
         set({ loaded: true, loading: false });
         return;

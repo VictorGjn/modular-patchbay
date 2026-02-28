@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { API_BASE } from '../config';
 import { useConversationStore } from '../store/conversationStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { useTheme } from '../theme';
@@ -39,7 +40,7 @@ async function streamThroughBackend({
 }): Promise<AbortController> {
   const controller = new AbortController();
 
-  const response = await fetch('/api/llm/chat', {
+  const response = await fetch(`${API_BASE}/llm/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ provider: providerId, model, messages, temperature, maxTokens }),

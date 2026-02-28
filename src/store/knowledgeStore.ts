@@ -29,7 +29,8 @@ interface KnowledgeStore {
   readFile: (path: string) => Promise<FileContent | null>;
 }
 
-const API_BASE = '/api/knowledge';
+import { API_BASE as BASE } from '../config';
+const API_BASE = `${BASE}/knowledge`;
 
 export const useKnowledgeStore = create<KnowledgeStore>((set) => ({
   tree: [],

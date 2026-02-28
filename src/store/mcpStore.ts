@@ -41,7 +41,8 @@ interface McpStore {
   getConnectedTools: () => McpTool[];
 }
 
-const API_BASE = '/api/mcp';
+import { API_BASE as BASE } from '../config';
+const API_BASE = `${BASE}/mcp`;
 
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T | null> {
   try {
@@ -75,7 +76,7 @@ export const useMcpStore = create<McpStore>((set, get) => ({
       id: string; name: string; type: string; command?: string;
       args?: string[]; url?: string; env?: Record<string, string>;
       headers?: Record<string, string>; status: 'enabled' | 'deferred' | 'disabled';
-    }>>('/api/claude-config/mcp') ?? [];
+    }>>(`${BASE}/claude-config/mcp`) ?? [];
 
     // Merge: Claude servers that aren't already in modular config
     const existingIds = new Set(modularServers.map((s) => s.id));
