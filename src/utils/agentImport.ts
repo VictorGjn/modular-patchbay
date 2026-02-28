@@ -1,5 +1,5 @@
-import { type ConsoleState } from '../store/consoleStore';
-import { type KnowledgeType, type Category, type OutputFormat, classifyKnowledgeType, KNOWLEDGE_TREE, type KnowledgeSource } from '../store/knowledgeBase';
+import { type ConsoleState, type AgentMeta, type ExportTarget } from '../store/consoleStore';
+import { type KnowledgeType, type Category, type OutputFormat, classifyKnowledgeType, type KnowledgeSource } from '../store/knowledgeBase';
 
 interface ModularChannel {
   path: string;
@@ -19,33 +19,212 @@ const MODEL_MAP: Record<string, string> = {
   opus: 'claude-opus-4',
   sonnet: 'claude-sonnet-4',
   haiku: 'claude-haiku-3.5',
+  'claude-opus-4': 'claude-opus-4',
+  'claude-sonnet-4': 'claude-sonnet-4',
+  'claude-haiku-3.5': 'claude-haiku-3.5',
   'gpt-4o': 'gpt-4o',
   'gpt-4.1': 'gpt-4.1',
 };
 
-export function importAgent(yamlMarkdown: string): Partial<ConsoleState> {
-  const { frontmatter, body } = parseFrontmatter(yamlMarkdown);
-  const result: Partial<ConsoleState> = {};
-  const modular = frontmatter.modular as Record<string, unknown> | undefined;
+const VALID_OUTPUT_FORMATS = new Set<string>([
+  'markdown', 'html-slides', 'email', 'code', 'csv', 'json', 'diagram', 'slack',
+]);
 
-  // Parse model
-  if (frontmatter.model) {
-    const model = MODEL_MAP[frontmatter.model as string] ?? (frontmatter.model as string);
-    result.selectedModel = model;
+export interface ImportResult extends Partial<ConsoleState> {
+  agentMeta?: AgentMeta;
+  detectedFormat?: ExportTarget;
+}
+
+export function importAgent(text: string): ImportResult {
+  const trimmed = text.trim();
+
+  // Detect format
+  if (trimmed.startsWith('{')) {
+    return importJSON(trimmed);
+  }
+  if (trimmed.startsWith('---')) {
+    return importMarkdown(trimmed);
+  }
+  // Pure YAML — could be Amp, OpenClaw, or generic YAML
+  return importPureYAML(trimmed);
+}
+
+function importJSON(text: string): ImportResult {
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return {};
   }
 
-  // Parse output format from modular metadata
-  if (modular?.outputFormat) {
-    result.outputFormat = modular.outputFormat as OutputFormat;
+  // Detect which JSON format
+  if (data.modular_version && data.agent) {
+    // Generic JSON format
+    const agent = data.agent as Record<string, unknown>;
+    const result = mapDataToState({
+      ...agent,
+      system: agent.system_prompt,
+      reads: (agent.knowledge as { path: string }[] | undefined)?.map((k) => k.path),
+      output_format: agent.output_formats,
+      token_budget: agent.token_budget,
+    });
+    result.detectedFormat = 'generic';
+    return result;
   }
 
-  // Parse token budget
-  if (modular?.tokenBudget) {
+  if (data.template && data.context_files) {
+    // Vibe Kanban format
+    const result = mapDataToState({
+      name: data.template,
+      reads: data.context_files,
+      tools: data.tools,
+      output_format: data.output_format,
+    });
+    result.detectedFormat = 'vibe-kanban';
+    return result;
+  }
+
+  if (data.instructions && !data.system) {
+    // Codex format
+    const result = mapDataToState({
+      ...data,
+      system: data.instructions,
+      reads: data.context_files || data.reads,
+    });
+    result.detectedFormat = 'codex';
+    return result;
+  }
+
+  // Fallback generic JSON
+  const result = mapDataToState(data);
+  result.detectedFormat = 'generic';
+  return result;
+}
+
+function importMarkdown(text: string): ImportResult {
+  const { frontmatter, body } = parseFrontmatter(text);
+  const result = mapDataToState(frontmatter);
+  result.detectedFormat = 'claude';
+
+  if (!result.prompt) {
+    const promptMatch = body.match(/## Default Prompt\n([\s\S]*?)(?=\n## |$)/);
+    if (promptMatch) {
+      result.prompt = promptMatch[1].trim();
+    }
+  }
+
+  if (!result.prompt) {
+    const roleMatch = body.match(/(?:##? Role)\n([\s\S]*?)(?=\n##? |$)/);
+    if (roleMatch) {
+      result.prompt = roleMatch[1].trim();
+    }
+  }
+
+  if (!result.channels || result.channels.length === 0) {
+    const channels = parseChannelsFromBody(body);
+    if (channels.length > 0) {
+      result.channels = channels;
+    }
+  }
+
+  return result;
+}
+
+function importPureYAML(text: string): ImportResult {
+  const parsed = parseSimpleYaml(text);
+
+  // Detect OpenClaw format (has `agents:` top-level key with nested agent)
+  if (parsed.agents && typeof parsed.agents === 'object' && !Array.isArray(parsed.agents)) {
+    const agents = parsed.agents as Record<string, Record<string, unknown>>;
+    const firstKey = Object.keys(agents)[0];
+    if (firstKey) {
+      const agentData = agents[firstKey];
+      const result = mapDataToState({
+        name: firstKey.replace(/-/g, ' '),
+        model: agentData.model,
+        temperature: agentData.temperature,
+        tools: agentData.skills,
+        reads: agentData.context,
+      });
+      result.detectedFormat = 'openclaw';
+      return result;
+    }
+  }
+
+  // Detect Amp format (has `mcp:` as object, `instructions:` field)
+  if (parsed.mcp && typeof parsed.mcp === 'object' && !Array.isArray(parsed.mcp)) {
+    const result = mapDataToState({
+      ...parsed,
+      system: parsed.instructions,
+      reads: parsed.context_files,
+    });
+    result.detectedFormat = 'amp';
+    return result;
+  }
+
+  // Generic pure YAML
+  const result = mapDataToState(parsed);
+  result.detectedFormat = 'amp'; // Default YAML to Amp
+  return result;
+}
+
+function mapDataToState(data: Record<string, unknown>): ImportResult {
+  const result: ImportResult = {};
+
+  const meta: AgentMeta = {
+    name: asString(data.name) || '',
+    description: asString(data.description) || '',
+    icon: asString(data.icon) || 'brain',
+    category: asString(data.category) || 'general',
+  };
+  result.agentMeta = meta;
+
+  if (data.model) {
+    const modelStr = asString(data.model);
+    result.selectedModel = MODEL_MAP[modelStr] ?? modelStr;
+  }
+
+  if (data.token_budget !== undefined) {
+    result.tokenBudget = Number(data.token_budget);
+  }
+  const modular = data.modular as Record<string, unknown> | undefined;
+  if (modular?.tokenBudget !== undefined) {
     result.tokenBudget = Number(modular.tokenBudget);
   }
 
-  // Parse channels from modular metadata
-  if (modular?.channels) {
+  if (Array.isArray(data.output_format)) {
+    const formats = (data.output_format as string[]).filter((f) => VALID_OUTPUT_FORMATS.has(f));
+    if (formats.length > 0) {
+      result.outputFormat = formats[0] as OutputFormat;
+    }
+  } else if (data.output_format) {
+    const f = asString(data.output_format);
+    if (VALID_OUTPUT_FORMATS.has(f)) {
+      result.outputFormat = f as OutputFormat;
+    }
+  }
+  if (!result.outputFormat && modular?.outputFormat) {
+    result.outputFormat = modular.outputFormat as OutputFormat;
+  }
+
+  if (Array.isArray(data.reads)) {
+    result.channels = (data.reads as string[]).map((path: string, i: number) => {
+      const matched = findSourceByPath(path);
+      return {
+        sourceId: matched?.id ?? `imported-${i}`,
+        name: matched?.name ?? path.split('/').filter(Boolean).pop() ?? path,
+        path,
+        category: (matched?.category ?? 'knowledge') as Category,
+        knowledgeType: matched ? classifyKnowledgeType(matched.path) : classifyKnowledgeType(path),
+        enabled: true,
+        depth: 0,
+        baseTokens: matched?.tokenEstimate ?? 5000,
+      };
+    });
+  }
+
+  // Legacy: modular.channels
+  if (!result.channels && modular?.channels) {
     result.channels = (modular.channels as ModularChannel[]).map((ch: ModularChannel, i: number) => {
       const knowledgeType = (isValidKnowledgeType(ch.type) ? ch.type : classifyKnowledgeType(ch.path)) as KnowledgeType;
       const depth = DEPTH_MAP[ch.depth?.toLowerCase()] ?? 0;
@@ -61,32 +240,29 @@ export function importAgent(yamlMarkdown: string): Partial<ConsoleState> {
         baseTokens: matched?.tokenEstimate ?? 5000,
       };
     });
-  } else {
-    // Try to parse context sources from markdown body
-    const channels = parseChannelsFromBody(body);
-    if (channels.length > 0) {
-      result.channels = channels;
-    }
   }
 
-  // Extract prompt from Role section
-  const roleMatch = body.match(/# Role\n([\s\S]*?)(?=\n# |$)/);
-  if (roleMatch) {
-    const roleText = roleMatch[1].trim();
-    if (roleText) result.prompt = roleText;
+  if (!result.prompt && data.system) {
+    result.prompt = asString(data.system);
+  }
+
+  if (data.prompt) {
+    result.prompt = asString(data.prompt);
   }
 
   return result;
 }
 
+function asString(val: unknown): string {
+  if (typeof val === 'string') return val;
+  if (val === undefined || val === null) return '';
+  return String(val);
+}
+
 function parseFrontmatter(text: string): { frontmatter: Record<string, unknown>; body: string } {
   const match = text.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
   if (!match) return { frontmatter: {}, body: text };
-
-  const yamlText = match[1];
-  const body = match[2];
-  const frontmatter = parseSimpleYaml(yamlText);
-  return { frontmatter, body };
+  return { frontmatter: parseSimpleYaml(match[1]), body: match[2] };
 }
 
 function parseSimpleYaml(yaml: string): Record<string, unknown> {
@@ -94,41 +270,63 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
   const lines = yaml.split('\n');
   let currentKey = '';
   let currentObj: Record<string, unknown> | null = null;
-  let currentArr: Record<string, string>[] | null = null;
+  let currentArr: unknown[] | null = null;
   let currentItem: Record<string, string> | null = null;
+  let multilineKey = '';
+  let multilineIndent = 0;
+  let multilineLines: string[] = [];
+
+  const flushMultiline = () => {
+    if (multilineKey && multilineLines.length > 0) {
+      const target = currentObj || result;
+      target[multilineKey] = multilineLines.join('\n');
+      multilineKey = '';
+      multilineLines = [];
+    }
+  };
 
   for (const line of lines) {
-    // Top-level key: value
-    const topMatch = line.match(/^(\w[\w-]*)\s*:\s*(.*)$/);
+    if (multilineKey) {
+      const indent = line.search(/\S/);
+      if (indent >= multilineIndent && line.trim() !== '') {
+        multilineLines.push(line.slice(multilineIndent));
+        continue;
+      } else {
+        flushMultiline();
+      }
+    }
+
+    const topMatch = line.match(/^(\w[\w_-]*)\s*:\s*(.*)$/);
     if (topMatch) {
       if (currentItem && currentArr) {
         currentArr.push(currentItem);
         currentItem = null;
-      }
-      if (currentArr && currentObj && currentKey) {
-        // Save pending array into parent object
       }
       currentArr = null;
       currentObj = null;
 
       const key = topMatch[1];
       const val = topMatch[2].trim();
-      if (val === '') {
-        // Start of nested object
-        currentKey = key;
-        currentObj = {};
-        result[key] = currentObj;
+      if (val === '' || val === '|') {
+        if (val === '|') {
+          multilineKey = key;
+          multilineIndent = 2;
+          multilineLines = [];
+        } else {
+          currentKey = key;
+          currentObj = {};
+          result[key] = currentObj;
+        }
       } else if (val.startsWith('[') && val.endsWith(']')) {
-        result[key] = val.slice(1, -1).split(',').map((s) => s.trim());
+        result[key] = val.slice(1, -1).split(',').map((s) => s.trim()).filter(Boolean);
       } else {
         result[key] = stripQuotes(val);
       }
       continue;
     }
 
-    // Nested key under currentObj (2-space indent)
     if (currentObj) {
-      const nestedMatch = line.match(/^  (\w[\w-]*)\s*:\s*(.*)$/);
+      const nestedMatch = line.match(/^  (\w[\w_-]*)\s*:\s*(.*)$/);
       if (nestedMatch) {
         if (currentItem && currentArr) {
           currentArr.push(currentItem);
@@ -136,9 +334,15 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
         }
         const key = nestedMatch[1];
         const val = nestedMatch[2].trim();
-        if (val === '') {
-          currentArr = [];
-          currentObj[key] = currentArr;
+        if (val === '' || val === '|') {
+          if (val === '|') {
+            multilineKey = key;
+            multilineIndent = 4;
+            multilineLines = [];
+          } else {
+            currentArr = [];
+            currentObj[key] = currentArr;
+          }
         } else {
           currentArr = null;
           currentObj[key] = stripQuotes(val);
@@ -146,26 +350,59 @@ function parseSimpleYaml(yaml: string): Record<string, unknown> {
         continue;
       }
 
-      // Array item start (4-space indent + dash)
       if (currentArr) {
-        const arrMatch = line.match(/^    - (\w[\w-]*)\s*:\s*(.*)$/);
+        const simpleArr = line.match(/^  - (.+)$/);
+        if (simpleArr && !simpleArr[1].includes(':')) {
+          if (currentItem) {
+            currentArr.push(currentItem);
+            currentItem = null;
+          }
+          currentArr.push(stripQuotes(simpleArr[1].trim()));
+          continue;
+        }
+      }
+
+      if (currentArr) {
+        const arrMatch = line.match(/^    - (\w[\w_-]*)\s*:\s*(.*)$/);
         if (arrMatch) {
           if (currentItem) currentArr.push(currentItem);
           currentItem = { [arrMatch[1]]: stripQuotes(arrMatch[2]) };
           continue;
         }
 
-        // Array item continuation (6-space indent)
-        const contMatch = line.match(/^      (\w[\w-]*)\s*:\s*(.*)$/);
+        const contMatch = line.match(/^      (\w[\w_-]*)\s*:\s*(.*)$/);
         if (contMatch && currentItem) {
           currentItem[contMatch[1]] = stripQuotes(contMatch[2]);
           continue;
         }
       }
     }
+
+    if (!currentObj) {
+      const topArrMatch = line.match(/^  - (.+)$/);
+      if (topArrMatch && currentArr) {
+        if (!topArrMatch[1].includes(':')) {
+          currentArr.push(stripQuotes(topArrMatch[1].trim()));
+        } else {
+          const kvMatch = topArrMatch[1].match(/^(\w[\w_-]*)\s*:\s*(.*)$/);
+          if (kvMatch) {
+            if (currentItem) currentArr.push(currentItem);
+            currentItem = { [kvMatch[1]]: stripQuotes(kvMatch[2]) };
+          }
+        }
+        continue;
+      }
+      const topArrKey = line.match(/^(\w[\w_-]*)\s*:$/);
+      if (topArrKey) {
+        currentKey = topArrKey[1];
+        currentArr = [];
+        result[currentKey] = currentArr;
+        continue;
+      }
+    }
   }
 
-  // Flush remaining
+  flushMultiline();
   if (currentItem && currentArr) {
     currentArr.push(currentItem);
   }
@@ -184,20 +421,13 @@ function isValidKnowledgeType(type: string): boolean {
   return ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'].includes(type);
 }
 
-function findSourceByPath(path: string, tree: KnowledgeSource[] = KNOWLEDGE_TREE): KnowledgeSource | undefined {
-  for (const node of tree) {
-    if (node.path === path || path.startsWith(node.path)) return node;
-    if (node.children) {
-      const found = findSourceByPath(path, node.children);
-      if (found) return found;
-    }
-  }
+function findSourceByPath(_path: string, _tree: KnowledgeSource[] = []): KnowledgeSource | undefined {
+  // Source matching now relies on real scanned data; import without a tree just uses path-based defaults
   return undefined;
 }
 
 function parseChannelsFromBody(body: string): ConsoleState['channels'] {
   const channels: ConsoleState['channels'] = [];
-  // Look for lines like "- path/to/source" or "- **Label:** path/to/source"
   const lines = body.split('\n');
   let idx = 0;
   for (const line of lines) {

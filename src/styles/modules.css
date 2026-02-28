@@ -1,52 +1,9 @@
-/* Module panel texture */
-.module-panel {
-  background:
-    linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%, rgba(0,0,0,0.05) 100%),
-    linear-gradient(to bottom, #1e1a17, #1b1714);
-  border: 1px solid #2d2720;
-  border-radius: 6px;
-  box-shadow:
-    0 4px 12px rgba(0,0,0,0.5),
-    inset 0 1px 0 rgba(255,255,255,0.05);
-  position: relative;
-}
-
-/* Engraved label effect */
-.label-engraved {
-  font-family: 'Space Mono', monospace;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-size: 9px;
-  color: #8a7e72;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 -1px 0 rgba(0,0,0,0.3);
-}
-
-/* Value readout */
-.value-readout {
-  font-family: 'Space Mono', monospace;
-  font-size: 10px;
-  color: #FE5000;
-}
-
-/* Scope screen */
-.scope-screen {
-  background: #0a0a0a;
-  border: 1px solid #1a1a1a;
-  border-radius: 3px;
-  position: relative;
-  overflow: hidden;
-}
-.scope-screen::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.15) 2px,
-    rgba(0,0,0,0.15) 4px
-  );
-  pointer-events: none;
+/* Glass surface */
+.glass-surface {
+  background: rgba(28, 28, 32, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(42, 42, 48, 0.6);
 }
 
 /* Run animation pulse */
@@ -55,38 +12,11 @@
   50% { opacity: 1; }
 }
 
-/* === NEXT-GEN ANIMATIONS === */
-
-/* LED gentle pulse when channel enabled */
-@keyframes led-pulse {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.3); }
-}
-
-/* Signal flash down VU meter on toggle */
-@keyframes signal-flash {
-  0% { opacity: 0; transform: translateY(-100%); }
-  20% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(100%); }
-}
-
-/* Channel slide in from right */
-@keyframes slide-in-right {
-  0% { opacity: 0; transform: translateX(30px); }
-  100% { opacity: 1; transform: translateX(0); }
-}
-
 /* Run button pulsing ring */
 @keyframes run-pulse-ring {
   0% { box-shadow: 0 0 0 0 rgba(254,80,0,0.6), 0 0 8px rgba(254,80,0,0.3); }
   50% { box-shadow: 0 0 0 6px rgba(254,80,0,0), 0 0 16px rgba(254,80,0,0.4); }
   100% { box-shadow: 0 0 0 0 rgba(254,80,0,0), 0 0 8px rgba(254,80,0,0.3); }
-}
-
-/* Ghost channel breathe */
-@keyframes ghost-breathe {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.5; }
 }
 
 /* Typewriter cursor blink */
@@ -101,93 +31,15 @@
   100% { opacity: 1; transform: translateY(0); }
 }
 
-/* Signal flow dash animation */
-@keyframes dash-flow {
-  0% { stroke-dashoffset: 16; }
-  100% { stroke-dashoffset: 0; }
-}
-
-/* Signal flow node pulse */
-@keyframes node-pulse {
-  0%, 100% { filter: brightness(1) drop-shadow(0 0 2px rgba(254,80,0,0.2)); }
-  50% { filter: brightness(1.15) drop-shadow(0 0 6px rgba(254,80,0,0.4)); }
-}
-
-/* Placeholder fade removed — static placeholder used */
-
-/* Noise overlay removed for lighter aesthetic */
-
-/* Channel strip hover lift */
-.channel-strip {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.channel-strip:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
-}
-
-/* Drag styles */
-.channel-strip.dragging {
-  opacity: 0.4;
-  transform: scale(0.97);
-}
-.channel-strip.drag-over-left {
-  border-left: 2px solid #FE5000;
-}
-.channel-strip.drag-over-right {
-  border-right: 2px solid #FE5000;
-}
-
-/* Gradient mesh background */
-.gradient-mesh-bg {
-  position: relative;
-}
-.gradient-mesh-bg::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 600px 400px at 15% 50%, rgba(254,80,0,0.015) 0%, transparent 70%),
-    radial-gradient(ellipse 500px 500px at 85% 30%, rgba(52,152,219,0.01) 0%, transparent 70%),
-    radial-gradient(ellipse 400px 300px at 50% 80%, rgba(46,204,113,0.008) 0%, transparent 70%);
-  z-index: 0;
-}
-
-/* Topbar LED dots */
-.topbar-leds {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.topbar-leds .led-dot {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: #2d2720;
-}
-.topbar-leds .led-dot.active {
-  background: #FE5000;
-  box-shadow: 0 0 4px rgba(254,80,0,0.4);
-}
-
 /* File picker modal entrance */
 @keyframes modal-in {
-  0% { opacity: 0; transform: translateY(4px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; transform: translateY(4px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Response modal overlay */
 .response-modal-overlay {
   animation: modal-in 0.2s ease-out;
-}
-
-/* Smooth knob rotation */
-.knob-body {
-  transition: box-shadow 0.15s ease;
-}
-.knob-body:active {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 12px rgba(254,80,0,0.15);
 }
 
 /* Tile styles */
@@ -201,8 +53,52 @@
   transform: translateY(0);
 }
 
-/* === HOVER UTILITY CLASSES === */
+/* Jack port glow */
+@keyframes jack-glow {
+  0%, 100% { box-shadow: 0 0 4px currentColor; }
+  50% { box-shadow: 0 0 8px currentColor, 0 0 12px currentColor; }
+}
 
+/* Cable sway */
+@keyframes cable-sway {
+  0%, 100% { filter: drop-shadow(0 0 2px currentColor); }
+  50% { filter: drop-shadow(0 0 4px currentColor); }
+}
+
+/* Cable dash animation for selected/hovered edges */
+@keyframes cable-dash {
+  0% { stroke-dashoffset: 20; }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* Ghost tile pulse for feedback items */
+@keyframes ghost-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.02); opacity: 0.75; }
+}
+
+.ghost-tile {
+  border-style: dashed !important;
+  opacity: 0.6;
+  animation: ghost-pulse 2s ease-in-out infinite;
+}
+
+/* Gradient mesh background - subtle */
+.gradient-mesh-bg {
+  position: relative;
+}
+.gradient-mesh-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 600px 400px at 15% 50%, rgba(254,80,0,0.012) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 500px at 85% 30%, rgba(52,152,219,0.008) 0%, transparent 70%);
+  z-index: 0;
+}
+
+/* Hover utility classes */
 .hover-accent-border {
   transition: border-color 0.15s ease, color 0.15s ease;
 }
@@ -218,18 +114,11 @@
   color: #FE5000 !important;
 }
 
-.hover-danger-text {
-  transition: color 0.15s ease;
-}
-.hover-danger-text:hover {
-  color: #ff3344 !important;
-}
-
 .hover-row {
   transition: background-color 0.15s ease;
 }
 .hover-row:hover {
-  background-color: rgba(45, 39, 32, 0.27);
+  background-color: rgba(37, 37, 42, 0.5);
 }
 
 /* Respect reduced motion preference */
@@ -239,4 +128,15 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* B14 — Zoom controls visibility */
+.react-flow__controls {
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  width: 32px !important;
+  height: 32px !important;
+  border: 1px solid var(--color-border, #2a2a30) !important;
 }

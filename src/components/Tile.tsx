@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { useTheme } from '../theme';
 
 export interface TileProps {
   name: string;
   active: boolean;
-  badge?: string;
+  icon?: ReactNode;
   subtitle?: string;
   colorStripe?: string;
   statusColor?: string;
@@ -12,13 +13,14 @@ export interface TileProps {
   radioMode?: boolean;
 }
 
-export function Tile({ name, active, badge, subtitle, colorStripe, statusColor, onClick, onDoubleClick, radioMode }: TileProps) {
+export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, onClick, onDoubleClick, radioMode }: TileProps) {
   const [hovered, setHovered] = useState(false);
+  const t = useTheme();
 
-  const dotColor = statusColor ?? (active ? '#00ff88' : '#3d3730');
+  const dotColor = statusColor ?? (active ? t.statusSuccess : t.textFaint);
   const borderColor = active
     ? (radioMode ? 'rgba(254,80,0,0.5)' : 'rgba(254,80,0,0.25)')
-    : hovered ? '#3d3730' : '#2d2720';
+    : hovered ? t.tileBorderHover : t.border;
 
   return (
     <button
@@ -27,78 +29,79 @@ export function Tile({ name, active, badge, subtitle, colorStripe, statusColor, 
       onDoubleClick={(e) => onDoubleClick?.(e)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="tile relative flex flex-col items-start justify-between p-2 rounded cursor-pointer border-none outline-none text-left"
+      className="tile relative flex flex-col items-center justify-between p-2 rounded-md cursor-pointer border-none outline-none text-center"
       style={{
-        width: 100,
-        height: 80,
-        minWidth: 100,
-        minHeight: 80,
+        width: 112,
+        height: 84,
+        minWidth: 112,
+        minHeight: 84,
         background: active
-          ? 'linear-gradient(135deg, #221e1a, #1e1a17)'
-          : 'linear-gradient(135deg, #1e1a17, #1b1714)',
+          ? t.tileActiveBg
+          : hovered ? t.tileHoverBg : t.tileBg,
         border: `1px solid ${borderColor}`,
         boxShadow: active
-          ? '0 0 12px rgba(254,80,0,0.08), inset 0 1px 0 rgba(255,255,255,0.04)'
+          ? '0 0 12px rgba(254,80,0,0.06)'
           : hovered
-            ? '0 4px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)'
-            : 'inset 0 1px 0 rgba(255,255,255,0.02)',
+            ? `0 4px 12px ${t.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.08)'}`
+            : 'none',
         transform: hovered ? 'translateY(-1px)' : 'none',
-        transition: 'transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease',
-        fontFamily: "'Space Mono', monospace",
+        transition: 'transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, background 150ms ease',
       }}
     >
       {/* Color stripe at top */}
       {colorStripe && (
         <div
-          className="absolute top-0 left-0 right-0 rounded-t"
+          className="absolute top-0 left-0 right-0 rounded-t-md"
           style={{ height: 2, background: colorStripe }}
         />
       )}
 
-      {/* Status dot (top-right) */}
+      {/* Status badge (top-right) */}
       <div
         className="absolute rounded-full"
         style={{
-          top: 6,
-          right: 6,
-          width: 6,
-          height: 6,
+          top: 5,
+          right: 5,
+          width: 8,
+          height: 8,
           background: dotColor,
           boxShadow: active ? `0 0 6px ${dotColor}80` : 'none',
           transition: 'background 0.2s ease, box-shadow 0.2s ease',
         }}
+        title={active ? 'Active' : 'Inactive'}
       />
 
       {/* Name */}
       <span
-        className="text-[9px] leading-tight block pr-3 overflow-hidden"
+        className="text-[10px] leading-tight block px-1"
         style={{
-          color: active ? '#e8e0d8' : '#8a7e72',
+          fontFamily: "'Inter', sans-serif",
+          fontWeight: 500,
+          color: active ? t.textPrimary : t.textSecondary,
+          maxWidth: '100%',
+          wordBreak: 'break-word',
+          overflow: 'hidden',
           display: '-webkit-box',
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
-          maxWidth: '100%',
-          wordBreak: 'break-word',
         }}
       >
         {name}
       </span>
 
-      {/* Badge */}
-      {badge && (
-        <span
-          className="text-[11px]"
-          style={{ lineHeight: 1 }}
-        >
-          {badge}
-        </span>
+      {/* Icon */}
+      {icon && (
+        <div style={{ color: active ? t.textSecondary : t.textDim, lineHeight: 1 }}>
+          {icon}
+        </div>
       )}
 
       {/* Subtitle */}
       {subtitle && (
         <span
-          className="text-[7px] tracking-[0.5px] uppercase block mt-auto"
-          style={{ color: '#5a4e42' }}
+          className="text-[11px] tracking-wide font-semibold block mt-auto truncate w-full"
+          style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}
+          title={subtitle}
         >
           {subtitle}
         </span>

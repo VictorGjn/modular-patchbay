@@ -1,42 +1,117 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useMemo, useState } from 'react';
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  reconnectEdge,
+  type Connection,
+  type Node,
+  type Edge,
+  BackgroundVariant,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+
 import { Topbar } from './components/Topbar';
-import { PromptArea } from './components/PromptArea';
 import { TokenBudget } from './components/TokenBudget';
 import { FilePicker } from './components/FilePicker';
-import { ResponseArea } from './components/ResponseArea';
-import { SignalFlow } from './components/SignalFlow';
+import { McpPicker } from './components/McpPicker';
+import { SkillPicker } from './components/SkillPicker';
+import { Marketplace } from './components/Marketplace';
+import { ConnectorPicker } from './components/ConnectorPicker';
 import { AgentPreview } from './components/AgentPreview';
-import { Section } from './components/Section';
-import { Tile } from './components/Tile';
-import { useConsoleStore, getEffectiveTokens } from './store/consoleStore';
-import { KNOWLEDGE_TYPES, DEPTH_LEVELS, OUTPUT_FORMATS, type OutputFormat } from './store/knowledgeBase';
+import { SettingsPage } from './components/SettingsPage';
+import { SaveAgentModal } from './components/SaveAgentModal';
+import { ConversationTester } from './components/ConversationTester';
+import './store/versionStore'; // activate version subscription
+import { useConsoleStore } from './store/consoleStore';
+import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
 
+import { PromptNode } from './nodes/PromptNode';
+import { KnowledgeNode } from './nodes/KnowledgeNode';
+import { McpNode } from './nodes/McpNode';
+import { SkillsNode } from './nodes/SkillsNode';
+import { OutputNode } from './nodes/OutputNode';
+import { ResponseNode } from './nodes/ResponseNode';
+import { InstructionNode } from './nodes/InstructionNode';
+import { WorkflowNode } from './nodes/WorkflowNode';
+import { PatchCable } from './edges/PatchCable';
+import { FeedbackEdge } from './edges/FeedbackEdge';
+
+const nodeTypes = {
+  prompt: PromptNode,
+  knowledge: KnowledgeNode,
+  mcp: McpNode,
+  skills: SkillsNode,
+  output: OutputNode,
+  response: ResponseNode,
+  instruction: InstructionNode,
+  workflow: WorkflowNode,
+};
+
+const edgeTypes = {
+  patch: PatchCable,
+  feedback: FeedbackEdge,
+};
+
+const initialNodes: Node[] = [
+  // Left column
+  { id: 'knowledge', type: 'knowledge', position: { x: 50, y: 60 }, data: {} },
+  { id: 'skills', type: 'skills', position: { x: 50, y: 340 }, data: {} },
+  { id: 'mcp', type: 'mcp', position: { x: 50, y: 620 }, data: {} },
+  // Middle column - Agent Architecture
+  { id: 'instruction', type: 'instruction', position: { x: 340, y: 60 }, data: {} },
+  { id: 'workflow', type: 'workflow', position: { x: 340, y: 360 }, data: {} },
+  // Center — Hero Prompt node
+  { id: 'prompt', type: 'prompt', position: { x: 700, y: 120 }, data: {} },
+  // Right column
+  { id: 'output', type: 'output', position: { x: 1120, y: 120 }, data: {} },
+  { id: 'response', type: 'response', position: { x: 1120, y: 520 }, data: {} },
+];
+
+const initialEdges: Edge[] = [
+  // Left sources -> Instruction
+  { id: 'e-knowledge-instruction', source: 'knowledge', target: 'instruction', sourceHandle: 'knowledge-out', targetHandle: 'instruction-knowledge-in', type: 'patch', style: { stroke: '#3498db' }, data: { label: 'knowledge' } },
+  { id: 'e-skills-instruction', source: 'skills', target: 'instruction', sourceHandle: 'skills-out', targetHandle: 'instruction-skills-in', type: 'patch', style: { stroke: '#f1c40f' }, data: { label: 'skills' } },
+  { id: 'e-mcp-instruction', source: 'mcp', target: 'instruction', sourceHandle: 'mcp-out', targetHandle: 'instruction-mcp-in', type: 'patch', style: { stroke: '#2ecc71' }, data: { label: 'tools' } },
+  // Instruction -> Workflow
+  { id: 'e-instruction-workflow', source: 'instruction', target: 'workflow', sourceHandle: 'instruction-workflow-out', targetHandle: 'workflow-in', type: 'patch', style: { stroke: '#e67e22' }, data: { label: 'instruction' } },
+  // Skills/MCP -> Workflow (for tool references)
+  { id: 'e-skills-workflow', source: 'skills', target: 'workflow', sourceHandle: 'skills-out', targetHandle: 'workflow-skills-in', type: 'patch', style: { stroke: '#f1c40f' }, data: { label: 'skills' } },
+  { id: 'e-mcp-workflow', source: 'mcp', target: 'workflow', sourceHandle: 'mcp-out', targetHandle: 'workflow-mcp-in', type: 'patch', style: { stroke: '#2ecc71' }, data: { label: 'tools' } },
+  // Instruction/Workflow -> Prompt
+  { id: 'e-instruction-prompt', source: 'instruction', target: 'prompt', sourceHandle: 'instruction-prompt-out', targetHandle: 'prompt-knowledge-in', type: 'patch', style: { stroke: '#9b59b6' }, data: { label: 'instruction' } },
+  { id: 'e-workflow-prompt', source: 'workflow', target: 'prompt', sourceHandle: 'workflow-out', targetHandle: 'prompt-skills-in', type: 'patch', style: { stroke: '#e67e22' }, data: { label: 'workflow' } },
+  // Prompt -> Output/Response
+  { id: 'e-prompt-output', source: 'prompt', target: 'output', sourceHandle: 'prompt-out', targetHandle: 'output-in', type: 'patch', style: { stroke: '#FE5000' }, data: { label: 'output' } },
+  { id: 'e-prompt-response', source: 'prompt', target: 'response', sourceHandle: 'prompt-out', targetHandle: 'response-in', type: 'patch', style: { stroke: '#FE5000' }, data: { label: 'response' } },
+  // Feedback edges (prompt → knowledge/skills)
+  { id: 'e-prompt-knowledge-fb', source: 'prompt', target: 'knowledge', sourceHandle: 'prompt-knowledge-out', targetHandle: 'knowledge-feedback-in', type: 'feedback', data: { variant: 'knowledge' } },
+  { id: 'e-prompt-skills-fb', source: 'prompt', target: 'skills', sourceHandle: 'prompt-skills-out', targetHandle: 'skills-feedback-in', type: 'feedback', data: { variant: 'skills' } },
+];
+
 export default function App() {
-  const channels = useConsoleStore((s) => s.channels);
-  const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const t = useTheme();
+
   const showFilePicker = useConsoleStore((s) => s.showFilePicker);
+  const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
+  const setShowMcpPicker = useConsoleStore((s) => s.setShowMcpPicker);
+  const setShowSkillPicker = useConsoleStore((s) => s.setShowSkillPicker);
+  const setShowConnectorPicker = useConsoleStore((s) => s.setShowConnectorPicker);
+  const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
   const run = useConsoleStore((s) => s.run);
   const running = useConsoleStore((s) => s.running);
-  const toggleChannel = useConsoleStore((s) => s.toggleChannel);
-  const outputFormat = useConsoleStore((s) => s.outputFormat);
-  const setOutputFormat = useConsoleStore((s) => s.setOutputFormat);
-  const mcpServers = useConsoleStore((s) => s.mcpServers);
-  const skills = useConsoleStore((s) => s.skills);
-  const agents = useConsoleStore((s) => s.agents);
-  const toggleMcp = useConsoleStore((s) => s.toggleMcp);
-  const toggleSkill = useConsoleStore((s) => s.toggleSkill);
-  const loadAgent = useConsoleStore((s) => s.loadAgent);
 
-  // Depth popup state
-  const [depthPopup, setDepthPopup] = useState<{ sourceId: string; x: number; y: number } | null>(null);
-  const setChannelDepth = useConsoleStore((s) => s.setChannelDepth);
-
-  // Agent import
+  const showSettings = useConsoleStore((s) => s.showSettings);
+  const setShowSettings = useConsoleStore((s) => s.setShowSettings);
   const importInputRef = useRef<HTMLInputElement>(null);
-  const handleImportClick = useCallback(() => {
-    importInputRef.current?.click();
-  }, []);
+  const handleImportClick = useCallback(() => importInputRef.current?.click(), []);
   const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -46,258 +121,129 @@ export default function App() {
       if (!text) return;
       const partial = importAgent(text);
       const store = useConsoleStore.getState();
-      if (partial.channels) {
-        store.clearChannels();
-        for (const ch of partial.channels) {
-          store.addChannel(ch);
-        }
-      }
+      if (partial.channels) { store.clearChannels(); for (const ch of partial.channels) store.addChannel(ch); }
       if (partial.selectedModel) store.setModel(partial.selectedModel);
       if (partial.outputFormat) store.setOutputFormat(partial.outputFormat);
       if (partial.prompt) store.setPrompt(partial.prompt);
       if (partial.tokenBudget) store.setTokenBudget(partial.tokenBudget);
+      if (partial.agentMeta) store.setAgentMeta(partial.agentMeta);
     };
     reader.readAsText(file);
     e.target.value = '';
   }, []);
 
-  // Keyboard shortcuts
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      const sourceColors: Record<string, string> = {
+        knowledge: '#3498db',
+        skills: '#f1c40f',
+        mcp: '#2ecc71',
+        instruction: '#9b59b6',
+        workflow: '#e67e22',
+        prompt: '#FE5000',
+        output: '#FE5000',
+        response: '#FE5000',
+      };
+      const sourceLabels: Record<string, string> = {
+        knowledge: 'knowledge',
+        skills: 'skills',
+        mcp: 'tools',
+        instruction: 'instruction',
+        workflow: 'workflow',
+        prompt: 'output',
+        output: 'response',
+      };
+      const sourceNode = connection.source ?? '';
+      const color = sourceColors[sourceNode] ?? '#FE5000';
+      const label = sourceLabels[sourceNode] ?? '';
+      setEdges((eds) =>
+        addEdge({ ...connection, type: 'patch', style: { stroke: color }, data: { label } }, eds),
+      );
+    },
+    [setEdges],
+  );
+
+  const onReconnect = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds));
+    },
+    [setEdges],
+  );
+
+  const isValidConnection = useCallback((connection: Edge | Connection) => {
+    // Only allow output→input connections (source-out → target-in)
+    const { sourceHandle, targetHandle } = connection;
+    if (!sourceHandle || !targetHandle) return false;
+    return sourceHandle.endsWith('-out') && targetHandle.endsWith('-in');
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setShowFilePicker(!showFilePicker);
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (!running) run();
-      }
-      if (e.key === 'Escape') {
-        setShowFilePicker(false);
-        setDepthPopup(null);
-      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setShowFilePicker(!showFilePicker); }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (!running) run(); }
+      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); setShowConnectorPicker(false); setShowMarketplace(false); setShowSettings(false); useConsoleStore.getState().setShowSaveModal(false); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setShowFilePicker, showFilePicker, run, running]);
+  }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, setShowConnectorPicker, setShowMarketplace, run, running]);
 
-  // Close depth popup on outside click
-  useEffect(() => {
-    if (!depthPopup) return;
-    const handler = () => setDepthPopup(null);
-    window.addEventListener('click', handler);
-    return () => window.removeEventListener('click', handler);
-  }, [depthPopup]);
-
-  const activeChannels = channels.filter((c) => c.enabled);
-
-  const handleTileDoubleClick = (sourceId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    setDepthPopup({ sourceId, x: rect.left, y: rect.bottom + 4 });
-  };
-
-  // Format tokens nicely
-  const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
+  const minimapStyle = useMemo(() => ({
+    backgroundColor: t.minimapBg,
+  }), [t.minimapBg]);
 
   return (
-    <div className="gradient-mesh-bg w-full h-full flex flex-col" style={{ background: '#0f0f0f' }}>
-      <input
-        ref={importInputRef}
-        type="file"
-        accept=".md"
-        onChange={handleImportFile}
-        style={{ display: 'none' }}
-        aria-hidden="true"
-      />
+    <div className="w-full h-full flex flex-col" style={{ background: t.bg }}>
+      <input ref={importInputRef} type="file" accept=".md,.yaml,.yml,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
+      <Topbar onImportClick={handleImportClick} onSettingsClick={() => setShowSettings(true, 'providers')} />
 
-      {/* TOPBAR */}
-      <Topbar onImportClick={handleImportClick} />
-
-      {/* PROMPT AREA */}
-      <PromptArea />
-
-      {/* SECTIONS GRID */}
-      <div
-        className="flex-1 overflow-hidden px-4 pb-2 relative"
-        style={{ zIndex: 1 }}
-      >
-        <div
-          className="grid gap-2 h-full"
-          style={{
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            minHeight: 0,
-          }}
+      {/* React Flow Canvas */}
+      <div className="flex-1 overflow-hidden relative">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onReconnect={onReconnect}
+          isValidConnection={isValidConnection}
+          edgesReconnectable
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.15 }}
+          deleteKeyCode="Delete"
+          defaultEdgeOptions={{ type: 'patch' }}
+          style={{ background: t.bg }}
+          proOptions={{ hideAttribution: true }}
         >
-          {/* Section 1: KNOWLEDGE */}
-          <Section
-            title="Knowledge"
-            emoji="📚"
-            count={activeChannels.length}
-            actionLabel="+ ADD  ⌘K"
-            onAction={() => setShowFilePicker(true)}
-          >
-            {channels.length === 0 ? (
-              <div className="col-span-full flex items-center justify-center py-6">
-                <span
-                  className="text-[9px] tracking-[1px] uppercase"
-                  style={{ fontFamily: "'Space Mono', monospace", color: '#3d3730' }}
-                >
-                  No sources loaded
-                </span>
-              </div>
-            ) : (
-              channels.map((ch) => {
-                const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
-                const eff = getEffectiveTokens(ch);
-                return (
-                  <Tile
-                    key={ch.sourceId}
-                    name={ch.name}
-                    active={ch.enabled}
-                    badge={kt.icon}
-                    subtitle={`${fmtTokens(eff)} · ${DEPTH_LEVELS[ch.depth].label}`}
-                    colorStripe={kt.color}
-                    onClick={() => toggleChannel(ch.sourceId)}
-                    onDoubleClick={(e) => {
-                      if (e) handleTileDoubleClick(ch.sourceId, e);
-                    }}
-                  />
-                );
-              })
-            )}
-          </Section>
-
-          {/* Section 2: MCP */}
-          <Section
-            title="MCP"
-            emoji="🔌"
-            count={mcpServers.filter((s) => s.enabled).length}
-            actionLabel="+ FIND"
-            onAction={() => {}}
-          >
-            {mcpServers.map((server) => {
-              const statusColor = server.connected
-                ? (server.enabled ? '#00ff88' : '#5a4e42')
-                : '#ff3344';
-              return (
-                <Tile
-                  key={server.id}
-                  name={server.name}
-                  active={server.enabled}
-                  badge={server.icon}
-                  subtitle={server.connected ? 'connected' : 'offline'}
-                  statusColor={statusColor}
-                  onClick={() => toggleMcp(server.id)}
-                />
-              );
-            })}
-          </Section>
-
-          {/* Section 3: SKILLS */}
-          <Section
-            title="Skills"
-            emoji="⚡"
-            count={skills.filter((s) => s.enabled).length}
-            actionLabel="+ FIND"
-            onAction={() => {}}
-          >
-            {skills.map((skill) => (
-              <Tile
-                key={skill.id}
-                name={skill.name}
-                active={skill.enabled}
-                subtitle={skill.description}
-                onClick={() => toggleSkill(skill.id)}
-              />
-            ))}
-          </Section>
-
-          {/* Section 4: AGENTS */}
-          <Section
-            title="Agents"
-            emoji="🤖"
-            count={agents.length}
-            actionLabel="+ NEW"
-            onAction={() => {}}
-          >
-            {agents.map((agent) => (
-              <Tile
-                key={agent.id}
-                name={agent.name}
-                active={false}
-                badge={agent.emoji}
-                subtitle={agent.model}
-                onClick={() => loadAgent(agent.id)}
-              />
-            ))}
-          </Section>
-
-          {/* Section 5: OUTPUT */}
-          <Section
-            title="Output"
-            emoji="📤"
-            count={1}
-          >
-            {OUTPUT_FORMATS.map((fmt) => (
-              <Tile
-                key={fmt.id}
-                name={fmt.label}
-                active={outputFormat === fmt.id}
-                badge={fmt.icon}
-                radioMode
-                onClick={() => setOutputFormat(fmt.id as OutputFormat)}
-              />
-            ))}
-          </Section>
-        </div>
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={t.dotGrid} />
+          <Controls
+            position="bottom-left"
+            style={{ background: t.controlsBg, border: `1px solid ${t.controlsBorder}`, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+            className="zoom-controls"
+          />
+          <MiniMap
+            position="bottom-right"
+            style={minimapStyle}
+            maskColor={t.minimapMask}
+            nodeColor={t.minimapNode}
+            nodeBorderRadius={8}
+          />
+        </ReactFlow>
       </div>
 
-      {/* SIGNAL FLOW */}
-      <SignalFlow />
-
-      {/* RESPONSE AREA */}
-      <ResponseArea />
+      {/* Accessibility: aria-live region for canvas state announcements */}
+      <div aria-live="polite" className="sr-only" id="canvas-announcements" />
       <AgentPreview />
+      <ConversationTester />
       <TokenBudget />
       <FilePicker />
-
-      {/* Depth popup */}
-      {depthPopup && (
-        <div
-          className="fixed z-50 rounded-md py-1 px-1"
-          style={{
-            left: depthPopup.x,
-            top: depthPopup.y,
-            background: '#1e1a17',
-            border: '1px solid #2d2720',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
-            animation: 'fade-in-up 0.15s ease',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {DEPTH_LEVELS.map((level, i) => (
-            <button
-              key={level.label}
-              type="button"
-              className="block w-full text-left px-3 py-1 rounded text-[9px] cursor-pointer border-none"
-              style={{
-                fontFamily: "'Space Mono', monospace",
-                background: 'transparent',
-                color: '#b5a898',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#2d2720'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-              onClick={() => {
-                setChannelDepth(depthPopup.sourceId, i);
-                setDepthPopup(null);
-              }}
-            >
-              {level.label} ({Math.round(level.pct * 100)}%)
-            </button>
-          ))}
-        </div>
-      )}
+      <McpPicker />
+      <SkillPicker />
+      <ConnectorPicker />
+      <Marketplace />
+      <SettingsPage open={showSettings} onClose={() => setShowSettings(false)} />
+      <SaveAgentModal />
     </div>
   );
 }

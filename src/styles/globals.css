@@ -1,21 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --color-rack: #0f0f0f;
-  --color-panel: #1e1a17;
-  --color-panel-dark: #151210;
-  --color-border-panel: #2d2720;
+  --color-bg: #111114;
+  --color-surface: #1c1c20;
+  --color-surface-elevated: #25252a;
+  --color-border: #2a2a30;
   --color-accent: #FE5000;
   --color-accent-dim: #CC4000;
-  --color-text-primary: #e8e0d8;
-  --color-text-secondary: #8a7e72;
-  --color-text-label: #b5a898;
+  --color-text-primary: #f0f0f0;
+  --color-text-secondary: #888;
+  --color-text-muted: #555;
   --color-led-green: #00ff88;
   --color-led-red: #ff3344;
   --color-led-amber: #ffaa00;
-  --color-knob-body: #333333;
-  --color-knob-cap: #1a1a1a;
-  --color-knob-indicator: #ffffff;
   --color-knowledge: #3498db;
   --color-discovery: #2ecc71;
   --color-intel: #e67e22;
@@ -30,11 +27,30 @@
   box-sizing: border-box;
 }
 
+/* A3 — Focus indicators */
+:focus-visible {
+  outline: 2px solid var(--color-accent, #6366F1);
+  outline-offset: 2px;
+}
+
+/* Accessibility: aria-live region for canvas announcements */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 html, body, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: var(--color-rack);
+  background: var(--color-bg);
   font-family: var(--font-sans);
   color: var(--color-text-primary);
 }
@@ -45,12 +61,46 @@ html, body, #root {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f0f0f;
+  background: #111114;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2d2720;
+  background: #2a2a30;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3d3730;
+  background: #3a3a40;
+}
+
+/* Remove default ReactFlow node background/border/shadow */
+.react-flow__node {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* B14: Zoom controls visibility */
+.zoom-controls .react-flow__controls-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+.zoom-controls .react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+.zoom-controls .react-flow__controls-button svg {
+  max-width: 14px;
+  max-height: 14px;
+}
+
+/* Accessibility: respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
