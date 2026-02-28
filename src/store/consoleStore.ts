@@ -1,5 +1,102 @@
 import { create } from 'zustand';
-import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, KNOWLEDGE_TYPES, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, MOCK_MCP_SERVERS, MOCK_SKILLS, MOCK_AGENTS } from './knowledgeBase';
+import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG, type Connector, classifyKnowledge } from './knowledgeBase';
+import { REGISTRY_SKILLS, REGISTRY_MCP_SERVERS, type RegistrySkill, type RegistryMcp, type Runtime, type InstallScope } from './registry';
+import type { FileContent } from './knowledgeStore';
+import { streamCompletion, streamAgentSdk } from '../services/llmService';
+import { assembleContext } from '../services/contextAssembler';
+import { useProviderStore } from './providerStore';
+
+// Module-level abort controller for run cancellation (avoids type-punning the store)
+let _runAbortController: AbortController | undefined;
+
+// Category mapping helpers (DRY — used in multiple places)
+function mapSkillCategory(cat: string): 'content' | 'analysis' | 'development' | 'domain' {
+  if (cat === 'coding') return 'development';
+  if (cat === 'research') return 'analysis';
+  if (cat === 'design' || cat === 'writing') return 'content';
+  if (cat === 'domain') return 'domain';
+  return 'content';
+}
+
+function mapMcpCategory(cat: string): 'communication' | 'development' | 'data' | 'productivity' {
+  if (cat === 'coding') return 'development';
+  if (cat === 'research') return 'data';
+  if (cat === 'writing') return 'productivity';
+  return 'data';
+}
+
+// Generic list helpers for toggle/add/remove by ID
+function toggleItemById<T extends { id: string; enabled: boolean }>(items: T[], id: string): T[] {
+  return items.map((item) => item.id === id ? { ...item, enabled: !item.enabled } : item);
+}
+
+function addItemById<T extends { id: string; added: boolean; enabled: boolean }>(items: T[], id: string): T[] {
+  return items.map((item) => item.id === id ? { ...item, added: true, enabled: true } : item);
+}
+
+function removeItemById<T extends { id: string; added: boolean; enabled: boolean }>(items: T[], id: string): T[] {
+  return items.map((item) => item.id === id ? { ...item, added: false, enabled: false } : item);
+}
+
+export interface AgentMeta {
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+}
+
+export type ExportTarget = 'claude' | 'amp' | 'codex' | 'vibe-kanban' | 'openclaw' | 'generic';
+
+export interface PendingKnowledgeItem {
+  id: string;
+  name: string;
+  type: string;
+  content?: string;
+  fromRun?: string;
+}
+
+export interface SuggestedSkill {
+  id: string;
+  name: string;
+  description: string;
+  installCmd: string;
+  installing?: boolean;
+  installed?: boolean;
+}
+
+export interface InstructionState {
+  persona: string;
+  tone: 'formal' | 'neutral' | 'casual';
+  expertise: number; // 1-5 slider
+  constraints: {
+    neverMakeUp: boolean;
+    askBeforeActions: boolean;
+    stayInScope: boolean;
+    useOnlyTools: boolean;
+    limitWords: boolean;
+    wordLimit: number;
+    customConstraints: string;
+    scopeDefinition: string;
+  };
+  objectives: {
+    primary: string;
+    successCriteria: string[];
+    failureModes: string[];
+  };
+  rawPrompt: string;
+  autoSync: boolean;
+}
+
+export interface WorkflowStep {
+  id: string;
+  label: string;
+  action: string;
+  tool: string; // dropdown from connected MCP/skills
+  condition: 'always' | 'if' | 'unless';
+  conditionValue?: string;
+  loopTarget?: string;
+  loopMax?: number;
+}
 
 export interface ConsoleState {
   channels: ChannelConfig[];
@@ -7,15 +104,44 @@ export interface ConsoleState {
   selectedModel: string;
   selectedPreset: string;
   outputFormat: OutputFormat;
+  outputFormats: OutputFormat[];
   tokenBudget: number;
   running: boolean;
   showFilePicker: boolean;
-  mockResponse: string;
+  showMcpPicker: boolean;
+  showSkillPicker: boolean;
+  showSaveModal: boolean;
+  showConnectorPicker: boolean;
+  showMarketplace: boolean;
+  activeMarketplaceTab: 'skills' | 'mcp' | 'presets';
+  showSettings: boolean;
+  activeSettingsTab: 'providers' | 'mcp' | 'skills';
+  response: string;
+  exportTarget: ExportTarget;
+
+  // Marketplace registry
+  registrySkills: RegistrySkill[];
+  registryMcpServers: RegistryMcp[];
+
+  // Agent configuration
+  agentConfig: AgentConfig;
+
+  // Agent metadata
+  agentMeta: AgentMeta;
 
   // New section data
   mcpServers: McpServer[];
   skills: Skill[];
   agents: AgentDef[];
+  connectors: Connector[];
+
+  // Feedback state
+  pendingKnowledge: PendingKnowledgeItem[];
+  suggestedSkills: SuggestedSkill[];
+
+  // Agent Architecture Phase 1 state
+  instructionState: InstructionState;
+  workflowSteps: WorkflowStep[];
 
   // Computed
   totalTokens: () => number;
@@ -23,6 +149,7 @@ export interface ConsoleState {
   // Actions
   loadPreset: (presetId: string) => void;
   setOutputFormat: (format: OutputFormat) => void;
+  toggleOutputFormat: (format: OutputFormat) => void;
   cycleKnowledgeType: (sourceId: string) => void;
   addChannel: (channel: Omit<ChannelConfig, 'enabled'>) => void;
   removeChannel: (sourceId: string) => void;
@@ -32,14 +159,71 @@ export interface ConsoleState {
   setModel: (model: string) => void;
   setTokenBudget: (budget: number) => void;
   setShowFilePicker: (show: boolean) => void;
+  setShowMcpPicker: (show: boolean) => void;
+  setShowSkillPicker: (show: boolean) => void;
+  setShowSaveModal: (show: boolean) => void;
+  setShowConnectorPicker: (show: boolean) => void;
+  setShowMarketplace: (show: boolean, tab?: 'skills' | 'mcp' | 'presets') => void;
+  setShowSettings: (show: boolean, tab?: 'providers' | 'mcp' | 'skills') => void;
+  setAgentMeta: (meta: Partial<AgentMeta>) => void;
+  setChannelKnowledgeType: (sourceId: string, typeIndex: number) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
   run: () => void;
+  cancelRun: () => void;
   clearChannels: () => void;
+
+  // Agent config actions
+  setAgentModel: (model: string) => void;
+  setAgentTemperature: (temperature: number) => void;
+  setAgentSystemPrompt: (systemPrompt: string) => void;
+  setAgentPlanningMode: (planningMode: PlanningMode) => void;
+  setAgentMaxTokens: (maxTokens: number) => void;
 
   // New actions
   toggleMcp: (id: string) => void;
+  addMcp: (id: string) => void;
+  removeMcp: (id: string) => void;
   toggleSkill: (id: string) => void;
+  addSkill: (id: string) => void;
+  removeSkill: (id: string) => void;
   loadAgent: (id: string) => void;
+  toggleConnector: (id: string) => void;
+  addConnector: (connector: Connector) => void;
+  removeConnector: (id: string) => void;
+  updateConnectorScope: (id: string, scope: string) => void;
+  setExportTarget: (target: ExportTarget) => void;
+
+  // Feedback actions
+  addPendingKnowledge: (item: PendingKnowledgeItem) => void;
+  acceptPendingKnowledge: (id: string) => void;
+  dismissPendingKnowledge: (id: string) => void;
+  addSuggestedSkill: (item: SuggestedSkill) => void;
+  acceptSuggestedSkill: (id: string) => void;
+  dismissSuggestedSkill: (id: string) => void;
+
+  // Marketplace actions
+  installRegistrySkill: (id: string, target: Runtime | 'all', scope: InstallScope) => void;
+  installRegistryMcp: (id: string) => void;
+
+  // File knowledge actions
+  addFileChannel: (file: FileContent) => void;
+
+  // Agent Architecture Phase 1 actions
+  setInstructionPersona: (persona: string) => void;
+  setInstructionTone: (tone: 'formal' | 'neutral' | 'casual') => void;
+  setInstructionExpertise: (expertise: number) => void;
+  setInstructionConstraints: (constraints: Partial<InstructionState['constraints']>) => void;
+  setInstructionObjectives: (objectives: Partial<InstructionState['objectives']>) => void;
+  setInstructionRawPrompt: (rawPrompt: string) => void;
+  setInstructionAutoSync: (autoSync: boolean) => void;
+  addWorkflowStep: (step: Omit<WorkflowStep, 'id'>) => void;
+  updateWorkflowStep: (id: string, updates: Partial<WorkflowStep>) => void;
+  removeWorkflowStep: (id: string) => void;
+  reorderWorkflowSteps: (fromIndex: number, toIndex: number) => void;
+
+  // Batch updaters (used by new Phase 1 nodes)
+  updateInstruction: (patch: Partial<InstructionState>) => void;
+  updateWorkflowSteps: (steps: WorkflowStep[]) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -54,13 +238,63 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   selectedModel: 'claude-opus-4',
   selectedPreset: '',
   outputFormat: 'markdown' as OutputFormat,
+  outputFormats: ['markdown'] as OutputFormat[],
   tokenBudget: 200000,
   running: false,
   showFilePicker: false,
-  mockResponse: '',
-  mcpServers: MOCK_MCP_SERVERS.map((s) => ({ ...s })),
-  skills: MOCK_SKILLS.map((s) => ({ ...s })),
-  agents: MOCK_AGENTS.map((a) => ({ ...a })),
+  showMcpPicker: false,
+  showSkillPicker: false,
+  showSaveModal: false,
+  showConnectorPicker: false,
+  showMarketplace: false,
+  activeMarketplaceTab: 'skills' as const,
+  showSettings: false,
+  activeSettingsTab: 'providers' as const,
+  response: '',
+  exportTarget: 'claude' as ExportTarget,
+  registrySkills: REGISTRY_SKILLS.map((s) => ({ ...s })),
+  registryMcpServers: REGISTRY_MCP_SERVERS.map((s) => ({ ...s })),
+  agentConfig: { ...DEFAULT_AGENT_CONFIG },
+  agentMeta: { name: '', description: '', icon: 'brain', category: 'general' },
+  mcpServers: [] as McpServer[],
+  skills: REGISTRY_SKILLS.filter((s) => s.installed).map((s) => ({
+    id: s.id,
+    name: s.name,
+    icon: s.icon,
+    enabled: true,
+    added: true,
+    description: s.description,
+    category: mapSkillCategory(s.category),
+  })),
+  agents: [],
+  connectors: [] as Connector[],
+  pendingKnowledge: [],
+  suggestedSkills: [],
+
+  // Agent Architecture Phase 1 initial state
+  instructionState: {
+    persona: '',
+    tone: 'neutral',
+    expertise: 3,
+    constraints: {
+      neverMakeUp: false,
+      askBeforeActions: false,
+      stayInScope: false,
+      useOnlyTools: false,
+      limitWords: false,
+      wordLimit: 500,
+      customConstraints: '',
+      scopeDefinition: '',
+    },
+    objectives: {
+      primary: '',
+      successCriteria: [],
+      failureModes: [],
+    },
+    rawPrompt: '',
+    autoSync: true,
+  },
+  workflowSteps: [],
 
   totalTokens: () => {
     const { channels, prompt } = get();
@@ -73,10 +307,21 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     const preset: Preset | undefined = PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
     const channels: ChannelConfig[] = preset.channels.map((ch) => ({ ...ch, enabled: true }));
-    set({ channels, selectedPreset: presetId, mockResponse: '' });
+    const agentConfig = { ...DEFAULT_AGENT_CONFIG, ...preset.agentConfig };
+    set({ channels, selectedPreset: presetId, response: '', agentConfig });
   },
 
-  setOutputFormat: (format: OutputFormat) => set({ outputFormat: format }),
+  setOutputFormat: (format: OutputFormat) => set({ outputFormat: format, outputFormats: [format] }),
+
+  toggleOutputFormat: (format: OutputFormat) => {
+    const current = get().outputFormats;
+    const next = current.includes(format)
+      ? current.filter((f) => f !== format)
+      : [...current, format];
+    // Keep at least one format selected; primary is the first
+    if (next.length === 0) return;
+    set({ outputFormats: next, outputFormat: next[0] });
+  },
 
   cycleKnowledgeType: (sourceId: string) => {
     const types: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
@@ -122,6 +367,23 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setModel: (model: string) => set({ selectedModel: model }),
   setTokenBudget: (budget: number) => set({ tokenBudget: budget }),
   setShowFilePicker: (show: boolean) => set({ showFilePicker: show }),
+  setShowMcpPicker: (show: boolean) => set({ showMcpPicker: show }),
+  setShowSkillPicker: (show: boolean) => set({ showSkillPicker: show }),
+  setShowSaveModal: (show: boolean) => set({ showSaveModal: show }),
+  setShowConnectorPicker: (show: boolean) => set({ showConnectorPicker: show }),
+  setShowMarketplace: (show: boolean, tab?: 'skills' | 'mcp' | 'presets') => set({ showMarketplace: show, ...(tab ? { activeMarketplaceTab: tab } : {}) }),
+  setShowSettings: (show: boolean, tab?: 'providers' | 'mcp' | 'skills') => set({ showSettings: show, ...(tab ? { activeSettingsTab: tab } : {}) }),
+  setAgentMeta: (meta: Partial<AgentMeta>) => set({ agentMeta: { ...get().agentMeta, ...meta } }),
+
+  setChannelKnowledgeType: (sourceId: string, typeIndex: number) => {
+    const types: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+    const newType = types[Math.max(0, Math.min(types.length - 1, typeIndex))];
+    set({
+      channels: get().channels.map((ch) =>
+        ch.sourceId === sourceId ? { ...ch, knowledgeType: newType } : ch,
+      ),
+    });
+  },
 
   reorderChannels: (fromIndex: number, toIndex: number) => {
     const channels = [...get().channels];
@@ -132,38 +394,110 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
 
   run: () => {
     const { running, prompt, channels } = get();
-    if (running) return;
-    set({ running: true, mockResponse: '' });
+    if (running) {
+      // Clicking while running cancels
+      get().cancelRun();
+      return;
+    }
 
-    const activeChannels = channels.filter((ch) => ch.enabled);
-    const sourceList = activeChannels.map((ch) => `  - ${KNOWLEDGE_TYPES[ch.knowledgeType].icon} ${ch.name} (${DEPTH_LEVELS[ch.depth].label}, ${KNOWLEDGE_TYPES[ch.knowledgeType].label})`).join('\n');
-    const format = get().outputFormat;
+    // Check if using Agent SDK provider
+    const providerState = useProviderStore.getState();
+    const activeProvider = providerState.getActiveProvider();
+    const isAgentSdk = activeProvider?.authMethod === 'claude-agent-sdk';
 
-    setTimeout(() => {
-      set({
-        running: false,
-        mockResponse: `## Response from ${get().selectedModel}\n\n**Output format:** ${format}\n**Context loaded:** ${activeChannels.length} sources, ~${get().totalTokens().toLocaleString()} tokens\n\n**Sources (with epistemic weight):**\n${sourceList}\n\n**Prompt:** ${prompt || '(empty)'}\n\n---\n\n_This is a mock response. In production, each source would be injected with its knowledge type instruction (e.g., "${activeChannels[0] ? KNOWLEDGE_TYPES[activeChannels[0].knowledgeType].instruction : 'N/A'}")._`,
+    if (!isAgentSdk) {
+      if (!activeProvider?.apiKey) {
+        set({ response: 'Error: No API key configured. Open Settings → Providers to add your API key.' });
+        return;
+      }
+    }
+
+    set({ running: true, response: '' });
+
+    const messages = assembleContext(channels, prompt);
+    const model = get().agentConfig.model;
+
+    let accumulated = '';
+
+    if (isAgentSdk) {
+      // Build system prompt from assembled context (all messages except last user message)
+      const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content);
+      const userPrompt = messages.filter((m) => m.role === 'user').map((m) => m.content).join('\n');
+
+      const controller = streamAgentSdk({
+        prompt: userPrompt || prompt,
+        model,
+        systemPrompt: systemParts.join('\n') || undefined,
+        onChunk: (text) => {
+          accumulated += text;
+          set({ response: accumulated });
+        },
+        onDone: () => {
+          set({ running: false });
+          _runAbortController = undefined;
+        },
+        onError: (error) => {
+          set({ running: false, response: `Error: ${error.message}` });
+          _runAbortController = undefined;
+        },
       });
-    }, 1800);
-  },
 
-  clearChannels: () => set({ channels: [], selectedPreset: '', mockResponse: '' }),
+      _runAbortController = controller;
+      return;
+    }
 
-  toggleMcp: (id: string) => {
-    set({
-      mcpServers: get().mcpServers.map((s) =>
-        s.id === id ? { ...s, enabled: !s.enabled } : s,
-      ),
+    const controller = streamCompletion({
+      apiKey: activeProvider?.apiKey || '',
+      baseUrl: activeProvider?.baseUrl,
+      model,
+      messages,
+      onChunk: (text) => {
+        accumulated += text;
+        set({ response: accumulated });
+      },
+      onDone: () => {
+        set({ running: false });
+        // Clear stored controller
+        _runAbortController = undefined;
+        // Inject mock feedback data only in dev mode
+        if (import.meta.env.DEV && get().pendingKnowledge.length === 0) {
+          get().addPendingKnowledge({ id: `pk-${Date.now()}`, name: 'run-summary.md', type: 'evidence', content: 'Auto-generated run summary', fromRun: 'latest' });
+        }
+        if (import.meta.env.DEV && get().suggestedSkills.length === 0) {
+          get().addSuggestedSkill({ id: `ss-${Date.now()}`, name: 'web-search', description: 'Search the web', installCmd: 'npx modular-skills install web-search' });
+        }
+      },
+      onError: (error) => {
+        set({ running: false, response: `Error: ${error.message}` });
+        _runAbortController = undefined;
+      },
     });
+
+    // Store controller for cancellation
+    _runAbortController = controller;
   },
 
-  toggleSkill: (id: string) => {
-    set({
-      skills: get().skills.map((s) =>
-        s.id === id ? { ...s, enabled: !s.enabled } : s,
-      ),
-    });
+  cancelRun: () => {
+    const ctrl = _runAbortController;
+    if (ctrl) ctrl.abort();
+    set({ running: false });
+    _runAbortController = undefined;
   },
+
+  clearChannels: () => set({ channels: [], selectedPreset: '', response: '' }),
+
+  setAgentModel: (model: string) => set({ agentConfig: { ...get().agentConfig, model } }),
+  setAgentTemperature: (temperature: number) => set({ agentConfig: { ...get().agentConfig, temperature } }),
+  setAgentSystemPrompt: (systemPrompt: string) => set({ agentConfig: { ...get().agentConfig, systemPrompt } }),
+  setAgentPlanningMode: (planningMode: PlanningMode) => set({ agentConfig: { ...get().agentConfig, planningMode } }),
+  setAgentMaxTokens: (maxTokens: number) => set({ agentConfig: { ...get().agentConfig, maxTokens } }),
+
+  toggleMcp: (id: string) => { set({ mcpServers: toggleItemById(get().mcpServers, id) }); },
+  addMcp: (id: string) => { set({ mcpServers: addItemById(get().mcpServers, id) }); },
+  removeMcp: (id: string) => { set({ mcpServers: removeItemById(get().mcpServers, id) }); },
+  toggleSkill: (id: string) => { set({ skills: toggleItemById(get().skills, id) }); },
+  addSkill: (id: string) => { set({ skills: addItemById(get().skills, id) }); },
+  removeSkill: (id: string) => { set({ skills: removeItemById(get().skills, id) }); },
 
   loadAgent: (id: string) => {
     const agent = get().agents.find((a) => a.id === id);
@@ -179,6 +513,219 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       get().loadPreset(presetId);
     }
   },
+
+  toggleConnector: (id: string) => {
+    set({
+      connectors: get().connectors.map((c) =>
+        c.id === id ? { ...c, enabled: !c.enabled } : c,
+      ),
+    });
+  },
+
+  addConnector: (connector: Connector) => {
+    const { connectors } = get();
+    if (connectors.some((c) => c.id === connector.id)) return;
+    set({ connectors: [...connectors, connector] });
+  },
+
+  removeConnector: (id: string) => {
+    set({ connectors: get().connectors.filter((c) => c.id !== id) });
+  },
+
+  updateConnectorScope: (id: string, scope: string) => {
+    set({ connectors: get().connectors.map((c) => c.id === id ? { ...c, hint: scope } : c) });
+  },
+
+  setExportTarget: (target) => set({ exportTarget: target }),
+
+  addPendingKnowledge: (item: PendingKnowledgeItem) => {
+    set({ pendingKnowledge: [...get().pendingKnowledge, item] });
+  },
+
+  acceptPendingKnowledge: (id: string) => {
+    const item = get().pendingKnowledge.find((p) => p.id === id);
+    if (!item) return;
+    const newChannel: ChannelConfig = {
+      sourceId: `feedback-${id}`,
+      name: item.name,
+      path: '',
+      category: 'knowledge',
+      knowledgeType: (item.type as KnowledgeType) || 'evidence',
+      enabled: true,
+      depth: 0,
+      baseTokens: 500,
+    };
+    set({
+      channels: [...get().channels, newChannel],
+      pendingKnowledge: get().pendingKnowledge.filter((p) => p.id !== id),
+    });
+  },
+
+  dismissPendingKnowledge: (id: string) => {
+    set({ pendingKnowledge: get().pendingKnowledge.filter((p) => p.id !== id) });
+  },
+
+  addSuggestedSkill: (item: SuggestedSkill) => {
+    set({ suggestedSkills: [...get().suggestedSkills, item] });
+  },
+
+  acceptSuggestedSkill: (id: string) => {
+    // Show installing state
+    set({
+      suggestedSkills: get().suggestedSkills.map((s) =>
+        s.id === id ? { ...s, installing: true } : s,
+      ),
+    });
+    // Simulate install delay
+    setTimeout(() => {
+      const skill = get().suggestedSkills.find((s) => s.id === id);
+      if (!skill) return;
+      set({
+        suggestedSkills: get().suggestedSkills.map((s) =>
+          s.id === id ? { ...s, installing: false, installed: true } : s,
+        ),
+      });
+      // Remove from suggestions after a brief checkmark display
+      setTimeout(() => {
+        set({ suggestedSkills: get().suggestedSkills.filter((s) => s.id !== id) });
+      }, 1200);
+    }, 1500);
+  },
+
+  dismissSuggestedSkill: (id: string) => {
+    set({ suggestedSkills: get().suggestedSkills.filter((s) => s.id !== id) });
+  },
+
+  installRegistrySkill: (id: string, target: Runtime | 'all', scope: InstallScope) => {
+    const regSkill = get().registrySkills.find((s) => s.id === id);
+    const updatedRegistry = get().registrySkills.map((s) =>
+      s.id === id ? { ...s, installed: true, installedTarget: target, installedScope: scope } : s,
+    );
+    const alreadyInSkills = get().skills.some((s) => s.id === id);
+    const updatedSkills = alreadyInSkills ? get().skills : regSkill ? [...get().skills, {
+      id: regSkill.id,
+      name: regSkill.name,
+      icon: regSkill.icon,
+      enabled: true,
+      added: true,
+      description: regSkill.description,
+      category: mapSkillCategory(regSkill.category) as Skill['category'],
+    }] : get().skills;
+    set({ registrySkills: updatedRegistry, skills: updatedSkills });
+  },
+
+  installRegistryMcp: (id: string) => {
+    const regMcp = get().registryMcpServers.find((s) => s.id === id);
+    const updatedRegistry = get().registryMcpServers.map((s) =>
+      s.id === id ? { ...s, installed: true, configured: true } : s,
+    );
+    // Sync to mcpServers for UI components that read consoleStore.mcpServers
+    const alreadyInMcp = get().mcpServers.some((s) => s.id === id);
+    const updatedMcp = alreadyInMcp ? get().mcpServers : regMcp ? [...get().mcpServers, {
+      id: regMcp.id,
+      name: regMcp.name,
+      icon: regMcp.icon,
+      connected: true,
+      enabled: true,
+      added: true,
+      capabilities: ['input', 'output'],
+      category: mapMcpCategory(regMcp.category) as McpServer['category'],
+      description: regMcp.description,
+    }] : get().mcpServers;
+    set({ registryMcpServers: updatedRegistry, mcpServers: updatedMcp });
+  },
+
+  addFileChannel: (file: FileContent) => {
+    const { channels } = get();
+    const sourceId = `file:${file.path}`;
+    if (channels.some((ch) => ch.sourceId === sourceId)) return;
+
+    // Smart classification: use content + path for type & depth
+    const classification = classifyKnowledge(file.path, file.content);
+    const newChannel: ChannelConfig = {
+      sourceId,
+      name: file.path.split('/').pop() ?? file.path,
+      path: file.path,
+      category: 'knowledge',
+      knowledgeType: (file.knowledgeType as KnowledgeType) || classification.knowledgeType,
+      enabled: true,
+      depth: classification.depth,
+      baseTokens: file.tokenEstimate,
+    };
+    set({ channels: [...channels, newChannel], selectedPreset: '' });
+  },
+
+  // Agent Architecture Phase 1 action implementations
+  setInstructionPersona: (persona: string) => {
+    set({ instructionState: { ...get().instructionState, persona } });
+  },
+
+  setInstructionTone: (tone: 'formal' | 'neutral' | 'casual') => {
+    set({ instructionState: { ...get().instructionState, tone } });
+  },
+
+  setInstructionExpertise: (expertise: number) => {
+    set({ instructionState: { ...get().instructionState, expertise: Math.max(1, Math.min(5, expertise)) } });
+  },
+
+  setInstructionConstraints: (constraints: Partial<InstructionState['constraints']>) => {
+    set({
+      instructionState: {
+        ...get().instructionState,
+        constraints: { ...get().instructionState.constraints, ...constraints }
+      }
+    });
+  },
+
+  setInstructionObjectives: (objectives: Partial<InstructionState['objectives']>) => {
+    set({
+      instructionState: {
+        ...get().instructionState,
+        objectives: { ...get().instructionState.objectives, ...objectives }
+      }
+    });
+  },
+
+  setInstructionRawPrompt: (rawPrompt: string) => {
+    set({ instructionState: { ...get().instructionState, rawPrompt } });
+  },
+
+  setInstructionAutoSync: (autoSync: boolean) => {
+    set({ instructionState: { ...get().instructionState, autoSync } });
+  },
+
+  addWorkflowStep: (step: Omit<WorkflowStep, 'id'>) => {
+    const newStep: WorkflowStep = { ...step, id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
+    set({ workflowSteps: [...get().workflowSteps, newStep] });
+  },
+
+  updateWorkflowStep: (id: string, updates: Partial<WorkflowStep>) => {
+    set({
+      workflowSteps: get().workflowSteps.map((step) =>
+        step.id === id ? { ...step, ...updates } : step
+      ),
+    });
+  },
+
+  removeWorkflowStep: (id: string) => {
+    set({ workflowSteps: get().workflowSteps.filter((step) => step.id !== id) });
+  },
+
+  reorderWorkflowSteps: (fromIndex: number, toIndex: number) => {
+    const steps = [...get().workflowSteps];
+    const [moved] = steps.splice(fromIndex, 1);
+    steps.splice(toIndex, 0, moved);
+    set({ workflowSteps: steps });
+  },
+
+  // Batch updaters
+  updateInstruction: (patch: Partial<InstructionState>) => {
+    set({ instructionState: { ...get().instructionState, ...patch } });
+  },
+  updateWorkflowSteps: (steps: WorkflowStep[]) => {
+    set({ workflowSteps: steps });
+  },
 }));
 
 export { getEffectiveTokens };
+

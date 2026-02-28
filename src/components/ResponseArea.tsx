@@ -1,43 +1,39 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS, KNOWLEDGE_TYPES } from '../store/knowledgeBase';
+import { Copy, Check, Maximize2, X } from 'lucide-react';
+import { OutputIcon } from './icons/SectionIcons';
+import { useTheme, type ThemePalette } from '../theme';
 
-function renderMarkdown(text: string): React.ReactNode[] {
+function renderMarkdown(text: string, t: ThemePalette): React.ReactNode[] {
   const lines = text.split('\n');
   const nodes: React.ReactNode[] = [];
 
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
+    const line = lines[i];
 
-    // Headers
     if (line.startsWith('## ')) {
-      nodes.push(<h2 key={i} style={{ fontSize: 14, fontWeight: 700, color: '#e8e0d8', margin: '12px 0 4px' }}>{renderInline(line.slice(3))}</h2>);
+      nodes.push(<h2 key={i} style={{ fontSize: 14, fontWeight: 600, color: '#f0f0f0', margin: '12px 0 4px' }}>{renderInline(line.slice(3))}</h2>);
       continue;
     }
     if (line.startsWith('# ')) {
-      nodes.push(<h1 key={i} style={{ fontSize: 16, fontWeight: 700, color: '#e8e0d8', margin: '12px 0 4px' }}>{renderInline(line.slice(2))}</h1>);
+      nodes.push(<h1 key={i} style={{ fontSize: 16, fontWeight: 600, color: '#f0f0f0', margin: '12px 0 4px' }}>{renderInline(line.slice(2))}</h1>);
       continue;
     }
-
-    // Horizontal rule
     if (line.match(/^---+$/)) {
-      nodes.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid #2d2720', margin: '8px 0' }} />);
+      nodes.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid #2a2a30', margin: '8px 0' }} />);
       continue;
     }
-
-    // List items
     if (line.match(/^\s*[-*]\s/)) {
       const content = line.replace(/^\s*[-*]\s/, '');
       nodes.push(
         <div key={i} style={{ display: 'flex', gap: 6, marginLeft: 4 }}>
-          <span style={{ color: '#FE5000', flexShrink: 0 }}>•</span>
+          <span style={{ color: '#FE5000', flexShrink: 0 }}>-</span>
           <span>{renderInline(content)}</span>
         </div>
       );
       continue;
     }
-
-    // Code blocks (simplified — single backtick lines)
     if (line.startsWith('```')) {
       const codeLines: string[] = [];
       i++;
@@ -46,27 +42,22 @@ function renderMarkdown(text: string): React.ReactNode[] {
         i++;
       }
       nodes.push(
-        <pre key={`code-${i}`} style={{ background: '#0f0f0f', border: '1px solid #1a1a1a', borderRadius: 4, padding: '8px 10px', margin: '6px 0', fontSize: 11, color: '#00ff88', overflow: 'auto' }}>
+        <pre key={`code-${i}`} style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 10px', margin: '6px 0', fontSize: 11, color: t.statusSuccess, overflow: 'auto' }}>
           {codeLines.join('\n')}
         </pre>
       );
       continue;
     }
-
-    // Empty lines
     if (!line.trim()) {
       nodes.push(<div key={i} style={{ height: 8 }} />);
       continue;
     }
-
-    // Regular paragraph
     nodes.push(<p key={i} style={{ margin: '2px 0' }}>{renderInline(line)}</p>);
   }
   return nodes;
 }
 
 function renderInline(text: string): React.ReactNode {
-  // Bold **text**
   const parts: React.ReactNode[] = [];
   const regex = /\*\*(.+?)\*\*|`(.+?)`|_(.+?)_/g;
   let lastIndex = 0;
@@ -77,11 +68,11 @@ function renderInline(text: string): React.ReactNode {
       parts.push(text.slice(lastIndex, match.index));
     }
     if (match[1]) {
-      parts.push(<strong key={match.index} style={{ color: '#e8e0d8', fontWeight: 700 }}>{match[1]}</strong>);
+      parts.push(<strong key={match.index} style={{ color: '#f0f0f0', fontWeight: 600 }}>{match[1]}</strong>);
     } else if (match[2]) {
-      parts.push(<code key={match.index} style={{ background: '#1a1a1a', padding: '1px 4px', borderRadius: 3, fontSize: '0.9em', color: '#FE5000' }}>{match[2]}</code>);
+      parts.push(<code key={match.index} style={{ background: '#25252a', padding: '1px 5px', borderRadius: 4, fontSize: '0.9em', color: '#FE5000' }}>{match[2]}</code>);
     } else if (match[3]) {
-      parts.push(<em key={match.index} style={{ color: '#b5a898', fontStyle: 'italic' }}>{match[3]}</em>);
+      parts.push(<em key={match.index} style={{ color: '#888', fontStyle: 'italic' }}>{match[3]}</em>);
     }
     lastIndex = match.index + match[0].length;
   }
@@ -100,22 +91,16 @@ function EmptyState() {
             key={i}
             className="w-[3px] h-[16px] rounded-full"
             style={{
-              background: '#2d2720',
+              background: '#2a2a30',
               animation: `pulse-glow 2s ease ${i * 0.2}s infinite`,
             }}
           />
         ))}
       </div>
-      <span
-        className="text-[10px] tracking-[2px] uppercase"
-        style={{ fontFamily: "'Space Mono', monospace", color: '#3d3730' }}
-      >
+      <span className="text-xs tracking-widest uppercase" style={{ fontFamily: "'Space Mono', monospace", color: '#444' }}>
         AWAITING SIGNAL
       </span>
-      <span
-        className="text-[9px]"
-        style={{ fontFamily: "'Space Mono', monospace", color: '#2d2720' }}
-      >
+      <span className="text-[11px]" style={{ color: '#333' }}>
         Load channels and run to generate output
       </span>
     </div>
@@ -123,7 +108,8 @@ function EmptyState() {
 }
 
 export function ResponseArea() {
-  const mockResponse = useConsoleStore((s) => s.mockResponse);
+  const t = useTheme();
+  const response = useConsoleStore((s) => s.response);
   const running = useConsoleStore((s) => s.running);
   const outputFormat = useConsoleStore((s) => s.outputFormat);
   const channels = useConsoleStore((s) => s.channels);
@@ -138,10 +124,9 @@ export function ResponseArea() {
   const responseTokens = Math.ceil(displayedText.length / 4);
   const activeChannels = channels.filter((c) => c.enabled);
 
-  // Typewriter effect
   useEffect(() => {
-    if (mockResponse && mockResponse !== prevResponseRef.current) {
-      prevResponseRef.current = mockResponse;
+    if (response && response !== prevResponseRef.current) {
+      prevResponseRef.current = response;
       setDisplayedText('');
       setIsTyping(true);
       let idx = 0;
@@ -150,19 +135,19 @@ export function ResponseArea() {
 
       typingRef.current = setInterval(() => {
         idx++;
-        if (idx >= mockResponse.length) {
-          setDisplayedText(mockResponse);
+        if (idx >= response.length) {
+          setDisplayedText(response);
           setIsTyping(false);
           if (typingRef.current) clearInterval(typingRef.current);
         } else {
-          setDisplayedText(mockResponse.slice(0, idx));
+          setDisplayedText(response.slice(0, idx));
         }
       }, 12);
     }
     return () => {
       if (typingRef.current) clearInterval(typingRef.current);
     };
-  }, [mockResponse]);
+  }, [response]);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(displayedText).then(() => {
@@ -173,97 +158,79 @@ export function ResponseArea() {
 
   const content = (
     <div
-      className="w-full rounded-md overflow-hidden relative"
+      className="w-full rounded-xl overflow-hidden relative"
       style={{
-        background: '#0a0a0a',
-        border: '1px solid #2d2720',
+        background: '#141417',
+        border: '1px solid #2a2a30',
       }}
     >
       {/* Header */}
       <div
-        className="flex items-center gap-2 px-3 py-2 border-b"
-        style={{ borderColor: '#1a1a1a', background: '#111' }}
+        className="flex items-center gap-2 px-4 py-2.5 border-b"
+        style={{ borderColor: '#222226', background: '#1c1c20' }}
       >
         <div
-          className="w-[6px] h-[6px] rounded-full"
+          className="w-1.5 h-1.5 rounded-full"
           style={{
-            background: running ? '#ffaa00' : mockResponse ? '#00ff88' : '#333',
-            boxShadow: running ? '0 0 6px #ffaa0080' : mockResponse ? '0 0 6px #00ff8880' : 'none',
+            background: running ? t.statusWarning : response ? t.statusSuccess : t.textFaint,
+            boxShadow: running ? t.statusWarningGlow : response ? t.statusSuccessGlow : 'none',
             animation: running ? 'pulse-glow 1s ease infinite' : 'none',
           }}
         />
-        <span
-          className="text-[9px] tracking-[2px] uppercase flex-1"
-          style={{ fontFamily: "'Space Mono', monospace", color: '#8a7e72' }}
-        >
-          {running ? 'PROCESSING...' : mockResponse ? 'RESPONSE' : 'OUTPUT'}
+        <span className="text-xs tracking-wider uppercase flex-1" style={{ color: '#888' }}>
+          {running ? 'Processing...' : response ? 'Response' : 'Output'}
         </span>
 
-        {/* Format badge */}
-        {formatInfo && mockResponse && (
-          <span
-            className="text-[7px] tracking-[1px] uppercase px-1.5 py-0.5 rounded"
-            style={{ fontFamily: "'Space Mono', monospace", color: '#5a4e42', background: '#1a1a1a', border: '1px solid #2d2720' }}
-          >
-            {formatInfo.icon} {formatInfo.label}
+        {formatInfo && response && (
+          <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md" style={{ color: '#555', background: '#25252a' }}>
+            <OutputIcon formatId={outputFormat} size={10} />
+            {formatInfo.label}
           </span>
         )}
 
-        {/* Token count */}
-        {mockResponse && !running && (
-          <span
-            className="text-[8px]"
-            style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#3d3730' }}
-          >
+        {response && !running && (
+          <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#444' }}>
             ~{responseTokens.toLocaleString()}t
           </span>
         )}
 
-        {/* Copy button */}
-        {mockResponse && !running && (
+        {response && !running && (
           <button
             type="button"
             onClick={handleCopy}
-            className="text-[9px] cursor-pointer border-none bg-transparent px-1.5 py-0.5 rounded transition-colors"
-            style={{ fontFamily: "'Space Mono', monospace", color: copied ? '#00ff88' : '#5a4e42' }}
-            onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#FE5000'; }}
-            onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = '#5a4e42'; }}
-            aria-label="Copy to clipboard"
+            className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-1.5 py-0.5 rounded-md hover-accent-text"
+            style={{ color: copied ? t.statusSuccess : t.textDim }}
           >
-            {copied ? '✓ copied' : '⧉ copy'}
+            {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
           </button>
         )}
 
-        {/* Expand button */}
-        {mockResponse && !running && (
+        {response && !running && (
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="text-[9px] cursor-pointer border-none bg-transparent px-1"
-            style={{ color: '#5a4e42' }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#5a4e42'; }}
-            aria-label="Expand fullscreen"
+            className="cursor-pointer border-none bg-transparent p-0.5 rounded-md hover-accent-text"
+            style={{ color: '#555' }}
           >
-            ⤢
+            <Maximize2 size={12} />
           </button>
         )}
       </div>
 
       {/* Content */}
       <div
-        className="px-4 py-3 text-[12px] leading-relaxed overflow-y-auto"
-        style={{ fontFamily: "'Space Mono', monospace", color: '#c8c0b8', minHeight: 60, maxHeight: expanded ? 'none' : 240 }}
+        className="px-4 py-3 text-sm leading-relaxed overflow-y-auto"
+        style={{ color: '#bbb', minHeight: 60, maxHeight: expanded ? 'none' : 240 }}
       >
         {running ? (
-          <span style={{ color: '#ffaa00' }}>
-            ● Assembling context... patching signals... routing to model...
+          <span style={{ color: t.statusWarning }}>
+            Assembling context... patching signals... routing to model...
           </span>
         ) : displayedText ? (
           <>
-            {renderMarkdown(displayedText)}
+            {renderMarkdown(displayedText, t)}
             {isTyping && (
-              <span style={{ color: '#FE5000', animation: 'cursor-blink 0.8s step-end infinite' }}>▌</span>
+              <span style={{ color: '#FE5000', animation: 'cursor-blink 0.8s step-end infinite' }}>|</span>
             )}
           </>
         ) : (
@@ -271,26 +238,26 @@ export function ResponseArea() {
         )}
       </div>
 
-      {/* Source list at bottom */}
-      {mockResponse && !running && activeChannels.length > 0 && (
-        <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5" style={{ borderColor: '#1a1a1a' }}>
-          <span className="text-[7px] tracking-[1px] uppercase self-center mr-1" style={{ fontFamily: "'Space Mono', monospace", color: '#3d3730' }}>
-            SOURCES:
+      {/* Source list */}
+      {response && !running && activeChannels.length > 0 && (
+        <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5" style={{ borderColor: '#222226' }}>
+          <span className="text-[9px] tracking-wider uppercase self-center mr-1" style={{ color: '#444' }}>
+            Sources:
           </span>
           {activeChannels.map((ch) => {
             const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
             return (
               <span
                 key={ch.sourceId}
-                className="text-[7px] px-1.5 py-0.5 rounded-full"
+                className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
                 style={{
-                  fontFamily: "'Space Mono', monospace",
                   color: kt.color,
-                  background: `${kt.color}12`,
-                  border: `1px solid ${kt.color}30`,
+                  background: `${kt.color}10`,
+                  border: `1px solid ${kt.color}20`,
                 }}
               >
-                {kt.icon} {ch.name}
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: kt.color }} />
+                {ch.name}
               </span>
             );
           })}
@@ -311,45 +278,41 @@ export function ResponseArea() {
           className="fixed inset-0 z-50 flex items-center justify-center response-modal-overlay"
           onClick={() => setExpanded(false)}
         >
-          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.85)' }} />
+          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }} />
           <div
-            className="relative w-[90vw] max-w-[800px] max-h-[85vh] flex flex-col rounded-lg overflow-hidden"
+            className="relative w-[90vw] max-w-[800px] max-h-[85vh] flex flex-col rounded-xl overflow-hidden"
             style={{
-              background: '#0a0a0a',
-              border: '1px solid #2d2720',
-              boxShadow: '0 24px 48px rgba(0,0,0,0.8)',
+              background: '#141417',
+              border: '1px solid #2a2a30',
+              boxShadow: '0 24px 48px rgba(0,0,0,0.6)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal header */}
-            <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: '#1a1a1a', background: '#111' }}>
-              <div className="w-[6px] h-[6px] rounded-full" style={{ background: '#00ff88', boxShadow: '0 0 6px #00ff8880' }} />
-              <span className="text-[10px] tracking-[2px] uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: '#8a7e72' }}>
-                RESPONSE — EXPANDED
+            <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: '#222226', background: '#1c1c20' }}>
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: t.statusSuccess, boxShadow: t.statusSuccessGlow }} />
+              <span className="text-xs tracking-wider uppercase flex-1" style={{ color: '#888' }}>
+                Response -- Expanded
               </span>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="text-[10px] cursor-pointer border-none bg-transparent px-2 py-1 rounded"
-                style={{ fontFamily: "'Space Mono', monospace", color: copied ? '#00ff88' : '#5a4e42' }}
-                onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = '#FE5000'; }}
-                onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = '#5a4e42'; }}
+                className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text"
+                style={{ color: copied ? t.statusSuccess : t.textDim }}
               >
-                {copied ? '✓ copied' : '⧉ copy'}
+                {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
               </button>
               <button
                 type="button"
                 onClick={() => setExpanded(false)}
-                className="text-[14px] cursor-pointer border-none bg-transparent"
-                style={{ color: '#8a7e72' }}
+                className="cursor-pointer border-none bg-transparent p-1 hover-accent-text"
+                style={{ color: '#555' }}
               >
-                ✕
+                <X size={16} />
               </button>
             </div>
 
-            {/* Modal content */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 text-[12px] leading-relaxed" style={{ fontFamily: "'Space Mono', monospace", color: '#c8c0b8' }}>
-              {renderMarkdown(displayedText)}
+            <div className="flex-1 overflow-y-auto px-6 py-4 text-sm leading-relaxed" style={{ color: '#bbb' }}>
+              {renderMarkdown(displayedText, t)}
             </div>
           </div>
         </div>

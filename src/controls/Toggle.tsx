@@ -1,3 +1,4 @@
+// Analog mode control — reserved for future use
 interface ToggleProps {
   value: boolean;
   label: string;

@@ -1,20 +1,21 @@
 // Shared constants — extracted from repeated inline values across components
 
 export const FONT_MONO = "'Space Mono', monospace";
+export const FONT_SANS = "'Inter', sans-serif";
 
 export const COLORS = {
   accent: '#FE5000',
   accentDim: '#CC4000',
-  borderPanel: '#2d2720',
-  textLabel: '#b5a898',
-  textMuted: '#5a4e42',
-  textDark: '#3d3730',
-  textDarkest: '#2d2720',
-  textSecondary: '#8a7e72',
-  textPrimary: '#e8e0d8',
-  inputBg: '#0a0a0a',
-  surfaceDark: '#1a1a1a',
-  surface: '#111',
+  bg: '#111114',
+  surface: '#1c1c20',
+  surfaceElevated: '#25252a',
+  border: '#2a2a30',
+  borderSubtle: '#222226',
+  textPrimary: '#f0f0f0',
+  textSecondary: '#888',
+  textMuted: '#555',
+  textDark: '#444',
+  inputBg: '#141417',
   ledGreen: '#00ff88',
   ledRed: '#ff3344',
   ledAmber: '#ffaa00',
@@ -35,4 +36,13 @@ export const SIZES = {
   channelStripWidth: 172,
   ghostChannelWidth: 140,
   vuSegments: 12,
+} as const;
+
+// Section color mapping for cables
+export const SECTION_COLORS: Record<string, string> = {
+  knowledge: '#3498db',
+  mcp: '#2ecc71',
+  skills: '#f1c40f',
+  agents: '#9b59b6',
+  output: '#FE5000',
 } as const;
