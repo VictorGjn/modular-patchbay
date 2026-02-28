@@ -37,6 +37,14 @@ export function createApp() {
   app.use('/api/knowledge', knowledgeRoutes);
   app.use('/api/claude-config', claudeConfigRoutes);
 
+  // Global error handler — prevent server crashes
+  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error('Unhandled error:', err.message);
+    if (!res.headersSent) {
+      res.status(500).json({ status: 'error', error: err.message });
+    }
+  });
+
   // Serve built frontend
   const distPath = join(__dirname, '..', 'dist');
   if (existsSync(distPath)) {
@@ -64,6 +72,14 @@ export function startServer(port: number = 4800): void {
     console.log(`Modular Studio running at http://localhost:${port}`);
   });
 }
+
+// Prevent crashes from unhandled rejections
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err.message);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err instanceof Error ? err.message : err);
+});
 
 // Start when run directly via `npm run server` or `tsx server/index.ts`
 if (import.meta.url.includes('server/index')) {

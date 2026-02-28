@@ -132,15 +132,24 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
 const STORAGE_KEY = 'modular-providers';
 const API_BASE = '/api';
 
-// Check if backend is available
+// Check if backend is available with TTL cache
 let backendAvailable: boolean | null = null;
+let backendCheckTime: number = 0;
+const BACKEND_CHECK_TTL = 30000; // 30 seconds
+
 async function isBackendAvailable(): Promise<boolean> {
-  if (backendAvailable !== null) return backendAvailable;
+  const now = Date.now();
+  if (backendAvailable !== null && (now - backendCheckTime) < BACKEND_CHECK_TTL) {
+    return backendAvailable;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/providers`, { method: 'GET', signal: AbortSignal.timeout(2000) });
     backendAvailable = res.ok;
+    backendCheckTime = now;
   } catch {
     backendAvailable = false;
+    backendCheckTime = now;
   }
   return backendAvailable;
 }

@@ -52,6 +52,13 @@ export class McpManager {
     const conn = this.connections.get(id);
     if (!conn) throw new Error(`MCP server "${id}" not found`);
 
+    // Only support stdio transport for now
+    if (conn.config.type && conn.config.type !== 'stdio') {
+      conn.status = 'error';
+      conn.lastError = `Transport type "${conn.config.type}" not yet supported. Only "stdio" is supported.`;
+      throw new Error(conn.lastError);
+    }
+
     // Disconnect existing if any
     if (conn.client) {
       try { await conn.client.close(); } catch { /* ignore */ }

@@ -2,11 +2,14 @@ import { useState, useEffect, useCallback, useRef, type KeyboardEvent as ReactKe
 import {
   X, Eye, EyeOff, ExternalLink, CheckCircle, XCircle, Loader2, Plus,
   Trash2, Server, Plug, PlugZap, Sun, Moon, Monitor, Grid3X3, Minimize2,
-  Waypoints, GitBranch, ArrowDownRight, Cpu, Wrench, Terminal,
+  Waypoints, GitBranch, ArrowDownRight, Cpu, Wrench, Terminal, Edit,
+  Settings,
 } from 'lucide-react';
 import { useTheme } from '../theme';
 import { useProviderStore, type ProviderConfig, type ProviderStatus } from '../store/providerStore';
 import { useThemeStore, type Theme } from '../store/themeStore';
+import { useMcpStore, type McpServerState } from '../store/mcpStore';
+import { useSkillsStore } from '../store/skillsStore';
 
 type SettingsTab = 'providers' | 'mcp' | 'skills' | 'general';
 
@@ -305,61 +308,395 @@ function ProvidersTab() {
 
 // --- MCP Servers Tab ---
 
-interface McpServerDisplay {
-  id: string;
-  name: string;
-  status: 'connected' | 'disconnected' | 'error';
-  toolCount: number;
+function McpServerRow({ server }: { server: McpServerState }) {
+  const t = useTheme();
+  const [expanded, setExpanded] = useState(false);
+  const [localName, setLocalName] = useState(server.name);
+  const [localCommand, setLocalCommand] = useState(server.command);
+  const [localArgs, setLocalArgs] = useState(server.args.join('\n'));
+  const [localEnv, setLocalEnv] = useState(
+    Object.entries(server.env).map(([k, v]) => `${k}=${v}`).join('\n')
+  );
+
+  const connectServer = useMcpStore((s) => s.connectServer);
+  const disconnectServer = useMcpStore((s) => s.disconnectServer);
+  const removeServer = useMcpStore((s) => s.removeServer);
+
+  useEffect(() => {
+    setLocalName(server.name);
+    setLocalCommand(server.command);
+    setLocalArgs(server.args.join('\n'));
+    setLocalEnv(Object.entries(server.env).map(([k, v]) => `${k}=${v}`).join('\n'));
+  }, [server.name, server.command, server.args, server.env]);
+
+  const handleConnect = useCallback(() => {
+    if (server.status === 'connected') {
+      disconnectServer(server.id);
+    } else {
+      connectServer(server.id);
+    }
+  }, [server.id, server.status, connectServer, disconnectServer]);
+
+  const inputStyle = {
+    background: t.inputBg,
+    border: `1px solid ${t.border}`,
+    color: t.textPrimary,
+    fontFamily: "'Inter', sans-serif",
+  };
+
+  return (
+    <div
+      style={{
+        background: expanded ? t.surfaceElevated : 'transparent',
+        borderBottom: `1px solid ${t.borderSubtle}`
+      }}
+    >
+      {/* Header row */}
+      <button
+        type="button"
+        className="nodrag nowheel w-full flex items-center gap-3 px-4 py-3 cursor-pointer border-none bg-transparent text-left"
+        onClick={() => setExpanded(!expanded)}
+        style={{ color: t.textPrimary }}
+      >
+        <div
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{
+            background: statusColor(server.status, t),
+            boxShadow: `0 0 6px ${statusColor(server.status, t)}40`
+          }}
+        />
+        <Server size={14} style={{ color: t.textDim }} />
+        <div className="flex-1">
+          <div className="text-xs font-semibold" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+            {server.name}
+            {server.mcpStatus && server.mcpStatus !== 'enabled' && (
+              <span
+                className="text-[8px] px-1.5 py-0.5 rounded ml-2 uppercase"
+                style={{
+                  fontFamily: "'Space Mono', monospace", fontWeight: 600,
+                  background: server.mcpStatus === 'deferred' ? t.statusWarningBg : t.statusErrorBg,
+                  color: server.mcpStatus === 'deferred' ? t.statusWarning : t.statusError,
+                }}
+              >
+                {server.mcpStatus}
+              </span>
+            )}
+          </div>
+          <div className="text-[10px]" style={{ color: t.textMuted }}>
+            {server.status === 'connected'
+              ? `${server.tools.length} tools available`
+              : server.status === 'error'
+              ? (server.lastError || 'Connection error')
+              : 'Not connected'
+            }
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); handleConnect(); }}
+          className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg cursor-pointer border-none"
+          style={{
+            background: server.status === 'connected' ? t.statusErrorBg : t.statusSuccessBg,
+            color: server.status === 'connected' ? t.statusError : t.statusSuccess,
+          }}
+        >
+          {server.status === 'connecting' ? <Loader2 size={10} className="animate-spin" />
+            : server.status === 'connected' ? <PlugZap size={10} /> : <Plug size={10} />}
+          {server.status === 'connecting' ? 'Connecting...'
+            : server.status === 'connected' ? 'Disconnect' : 'Connect'}
+        </button>
+        <Settings size={12} style={{ color: t.textDim }} />
+      </button>
+
+      {/* Expanded config */}
+      {expanded && (
+        <div className="px-4 pb-4 flex flex-col gap-3">
+          {/* Name */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              Name
+            </label>
+            <input
+              type="text"
+              value={localName}
+              onChange={(e) => setLocalName(e.target.value)}
+              className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+              style={inputStyle}
+            />
+          </div>
+
+          {/* Command */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              Command
+            </label>
+            <input
+              type="text"
+              value={localCommand}
+              onChange={(e) => setLocalCommand(e.target.value)}
+              className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+              style={inputStyle}
+            />
+          </div>
+
+          {/* Args */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              Arguments (one per line)
+            </label>
+            <textarea
+              value={localArgs}
+              onChange={(e) => setLocalArgs(e.target.value)}
+              className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none resize-none"
+              style={{ ...inputStyle, minHeight: '60px' }}
+              rows={3}
+            />
+          </div>
+
+          {/* Environment */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              Environment (key=value, one per line)
+            </label>
+            <textarea
+              value={localEnv}
+              onChange={(e) => setLocalEnv(e.target.value)}
+              className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none resize-none"
+              style={{ ...inputStyle, minHeight: '60px' }}
+              rows={3}
+            />
+          </div>
+
+          {/* Tools */}
+          {server.tools.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                Available Tools
+              </label>
+              <div className="flex flex-wrap gap-1">
+                {server.tools.map((tool) => (
+                  <span
+                    key={tool.name}
+                    className="text-[10px] px-2 py-0.5 rounded"
+                    style={{
+                      background: '#FE500015',
+                      color: '#FE5000',
+                      fontFamily: "'Space Mono', monospace"
+                    }}
+                  >
+                    {tool.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 mt-1">
+            <button
+              type="button"
+              onClick={() => removeServer(server.id)}
+              className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
+              style={{ color: t.statusError, background: t.statusErrorBg }}
+            >
+              <Trash2 size={10} />
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function McpServersTab() {
   const t = useTheme();
-  // Placeholder data — real data comes from mcpStore (built by Agent 3)
-  const [servers] = useState<McpServerDisplay[]>([
-    { id: 'firecrawl', name: 'Firecrawl', status: 'disconnected', toolCount: 0 },
-    { id: 'filesystem', name: 'Filesystem', status: 'disconnected', toolCount: 0 },
-  ]);
+  const servers = useMcpStore((s) => s.servers);
+  const loaded = useMcpStore((s) => s.loaded);
+  const loading = useMcpStore((s) => s.loading);
+  const loadServers = useMcpStore((s) => s.loadServers);
+  const addServer = useMcpStore((s) => s.addServer);
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newCommand, setNewCommand] = useState('');
+  const [newArgs, setNewArgs] = useState('');
+  const [newEnv, setNewEnv] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    if (!loaded && !loading) {
+      loadServers();
+    }
+  }, [loaded, loading, loadServers]);
+
+  const handleAddServer = useCallback(async () => {
+    if (!newName.trim() || !newCommand.trim()) return;
+
+    setAdding(true);
+    try {
+      const args = newArgs.split('\n').filter(s => s.trim()).map(s => s.trim());
+      const env: Record<string, string> = {};
+      newEnv.split('\n').forEach(line => {
+        const [key, ...valueParts] = line.split('=');
+        if (key?.trim() && valueParts.length > 0) {
+          env[key.trim()] = valueParts.join('=').trim();
+        }
+      });
+
+      await addServer({
+        name: newName.trim(),
+        command: newCommand.trim(),
+        args,
+        env,
+      });
+
+      // Reset form
+      setNewName('');
+      setNewCommand('');
+      setNewArgs('');
+      setNewEnv('');
+      setShowAddForm(false);
+    } finally {
+      setAdding(false);
+    }
+  }, [newName, newCommand, newArgs, newEnv, addServer]);
+
+  const inputStyle = {
+    background: t.inputBg,
+    border: `1px solid ${t.border}`,
+    color: t.textPrimary,
+    fontFamily: "'Inter', sans-serif",
+  };
 
   return (
     <div className="flex flex-col">
-      {servers.map((srv) => (
-        <div
-          key={srv.id}
-          className="flex items-center gap-3 px-4 py-3"
-          style={{ borderBottom: `1px solid ${t.borderSubtle}` }}
-        >
-          <div
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{
-              background: statusColor(srv.status, t),
-              boxShadow: srv.status === 'connected' ? t.statusSuccessGlow : 'none',
-            }}
-          />
-          <Server size={14} style={{ color: t.textDim }} />
-          <div className="flex-1">
-            <div className="text-xs font-semibold" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
-              {srv.name}
+      {loading && (
+        <div className="px-4 py-8 text-center text-xs" style={{ color: t.textMuted }}>
+          <Loader2 size={16} className="animate-spin mx-auto mb-2" />
+          Loading MCP servers...
+        </div>
+      )}
+
+      {loaded && servers.map((server) => (
+        <McpServerRow key={server.id} server={server} />
+      ))}
+
+      {loaded && servers.length === 0 && !showAddForm && (
+        <div className="px-4 py-8 text-center text-xs" style={{ color: t.textMuted }}>
+          No MCP servers configured. Add a server below.
+        </div>
+      )}
+
+      {/* Add Server Form */}
+      {showAddForm && (
+        <div className="p-4" style={{ borderTop: `1px solid ${t.borderSubtle}`, background: t.surfaceElevated }}>
+          <div className="text-xs font-semibold mb-3" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+            Add MCP Server
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {/* Name */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                Name
+              </label>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="My MCP Server"
+                className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+                style={inputStyle}
+              />
             </div>
-            <div className="text-[10px]" style={{ color: t.textMuted }}>
-              {srv.status === 'connected' ? `${srv.toolCount} tools available` : 'Not connected'}
+
+            {/* Command */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                Command
+              </label>
+              <input
+                type="text"
+                value={newCommand}
+                onChange={(e) => setNewCommand(e.target.value)}
+                placeholder="uv"
+                className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+                style={inputStyle}
+              />
+            </div>
+
+            {/* Args */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                Arguments (one per line)
+              </label>
+              <textarea
+                value={newArgs}
+                onChange={(e) => setNewArgs(e.target.value)}
+                placeholder="tool&#10;run&#10;--python&#10;/path/to/server.py"
+                className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none resize-none"
+                style={{ ...inputStyle, minHeight: '60px' }}
+                rows={3}
+              />
+            </div>
+
+            {/* Environment */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                Environment (key=value, one per line)
+              </label>
+              <textarea
+                value={newEnv}
+                onChange={(e) => setNewEnv(e.target.value)}
+                placeholder="API_KEY=your_key&#10;DEBUG=1"
+                className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none resize-none"
+                style={{ ...inputStyle, minHeight: '60px' }}
+                rows={3}
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleAddServer}
+                disabled={adding || !newName.trim() || !newCommand.trim()}
+                className="nodrag nowheel flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg cursor-pointer font-semibold border-none"
+                style={{
+                  background: '#FE5000',
+                  color: '#fff',
+                  opacity: (adding || !newName.trim() || !newCommand.trim()) ? 0.6 : 1
+                }}
+              >
+                {adding ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                Add Server
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="nodrag nowheel text-xs px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                style={{ color: t.textMuted, background: t.badgeBg }}
+              >
+                Cancel
+              </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Add Server Button */}
+      {loaded && !showAddForm && (
+        <div className="p-4">
           <button
             type="button"
-            className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg cursor-pointer border-none"
-            style={{
-              background: srv.status === 'connected' ? t.statusErrorBg : t.statusSuccessBg,
-              color: srv.status === 'connected' ? t.statusError : t.statusSuccess,
-            }}
+            onClick={() => setShowAddForm(true)}
+            className="nodrag nowheel flex items-center gap-2 text-xs px-3 py-2 rounded-lg cursor-pointer w-full justify-center"
+            style={{ border: `1px dashed ${t.border}`, background: 'transparent', color: t.textMuted }}
           >
-            {srv.status === 'connected' ? <PlugZap size={10} /> : <Plug size={10} />}
-            {srv.status === 'connected' ? 'Disconnect' : 'Connect'}
+            <Plus size={12} />
+            Add MCP Server
           </button>
-        </div>
-      ))}
-      {servers.length === 0 && (
-        <div className="px-4 py-8 text-center text-xs" style={{ color: t.textMuted }}>
-          No MCP servers configured. Add servers from the Marketplace.
         </div>
       )}
     </div>
@@ -370,12 +707,106 @@ function McpServersTab() {
 
 function SkillsTab() {
   const t = useTheme();
+  const skills = useSkillsStore((s) => s.skills);
+  const loaded = useSkillsStore((s) => s.loaded);
+  const loading = useSkillsStore((s) => s.loading);
+  const loadSkills = useSkillsStore((s) => s.loadSkills);
+  const toggleSkill = useSkillsStore((s) => s.toggleSkill);
+
+  useEffect(() => {
+    if (!loaded && !loading) {
+      loadSkills();
+    }
+  }, [loaded, loading, loadSkills]);
+
   return (
-    <div className="px-4 py-8 text-center">
-      <Wrench size={24} style={{ color: t.textDim, margin: '0 auto 8px' }} />
-      <div className="text-xs" style={{ color: t.textMuted }}>
-        Skills are managed from the canvas. Drag skills onto your agent to add capabilities.
-      </div>
+    <div className="flex flex-col">
+      {loading && (
+        <div className="px-4 py-8 text-center text-xs" style={{ color: t.textMuted }}>
+          <Loader2 size={16} className="animate-spin mx-auto mb-2" />
+          Loading skills...
+        </div>
+      )}
+
+      {loaded && skills.map((skill) => (
+        <div
+          key={skill.id}
+          className="flex items-center gap-3 px-4 py-3"
+          style={{ borderBottom: `1px solid ${t.borderSubtle}` }}
+        >
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.badgeBg }}>
+            <Wrench size={14} style={{ color: t.textDim }} />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+                {skill.name}
+              </span>
+              {skill.hasSkillMd && (
+                <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{
+                  fontFamily: "'Space Mono', monospace", fontWeight: 600,
+                  background: t.statusSuccessBg,
+                  color: t.statusSuccess,
+                }}>
+                  SKILL.md
+                </span>
+              )}
+              {skill.id.startsWith('global:') && (
+                <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{
+                  fontFamily: "'Space Mono', monospace", fontWeight: 600,
+                  background: t.badgeBg,
+                  color: t.textMuted,
+                }}>
+                  GLOBAL
+                </span>
+              )}
+              {skill.id.startsWith('user:') && (
+                <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{
+                  fontFamily: "'Space Mono', monospace", fontWeight: 600,
+                  background: t.statusWarningBg,
+                  color: t.statusWarning,
+                }}>
+                  USER
+                </span>
+              )}
+            </div>
+            {skill.description && (
+              <div className="text-xs text-wrap" style={{ color: t.textDim }}>
+                {skill.description}
+              </div>
+            )}
+            <div className="text-[10px]" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              {skill.path}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => toggleSkill(skill.id)}
+            className="nodrag nowheel w-9 h-5 rounded-full cursor-pointer border-none relative transition-colors"
+            style={{ background: skill.enabled ? '#FE5000' : t.badgeBg }}
+          >
+            <div
+              className="absolute top-0.5 w-4 h-4 rounded-full transition-transform"
+              style={{
+                background: '#fff',
+                left: skill.enabled ? '18px' : '2px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+              }}
+            />
+          </button>
+        </div>
+      ))}
+
+      {loaded && skills.length === 0 && (
+        <div className="px-4 py-8 text-center">
+          <Wrench size={24} style={{ color: t.textDim, margin: '0 auto 8px' }} />
+          <div className="text-xs" style={{ color: t.textMuted }}>
+            No skills found. Install skills using the skill marketplace or add them to ~/.claude/skills.
+          </div>
+        </div>
+      )}
     </div>
   );
 }

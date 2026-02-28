@@ -26,8 +26,8 @@
     "build:all": "npm run build && npm run build:server",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server": "tsx server/index.ts",
-    "studio": "tsx bin/modular-studio.ts",
+    "server": "node --import tsx/esm server/index.ts",
+    "studio": "node --import tsx/esm bin/modular-studio.ts",
     "prepublishOnly": "npm run build:all",
     "test:e2e": "playwright test"
   },

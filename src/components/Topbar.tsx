@@ -14,7 +14,7 @@ function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: stri
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label={ariaLabel}
-      className="appearance-none cursor-pointer outline-none text-xs py-1.5 pl-3 pr-7 rounded-lg"
+      className="appearance-none cursor-pointer outline-none text-xs h-8 pl-3 pr-7 rounded-lg"
       style={{
         fontFamily: "'Inter', sans-serif",
         background: t.surfaceOpaque,
@@ -141,7 +141,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       <button
         type="button"
         onClick={() => setShowMarketplace(true)}
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer border-none"
+        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
         style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
         onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
@@ -155,7 +155,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       <button
         type="button"
         onClick={onSettingsClick}
-        className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
         style={{ color: t.textDim }}
         aria-label="LLM settings"
       >
@@ -166,7 +166,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       <button
         type="button"
         onClick={toggleTheme}
-        className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
         style={{ color: t.textDim }}
         aria-label={t.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
@@ -177,7 +177,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       <button
         type="button"
         onClick={onImportClick}
-        className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
         style={{ color: t.textDim }}
         aria-label="Import agent definition"
       >
@@ -188,7 +188,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       <button
         type="button"
         onClick={handleExport}
-        className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
         style={{ color: t.textDim }}
         aria-label="Export as agent definition"
       >
@@ -199,7 +199,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       <button
         type="button"
         onClick={clearChannels}
-        className="p-1.5 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
         style={{ color: t.textDim }}
         aria-label="Clear all channels"
       >
@@ -210,7 +210,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       <button
         type="button"
         onClick={run}
-        className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer border-none"
+        className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer border-none"
         style={{
           background: running ? '#CC4000' : '#FE5000',
           color: '#fff',
