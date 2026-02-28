@@ -26,8 +26,15 @@ router.post('/chat', async (req, res) => {
   const config = readConfig();
   const provider = config.providers.find((p) => p.id === providerId);
   if (!provider) {
-    const resp: ApiResponse = { status: 'error', error: `Provider "${providerId}" not found` };
+    const resp: ApiResponse = { status: 'error', error: `Provider "${providerId}" not found. For Claude Agent SDK, use /api/agent-sdk/chat instead.` };
     res.status(404).json(resp);
+    return;
+  }
+
+  // Guard against empty baseUrl
+  if (!provider.baseUrl) {
+    const resp: ApiResponse = { status: 'error', error: `Provider "${providerId}" has no baseUrl configured` };
+    res.status(400).json(resp);
     return;
   }
 
@@ -35,6 +42,8 @@ router.post('/chat', async (req, res) => {
     let url: string;
     let headers: Record<string, string>;
     let body: string;
+
+    const modelId = typeof model === 'object' ? (model as { id: string }).id : model;
 
     if (provider.type === 'anthropic') {
       url = `${provider.baseUrl}/messages`;
@@ -44,7 +53,7 @@ router.post('/chat', async (req, res) => {
         'content-type': 'application/json',
       };
       body = JSON.stringify({
-        model,
+        model: modelId,
         max_tokens: maxTokens ?? 4096,
         messages,
         stream: true,
@@ -58,7 +67,7 @@ router.post('/chat', async (req, res) => {
         'Content-Type': 'application/json',
       };
       body = JSON.stringify({
-        model,
+        model: modelId,
         messages,
         stream: true,
         ...(temperature != null && { temperature }),
