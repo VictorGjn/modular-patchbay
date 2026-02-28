@@ -25,7 +25,7 @@ export function AgentPreview() {
   const hasMore = lines.length > 20;
 
   return (
-    <div className="w-full px-4 pb-2">
+    <div className="w-full px-4 pb-2 pt-1 border-t" style={{ borderColor: t.border }}>
       <div
         className="rounded-md overflow-hidden"
         style={{

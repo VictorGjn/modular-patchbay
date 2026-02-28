@@ -74,8 +74,8 @@ export const SkillsNode = memo(function SkillsNode() {
         <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>{activeSkills.length}</span>
         {!nodeCollapsed && (
           <div className="flex items-center gap-0.5">
-            <button type="button" onClick={() => setViewMode('card')} aria-label="Card view" className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center" style={{ background: viewMode === 'card' ? t.badgeBg : 'transparent', color: viewMode === 'card' ? t.textSecondary : t.textFaint }}><LayoutGrid size={14} /></button>
-            <button type="button" onClick={() => setViewMode('list')} aria-label="List view" className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center" style={{ background: viewMode === 'list' ? t.badgeBg : 'transparent', color: viewMode === 'list' ? t.textSecondary : t.textFaint }}><List size={14} /></button>
+            <button type="button" onClick={() => setViewMode('card')} aria-label="Card view" className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center" style={{ background: viewMode === 'card' ? '#FE500020' : 'transparent', color: viewMode === 'card' ? '#FE5000' : t.textFaint }}><LayoutGrid size={14} /></button>
+            <button type="button" onClick={() => setViewMode('list')} aria-label="List view" className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center" style={{ background: viewMode === 'list' ? '#FE500020' : 'transparent', color: viewMode === 'list' ? '#FE5000' : t.textFaint }}><List size={14} /></button>
           </div>
         )}
         <JackPort type="source" position={Position.Right} label="OUTPUT" color={t.cableSkills} id="skills-out" />
@@ -168,3 +168,4 @@ export const SkillsNode = memo(function SkillsNode() {
     </>
   );
 });
+

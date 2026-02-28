@@ -137,7 +137,7 @@ export const PromptNode = memo(function PromptNode() {
       </div>
 
       {/* Textarea */}
-      <div className="p-3 relative flex-1 overflow-y-auto">
+      <div className="p-3 relative flex-1 overflow-y-auto nowheel">
         <textarea
           ref={textareaRef}
           value={prompt}
@@ -180,7 +180,7 @@ export const PromptNode = memo(function PromptNode() {
             {prompt.length} chars
           </span>
           <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textMuted }}>
-            · ~{tokenCount.toLocaleString()} tokens
+            · {tokenCount === 0 ? '0' : `~${tokenCount.toLocaleString()}`} tokens
           </span>
         </div>
       </div>

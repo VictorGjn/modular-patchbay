@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '../theme';
 import { X, Search } from 'lucide-react';
 
@@ -56,9 +57,9 @@ export function PickerModal({ open, onClose, title, searchPlaceholder, width = 5
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-[200] flex items-center justify-center"
       onClick={onClose}
     >
       <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
@@ -122,6 +123,7 @@ export function PickerModal({ open, onClose, title, searchPlaceholder, width = 5
           {children(filter)}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1040,7 +1040,7 @@ export function SettingsPage({ open, onClose }: { open: boolean; onClose: () => 
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-0 px-4 pt-2 border-b shrink-0" style={{ borderColor: t.borderSubtle }}>
+        <div className="flex gap-1 px-4 pt-2 border-b shrink-0 overflow-x-auto" style={{ borderColor: t.borderSubtle, scrollbarWidth: 'none' }}>
           {TABS.map((tab) => (
             <button
               key={tab.id}
