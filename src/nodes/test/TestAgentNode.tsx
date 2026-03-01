@@ -12,7 +12,7 @@ import { useConsoleStore, type AgentPattern } from '../../store/consoleStore';
 import { useVersionStore } from '../../store/versionStore';
 import { useTheme } from '../../theme';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../../store/knowledgeBase';
-import { BarChart3, Cpu, Layers, Shield, AlertTriangle, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { BarChart3, Cpu, Layers, ChevronDown, ChevronRight } from 'lucide-react';
 
 type VizMode = 'card' | 'circuit' | 'layers';
 
@@ -336,9 +336,9 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
           <div className="flex-1 p-2.5">
             <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Tools</div>
             <div className="flex gap-1 flex-wrap">
-              {[...connectors.filter((c) => c.enabled), ...mcpServers.filter((m) => m.added), ...skills.filter((s) => s.added)].slice(0, 6).map((item) => (
-                <span key={'id' in item ? item.id : item.name} style={{ fontSize: 8, fontFamily: "'Space Mono', monospace", padding: '1px 5px', borderRadius: 3, background: '#FE500010', color: '#ff8c55' }}>
-                  {'service' in item ? item.name : item.name}
+              {([...connectors.filter((c) => c.enabled), ...mcpServers.filter((m) => m.added), ...skills.filter((s) => s.added)] as { id: string; name: string }[]).slice(0, 6).map((item) => (
+                <span key={item.id} style={{ fontSize: 8, fontFamily: "'Space Mono', monospace", padding: '1px 5px', borderRadius: 3, background: '#FE500010', color: '#ff8c55' }}>
+                  {item.name}
                 </span>
               ))}
               {connectors.filter((c) => c.enabled).length + mcpServers.filter((m) => m.added).length + skills.filter((s) => s.added).length === 0 && <span style={{ fontSize: 9, color: t.textFaint }}>None</span>}
@@ -428,7 +428,6 @@ function LayersView() {
   const channels = useConsoleStore((s) => s.channels);
   const instructionState = useConsoleStore((s) => s.instructionState);
   const workflowSteps = useConsoleStore((s) => s.workflowSteps);
-  const verification = useConsoleStore((s) => s.verification);
   const mcpServers = useConsoleStore((s) => s.mcpServers);
   const skills = useConsoleStore((s) => s.skills);
   const connectors = useConsoleStore((s) => s.connectors);

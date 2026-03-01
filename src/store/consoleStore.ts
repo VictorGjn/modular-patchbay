@@ -140,6 +140,7 @@ export interface WorkflowStep {
   tool: string;
   condition: 'always' | 'if' | 'unless';
   conditionValue?: string;
+  conditionText?: string;
   loopTarget?: string;
   loopMax?: number;
   // Error handling per step

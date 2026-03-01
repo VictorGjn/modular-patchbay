@@ -176,6 +176,8 @@ function mapDataToState(data: Record<string, unknown>): ImportResult {
     description: asString(data.description) || '',
     icon: asString(data.icon) || 'brain',
     category: asString(data.category) || 'general',
+    tags: Array.isArray(data.tags) ? data.tags as string[] : [],
+    avatar: asString(data.avatar) || '',
   };
   result.agentMeta = meta;
 

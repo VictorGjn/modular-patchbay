@@ -175,7 +175,7 @@ export const AgentNode = memo(function AgentNode() {
     setRefineError(null);
     try {
       const refined = await refineField('constraints', constraints.customConstraints);
-      updateInstruction({ constraints: { ...constraints, customConstraints: refined } });
+      updateInstruction({ constraints: { ...constraints, customConstraints: typeof refined === 'string' ? refined : constraints.customConstraints } });
     } catch (e) { setRefineError(e instanceof Error ? e.message : 'Refinement failed'); }
     finally { setRefining(null); }
   }, [constraints, updateInstruction]);
@@ -186,7 +186,7 @@ export const AgentNode = memo(function AgentNode() {
     setRefineError(null);
     try {
       const refined = await refineField('scope', constraints.scopeDefinition);
-      updateInstruction({ constraints: { ...constraints, scopeDefinition: refined } });
+      updateInstruction({ constraints: { ...constraints, scopeDefinition: typeof refined === 'string' ? refined : constraints.scopeDefinition } });
     } catch (e) { setRefineError(e instanceof Error ? e.message : 'Refinement failed'); }
     finally { setRefining(null); }
   }, [constraints, updateInstruction]);

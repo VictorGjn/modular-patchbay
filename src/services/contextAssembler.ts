@@ -1,6 +1,6 @@
 import { type ChannelConfig, KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 import { useMcpStore, type McpTool } from '../store/mcpStore';
-import { useConsoleStore, type InstructionState, type WorkflowStep, type AgentMeta } from '../store/consoleStore';
+import { useConsoleStore } from '../store/consoleStore';
 import { compileWorkflow } from '../nodes/WorkflowNode';
 
 export interface AssembledMessage {
@@ -92,7 +92,7 @@ export function assembleContext(
 
   // Workflow
   if (workflowSteps.length > 0) {
-    const compiledWorkflow = compileWorkflow(workflowSteps);
+    const compiledWorkflow = compileWorkflow(workflowSteps as any);
     systemParts.push(`<workflow>\n${compiledWorkflow}\n</workflow>`);
   }
 

@@ -1,23 +1,29 @@
 {
   "name": "modular-studio",
   "version": "0.1.0",
+  "description": "Visual agent builder — design AI agents, not just prompts. Figma for AI agents.",
   "type": "module",
+  "license": "MIT",
+  "author": "Victor Grosjean <victor.grosjean@syro.co>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VictorGjn/modular-patchbay.git"
+  },
+  "homepage": "https://github.com/VictorGjn/modular-patchbay#readme",
+  "keywords": [
+    "ai", "agent", "agent-builder", "context-engineering", "mcp",
+    "model-context-protocol", "prompt-engineering", "visual-builder",
+    "claude", "llm", "react-flow", "mixing-console", "design-tool"
+  ],
   "bin": {
     "modular-studio": "./dist-server/bin/modular-studio.js"
   },
   "files": [
     "dist/",
     "dist-server/",
-    "bin/",
-    "server/",
-    "src/",
-    "index.html",
-    "vite.config.ts",
-    "tsconfig.json",
-    "tsconfig.server.json",
-    "tailwind.config.ts",
-    "postcss.config.js",
-    "package.json"
+    "package.json",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "dev": "vite",

@@ -1,6 +1,5 @@
 import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore } from '../store/mcpStore';
-import { compileWorkflow } from '../nodes/WorkflowNode';
 
 export interface YamlAgentDef {
   version: string;
@@ -57,7 +56,7 @@ export interface YamlAgentDef {
 
 export function exportAgentYaml(): string {
   const state = useConsoleStore.getState();
-  const mcpState = useMcpStore.getState();
+  void useMcpStore.getState();
 
   // Build agent definition
   const agentDef: YamlAgentDef = {

@@ -1,8 +1,6 @@
-import { Check, Plug, Zap, Plus, Settings, Loader2, X } from 'lucide-react';
-import { useState, useCallback } from 'react';
+import { Check, Plug, Zap } from 'lucide-react';
 import { useTheme } from '../theme';
 import { PickerModal } from './PickerModal';
-import { useMcpStore } from '../store/mcpStore';
 
 export interface LibraryItem {
   id: string;

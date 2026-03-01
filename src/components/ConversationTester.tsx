@@ -1,15 +1,15 @@
-﻿import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { API_BASE } from '../config';
 import { useConversationStore } from '../store/conversationStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { useTheme } from '../theme';
-import { Button, Input, Badge, Tabs, IconButton } from './ds';
+import { Button, Input, Tabs, IconButton } from './ds';
 import {
   MessageSquare, ChevronUp, ChevronDown, RotateCcw, Send, Save,
   Play, CheckCircle, XCircle, Minus, Plus, X, FlaskConical, History,
   GripHorizontal,
 } from 'lucide-react';
-import { streamCompletion, streamAgentSdk, type StreamCompletionParams, type StreamAgentSdkParams } from '../services/llmService';
+import { streamAgentSdk } from '../services/llmService';
 import { assembleContext } from '../services/contextAssembler';
 import { useProviderStore } from '../store/providerStore';
 import { compileWorkflow } from '../nodes/WorkflowNode';
@@ -103,7 +103,7 @@ export function ConversationTester() {
   const t = useTheme();
   const {
     panelOpen, panelHeight, activeTab, messages, inputText, streaming,
-    testCases, runningTests,
+    testCases, runningTests: _runningTests,
     setPanelOpen, setPanelHeight, setActiveTab, setInputText,
     addMessage, updateLastAssistant, clearMessages, setStreaming,
     addTestCase, updateTestCase, removeTestCase,
@@ -159,7 +159,7 @@ export function ConversationTester() {
       // Build system prompt from instructions + workflow + context
       const instructionPrompt = store.instructionState.rawPrompt || '';
       const workflowPrompt = compileWorkflow(store.workflowSteps);
-      const assembled = assembleContext(store.channels, text, store.agentConfig);
+      const assembled = assembleContext(store.channels, text, { name: store.agentMeta.name, description: store.agentMeta.description });
       const contextSystem = assembled.find((m) => m.role === 'system')?.content || '';
 
       const fullSystem = [instructionPrompt, workflowPrompt, contextSystem].filter(Boolean).join('\n\n');
@@ -232,7 +232,7 @@ export function ConversationTester() {
         // Build system prompt from instructions + workflow + context
         const instructionPrompt = store.instructionState.rawPrompt || '';
         const workflowPrompt = compileWorkflow(store.workflowSteps);
-        const assembled = assembleContext(store.channels, testCase.input, store.agentConfig);
+        const assembled = assembleContext(store.channels, testCase.input, { name: store.agentMeta.name, description: store.agentMeta.description });
         const contextSystem = assembled.find((m) => m.role === 'system')?.content || '';
 
         const fullSystem = [instructionPrompt, workflowPrompt, contextSystem].filter(Boolean).join('\n\n');
@@ -398,7 +398,7 @@ export function ConversationTester() {
                           >
                             {msg.content}
                           </ReactMarkdown>
-                        ) : streaming ? 'â–' : ''
+                        ) : streaming ? '▍' : ''
                       ) : (
                         msg.content || ''
                       )}
