@@ -147,7 +147,13 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   // Session
   setSessionConfig: (patch) => {
     set((s) => {
-      const session = { ...s.session, ...patch };
+      const merged = { ...s.session, ...patch };
+      // Sync legacy ↔ new fields
+      if ('maxMessages' in patch) merged.windowSize = merged.maxMessages;
+      if ('windowSize' in patch) merged.maxMessages = merged.windowSize;
+      if ('summarizeEnabled' in patch && !merged.summarizeEnabled) merged.strategy = 'sliding_window';
+      if ('strategy' in patch) merged.summarizeEnabled = patch.strategy === 'summarize_and_recent';
+      const session = merged;
       return { session, sessionMemory: session };
     });
   },
