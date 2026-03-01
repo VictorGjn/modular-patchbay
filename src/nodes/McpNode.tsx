@@ -1,9 +1,9 @@
 import { memo, useState, useEffect, useCallback } from 'react';
-import { Position } from '@xyflow/react';
+// Position used by JackGutter internally
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useMcpStore, startHealthPolling, type McpServerState, type McpTool } from '../store/mcpStore';
 import { Tile } from '../components/Tile';
-import { JackPort } from '../components/JackPort';
+import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { McpIcon } from '../components/icons/SectionIcons';
 import { LibraryPicker, type LibraryItem } from '../components/LibraryPicker';
@@ -244,13 +244,18 @@ export const McpNode = memo(function McpNode() {
     type: undefined, // TODO: add transport type to McpServerState
   }));
 
+  const rightJacks: JackDef[] = [
+    { id: 'mcp-out', type: 'source', label: 'OUTPUT', color: t.cableMcp },
+  ];
+
   return (
     <>
     <ResizeHandle minWidth={240} minHeight={120} />
     <div
-      className="rounded-xl overflow-hidden h-full flex flex-col"
+      className="rounded-xl overflow-hidden h-full flex"
       style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 240 }}
     >
+    <div className="flex flex-col flex-1 min-w-0">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
         <button
@@ -293,7 +298,6 @@ export const McpNode = memo(function McpNode() {
             </button>
           </div>
         )}
-        <JackPort type="source" position={Position.Right} label="OUTPUT" color={t.cableMcp} id="mcp-out" />
       </div>
 
       {nodeCollapsed ? null : <>
@@ -351,6 +355,8 @@ export const McpNode = memo(function McpNode() {
         </button>
       </div>
       </>}
+    </div>
+    <JackGutter jacks={rightJacks} side="right" />
     </div>
 
     {/* Library picker — modal overlay */}

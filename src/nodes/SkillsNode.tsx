@@ -1,10 +1,10 @@
 import { memo, useState, useEffect, useCallback } from 'react';
-import { Position } from '@xyflow/react';
+// Position used by JackGutter internally
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { useSkillsStore } from '../store/skillsStore';
 import { Tile } from '../components/Tile';
-import { JackPort } from '../components/JackPort';
+import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { SkillIcon } from '../components/icons/SectionIcons';
 import { LibraryPicker, type LibraryItem } from '../components/LibraryPicker';
@@ -58,13 +58,19 @@ export const SkillsNode = memo(function SkillsNode() {
   useEffect(() => { try { localStorage.setItem('skills-node-collapsed', String(nodeCollapsed)); } catch {} }, [nodeCollapsed]);
   useEffect(() => { try { localStorage.setItem('skills-node-view', viewMode); } catch {} }, [viewMode]);
 
+  const rightJacks: JackDef[] = [
+    { id: 'skills-out', type: 'source', label: 'OUTPUT', color: t.cableSkills },
+    { id: 'skills-feedback-in', type: 'target', label: 'SUGGEST', color: t.cableSkills },
+  ];
+
   return (
     <>
     <ResizeHandle minWidth={240} minHeight={120} />
     <div
-      className="rounded-xl overflow-hidden h-full flex flex-col"
+      className="rounded-xl overflow-hidden h-full flex"
       style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 240 }}
     >
+    <div className="flex flex-col flex-1 min-w-0">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 shrink-0" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
         <button type="button" onClick={() => setNodeCollapsed(!nodeCollapsed)} aria-label={nodeCollapsed ? 'Expand skills panel' : 'Collapse skills panel'} className="p-0 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}>
@@ -81,7 +87,6 @@ export const SkillsNode = memo(function SkillsNode() {
             <button type="button" onClick={() => setViewMode('list')} aria-label="List view" className="p-1 border-none cursor-pointer nodrag rounded min-w-[32px] min-h-[32px] flex items-center justify-center" style={{ background: viewMode === 'list' ? '#FE500020' : 'transparent', color: viewMode === 'list' ? '#FE5000' : t.textFaint }}><List size={14} /></button>
           </div>
         )}
-        <JackPort type="source" position={Position.Right} label="OUTPUT" color={t.cableSkills} id="skills-out" />
       </div>
 
       {nodeCollapsed ? null : <>
@@ -120,7 +125,6 @@ export const SkillsNode = memo(function SkillsNode() {
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
             <span className="text-[11px] tracking-wider font-semibold" style={{ color: t.cableSkills, fontFamily: "'Space Mono', monospace" }}>Suggest</span>
-            <JackPort type="target" position={Position.Right} label="SUGGEST" color={t.cableSkills} id="skills-feedback-in" />
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
           </div>
           <div className="flex flex-col gap-1">
@@ -143,12 +147,6 @@ export const SkillsNode = memo(function SkillsNode() {
         </div>
       )}
 
-      {suggestedSkills.length === 0 && (
-        <div className="px-3 py-1 flex justify-end shrink-0">
-          <JackPort type="target" position={Position.Right} label="SUGGEST" color={t.cableSkills} id="skills-feedback-in" />
-        </div>
-      )}
-
       {/* Library button */}
       <div className="px-3 pb-3 pt-1 shrink-0">
         <button type="button" onClick={() => setShowLibrary(true)} aria-label="Open skill library" className="w-full min-h-[36px] px-4 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel flex items-center justify-center gap-1.5" style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}>
@@ -156,6 +154,8 @@ export const SkillsNode = memo(function SkillsNode() {
         </button>
       </div>
       </>}
+    </div>
+    <JackGutter jacks={rightJacks} side="right" />
     </div>
 
     {/* Library picker — modal overlay */}

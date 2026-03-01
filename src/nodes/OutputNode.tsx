@@ -1,9 +1,9 @@
 import { memo, useState, useEffect } from 'react';
-import { Position } from '@xyflow/react';
+// Position used by JackGutter internally
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS, type OutputFormat } from '../store/knowledgeBase';
-import { JackPort } from '../components/JackPort';
+import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { ConnectorTile } from '../components/ConnectorTile';
 import { OutputIcon } from '../components/icons/SectionIcons';
@@ -475,17 +475,24 @@ export const OutputNode = memo(function OutputNode() {
     try { localStorage.setItem('output-node-view', viewMode); } catch {}
   }, [viewMode]);
 
+  const leftJacks: JackDef[] = [
+    { id: 'output-in', type: 'target', label: 'INPUT', color: '#FE5000' },
+  ];
+  const rightJacks: JackDef[] = [
+    { id: 'output-out', type: 'source', label: 'OUT', color: '#FE5000' },
+  ];
+
   return (
     <>
     <ResizeHandle minWidth={220} minHeight={100} />
     <div
-      className="rounded-xl overflow-hidden h-full flex flex-col"
+      className="rounded-xl overflow-hidden h-full flex"
       style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 220 }}
     >
+      <JackGutter jacks={leftJacks} side="left" />
+      <div className="flex flex-col flex-1 min-w-0">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
-        <JackPort type="target" position={Position.Left} label="INPUT" color="#FE5000" id="output-in" />
-        <JackPort type="source" position={Position.Right} label="OUT" color="#FE5000" id="output-out" />
         <button
           type="button"
           onClick={() => setNodeCollapsed(!nodeCollapsed)}
@@ -661,6 +668,8 @@ export const OutputNode = memo(function OutputNode() {
         </button>
       </div>
       </>}
+      </div>
+      <JackGutter jacks={rightJacks} side="right" />
     </div>
     </>
   );

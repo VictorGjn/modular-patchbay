@@ -1,10 +1,10 @@
 import { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Position } from '@xyflow/react';
+// Position used by JackGutter internally
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { OutputIcon } from '../components/icons/SectionIcons';
-import { JackPort } from '../components/JackPort';
+import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { useTheme } from '../theme';
 import { Play, Download, Settings } from 'lucide-react';
@@ -98,11 +98,22 @@ export const PromptNode = memo(function PromptNode() {
     }
   };
 
+  const leftJacks: JackDef[] = [
+    { id: 'prompt-knowledge-in', type: 'target', label: 'KNOW', color: '#3498db' },
+    { id: 'prompt-skills-in', type: 'target', label: 'SKILLS', color: t.cableSkills },
+    { id: 'prompt-mcp-in', type: 'target', label: 'MCP', color: t.cableMcp },
+    { id: 'prompt-knowledge-out', type: 'source', label: 'KB OUT', color: '#00d4ff' },
+    { id: 'prompt-skills-out', type: 'source', label: 'SKILL OUT', color: t.cableSkills },
+  ];
+  const rightJacks: JackDef[] = [
+    { id: 'prompt-out', type: 'source', label: 'OUTPUT', color: '#FE5000' },
+  ];
+
   return (
     <>
     <ResizeHandle minWidth={340} minHeight={200} />
     <div
-      className="rounded-xl h-full flex flex-col overflow-hidden"
+      className="rounded-xl h-full flex overflow-hidden"
       style={{
         background: t.surface,
         backdropFilter: 'blur(8px)',
@@ -111,13 +122,12 @@ export const PromptNode = memo(function PromptNode() {
         minHeight: 160,
       }}
     >
+      {/* Left gutter — inputs + feedback outputs */}
+      <JackGutter jacks={leftJacks} side="left" />
+
+      <div className="flex flex-col flex-1 min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 shrink-0" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-        <div className="flex items-center gap-2">
-          <JackPort type="target" position={Position.Left} label="KNOW" color="#3498db" id="prompt-knowledge-in" />
-          <JackPort type="target" position={Position.Left} label="SKILLS" color={t.cableSkills} id="prompt-skills-in" />
-          <JackPort type="target" position={Position.Left} label="MCP" color={t.cableMcp} id="prompt-mcp-in" />
-        </div>
+      <div className="flex items-center justify-center px-3 py-2 shrink-0" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
         <div className="flex flex-col items-center">
           <Tooltip content="Compose the user prompt, select model, and run your agent">
             <span
@@ -133,9 +143,6 @@ export const PromptNode = memo(function PromptNode() {
           >
             {modelLabel}
           </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <JackPort type="source" position={Position.Right} label="OUTPUT" color="#FE5000" id="prompt-out" />
         </div>
       </div>
 
@@ -329,21 +336,6 @@ export const PromptNode = memo(function PromptNode() {
         </div>
       </div>
 
-      {/* Feedback output handles */}
-      <div
-        className="flex items-center gap-2 px-3 py-1.5 shrink-0"
-        style={{ borderTop: `1px solid ${t.borderSubtle}` }}
-      >
-        <JackPort type="source" position={Position.Left} label="KB OUT" color="#00d4ff" id="prompt-knowledge-out" />
-        <JackPort type="source" position={Position.Left} label="SKILL OUT" color={t.cableSkills} id="prompt-skills-out" />
-        <span
-          className="ml-auto text-[11px] tracking-wide font-semibold"
-          style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}
-        >
-          Feedback
-        </span>
-      </div>
-
       {/* Action buttons */}
       <div className="flex items-center gap-2 px-3 pb-3 shrink-0">
         {/* Test Run */}
@@ -383,6 +375,10 @@ export const PromptNode = memo(function PromptNode() {
           Save as Agent
         </button>
       </div>
+      </div>
+
+      {/* Right gutter — output */}
+      <JackGutter jacks={rightJacks} side="right" />
     </div>
     </>
   );

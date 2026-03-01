@@ -1,6 +1,6 @@
 import { memo, useState, useMemo } from 'react';
-import { Position } from '@xyflow/react';
-import { JackPort } from '../components/JackPort';
+// Position used by JackGutter internally
+import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { Avatar } from '../components/ds/Avatar';
 import { Badge } from '../components/ds/Badge';
@@ -124,9 +124,13 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
 
   const completenessColor = completeness >= 80 ? '#2ecc71' : completeness >= 50 ? '#f1c40f' : '#e74c3c';
 
+  const leftJacks: JackDef[] = [
+    { id: 'agent-preview-in', type: 'target', label: 'AGENT IN', color: '#FE5000' },
+  ];
+
   return (
     <div
-      className="rounded-xl overflow-hidden nowheel"
+      className="rounded-xl overflow-hidden nowheel flex"
       style={{
         width: 480,
         background: t.surfaceOpaque,
@@ -134,8 +138,8 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
         boxShadow: `0 0 30px #FE500008, 0 8px 32px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.1)'}`,
       }}
     >
-      {/* Input port */}
-      <JackPort type="target" position={Position.Left} label="AGENT IN" color="#FE5000" id="agent-preview-in" />
+      <JackGutter jacks={leftJacks} side="left" />
+      <div className="flex-1 min-w-0">
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3" style={{ background: `linear-gradient(135deg, #FE500010 0%, transparent 100%)`, borderBottom: `1px solid ${t.borderSubtle}` }}>
@@ -233,6 +237,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
             {totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(0)}K` : totalTokens}
           </span>
         </div>
+      </div>
       </div>
     </div>
   );
