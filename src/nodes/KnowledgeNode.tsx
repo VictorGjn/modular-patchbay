@@ -12,6 +12,7 @@ import {
   LayoutGrid, List, Check, X, Upload, Plug, Search, FileText, FileCode, File, Loader2,
   FolderOpen,
 } from 'lucide-react';
+import { Input } from '../components/ds/Input';
 import { Tile } from '../components/Tile';
 import { useAutoListMode } from '../hooks/useAutoListMode';
 
@@ -387,16 +388,17 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
       {/* Scanner UI */}
       <div className="px-5 pt-2 pb-1">
         <div className="flex items-center gap-1 nodrag nowheel">
-          <input
-            type="text"
-            value={scanDir}
-            onChange={(e) => setScanDir(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleScan(); }}
-            placeholder="Directory path..."
-            aria-label="Directory path to scan"
-            className="flex-1 px-2 py-1 rounded-md text-[10px] border-none outline-none nodrag nowheel"
-            style={{ background: t.surfaceElevated, color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}
-          />
+          <div className="flex-1">
+            <Input
+              value={scanDir}
+              onChange={(e) => setScanDir(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleScan(); }}
+              placeholder="Directory path..."
+              aria-label="Directory path to scan"
+              className="nowheel"
+              style={{ fontSize: 10, fontFamily: "'Space Mono', monospace" }}
+            />
+          </div>
           <button
             type="button"
             onClick={handleScan}
@@ -405,7 +407,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
             className="flex items-center gap-1 px-5 py-3 rounded text-[12px] cursor-pointer border-none nodrag nowheel"
             style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace", opacity: scanning ? 0.6 : 1 }}
           >
-            {scanning ? <Loader2 size={10} className="animate-spin" /> : <Search size={10} />}
+            {scanning ? <Loader2 size={10} className="animate-spin motion-reduce:animate-none" /> : <Search size={10} />}
             Scan
           </button>
         </div>

@@ -144,7 +144,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
               fontFamily: "'Space Mono', monospace",
             }}
           >
-            {generating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+            {generating ? <Loader2 size={11} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={11} />}
             {generating ? 'Generating...' : lastConfig ? 'Regenerate' : 'Generate'}
           </button>
           {lastConfig && (

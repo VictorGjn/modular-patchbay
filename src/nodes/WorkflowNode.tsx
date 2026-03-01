@@ -175,7 +175,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
             opacity: generating ? 0.6 : 1,
           }}
         >
-          {generating ? <Loader2 size={9} className="animate-spin" /> : <Sparkles size={9} />}
+          {generating ? <Loader2 size={9} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={9} />}
           Generate
         </button>
       </div>
@@ -350,11 +350,10 @@ export const WorkflowNode = memo(function WorkflowNode() {
                             />
                           </div>
                           {step.loopTarget && (
-                            <span className="text-[9px]" style={{ color: t.textDim }}>
-                              max <input type="number" min={1} max={10} value={step.loopMax}
+                            <span className="flex items-center gap-0.5 text-[9px]" style={{ color: t.textDim }}>
+                              max <Input type="number" min={1} max={10} value={step.loopMax}
                                 onChange={(e) => updateStep(idx, { loopMax: parseInt(e.target.value) || 3 })}
-                                className="w-8 text-center text-[9px] px-0.5 rounded outline-none nodrag"
-                                style={inputStyle}
+                                style={{ width: 32, textAlign: 'center', fontSize: 9, padding: '2px 2px', ...inputStyle }}
                               />x
                             </span>
                           )}

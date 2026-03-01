@@ -2,11 +2,12 @@ import { memo, useState, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Input } from '../components/ds/Input';
 import { TextArea } from '../components/ds/TextArea';
+import { Toggle } from '../components/ds/Toggle';
 import { useMemoryStore } from '../store/memoryStore';
 import { useTheme } from '../theme';
 import {
   Brain, ChevronDown, ChevronRight, Clock, Database, FileEdit,
-  Plus, X, ToggleLeft, ToggleRight, Sparkles, Loader2,
+  Plus, X, Sparkles, Loader2,
 } from 'lucide-react';
 import { generateMemoryConfig } from '../utils/generateSection';
 
@@ -135,7 +136,7 @@ export const MemoryNode = memo(function MemoryNode() {
               opacity: generating ? 0.6 : 1,
             }}
           >
-            {generating ? <Loader2 size={9} className="animate-spin" /> : <Sparkles size={9} />}
+            {generating ? <Loader2 size={9} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={9} />}
             Generate
           </button>
           <span
@@ -188,21 +189,11 @@ export const MemoryNode = memo(function MemoryNode() {
               </div>
 
               {/* Summarize toggle */}
-              <button
-                type="button"
-                onClick={() => setSessionConfig({ summarizeEnabled: !sessionMemory.summarizeEnabled })}
-                className="flex items-center gap-2 text-left text-[11px] px-2 py-1.5 rounded-md cursor-pointer border-none nodrag"
-                style={{
-                  background: sessionMemory.summarizeEnabled ? '#3498db10' : 'transparent',
-                  color: sessionMemory.summarizeEnabled ? t.textPrimary : t.textMuted,
-                  border: `1px solid ${sessionMemory.summarizeEnabled ? '#3498db30' : t.borderSubtle}`,
-                }}
-              >
-                {sessionMemory.summarizeEnabled
-                  ? <ToggleRight size={14} style={{ color: '#3498db' }} />
-                  : <ToggleLeft size={14} style={{ color: t.textDim }} />}
-                Summarize after {sessionMemory.summarizeAfter} messages
-              </button>
+              <Toggle
+                checked={sessionMemory.summarizeEnabled}
+                onChange={(v) => setSessionConfig({ summarizeEnabled: v })}
+                label={`Summarize after ${sessionMemory.summarizeAfter} messages`}
+              />
 
               {sessionMemory.summarizeEnabled && (
                 <div className="flex flex-col gap-1">

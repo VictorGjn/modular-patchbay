@@ -8,6 +8,7 @@ import { ConnectorTile } from '../components/ConnectorTile';
 import { OutputIcon } from '../components/icons/SectionIcons';
 import { Select } from '../components/ds/Select';
 import { Input } from '../components/ds/Input';
+import { TextArea } from '../components/ds/TextArea';
 import { Toggle } from '../components/ds/Toggle';
 import { Chip } from '../components/ds/Chip';
 import { Badge } from '../components/ds/Badge';
@@ -59,18 +60,16 @@ function NotionConfig({ config, onChange }: { config: NotionTemplateConfig; onCh
         {Object.entries(config.properties).map(([name, prop]) => (
           <div key={name} className="flex items-center gap-1 nodrag nowheel">
             <span className="text-[10px] truncate flex-1" style={{ color: t.textSecondary, fontFamily: "'Space Mono', monospace" }}>{name}</span>
-            <select
+            <Select
+              options={NOTION_PROPERTY_TYPES.map((pt) => ({ value: pt.id, label: pt.label }))}
               value={prop.type}
-              onChange={(e) => {
+              onChange={(v) => {
                 const newProps = { ...config.properties };
-                newProps[name] = { ...prop, type: e.target.value as NotionPropertyType };
+                newProps[name] = { ...prop, type: v as NotionPropertyType };
                 onChange({ ...config, properties: newProps });
               }}
-              className="text-[9px] px-1 py-0.5 rounded border-none outline-none nodrag"
-              style={{ background: t.inputBg, color: t.textSecondary, fontFamily: "'Space Mono', monospace" }}
-            >
-              {NOTION_PROPERTY_TYPES.map((pt) => <option key={pt.id} value={pt.id}>{pt.label}</option>)}
-            </select>
+              size="sm"
+            />
             <Chip variant={prop.source === 'agent' ? 'info' : 'default'}>
               {prop.source}
             </Chip>
@@ -90,13 +89,15 @@ function NotionConfig({ config, onChange }: { config: NotionTemplateConfig; onCh
           </div>
         ))}
         <div className="flex items-center gap-1 mt-0.5">
-          <input
-            value={newPropName}
-            onChange={(e) => setNewPropName(e.target.value)}
-            placeholder="Add property..."
-            className="flex-1 text-[10px] px-2 py-1 rounded border-none outline-none nodrag nowheel"
-            style={{ background: t.inputBg, color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}
-          />
+          <div className="flex-1">
+            <Input
+              value={newPropName}
+              onChange={(e) => setNewPropName(e.target.value)}
+              placeholder="Add property..."
+              className="nowheel"
+              style={{ fontSize: 10, fontFamily: "'Space Mono', monospace" }}
+            />
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -188,28 +189,28 @@ function HtmlSlidesConfig({ config, onChange }: { config: HtmlSlidesTemplateConf
         <span className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Sections</span>
         {config.sections.map((sec, i) => (
           <div key={i} className="flex items-center gap-1 nodrag nowheel">
-            <select
+            <Select
+              options={SECTION_TYPES.map((st) => ({ value: st.id, label: st.label }))}
               value={sec.type}
-              onChange={(e) => {
+              onChange={(v) => {
                 const sections = [...config.sections];
-                sections[i] = { ...sec, type: e.target.value as SlideSectionDef['type'] };
+                sections[i] = { ...sec, type: v as SlideSectionDef['type'] };
                 onChange({ ...config, sections });
               }}
-              className="text-[9px] px-1 py-0.5 rounded border-none outline-none nodrag"
-              style={{ background: t.inputBg, color: t.textSecondary, fontFamily: "'Space Mono', monospace" }}
-            >
-              {SECTION_TYPES.map((st) => <option key={st.id} value={st.id}>{st.label}</option>)}
-            </select>
-            <input
-              value={sec.title}
-              onChange={(e) => {
-                const sections = [...config.sections];
-                sections[i] = { ...sec, title: e.target.value };
-                onChange({ ...config, sections });
-              }}
-              className="flex-1 text-[10px] px-1.5 py-0.5 rounded border-none outline-none nodrag nowheel"
-              style={{ background: t.inputBg, color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}
+              size="sm"
             />
+            <div className="flex-1">
+              <Input
+                value={sec.title}
+                onChange={(e) => {
+                  const sections = [...config.sections];
+                  sections[i] = { ...sec, title: e.target.value };
+                  onChange({ ...config, sections });
+                }}
+                className="nowheel"
+                style={{ fontSize: 10 }}
+              />
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -340,18 +341,12 @@ function TemplateConfigPanel({ target }: { target: OutputTarget }) {
           {/* Generate section — shown when no config exists or user wants to regenerate */}
           {(!config || !hasGenerated) && (
             <div className="flex flex-col gap-1.5 nodrag nowheel">
-              <textarea
+              <TextArea
                 value={brainDump}
                 onChange={(e) => setBrainDump(e.target.value)}
                 placeholder={placeholders[target]}
                 rows={2}
-                className="w-full text-[10px] px-2 py-1.5 rounded border-none outline-none resize-none nodrag nowheel"
-                style={{
-                  background: t.inputBg || t.surfaceElevated,
-                  color: t.textPrimary,
-                  fontFamily: "'Inter', sans-serif",
-                  lineHeight: 1.4,
-                }}
+                style={{ fontSize: 10, minHeight: 40, lineHeight: 1.4 }}
               />
               <button
                 type="button"
@@ -368,7 +363,7 @@ function TemplateConfigPanel({ target }: { target: OutputTarget }) {
                 onMouseEnter={(e) => { if (!generating) e.currentTarget.style.background = '#FE500028'; }}
                 onMouseLeave={(e) => { if (!generating) e.currentTarget.style.background = '#FE500018'; }}
               >
-                {generating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                {generating ? <Loader2 size={11} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={11} />}
                 {generating ? 'Generating...' : 'Generate ✨'}
               </button>
               {genError && (
