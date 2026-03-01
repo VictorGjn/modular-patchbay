@@ -938,16 +938,19 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     set({ skills });
 
     // Hydrate knowledge suggestions as channels
+    const knowledgeTypes: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
     const channels: ChannelConfig[] = (config.knowledgeSuggestions || []).map((k, i) => {
-      const classification = classifyKnowledge(k.name);
+      const ktIndex = knowledgeTypes.indexOf(k.type as KnowledgeType);
+      const knowledgeType = ktIndex >= 0 ? knowledgeTypes[ktIndex] : 'evidence';
       return {
         sourceId: `gen-knowledge-${i}-${Date.now()}`,
-        label: k.name,
+        name: k.name,
+        path: '',
+        category: 'knowledge' as const,
+        knowledgeType,
         enabled: true,
-        tokenAllocation: 2000,
-        accessMode: 'read' as const,
         depth: 0,
-        knowledgeTypeIndex: ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'].indexOf(k.type) ?? classification.typeIndex,
+        baseTokens: 2000,
       };
     });
     set({ channels });
