@@ -42,6 +42,7 @@ import { AgentPreviewNode } from './nodes/AgentPreviewNode';
 import { WorkflowNode } from './nodes/WorkflowNode';
 import { MemoryNode } from './nodes/MemoryNode';
 import { GeneratorNode } from './nodes/GeneratorNode';
+import { CanvasLegend } from './components/CanvasLegend';
 import { PatchCable } from './edges/PatchCable';
 import { FeedbackEdge } from './edges/FeedbackEdge';
 import { TestMode } from './components/TestMode';
@@ -249,6 +250,7 @@ export default function App() {
               nodeBorderRadius={8}
             />
           </ReactFlow>
+          <CanvasLegend />
         </div>
       )}
 
