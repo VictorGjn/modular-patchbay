@@ -5,6 +5,10 @@
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(42, 42, 48, 0.6);
 }
+[data-theme="light"] .glass-surface {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(200, 200, 210, 0.6);
+}
 
 /* Run animation pulse */
 @keyframes pulse-glow {
@@ -120,6 +124,9 @@
 .hover-row:hover {
   background-color: rgba(37, 37, 42, 0.5);
 }
+[data-theme="light"] .hover-row:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
 
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
@@ -130,13 +137,4 @@
   }
 }
 
-/* B14 — Zoom controls visibility */
-.react-flow__controls {
-  border-radius: 8px !important;
-  overflow: hidden;
-}
-.react-flow__controls-button {
-  width: 32px !important;
-  height: 32px !important;
-  border: 1px solid var(--color-border, #2a2a30) !important;
-}
+/* B14 — Zoom controls: see globals.css for full theme-aware overrides */
