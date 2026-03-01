@@ -138,13 +138,31 @@ export const AgentNode = memo(function AgentNode() {
     if (autoSync) updateInstruction({ rawPrompt: compiled });
   }, [compiled, autoSync, updateInstruction]);
 
-  const inputStyle = {
+  const inputStyle: React.CSSProperties = {
     background: t.inputBg,
     border: `1px solid ${t.border}`,
     color: t.textPrimary,
-    fontFamily: "'Space Mono', monospace",
-    fontSize: 11,
+    fontFamily: "'Inter', sans-serif",
+    fontSize: 13,
+    lineHeight: 1.5,
+    borderRadius: 6,
   };
+
+  const labelStyle: React.CSSProperties = {
+    fontFamily: "'Space Mono', monospace",
+    fontSize: 9,
+    fontWeight: 600,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase' as const,
+    color: t.textMuted,
+  };
+
+  // Auto-grow textarea handler
+  const autoGrow = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const ta = e.target;
+    ta.style.height = 'auto';
+    ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
+  }, []);
 
   // ── Identity handlers ──
   const handleTagsChange = useCallback((value: string) => {
@@ -215,7 +233,7 @@ export const AgentNode = memo(function AgentNode() {
       <JackGutter jacks={leftJacks} side="left" />
 
       {/* Main content column */}
-      <div className="flex flex-col flex-1 overflow-hidden rounded-lg" style={{ width: 380, minWidth: 380 }}>
+      <div className="flex flex-col flex-1 overflow-hidden rounded-lg" style={{ width: 440, minWidth: 440 }}>
       {/* ── Node Header ── */}
       <div
         className="flex items-center gap-2 px-3 shrink-0 select-none"
@@ -244,7 +262,7 @@ export const AgentNode = memo(function AgentNode() {
         {/* ═══ IDENTITY ═══ */}
         <SectionHeader label="Identity" icon={<User size={10} style={{ color: '#FE5000' }} />} collapsed={!identityOpen} onToggle={() => setIdentityOpen(!identityOpen)} t={t} />
         {identityOpen && (
-          <div className="px-3 py-2 flex flex-col gap-2.5">
+          <div className="px-4 py-3 flex flex-col gap-3">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <button
@@ -282,32 +300,33 @@ export const AgentNode = memo(function AgentNode() {
                     onBlur={() => setEditingName(false)}
                     onKeyDown={(e) => { if (e.key === 'Enter') setEditingName(false); }}
                     placeholder="Agent name"
-                    className="w-full text-sm px-2 py-1 rounded outline-none nodrag"
-                    style={inputStyle} autoFocus
+                    className="w-full px-3 py-2 rounded-md outline-none nodrag"
+                    style={{ ...inputStyle, fontSize: 15, fontWeight: 600 }} autoFocus
                   />
                 ) : (
                   <button type="button" onClick={() => setEditingName(true)}
-                    className="text-left text-sm font-semibold cursor-pointer border-none bg-transparent p-0 nodrag"
-                    style={{ color: agentMeta.name ? t.textPrimary : t.textMuted }}
+                    className="text-left font-semibold cursor-pointer border-none bg-transparent p-0 nodrag"
+                    style={{ color: agentMeta.name ? t.textPrimary : t.textMuted, fontSize: 15, fontFamily: "'Inter', sans-serif" }}
                   >
                     {agentMeta.name || 'Click to set name'}
                   </button>
                 )}
               </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Description</label>
+            <div className="flex flex-col gap-1.5">
+              <label style={labelStyle}>Description</label>
               <textarea
-                value={agentMeta.description} onChange={(e) => setAgentMeta({ description: e.target.value })}
+                value={agentMeta.description}
+                onChange={(e) => { setAgentMeta({ description: e.target.value }); autoGrow(e); }}
                 placeholder="Describe what this agent does..."
-                className="w-full text-xs px-2 py-1.5 rounded outline-none resize-y nowheel nodrag"
-                style={{ ...inputStyle, minHeight: 48 }}
+                className="w-full px-3 py-2 rounded-md outline-none resize-none nowheel nodrag"
+                style={{ ...inputStyle, minHeight: 44 }}
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Tags</label>
+            <div className="flex flex-col gap-1.5">
+              <label style={labelStyle}>Tags</label>
               <input type="text" value={agentMeta.tags.join(', ')} onChange={(e) => handleTagsChange(e.target.value)}
-                placeholder="ai, assistant, helpful" className="w-full text-xs px-2 py-1 rounded outline-none nodrag" style={inputStyle}
+                placeholder="ai, assistant, helpful" className="w-full px-3 py-2 rounded-md outline-none nodrag" style={inputStyle}
               />
               {agentMeta.tags.length > 0 && (
                 <div className="flex gap-1 flex-wrap mt-1">
@@ -325,36 +344,37 @@ export const AgentNode = memo(function AgentNode() {
         {/* ═══ PERSONA ═══ */}
         <SectionHeader label="Persona" icon={<User size={10} style={{ color: '#9b59b6' }} />} collapsed={!personaOpen} onToggle={() => setPersonaOpen(!personaOpen)} t={t} />
         {personaOpen && (
-          <div className="px-3 py-2 flex flex-col gap-2.5">
+          <div className="px-4 py-3 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Describe your agent</label>
+              <label style={labelStyle}>Describe your agent</label>
               <RefineButton loading={refining === 'persona'} onClick={handleRefineAll} t={t} />
             </div>
             <textarea
-              value={persona} onChange={(e) => updateInstruction({ persona: e.target.value })}
+              value={persona}
+              onChange={(e) => { updateInstruction({ persona: e.target.value }); autoGrow(e); }}
               placeholder="Brain dump anything about your agent... hit Generate to fill all sections"
-              className="w-full text-xs px-3 py-2 rounded-lg outline-none resize-y nowheel nodrag"
-              style={{ ...inputStyle, minHeight: 64 }}
+              className="w-full px-3 py-2.5 rounded-md outline-none resize-none nowheel nodrag"
+              style={{ ...inputStyle, minHeight: 60 }}
             />
-            <div className="flex gap-3">
-              <div className="flex-1 flex flex-col gap-1">
-                <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Tone</label>
+            <div className="flex gap-4">
+              <div className="flex-1 flex flex-col gap-1.5">
+                <label style={labelStyle}>Tone</label>
                 <div className="flex gap-1">
                   {TONE_OPTIONS.map((opt) => (
                     <button key={opt} type="button" onClick={() => updateInstruction({ tone: opt })}
-                      className="flex-1 text-[10px] py-1 rounded-md cursor-pointer border-none capitalize nodrag"
-                      style={{ background: tone === opt ? '#FE5000' : t.surfaceElevated, color: tone === opt ? '#fff' : t.textSecondary, fontFamily: "'Space Mono', monospace" }}
+                      className="flex-1 py-1.5 rounded-md cursor-pointer border-none capitalize nodrag"
+                      style={{ fontSize: 11, background: tone === opt ? '#FE5000' : t.surfaceElevated, color: tone === opt ? '#fff' : t.textSecondary, fontFamily: "'Inter', sans-serif" }}
                     >{opt}</button>
                   ))}
                 </div>
               </div>
-              <div className="flex-1 flex flex-col gap-1">
-                <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Expertise</label>
+              <div className="flex-1 flex flex-col gap-1.5">
+                <label style={labelStyle}>Expertise</label>
                 <div className="flex gap-1">
                   {([1, 3, 5] as const).map((val) => (
                     <button key={val} type="button" onClick={() => updateInstruction({ expertise: val })}
-                      className="flex-1 text-[9px] py-1 rounded-md cursor-pointer border-none nodrag"
-                      style={{ background: expertise === val ? '#FE5000' : t.surfaceElevated, color: expertise === val ? '#fff' : t.textSecondary, fontFamily: "'Space Mono', monospace" }}
+                      className="flex-1 py-1.5 rounded-md cursor-pointer border-none nodrag"
+                      style={{ fontSize: 11, background: expertise === val ? '#FE5000' : t.surfaceElevated, color: expertise === val ? '#fff' : t.textSecondary, fontFamily: "'Inter', sans-serif" }}
                     >{val === 1 ? 'Beginner' : val === 3 ? 'Mid' : 'Expert'}</button>
                   ))}
                 </div>
@@ -366,39 +386,39 @@ export const AgentNode = memo(function AgentNode() {
         {/* ═══ CONSTRAINTS ═══ */}
         <SectionHeader label="Constraints" icon={<ShieldCheck size={10} style={{ color: '#e74c3c' }} />} collapsed={!constraintsOpen} onToggle={() => setConstraintsOpen(!constraintsOpen)} t={t} />
         {constraintsOpen && (
-          <div className="px-3 py-2 flex flex-col gap-2">
+          <div className="px-4 py-3 flex flex-col gap-2">
             {CONSTRAINT_TOGGLES.map((ct) => (
               <button key={ct.key} type="button"
                 onClick={() => updateInstruction({ constraints: { ...constraints, [ct.key]: !constraints[ct.key] } })}
-                className="flex items-center gap-2 text-left text-[11px] px-2 py-1.5 rounded-md cursor-pointer border-none nodrag"
-                style={{ background: constraints[ct.key] ? '#FE500010' : 'transparent', color: constraints[ct.key] ? t.textPrimary : t.textMuted, border: `1px solid ${constraints[ct.key] ? '#FE500030' : t.borderSubtle}` }}
+                className="flex items-center gap-2.5 text-left px-3 py-2 rounded-md cursor-pointer border-none nodrag"
+                style={{ fontSize: 13, fontFamily: "'Inter', sans-serif", background: constraints[ct.key] ? '#FE500010' : 'transparent', color: constraints[ct.key] ? t.textPrimary : t.textMuted, border: `1px solid ${constraints[ct.key] ? '#FE500030' : t.borderSubtle}` }}
               >
-                {constraints[ct.key] ? <ToggleRight size={14} style={{ color: '#FE5000' }} /> : <ToggleLeft size={14} style={{ color: t.textDim }} />}
+                {constraints[ct.key] ? <ToggleRight size={16} style={{ color: '#FE5000' }} /> : <ToggleLeft size={16} style={{ color: t.textDim }} />}
                 {ct.label}
               </button>
             ))}
             {constraints.stayInScope && (
               <>
-                <div className="flex items-center justify-between mt-1">
-                  <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Scope Definition</label>
+                <div className="flex items-center justify-between mt-2">
+                  <label style={labelStyle}>Scope Definition</label>
                   <RefineButton loading={refining === 'scope'} onClick={handleRefineScope} t={t} />
                 </div>
                 <input type="text" value={constraints.scopeDefinition}
                   onChange={(e) => updateInstruction({ constraints: { ...constraints, scopeDefinition: e.target.value } })}
                   placeholder="e.g. 'frontend bugs only, no backend'"
-                  className="w-full text-[11px] px-2 py-1.5 rounded outline-none nodrag" style={inputStyle}
+                  className="w-full px-3 py-2 rounded-md outline-none nodrag" style={inputStyle}
                 />
               </>
             )}
-            <div className="flex items-center justify-between mt-1">
-              <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Custom Constraints</label>
+            <div className="flex items-center justify-between mt-2">
+              <label style={labelStyle}>Custom Constraints</label>
               <RefineButton loading={refining === 'constraints'} onClick={handleRefineConstraints} t={t} />
             </div>
             <textarea
               value={constraints.customConstraints}
-              onChange={(e) => updateInstruction({ constraints: { ...constraints, customConstraints: e.target.value } })}
+              onChange={(e) => { updateInstruction({ constraints: { ...constraints, customConstraints: e.target.value } }); autoGrow(e); }}
               placeholder="Brain dump rules... e.g. 'no pii, always cite, max 3 paragraphs'"
-              className="w-full text-xs px-3 py-2 rounded-lg outline-none resize-y nowheel nodrag"
+              className="w-full px-3 py-2.5 rounded-md outline-none resize-none nowheel nodrag"
               style={{ ...inputStyle, minHeight: 40 }}
             />
           </div>
@@ -407,63 +427,63 @@ export const AgentNode = memo(function AgentNode() {
         {/* ═══ OBJECTIVES ═══ */}
         <SectionHeader label="Objectives" icon={<Target size={10} style={{ color: '#2ecc71' }} />} collapsed={!objectivesOpen} onToggle={() => setObjectivesOpen(!objectivesOpen)} t={t} />
         {objectivesOpen && (
-          <div className="px-3 py-2 flex flex-col gap-2">
+          <div className="px-4 py-3 flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
-              <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Primary Objective</label>
+              <label style={labelStyle}>Primary Objective</label>
               <RefineButton loading={refining === 'persona'} onClick={handleRefineAll} t={t} />
             </div>
             <input type="text" value={objectives.primary}
               onChange={(e) => updateInstruction({ objectives: { ...objectives, primary: e.target.value } })}
               placeholder="What this agent does..."
-              className="w-full text-xs px-3 py-2 rounded-lg outline-none nodrag" style={inputStyle}
+              className="w-full px-3 py-2 rounded-md outline-none nodrag" style={inputStyle}
             />
-            <label className="text-[9px] tracking-wider uppercase font-semibold mt-1" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Success Criteria</label>
+            <label style={{ ...labelStyle, marginTop: 4 }}>Success Criteria</label>
             {objectives.successCriteria.map((sc, i) => (
-              <div key={i} className="flex items-center gap-1">
-                <span className="text-[9px] shrink-0" style={{ color: t.textDim }}>✓</span>
+              <div key={i} className="flex items-center gap-2">
+                <span className="shrink-0" style={{ color: '#2ecc71', fontSize: 14 }}>✓</span>
                 <input type="text" value={sc}
                   onChange={(e) => { const next = [...objectives.successCriteria]; next[i] = e.target.value; updateInstruction({ objectives: { ...objectives, successCriteria: next } }); }}
                   placeholder="e.g., Every issue includes a code suggestion"
-                  className="flex-1 text-[11px] px-2 py-1 rounded outline-none nodrag" style={inputStyle}
+                  className="flex-1 px-3 py-2 rounded-md outline-none nodrag" style={inputStyle}
                 />
-                <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, successCriteria: objectives.successCriteria.filter((_, j) => j !== i) } })} className="p-0.5 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim }}><X size={10} /></button>
+                <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, successCriteria: objectives.successCriteria.filter((_, j) => j !== i) } })} className="p-1 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim }}><X size={12} /></button>
               </div>
             ))}
             <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, successCriteria: [...objectives.successCriteria, ''] } })}
-              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none nodrag"
-              style={{ background: t.surfaceElevated, color: t.textSecondary }}
-            ><Plus size={10} /> Add criterion</button>
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md cursor-pointer border-none nodrag"
+              style={{ fontSize: 12, fontFamily: "'Inter', sans-serif", background: t.surfaceElevated, color: t.textSecondary }}
+            ><Plus size={12} /> Add criterion</button>
 
-            <label className="text-[9px] tracking-wider uppercase font-semibold mt-2" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Failure Modes (avoid)</label>
+            <label style={{ ...labelStyle, marginTop: 8 }}>Failure Modes (avoid)</label>
             {objectives.failureModes.map((fm, i) => (
-              <div key={i} className="flex items-center gap-1">
-                <span className="text-[9px] shrink-0" style={{ color: t.statusError }}>✗</span>
+              <div key={i} className="flex items-center gap-2">
+                <span className="shrink-0" style={{ color: t.statusError, fontSize: 14 }}>✗</span>
                 <input type="text" value={fm}
                   onChange={(e) => { const next = [...objectives.failureModes]; next[i] = e.target.value; updateInstruction({ objectives: { ...objectives, failureModes: next } }); }}
                   placeholder="e.g., Never approve code with a11y violations"
-                  className="flex-1 text-[11px] px-2 py-1 rounded outline-none nodrag" style={inputStyle}
+                  className="flex-1 px-3 py-2 rounded-md outline-none nodrag" style={inputStyle}
                 />
-                <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, failureModes: objectives.failureModes.filter((_, j) => j !== i) } })} className="p-0.5 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim }}><X size={10} /></button>
+                <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, failureModes: objectives.failureModes.filter((_, j) => j !== i) } })} className="p-1 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim }}><X size={12} /></button>
               </div>
             ))}
             <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, failureModes: [...objectives.failureModes, ''] } })}
-              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none nodrag"
-              style={{ background: t.surfaceElevated, color: t.textSecondary }}
-            ><Plus size={10} /> Add failure mode</button>
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md cursor-pointer border-none nodrag"
+              style={{ fontSize: 12, fontFamily: "'Inter', sans-serif", background: t.surfaceElevated, color: t.textSecondary }}
+            ><Plus size={12} /> Add failure mode</button>
           </div>
         )}
 
         {/* ═══ RAW PROMPT ═══ */}
         <SectionHeader label="Raw Prompt" icon={<FileText size={10} style={{ color: t.textDim }} />} collapsed={!rawOpen} onToggle={() => setRawOpen(!rawOpen)} t={t} />
         {rawOpen && (
-          <div className="px-3 py-2 flex flex-col gap-2">
+          <div className="px-4 py-3 flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
-              <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>System Prompt</label>
+              <label style={labelStyle}>System Prompt</label>
               <button type="button" onClick={() => updateInstruction({ autoSync: !autoSync })}
-                className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded cursor-pointer border-none nodrag"
-                style={{ background: autoSync ? '#FE500015' : t.surfaceElevated, color: autoSync ? '#FE5000' : t.textDim, fontFamily: "'Space Mono', monospace" }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md cursor-pointer border-none nodrag"
+                style={{ fontSize: 10, background: autoSync ? '#FE500015' : t.surfaceElevated, color: autoSync ? '#FE5000' : t.textDim, fontFamily: "'Inter', sans-serif" }}
               >
-                {autoSync ? <ToggleRight size={10} /> : <ToggleLeft size={10} />}
+                {autoSync ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
                 {autoSync ? 'Auto-sync ON' : 'Manual mode'}
               </button>
             </div>
@@ -471,11 +491,11 @@ export const AgentNode = memo(function AgentNode() {
               value={rawPrompt}
               onChange={(e) => { if (!autoSync) updateInstruction({ rawPrompt: e.target.value }); }}
               readOnly={autoSync}
-              className="w-full text-[11px] px-3 py-2 rounded-lg outline-none resize-y nowheel nodrag"
-              style={{ ...inputStyle, minHeight: 120, opacity: autoSync ? 0.7 : 1, cursor: autoSync ? 'default' : 'text' }}
+              className="w-full px-3 py-2.5 rounded-md outline-none resize-none nowheel nodrag"
+              style={{ ...inputStyle, fontFamily: "'Space Mono', monospace", fontSize: 12, minHeight: 120, opacity: autoSync ? 0.6 : 1, cursor: autoSync ? 'default' : 'text' }}
             />
             {autoSync && (
-              <span className="text-[9px]" style={{ color: t.textFaint }}>
+              <span style={{ fontSize: 11, color: t.textFaint, fontFamily: "'Inter', sans-serif" }}>
                 Auto-generated from Persona + Constraints + Objectives. Toggle off to edit manually.
               </span>
             )}
