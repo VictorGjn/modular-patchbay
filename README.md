@@ -143,6 +143,157 @@ Modular Studio agents can be deployed to:
 - **OpenClaw** — Open-source agent runtime
 - **Generic JSON** — Universal format for custom integrations
 
+## 🔌 Runtime Integration
+
+Modular Studio is a **design-time** tool. It produces portable agent definitions — it doesn't run them. For execution, you pair it with a runtime. This section covers how that works.
+
+### The Model: Design → Export → Run
+
+```
+┌─────────────────┐         ┌──────────────┐         ┌─────────────────┐
+│  Modular Studio  │  YAML   │   Runtime    │  exec   │   External      │
+│  (design-time)   │────────▶│  (VK, etc.)  │────────▶│   Services      │
+│                  │         │              │         │  (GitHub, Slack) │
+└─────────────────┘         └──────────────┘         └─────────────────┘
+```
+
+1. **Design** your agent visually — identity, instructions, knowledge, tools, workflow steps
+2. **Export** as YAML (or JSON for specific targets)
+3. **Import** into any compatible runtime to execute the agent
+
+### What Modular Handles vs What Runtimes Handle
+
+| Concern | Modular Studio (design) | Runtime (execution) |
+|---|---|---|
+| Agent identity & persona | ✅ Define name, role, tone | Read from YAML |
+| Instructions & constraints | ✅ Visual editor | Injected into system prompt |
+| Knowledge sources | ✅ Attach files, URLs, DBs | Fetches & indexes content |
+| MCP server config | ✅ Configure servers & env | Spawns & manages processes |
+| Workflow steps | ✅ Define step graph | Orchestrates execution |
+| Output schemas | ✅ Design structured output | Validates & routes to targets |
+| Token budget | ✅ Set limits per channel | Enforces at inference time |
+| Model selection | ✅ Pick model | Makes API calls |
+| Secrets / API keys | ❌ Never stored | Resolved from environment |
+| Scheduling / triggers | ❌ Not in scope | Cron, webhooks, events |
+| Conversation memory | ❌ Schema only | Manages state across turns |
+| Monitoring / logs | ❌ Not in scope | Observability, error handling |
+
+### YAML Export Schema
+
+The canonical export format that runtimes consume:
+
+```yaml
+version: "1.0"
+kind: agent
+
+identity:
+  name: "pr-reviewer"
+  display_name: "PR Reviewer"
+  description: "Reviews pull requests for quality and accessibility"
+  tags: ["code-review", "react"]
+  agent_version: "1.0.0"
+
+instructions:
+  persona: |
+    You are a senior engineer. Be thorough but constructive.
+  constraints:
+    - "Never approve code with accessibility violations"
+    - "Always suggest a concrete fix"
+  objectives:
+    primary: "Provide actionable code reviews"
+    success_criteria:
+      - "Every issue includes a code suggestion"
+
+context:
+  knowledge:
+    - type: file
+      ref: "./knowledge/style-guide.md"
+      knowledge_type: framework
+      depth: 2
+    - type: url
+      ref: "https://react.dev/reference/rules"
+      refresh: weekly
+
+  skills:
+    - ref: clean-code
+      source: registry
+
+  mcp_servers:
+    - name: github
+      transport: stdio
+      command: "npx @modelcontextprotocol/server-github"
+      env:
+        GITHUB_TOKEN: "${GITHUB_TOKEN}"
+
+workflow:
+  steps:
+    - id: analyze
+      action: "Read the PR diff"
+      condition: always
+    - id: review
+      action: "Check against style guide and a11y rules"
+      tool: clean-code
+    - id: format
+      action: "Format as GitHub PR comment"
+      condition: always
+```
+
+### Vibe Kanban Integration
+
+[Vibe Kanban](https://github.com/BloopAI/vibe-kanban) (VK) is an open-source task automation platform. Modular YAML maps naturally to VK task templates:
+
+| Modular YAML field | VK concept |
+|---|---|
+| `identity.name` | Task template name |
+| `instructions.persona` + `constraints` | System prompt |
+| `context.mcp_servers` | Tool configuration |
+| `workflow.steps` | Task steps / subtasks |
+| `context.knowledge` | Attached context |
+
+**Workflow:**
+
+```bash
+# 1. Export from Modular Studio
+#    File → Export → YAML → saves modular-agent.yaml
+
+# 2. Import into Vibe Kanban
+vk import modular-agent.yaml
+
+# 3. Run
+vk run pr-reviewer --input "Review PR #42"
+```
+
+VK reads the `workflow.steps` array to create its task pipeline, wires up MCP servers as tool providers, and uses `instructions` to configure the underlying LLM call.
+
+### Other Runtimes
+
+The YAML format is runtime-agnostic. Here's how other tools consume it:
+
+**Claude Code / OpenClaw:**
+```bash
+# Convert to AGENTS.md-style prompt
+modular export --target claude-code --output AGENTS.md
+
+# Or use the YAML directly with OpenClaw
+openclaw agent run modular-agent.yaml
+```
+
+**Custom integration:**
+```python
+import yaml
+
+with open("modular-agent.yaml") as f:
+    agent = yaml.safe_load(f)
+
+# Build your system prompt from the definition
+system = f"{agent['instructions']['persona']}\n"
+system += "\n".join(f"- {c}" for c in agent['instructions']['constraints'])
+
+# Wire up MCP servers, knowledge, etc.
+```
+
+The export format is intentionally declarative — it describes *what* the agent needs, not *how* to wire it. Any runtime that can parse YAML can consume it.
+
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Vite
