@@ -1,10 +1,10 @@
 {
   "name": "modular-studio",
   "version": "0.1.0",
-  "description": "Visual agent builder — design AI agents, not just prompts. Figma for AI agents.",
+  "description": "Context engineering IDE for AI agents. Design knowledge pipelines, not just prompts.",
   "type": "module",
   "license": "MIT",
-  "author": "Victor Grosjean <victor.grosjean@syro.co>",
+  "author": "Victor Grosjean <victor.grosjean@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/VictorGjn/modular-patchbay.git"

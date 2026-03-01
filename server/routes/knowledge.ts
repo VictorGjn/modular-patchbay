@@ -243,4 +243,247 @@ router.get('/allowed-dirs', (_req, res) => {
   res.json(resp);
 });
 
+// ── Tree Index ──
+
+interface TreeNode {
+  nodeId: string;
+  title: string;
+  depth: number;
+  text: string;
+  tokens: number;
+  totalTokens: number;
+  children: TreeNode[];
+  meta?: {
+    lineStart: number;
+    lineEnd: number;
+    firstSentence: string;
+    firstParagraph: string;
+  };
+}
+
+interface TreeIndex {
+  source: string;
+  root: TreeNode;
+  totalTokens: number;
+  nodeCount: number;
+  created: number;
+}
+
+function estimateTokens(text: string): number {
+  if (!text) return 0;
+  return Math.ceil(text.length / 4);
+}
+
+function extractFirstSentence(text: string): string {
+  const match = text.match(/^[^\n]*?[.!?](?:\s|$)/);
+  return match ? match[0].trim() : text.split('\n')[0].slice(0, 200);
+}
+
+function extractFirstParagraph(text: string): string {
+  const para = text.split(/\n\s*\n/)[0];
+  return para ? para.trim().slice(0, 1000) : '';
+}
+
+function serverIndexMarkdown(source: string, markdown: string): TreeIndex {
+  const lines = markdown.split('\n');
+  let nodeCounter = 0;
+
+  const root: TreeNode = {
+    nodeId: `n0-${nodeCounter++}`,
+    title: source,
+    depth: 0,
+    text: '',
+    tokens: 0,
+    totalTokens: 0,
+    children: [],
+  };
+
+  const stack: TreeNode[] = [root];
+  let currentText: string[] = [];
+  let currentLineStart = 0;
+  const headingRegex = /^(#{1,6})\s+(.+)$/;
+
+  function flushText(lineEnd: number) {
+    const text = currentText.join('\n').trim();
+    const current = stack[stack.length - 1];
+    current.text = text;
+    current.tokens = estimateTokens(text);
+    if (text) {
+      current.meta = {
+        lineStart: currentLineStart,
+        lineEnd,
+        firstSentence: extractFirstSentence(text),
+        firstParagraph: extractFirstParagraph(text),
+      };
+    }
+    currentText = [];
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const match = headingRegex.exec(lines[i]);
+    if (match) {
+      flushText(i - 1);
+      const level = match[1].length;
+      const node: TreeNode = {
+        nodeId: `n${level}-${nodeCounter++}`,
+        title: match[2].trim(),
+        depth: level,
+        text: '',
+        tokens: 0,
+        totalTokens: 0,
+        children: [],
+        meta: { lineStart: i, lineEnd: i, firstSentence: '', firstParagraph: '' },
+      };
+      while (stack.length > 1 && stack[stack.length - 1].depth >= level) stack.pop();
+      stack[stack.length - 1].children.push(node);
+      stack.push(node);
+      currentLineStart = i + 1;
+    } else {
+      currentText.push(lines[i]);
+    }
+  }
+  flushText(lines.length - 1);
+
+  function computeTotals(node: TreeNode): number {
+    let total = node.tokens;
+    for (const child of node.children) total += computeTotals(child);
+    node.totalTokens = total;
+    return total;
+  }
+  computeTotals(root);
+
+  function countNodes(node: TreeNode): number {
+    let c = 1;
+    for (const child of node.children) c += countNodes(child);
+    return c;
+  }
+
+  return { source, root, totalTokens: root.totalTokens, nodeCount: countNodes(root), created: Date.now() };
+}
+
+/** Apply depth filter and render to markdown */
+function filterAndRender(root: TreeNode, depthLevel: number, tokenBudget?: number): { markdown: string; tokens: number } {
+  const maxHeading = 2;
+
+  function filterNode(node: TreeNode, dl: number): { title: string; depth: number; text: string; children: any[]; truncated: boolean } | null {
+    if (dl === 4 && node.depth > 0) return null;
+    if (dl === 3 && node.depth > maxHeading) return null;
+
+    let text = '';
+    let truncated = false;
+    if (dl === 0) text = node.text;
+    else if (dl === 1) {
+      if (node.children.length === 0 && node.meta?.firstParagraph) {
+        text = node.meta.firstParagraph;
+        truncated = node.text.length > text.length;
+      } else text = node.text;
+    } else if (dl === 2) {
+      text = node.meta?.firstSentence ?? '';
+      truncated = node.text.length > text.length;
+    }
+
+    const children = node.children.map(c => filterNode(c, dl)).filter(Boolean);
+    return { title: node.title, depth: node.depth, text, children: children as any[], truncated };
+  }
+
+  function render(n: any): string {
+    const parts: string[] = [];
+    if (n.depth > 0) parts.push(`${'#'.repeat(n.depth)} ${n.title}`);
+    if (n.text) parts.push(n.text);
+    for (const c of n.children) parts.push(render(c));
+    return parts.join('\n\n');
+  }
+
+  function countTokens(n: any): number {
+    let t = estimateTokens(n.text || '') + estimateTokens(n.title || '');
+    for (const c of n.children) t += countTokens(c);
+    return t;
+  }
+
+  let level = Math.max(0, Math.min(4, depthLevel));
+  let filtered = filterNode(root, level);
+  if (!filtered) filtered = { title: root.title, depth: 0, text: '', children: [], truncated: true };
+
+  let tokens = countTokens(filtered);
+  if (tokenBudget && tokens > tokenBudget) {
+    for (let tryLevel = level + 1; tryLevel <= 4; tryLevel++) {
+      filtered = filterNode(root, tryLevel) ?? filtered;
+      tokens = countTokens(filtered);
+      if (tokens <= tokenBudget) break;
+    }
+  }
+
+  return { markdown: render(filtered).trim(), tokens };
+}
+
+/**
+ * POST /api/knowledge/index
+ * Body: { path: string }
+ * Returns the tree index for a file.
+ */
+router.post('/index', (req, res) => {
+  const filePath = (req.body as { path?: string })?.path;
+  if (!filePath) {
+    res.status(400).json({ status: 'error', error: 'Missing path' });
+    return;
+  }
+
+  const resolved = resolve(filePath);
+  const allowedDirs = loadAllowedDirs();
+  if (!isPathSafe(resolved, allowedDirs)) {
+    res.status(403).json({ status: 'error', error: 'File not in allowlist' });
+    return;
+  }
+  if (!existsSync(resolved)) {
+    res.status(404).json({ status: 'error', error: 'File not found' });
+    return;
+  }
+
+  try {
+    const stat = statSync(resolved);
+    if (!stat.isFile() || stat.size > 1_048_576) {
+      res.status(400).json({ status: 'error', error: 'Invalid file or too large' });
+      return;
+    }
+    const content = readFileSync(resolved, 'utf-8');
+    const index = serverIndexMarkdown(resolved.replace(/\\/g, '/'), content);
+    res.json({ status: 'ok', data: index });
+  } catch {
+    res.status(500).json({ status: 'error', error: 'Failed to index file' });
+  }
+});
+
+/**
+ * POST /api/knowledge/filter
+ * Body: { path: string, depth: number, tokenBudget?: number }
+ * Returns filtered markdown content at the requested depth level.
+ */
+router.post('/filter', (req, res) => {
+  const { path: filePath, depth, tokenBudget } = req.body as { path?: string; depth?: number; tokenBudget?: number };
+  if (!filePath || depth === undefined) {
+    res.status(400).json({ status: 'error', error: 'Missing path or depth' });
+    return;
+  }
+
+  const resolved = resolve(filePath);
+  const allowedDirs = loadAllowedDirs();
+  if (!isPathSafe(resolved, allowedDirs)) {
+    res.status(403).json({ status: 'error', error: 'File not in allowlist' });
+    return;
+  }
+  if (!existsSync(resolved)) {
+    res.status(404).json({ status: 'error', error: 'File not found' });
+    return;
+  }
+
+  try {
+    const content = readFileSync(resolved, 'utf-8');
+    const index = serverIndexMarkdown(resolved.replace(/\\/g, '/'), content);
+    const result = filterAndRender(index.root, depth, tokenBudget);
+    res.json({ status: 'ok', data: { ...result, source: index.source, nodeCount: index.nodeCount, totalTokens: index.totalTokens } });
+  } catch {
+    res.status(500).json({ status: 'error', error: 'Failed to filter file' });
+  }
+});
+
 export default router;

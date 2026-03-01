@@ -1,312 +1,182 @@
 # Modular Studio
 
-> The visual agent builder. Design AI agents, not just prompts.
+> Context engineering IDE for AI agents. Design knowledge pipelines, not just prompts.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-![Modular Studio](./prototypes/light-full.png)
-
 ## What is this?
 
-Modular Studio is a visual canvas for building AI agents through **context engineering**—the emerging paradigm of designing agents through layered context assembly rather than monolithic prompting. Think Figma for AI agents: drag, connect, and configure modular components to create sophisticated AI workflows that adapt to your specific needs.
+Modular Studio is a **context engineering IDE** — a 3-panel dashboard for building AI agents through structured knowledge pipelines rather than monolithic prompts.
 
-## Key Features
+Instead of writing one massive system prompt and hoping for the best, you design a pipeline:
 
-• **Visual Canvas Interface** — Drag-and-drop components with real-time connections and data flow visualization
-• **Mixing Console Metaphor** — Audio-inspired controls for fine-tuning agent behavior and context layers
-• **Multi-Modal Knowledge Sources** — Seamlessly integrate documents, APIs, databases, and real-time data streams
-• **MCP Server Integration** — Native support for Model Context Protocol servers and tool ecosystems
-• **Workflow Orchestration** — Design multi-step reasoning patterns based on Anthropic's proven agent architectures
-• **Universal Export** — Deploy to Claude Code, Amp, Codex, Gemini, Vibe Kanban, OpenClaw, and more
-• **Context Engineering** — Advanced prompt composition with identity, instructions, constraints, and dynamic workflows
-• **Real-time Agent Preview** — Live visualization of your agent's capabilities and token usage
+```
+Sources → Tree Index → Agent Navigator → Compress → Context Assembly → LLM
+```
 
-## Architecture
+Every source (markdown files, Notion pages, HubSpot records, Slack threads, GitHub repos) becomes a **tree of headings** that an agent navigates per-task, selecting branches at the right depth. The result is dense, relevant context assembled within a token budget.
 
-Modular Studio is built around three core concepts:
+## The Pipeline
 
-### Canvas Nodes
-- **Identity Node**: Define agent personality, role, and metadata
-- **Instruction Node**: Configure behavior, expertise level, and objectives
-- **Knowledge Node**: Connect documents, databases, and information sources
-- **Skills Node**: Attach reusable capabilities and tools
-- **MCP Node**: Integrate Model Context Protocol servers
-- **Workflow Node**: Design step-by-step reasoning patterns
-- **Output Node**: Configure response format and structure
+### 1. Source Connectors
+Any source becomes a tree. Four connector types handle everything:
 
-### Mixing Console Metaphor
-Inspired by audio production, the console provides precision controls for:
-- **Channel Strips**: Individual knowledge source controls with EQ-style depth adjustments
-- **Crossfader**: Balance between different knowledge types (ground-truth vs hypothesis)
-- **Master Bus**: Global agent configuration and output formatting
-- **Effects Chain**: Apply constraints, verification, and evaluation layers
+- **`indexMarkdown()`** — Markdown files (heading hierarchy)
+- **`indexStructured()`** — Notion blocks, HubSpot fields, API responses
+- **`indexChronological()`** — Slack threads, Granola transcripts, logs
+- **`indexFlat()`** — Plain text, code files
 
-### Context Engineering
-Move beyond simple prompting to engineered context assembly:
-- **Layered Context**: Structured identity + instructions + knowledge + tools
-- **Dynamic Workflows**: Conditional step execution with loop and branching support
-- **Token Budget Management**: Optimize context windows with smart depth controls
-- **Multi-format Output**: Generate markdown, JSON, structured data, and more
+### 2. Tree Index
+Every source is parsed into a uniform tree: `{ nodeId, title, depth, text, tokens, totalTokens, children, meta }`. Meta carries `sourceType`, `sourceId`, `timestamp`, `fieldGroup` — supporting any connector.
+
+### 3. Agent Navigator
+Given a task, the navigator reads the tree headlines and decides which branches matter. It produces a navigation plan: branch IDs + target depth per branch. This is **agent-driven** — the LLM picks what's relevant, not the user.
+
+### 4. Context Compression
+Selected branches still contain noise. The compressor (inspired by [rtk-ai/rtk](https://github.com/rtk-ai/rtk)) reduces content through semantic dedup, filler removal, and code compression. Priority-aware budget allocation gives critical sources more room.
+
+### 5. Context Assembly
+Compressed branches are packed into `<source>` XML tags within the token budget, producing structured messages ready for any LLM.
+
+### 6. Depth Filtering
+Five depth levels control how much of each branch survives:
+
+| Level | Name | What's included |
+|-------|------|-----------------|
+| 0 | Full | All text |
+| 1 | Detail | Leaves → first paragraph |
+| 2 | Summary | First sentence per section |
+| 3 | Headlines | H1 + H2 titles only |
+| 4 | Mention | Document title only |
+
+Token budget enforcement auto-degrades depth when content exceeds the budget.
+
+## Dashboard Layout
+
+Three-panel IDE layout:
+
+| Left (340px) | Center (flex) | Right (380px) |
+|---|---|---|
+| **Sources Panel** | **Agent Builder** | **Test & Export** |
+| Generator, Knowledge (depth mixer), MCP servers, Skills, Memory, Fact Insights | Identity, Persona, Constraints, Objectives, System Prompt, Workflow, Context Budget | Chat testing + Export to Claude Code, Amp, Codex, Vibe Kanban, OpenClaw |
+
+## Features
+
+- **Knowledge Depth Mixer** — Per-source depth control with token budget visualization
+- **MCP Server Registry** — 100+ pre-built configurations with health probes (green/yellow/red)
+- **AI-Powered Generation** — Generate full agent configs from plain-language descriptions
+- **Context Compression** — Semantic dedup + filler removal + code compression (inspired by [rtk-ai/rtk](https://github.com/rtk-ai/rtk))
+- **Tree Navigator** — Agent-driven branch selection per task
+- **Execution Traces** — Timeline of LLM calls, tool invocations, retrievals, errors
+- **Team Knowledge Graph** — Multi-agent fact sharing with per-agent/per-team/global scoping
+- **Automatic Versioning** — Every agent change is tracked with semantic diffs
+- **Fact Insights** — Analyze extracted facts for promotion opportunities across agents
+- **Universal Export** — Claude Code, Amp, Codex, Vibe Kanban, OpenClaw, Generic JSON
+- **Repository Indexer** — Scan codebases and generate feature-level documentation
 
 ## Agent Definition Format
 
-Modular Studio exports agents in a standardized YAML format:
+Modular Studio exports agents as standardized YAML:
 
 ```yaml
 version: '1.0'
 kind: agent
-identity:
-  name: react-code-reviewer
-  display_name: React Code Reviewer
-  description: Senior React engineer specializing in code quality and accessibility
-  avatar: 🔍
-  tags: ['react', 'code-review', 'typescript', 'accessibility']
-
-instructions:
-  persona: You are a senior React engineer with 8+ years of experience
-  tone: professional
-  expertise: 5
-  constraints:
-    - Never approve code without proper TypeScript types
-    - Always check for accessibility violations
-    - Enforce consistent coding standards
-  objectives:
-    primary: Provide thorough, actionable code reviews
-    success_criteria:
-      - Identify potential bugs and performance issues
-      - Suggest accessibility improvements
-      - Maintain code consistency across the project
-
-context:
-  knowledge:
-    - type: file
-      ref: react-style-guide.md
-      knowledge_type: framework
-      depth: 2
-    - type: file
-      ref: accessibility-checklist.md
-      knowledge_type: evidence
-      depth: 3
-
-  skills:
-    - ref: clean-code
-      source: registry
-
-  mcp_servers:
-    - name: github
-      description: GitHub repository access
-      transport: stdio
-
-workflow:
-  steps:
-    - id: analyze
-      action: Read the code diff and understand the changes
-      condition: always
-    - id: style-check
-      action: Verify code follows React/TypeScript best practices
-      tool: clean-code
-    - id: accessibility
-      action: Check for accessibility violations and improvements
-    - id: categorize
-      action: Classify issues by severity (critical/major/minor)
-    - id: review
-      action: Write comprehensive review with specific suggestions
-```
-
-## Quick Start
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Run tests
-npm test
-```
-
-Open `http://localhost:3000` to start designing your first agent.
-
-## Export Targets
-
-Modular Studio agents can be deployed to:
-
-- **Claude Code** — Direct integration with Anthropic's CLI tool
-- **Amp** — Reusable agent definitions for the Amp platform
-- **Codex** — OpenAI-compatible agent configurations
-- **Gemini** — Google AI agent specifications
-- **Vibe Kanban** — BloopAI's workflow automation platform
-- **OpenClaw** — Open-source agent runtime
-- **Generic JSON** — Universal format for custom integrations
-
-## 🔌 Runtime Integration
-
-Modular Studio is a **design-time** tool. It produces portable agent definitions — it doesn't run them. For execution, you pair it with a runtime. This section covers how that works.
-
-### The Model: Design → Export → Run
-
-```
-┌─────────────────┐         ┌──────────────┐         ┌─────────────────┐
-│  Modular Studio  │  YAML   │   Runtime    │  exec   │   External      │
-│  (design-time)   │────────▶│  (VK, etc.)  │────────▶│   Services      │
-│                  │         │              │         │  (GitHub, Slack) │
-└─────────────────┘         └──────────────┘         └─────────────────┘
-```
-
-1. **Design** your agent visually — identity, instructions, knowledge, tools, workflow steps
-2. **Export** as YAML (or JSON for specific targets)
-3. **Import** into any compatible runtime to execute the agent
-
-### What Modular Handles vs What Runtimes Handle
-
-| Concern | Modular Studio (design) | Runtime (execution) |
-|---|---|---|
-| Agent identity & persona | ✅ Define name, role, tone | Read from YAML |
-| Instructions & constraints | ✅ Visual editor | Injected into system prompt |
-| Knowledge sources | ✅ Attach files, URLs, DBs | Fetches & indexes content |
-| MCP server config | ✅ Configure servers & env | Spawns & manages processes |
-| Workflow steps | ✅ Define step graph | Orchestrates execution |
-| Output schemas | ✅ Design structured output | Validates & routes to targets |
-| Token budget | ✅ Set limits per channel | Enforces at inference time |
-| Model selection | ✅ Pick model | Makes API calls |
-| Secrets / API keys | ❌ Never stored | Resolved from environment |
-| Scheduling / triggers | ❌ Not in scope | Cron, webhooks, events |
-| Conversation memory | ❌ Schema only | Manages state across turns |
-| Monitoring / logs | ❌ Not in scope | Observability, error handling |
-
-### YAML Export Schema
-
-The canonical export format that runtimes consume:
-
-```yaml
-version: "1.0"
-kind: agent
 
 identity:
-  name: "pr-reviewer"
-  display_name: "PR Reviewer"
-  description: "Reviews pull requests for quality and accessibility"
-  tags: ["code-review", "react"]
-  agent_version: "1.0.0"
+  name: fleet-monitor
+  display_name: Fleet Monitor
+  description: Real-time vessel performance monitoring agent
+  tags: ['maritime', 'fleet', 'monitoring']
 
 instructions:
   persona: |
-    You are a senior engineer. Be thorough but constructive.
+    You are a maritime fleet performance analyst.
+    Monitor vessel metrics and flag anomalies.
   constraints:
-    - "Never approve code with accessibility violations"
-    - "Always suggest a concrete fix"
+    - Never recommend speed changes without fuel impact analysis
+    - Always include CII rating context
   objectives:
-    primary: "Provide actionable code reviews"
+    primary: Detect performance anomalies early
     success_criteria:
-      - "Every issue includes a code suggestion"
+      - Flag fuel overconsumption within 4 hours
+      - Correlate weather impact on route efficiency
 
 context:
   knowledge:
     - type: file
-      ref: "./knowledge/style-guide.md"
-      knowledge_type: framework
+      ref: fleet-specs.md
+      knowledge_type: ground-truth
+      depth: 0
+    - type: structured
+      ref: hubspot://deals
+      knowledge_type: signal
       depth: 2
-    - type: url
-      ref: "https://react.dev/reference/rules"
-      refresh: weekly
-
-  skills:
-    - ref: clean-code
-      source: registry
 
   mcp_servers:
     - name: github
       transport: stdio
-      command: "npx @modelcontextprotocol/server-github"
+      command: npx @modelcontextprotocol/server-github
       env:
         GITHUB_TOKEN: "${GITHUB_TOKEN}"
 
 workflow:
   steps:
+    - id: ingest
+      action: Read latest vessel telemetry
+      condition: always
     - id: analyze
-      action: "Read the PR diff"
-      condition: always
-    - id: review
-      action: "Check against style guide and a11y rules"
-      tool: clean-code
-    - id: format
-      action: "Format as GitHub PR comment"
-      condition: always
+      action: Compare against baseline performance
+    - id: alert
+      action: Flag anomalies with severity and recommended actions
 ```
 
-### Vibe Kanban Integration
-
-[Vibe Kanban](https://github.com/BloopAI/vibe-kanban) (VK) is an open-source task automation platform. Modular YAML maps naturally to VK task templates:
-
-| Modular YAML field | VK concept |
-|---|---|
-| `identity.name` | Task template name |
-| `instructions.persona` + `constraints` | System prompt |
-| `context.mcp_servers` | Tool configuration |
-| `workflow.steps` | Task steps / subtasks |
-| `context.knowledge` | Attached context |
-
-**Workflow:**
+## Quick Start
 
 ```bash
-# 1. Export from Modular Studio
-#    File → Export → YAML → saves modular-agent.yaml
+# Install and run
+npx modular-studio
 
-# 2. Import into Vibe Kanban
-vk import modular-agent.yaml
+# Or install globally
+npm install -g modular-studio
+modular-studio
 
-# 3. Run
-vk run pr-reviewer --input "Review PR #42"
+# Development
+npm install --legacy-peer-deps
+npm run dev          # Frontend on :5173, backend on :4800
+npm run build:all    # Full production build
+npm test             # 241 tests
 ```
 
-VK reads the `workflow.steps` array to create its task pipeline, wires up MCP servers as tool providers, and uses `instructions` to configure the underlying LLM call.
+## Export Targets
 
-### Other Runtimes
-
-The YAML format is runtime-agnostic. Here's how other tools consume it:
-
-**Claude Code / OpenClaw:**
-```bash
-# Convert to AGENTS.md-style prompt
-modular export --target claude-code --output AGENTS.md
-
-# Or use the YAML directly with OpenClaw
-openclaw agent run modular-agent.yaml
-```
-
-**Custom integration:**
-```python
-import yaml
-
-with open("modular-agent.yaml") as f:
-    agent = yaml.safe_load(f)
-
-# Build your system prompt from the definition
-system = f"{agent['instructions']['persona']}\n"
-system += "\n".join(f"- {c}" for c in agent['instructions']['constraints'])
-
-# Wire up MCP servers, knowledge, etc.
-```
-
-The export format is intentionally declarative — it describes *what* the agent needs, not *how* to wire it. Any runtime that can parse YAML can consume it.
+| Target | Format | Use case |
+|--------|--------|----------|
+| Claude Code | `AGENTS.md` | Direct CLI integration |
+| Amp | YAML | Sourcegraph agent definitions |
+| Codex | JSON | OpenAI-compatible configs |
+| Vibe Kanban | YAML | BloopAI task automation |
+| OpenClaw | YAML | Open-source agent runtime |
+| Generic | JSON | Custom integrations |
 
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Vite
-- **Canvas**: ReactFlow for visual node editing
-- **Styling**: Tailwind CSS with custom design system
-- **State**: Zustand for predictable state management
-- **UI Components**: Custom design system with modular theming
-- **Export**: Multi-format agent definition generation
+- **Styling**: Tailwind CSS + custom design system (18 DS primitives)
+- **State**: Zustand (12+ stores)
+- **Backend**: Express 5 + TypeScript (LLM proxy, MCP health, repo indexer)
+- **Testing**: Vitest (unit) + Playwright (E2E)
+- **Fonts**: Space Mono (labels) + Inter (body)
+
+## Acknowledgments
+
+- [rtk-ai/rtk](https://github.com/rtk-ai/rtk) — Rust Token Killer. Our context compression module is inspired by RTK's approach to minimizing LLM token consumption. RTK compresses CLI outputs; we apply similar principles to knowledge documents.
+- [ReactFlow](https://reactflow.dev) — Used for the visual test mode canvas.
+- [Anthropic](https://anthropic.com) — Claude Agent SDK for backend agent execution.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-*Context engineering is the future of AI agent development. Start building with Modular Studio today.*
+*Context engineering is the layer every AI platform needs. Modular Studio is that layer.*

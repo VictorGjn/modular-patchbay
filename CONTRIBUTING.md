@@ -2,7 +2,7 @@
 
 ## Engineering Guidelines
 
-Following [Syroco engineering guidelines](https://www.notion.so/bab938b42c6e4a748a36d1a731b5fba7):
+The following conventions apply to all contributions:
 
 ### Code Quality
 - **No commented-out code** — dead code must be removed, not hidden
