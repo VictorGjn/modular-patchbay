@@ -140,8 +140,8 @@ test.describe('Dashboard Layout', () => {
 
   test('memory section has session config controls', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Session Strategy')).toBeVisible();
+    await expect(page.getByText('Conversation Window')).toBeVisible();
     await expect(page.getByText('Seed Facts')).toBeVisible();
-    await expect(page.getByText('Working Memory')).toBeVisible();
+    await expect(page.getByText('Advanced memory config')).toBeVisible();
   });
 });
