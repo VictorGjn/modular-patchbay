@@ -100,11 +100,11 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
   return (
     <div
       className="rounded-lg overflow-visible"
-      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: 480 }}
+      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: '100%' }}
     >
     <Handle type="target" position={Position.Left} id="knowledge-feedback-in" style={{ ...HANDLE, background: '#95a5a6', top: '50%', left: -4 }} />
     <Handle type="source" position={Position.Right} id="knowledge-out" style={{ ...HANDLE, background: '#3498db', top: '50%', right: -4 }} />
-    <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-lg">
+    <div className="flex flex-col flex-1 min-w-0 overflow-visible rounded-lg">
       {/* Header */}
       <div className="flex items-center gap-2 px-5" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}` }}>
         <button
@@ -736,7 +736,7 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
         {/* Bar graph */}
         <div className="flex items-center gap-1" style={{ minWidth: 56 }}>
           <div
-            className="rounded-sm overflow-hidden"
+            className="rounded-sm overflow-visible"
             style={{ width: 28, height: 8, background: `${barColor}18`, flexShrink: 0 }}
           >
             <div

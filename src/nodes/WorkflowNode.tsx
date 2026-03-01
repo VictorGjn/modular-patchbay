@@ -137,12 +137,12 @@ export const WorkflowNode = memo(function WorkflowNode() {
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
         boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`,
-        width: 480,
+        width: '100%',
       }}
     >
       <Handle type="target" position={Position.Left} id="workflow-in" style={{ ...HANDLE, background: '#e67e22', top: '50%', left: -4 }} />
       <Handle type="source" position={Position.Right} id="workflow-out" style={{ ...HANDLE, background: '#9b59b6', top: '50%', right: -4 }} />
-      <div className="flex flex-col overflow-hidden rounded-lg">
+      <div className="flex flex-col overflow-visible rounded-lg">
       {/* Header */}
       <div
         className="flex items-center gap-2 px-5 shrink-0 select-none"

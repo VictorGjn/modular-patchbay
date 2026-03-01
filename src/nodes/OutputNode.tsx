@@ -474,7 +474,7 @@ export const OutputNode = memo(function OutputNode() {
   return (
     <div
       className="rounded-lg overflow-visible"
-      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 2px 12px rgba(0,0,0,0.25)', width: 480 }}
+      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 2px 12px rgba(0,0,0,0.25)', width: '100%' }}
     >
       <Handle type="target" position={Position.Left} id="output-in" style={{ ...HANDLE, top: '50%', left: -4, background: '#FE5000' }} />
       <Handle type="source" position={Position.Right} id="output-out" style={{ ...HANDLE, top: '50%', right: -4, background: '#FE5000' }} />
