@@ -81,8 +81,7 @@ export function TestMode() {
       }
 
       const controller = streamCompletion({
-        apiKey: activeProvider.apiKey,
-        baseUrl: activeProvider.baseUrl,
+        providerId: activeProvider.id,
         model,
         messages,
         onChunk: (text) => {
