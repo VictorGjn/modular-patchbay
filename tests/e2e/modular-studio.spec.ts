@@ -89,7 +89,7 @@ test('model selector: changing model updates selection', async ({ page }) => {
 });
 
 test('PromptNode: type text in textarea', async ({ page }) => {
-  const textarea = page.locator('textarea').first();
+  const textarea = page.locator('[data-id="prompt"] textarea').first();
   await textarea.click();
   await textarea.fill('Hello, this is a test prompt');
   await expect(textarea).toHaveValue('Hello, this is a test prompt');
