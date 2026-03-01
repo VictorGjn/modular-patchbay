@@ -19,7 +19,7 @@ function SectionHeader({ label, icon, collapsed, onToggle, t }: {
     <button
       type="button"
       onClick={onToggle}
-      className="flex items-center gap-2 w-full px-3 py-1.5 border-none cursor-pointer nodrag select-none"
+      className="flex items-center gap-2 w-full px-5 py-1.5 border-none cursor-pointer nodrag select-none"
       style={{ background: 'transparent', borderTop: `1px solid ${t.borderSubtle}` }}
     >
       {collapsed
@@ -108,7 +108,7 @@ export const MemoryNode = memo(function MemoryNode() {
       <div className="flex flex-col">
         {/* Header */}
         <div
-          className="flex items-center gap-2 px-3 shrink-0 select-none"
+          className="flex items-center gap-2 px-5 shrink-0 select-none"
           style={{
             height: 40,
             background: t.surfaceElevated,
