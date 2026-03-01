@@ -1,4 +1,3 @@
-
 import { Position } from '@xyflow/react';
 import { JackPort } from './JackPort';
 
@@ -16,8 +15,9 @@ interface JackGutterProps {
 
 /**
  * Vertical gutter strip for jack ports.
- * Renders a narrow column beside node content with jacks
- * evenly spaced. No node content goes in this column.
+ * Jacks sit on the node edge, labels face outward (away from content).
+ * Left gutter: jacks aligned right, labels extend left.
+ * Right gutter: jacks aligned left, labels extend right.
  */
 export function JackGutter({ jacks, side }: JackGutterProps) {
   if (jacks.length === 0) return null;
@@ -26,14 +26,13 @@ export function JackGutter({ jacks, side }: JackGutterProps) {
 
   return (
     <div
-      className="flex flex-col items-center justify-around shrink-0"
+      className="flex flex-col shrink-0 justify-around"
       style={{
-        width: 36,
-        minHeight: jacks.length * 32,
-        paddingTop: 8,
-        paddingBottom: 8,
-        borderLeft: side === 'right' ? '1px solid var(--gutter-border, transparent)' : undefined,
-        borderRight: side === 'left' ? '1px solid var(--gutter-border, transparent)' : undefined,
+        width: 24,
+        minHeight: jacks.length * 28,
+        paddingTop: 10,
+        paddingBottom: 10,
+        alignItems: side === 'left' ? 'flex-start' : 'flex-end',
       }}
     >
       {jacks.map((jack) => (
