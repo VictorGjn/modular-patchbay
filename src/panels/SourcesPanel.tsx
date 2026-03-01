@@ -14,6 +14,7 @@ import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateA
 import { generateMemoryConfig, generateKnowledge } from '../utils/generateSection';
 import { analyzeFactsForPromotion, type FactPromotion, type FactAnalysisResult } from '../utils/analyzeFactsForPromotion';
 import { useVersionStore } from '../store/versionStore';
+import { useHealthStore } from '../store/healthStore';
 import { KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { formatTokens } from '../utils/formatTokens';
 import {
@@ -334,11 +335,22 @@ function McpSection() {
   const removeMcp = useConsoleStore(s => s.removeMcp);
   const setShowMarketplace = useConsoleStore(s => s.setShowMarketplace);
   const mcpState = useMcpStore(s => s.servers);
+  const mcpHealth = useHealthStore(s => s.mcpHealth);
   const [collapsed, setCollapsed] = useState(false);
+  const [probing, setProbing] = useState(false);
 
   const activeCount = mcpServers.filter(m => m.enabled !== false).length;
+  const errorCount = Object.values(mcpHealth).filter(h => h.status === 'error').length;
 
   const getStatus = (id: string) => {
+    // Health probe takes priority over mcpStore status
+    const health = mcpHealth[id];
+    if (health) {
+      if (health.status === 'healthy') return 'ok';
+      if (health.status === 'degraded') return 'warn';
+      if (health.status === 'error') return 'err';
+      if (health.status === 'checking') return 'warn';
+    }
     const state = mcpState.find(s => s.id === id);
     if (!state) return 'off';
     if (state.status === 'connected') return 'ok';
@@ -346,6 +358,13 @@ function McpSection() {
     if (state.status === 'connecting') return 'warn';
     return 'off';
   };
+
+  const handleProbeAll = useCallback(async () => {
+    setProbing(true);
+    const { probeAllMcp } = await import('../services/healthService');
+    await probeAllMcp(mcpServers.filter(m => m.enabled !== false).map(m => m.id));
+    setProbing(false);
+  }, [mcpServers]);
 
   const STATUS_COLORS: Record<string, { bg: string; glow: string }> = {
     ok: { bg: '#00ff88', glow: '0 0 6px rgba(0,255,136,0.4)' },
@@ -357,31 +376,55 @@ function McpSection() {
   return (
     <Section
       icon={Plug} label="MCP Servers" color="#2ecc71"
-      badge={`${activeCount} active`}
+      badge={errorCount > 0 ? `${activeCount} active · ${errorCount} error` : `${activeCount} active`}
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
+      {/* Check Health button */}
+      {activeCount > 0 && (
+        <div className="flex justify-end mb-2">
+          <GenerateBtn loading={probing} onClick={handleProbeAll} label="Check Health" />
+        </div>
+      )}
       <div className="flex flex-col">
         {mcpServers.map(server => {
           const status = getStatus(server.id);
           const sc = STATUS_COLORS[status];
           const state = mcpState.find(s => s.id === server.id);
-          const toolCount = state?.tools?.length || 0;
+          const health = mcpHealth[server.id];
+          const toolCount = health?.toolCount ?? state?.tools?.length ?? 0;
           return (
-            <div key={server.id} className="flex items-center gap-2.5 py-2.5"
-              style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: sc.bg, boxShadow: sc.glow, flexShrink: 0 }} />
-              <span className="flex-1 text-[12px]" style={{ color: t.textPrimary }}>{server.name}</span>
-              {server.type && (
-                <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ fontFamily: "'Space Mono', monospace", background: t.badgeBg, color: t.textDim }}>
-                  {server.type}
-                </span>
+            <div key={server.id} style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
+              <div className="flex items-center gap-2.5 py-2.5">
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: sc.bg, boxShadow: sc.glow, flexShrink: 0 }} />
+                <span className="flex-1 text-[12px]" style={{ color: t.textPrimary }}>{server.name}</span>
+                {server.type && (
+                  <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ fontFamily: "'Space Mono', monospace", background: t.badgeBg, color: t.textDim }}>
+                    {server.type}
+                  </span>
+                )}
+                {toolCount > 0 && (
+                  <span className="text-[10px]" style={{ color: t.textDim }}>{toolCount} tools</span>
+                )}
+                <button type="button" aria-label={`Remove ${server.name}`} onClick={() => removeMcp(server.id)} className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
+                  <X size={10} />
+                </button>
+              </div>
+              {/* Health detail row */}
+              {health && health.status !== 'unknown' && (
+                <div className="flex items-center gap-2 pb-1.5 pl-5 text-[9px]" style={{ fontFamily: "'Space Mono', monospace" }}>
+                  {health.latencyMs != null && (
+                    <span style={{ color: health.latencyMs > 2000 ? '#e74c3c' : t.textFaint }}>{health.latencyMs}ms</span>
+                  )}
+                  {health.tools && health.tools.length > 0 && (
+                    <span className="truncate" style={{ color: t.textFaint, maxWidth: 180 }} title={health.tools.join(', ')}>
+                      {health.tools.slice(0, 3).join(', ')}{health.tools.length > 3 ? ` +${health.tools.length - 3}` : ''}
+                    </span>
+                  )}
+                  {health.errorMessage && (
+                    <span style={{ color: '#e74c3c' }}>{health.errorMessage}</span>
+                  )}
+                </div>
               )}
-              {toolCount > 0 && (
-                <span className="text-[10px]" style={{ color: t.textDim }}>{toolCount} tools</span>
-              )}
-              <button type="button" aria-label={`Remove ${server.name}`} onClick={() => removeMcp(server.id)} className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
-                <X size={10} />
-              </button>
             </div>
           );
         })}

@@ -1,206 +1,111 @@
-# Modular Studio — Exit Roadmap
+# Modular Studio — Roadmap v2
 
-*March 2026 — "Build to be acquired, not maintained"*
-
----
-
-## Strategic Pivot
-
-**Old positioning:** "Figma for AI agents" (visual agent builder competing with Dify/Langflow/Flowise)
-**New positioning:** "The Context Engineering Layer" — the only tool that makes agent context visible, testable, and self-improving
-
-**Exit thesis:** Not a product company. Building IP that makes any agent platform better. Every competitor (Dify, Langflow, Flowise, Letta, VK) needs context engineering but none have it. We're the acquisition target, not the competitor.
-
-**Target acquirers (in order):**
-1. **Letta** — Already investing in context management. Our Knowledge Depth Mixer + Fact Insights = their missing design layer
-2. **Dify** (LangGenius) — 90K stars, LF-backed. Need better RAG pipeline control + MCP health monitoring
-3. **Langflow** (DataStax) — Want to differentiate from Flowise. Our context budget viz + self-improving agents = premium feature
-4. **Flowise** — Needs a design layer to go enterprise
-5. **VK/BloopAI** — Original target, still valid
-6. **Anthropic/OpenAI** — If the tech is good enough, agent design tools are strategic
+*March 2026 — "Dogfood at Syroco, exit when it's undeniable"*
 
 ---
 
-## The 8 Pillars (Unique IP)
+## What We're Building
 
-### 1. Knowledge Depth/Type Mixer ✅ BUILT
-**Status:** Working. 5 depth levels (Full→Mention), 6 knowledge types with color coding.
-**Gap:** Visual is good but there's no actual RAG behind it — it's design-time only.
-**For exit:** This IS the UI layer every competitor lacks. Keep polishing.
-
-### 2. PageIndex Integration (Vectorless RAG) 🔴 NOT STARTED
-**What:** PageIndex.ai does RAG without vectors — logical reasoning over document structure instead of embedding similarity. "No chunking, no vectors, human-like retrieval."
-**Why this matters:** Every competitor uses vanilla vector RAG (embed → chunk → cosine similarity). PageIndex's approach is genuinely different:
-- No embedding pipeline needed
-- Explainable retrieval (exact page/section references)
-- Works on domain-specific docs where similarity ≠ relevance
-- Lightweight JSON tree index, no vector DB infra
-
-**Integration plan:**
-1. PageIndex has an MCP server (or can be wrapped as one)
-2. Knowledge sources added in Modular → sent to PageIndex for indexing
-3. Knowledge Depth levels map to PageIndex retrieval depth
-4. At runtime: agent queries PageIndex instead of vanilla vector search
-5. In test mode: show retrieved sections with page references + confidence
-
-**Moat:** We're the first agent design tool with vectorless RAG built-in. Everyone else is stuck on embeddings.
-
-### 3. MCP Health + Skill Health Dashboard ✅ PARTIAL
-**Status:** MCP status dots exist. No actual health checks.
-**Build:**
-- Startup probe: can we connect? Does auth work?
-- Schema probe: list tools, verify expected tools exist
-- Latency probe: round-trip time to each server
-- Dependency map: which workflow steps depend on which MCP servers
-- **Alert:** "Step 3 uses `github-mcp` but it's unreachable"
-- Skill validation: does the skill file exist? Is it parseable? Any import errors?
-
-**For exit:** This is a MASSIVE pain point. Nobody has it. Agents fail silently when MCP servers are down. First-to-market on this.
-
-### 4. Rust Token Killer (RTK) 🔴 NOT STARTED
-**What:** Pluggable Rust-based token compression before context assembly.
-**Why Rust:** 10-100x faster than Python/JS for text processing. Can run as WASM in browser or native binary.
-**Techniques:**
-- Semantic deduplication (remove near-duplicate paragraphs)
-- Instruction compression (strip filler words, compress to essence)
-- Knowledge summarization (depth-aware: Full=raw, Skim=LLM-summarized)
-- Token-budget aware truncation (cut to fit budget, not just truncate)
-
-**Integration:** After depth mixer, before context assembly. Shows token savings in real-time.
-**Open-source:** Ship as `@modular-studio/rtk` — standalone value even without the UI.
-
-### 5. Agent Generation (AI Center) ✅ BUILT
-**Status:** GeneratorNode + per-section Generate ✨ buttons working.
-**Gap:** Generation doesn't use PageIndex for knowledge grounding.
-**Enhancement:** Brain dump → Generator → auto-discovers relevant docs via PageIndex → suggests knowledge sources with pre-computed depth levels.
-
-### 6. Output Connectors with Target Hinting 🟡 DESIGNED
-**Status:** Architecture doc exists. OutputNode has template picker (Notion, Slides, Slack/Email).
-**Build:**
-- **Target hinting:** User specifies WHERE value is delivered:
-  - Notion: "This page/database" (paste URL → auto-detect workspace/page ID)
-  - Jira: "This project/board" (project key → auto-map issue types)
-  - HubSpot: "This pipeline/deal stage" (CRM object → property mapper)
-  - GitHub: "This repo/issue label" (repo URL → issue template)
-  - Slack: "This channel" (channel picker)
-- **Schema preview:** Show what the agent will output (fields, types, example values)
-- **Validation:** "Your agent has no workflow step that produces `deal_amount` — add one?"
-- **One-shot delivery:** Agent runs → output goes directly to target. No copy-paste.
-
-**For exit:** Structured output with target validation = enterprise feature. Competitors all produce text blobs.
-
-### 7. Fact Insights (Self-Improving Agent) ✅ BUILT
-**Status:** LLM analyzes accumulated facts → suggests promoting to instructions/constraints/workflow/knowledge/MCP.
-**Enhancement:**
-- Auto-run after every N test conversations (not just manual)
-- Track promotion history (which facts became which components)
-- Show agent improvement over time (v0.1 → v0.5: +3 constraints, +2 workflow steps, +1 knowledge source)
-- **Version timeline:** Visual history of how the agent evolved through fact promotions
-
-**For exit:** "Agents that design themselves" is a headline feature. Nobody has this.
-
-### 8. Run Before Deploy (Test Sandbox) ✅ PARTIAL
-**Status:** Test panel with chat exists. ConversationTester works.
-**Build:**
-- **Eval harness:** Define test cases (input → expected output pattern)
-- **Regression tests:** Re-run after every change, flag regressions
-- **A/B comparison:** Run same input through v1.2 vs v1.3, side by side
-- **MCP mock mode:** Test without real MCP connections (mock responses)
-- **Cost estimation:** "This conversation cost $0.03, projected $15/day at 500 msgs"
-- **Multi-agent preview:** Show how this agent hands off to others
-
-**For exit:** Testing/eval is the #1 missing feature in every competitor. Vellum charges $$$ for this.
+**The Context Engineering Layer** — make agent context visible, testable, and self-improving. Use it at Syroco first. If it helps the team, it helps everyone.
 
 ---
 
-## Execution Phases
+## 5 Pillars (Trimmed from 8)
 
-### Phase 1: "Make It Real" (Week 1-2) 🎯
-**Goal:** Stop being design-time-only. Make agents actually work.
+### 1. Execution Traces + MCP/Skill Health 🔴 PRIORITY
+**The problem:** Agents fail silently. MCP server returns 429, skill import breaks, tool schema changed — you find out when the agent hallucinates instead of calling the tool.
 
-| Task | Days | Impact |
-|------|------|--------|
-| Add "Run" button in test panel (calls LLM through backend) | ✅ Done | Table stakes |
-| MCP health probes (connect, schema, latency) | 2 | Unique feature |
-| Output target hinting UI (Notion URL → page detection) | 2 | Enterprise value |
-| `npm publish` as `modular-studio` v0.1.0 | 0.5 | Get it out there |
-| Post on HN with "Context Engineering" angle | 0.5 | Get 10 users |
+**What we build:**
+- **Pre-flight checks:** Before running, probe every MCP server (connect, auth, list tools, latency). Probe every skill (file exists, parseable, no import errors).
+- **Execution trace viewer:** Every agent run captures: tool calls (which MCP, which tool, args, response, latency), retrieval hits (which knowledge source, what was returned, relevance), token usage per step, errors with stack traces.
+- **Root cause analysis:** "Step 3 failed → `github-mcp` returned 403 → API token expired" not just "agent gave wrong answer."
+- **Health dashboard in Sources panel:** Green/yellow/red dots with last-check timestamp. Yellow = slow (>2s). Red = unreachable or auth failure.
 
-### Phase 2: "PageIndex Integration" (Week 3-4) 🧠
-**Goal:** Replace vanilla RAG with vectorless RAG. Genuine technical moat.
+**Why it matters:** This is the unsexy infrastructure work nobody builds. But it's the #1 pain point when running agents.
 
-| Task | Days | Impact |
-|------|------|--------|
-| PageIndex API integration (index + retrieve) | 3 | Revolutionary RAG |
-| Wire knowledge sources → PageIndex indexing | 2 | Depth mixer becomes real |
-| Test panel shows retrieved sections with page refs | 1 | Explainable AI |
-| Write blog post: "Why we ditched vector RAG" | 1 | Marketing |
+### 2. Knowledge Graph Between Agents 🔴 PRIORITY
+**The problem:** Agents are islands. Agent A learns something, Agent B doesn't know. In a team (Syroco: route optimizer, fleet monitor, report generator), shared context is everything.
 
-### Phase 3: "Self-Improving Loop" (Week 5-6) 🔄
-**Goal:** Fact Insights becomes the hero feature.
+**What we build:**
+- **Shared fact store:** Facts can be scoped: `per_agent` (private), `per_team` (shared within agent group), `global` (all agents).
+- **Cross-agent references:** Agent A's output connector → Agent B's knowledge source. Visible as edges in a team graph.
+- **Fact propagation:** When Agent A promotes a fact to its design, prompt: "This fact is relevant to Agent B and C — propagate?"
+- **Team view:** Simple graph showing agents as nodes, shared knowledge/facts as edges. Not a fancy orchestration UI — just visibility into what's shared.
+- **Export:** Team YAML that defines agent relationships and shared context.
 
-| Task | Days | Impact |
-|------|------|--------|
-| Auto-analyze after N test conversations | 1 | Hands-free improvement |
-| Version timeline visualization | 2 | Show agent evolution |
-| Promotion history tracking | 1 | Audit trail |
-| RTK prototype (Rust WASM token compressor) | 3 | Performance moat |
-| Blog post: "Agents that design themselves" | 1 | Marketing |
+**Why it matters:** Letta has "Conversations API" for runtime sharing. We have design-time shared context — complementary, not competing.
 
-### Phase 4: "Enterprise Bait" (Week 7-8) 💰
-**Goal:** Features that make acquirers drool.
+### 3. PageIndex Integration (Vectorless RAG) 🔴 NEXT
+**The problem:** Vector RAG (embed→chunk→cosine) is unreliable for domain-specific docs. Similarity ≠ relevance. No explainability.
 
-| Task | Days | Impact |
-|------|------|--------|
-| Eval harness (test cases + regression) | 3 | Vellum competitor |
-| A/B version comparison | 2 | Enterprise must-have |
-| Output schema validation | 2 | "Your workflow can't produce this output" |
-| MCP dependency map visualization | 1 | Unique |
-| Cost estimation per conversation | 1 | Budget-conscious teams |
+**What we build:**
+- Knowledge sources → PageIndex indexing (JSON tree, no vector DB)
+- Knowledge Depth levels map to PageIndex retrieval depth
+- Test panel shows retrieved sections with exact page/section references
+- Retrieval quality scoring (did the agent use the right context?)
 
-### Phase 5: "Exit Prep" (Week 9-10) 🚪
-**Goal:** Package for acquisition.
+**Why it matters:** First agent design tool with vectorless RAG. Technical moat.
 
-| Task | Days | Impact |
-|------|------|--------|
-| Integration guides for Dify/Langflow/Flowise | 3 | Show fit |
-| Patent-worthy documentation of unique algorithms | 2 | IP protection |
-| Demo video (2min) showing full loop | 1 | Pitch material |
-| Reach out to acquirer contacts | Ongoing | The actual exit |
-| Usage metrics dashboard (if any users) | 1 | Traction proof |
+### 4. Fact Insights + Self-Improving Loop ✅ BUILT, ENHANCE
+**What exists:** LLM analyzes facts → suggests promotions → one-click apply → version bump.
+**Enhance:**
+- Auto-analyze after N test conversations
+- Propagation to other agents (see Pillar 2)
+- Version timeline: visual history of how agent evolved through promotions
+- Promotion audit trail
+
+### 5. Versioning ✅ BUILT, KEEP
+**What exists:** Automatic semver (MAJOR.MINOR.PATCH) based on change detection. Snapshots, restore, changelog.
+**Keep as-is.** It's solid. Just wire it into the dashboard UI (version badge + history drawer).
 
 ---
 
-## What NOT to Build
-
-- ❌ Multi-agent orchestration UI (too complex, competitors have it)
-- ❌ Custom MCP server builder (out of scope)
-- ❌ User auth/teams/billing (not a SaaS)
-- ❌ Hosting/deployment (we export, others run)
-- ❌ Yet another visual node editor (kill React Flow in design mode — ✅ done)
-- ❌ More viz styles (Card/Circuit/Layers — vanity, not value)
-
-## What Makes Us Acquirable
-
-| Feature | Who wants it | Why they can't build it |
-|---------|-------------|----------------------|
-| Knowledge Depth Mixer | Everyone | UX research + iteration we already did |
-| PageIndex vectorless RAG | Dify, Langflow | Different paradigm, integration work |
-| MCP Health Dashboard | Everyone | Unsexy infra work nobody prioritizes |
-| Fact → Design promotion | Letta, VK | Novel concept, LLM pipeline + UX |
-| Output target hinting | Enterprise buyers | Domain-specific schema mapping |
-| RTK (Rust token compressor) | Everyone (perf) | Rust expertise barrier |
-| Eval harness in-IDE | Vellum competitors | Testing is always "later" |
+## What We're NOT Building
+- ❌ RTK (Rust token killer) — token costs dropping 10x/year, diminishing returns
+- ❌ Output target hinting — nice feature, not a moat, later
+- ❌ Eval harness / A/B testing — Vellum/Braintrust own this
+- ❌ Multi-agent orchestration runtime — we design, others run
+- ❌ Distribution strategy — dogfood first, distribute when it's proven
 
 ---
 
-## Success Metrics
+## Build Order (Tonight + This Week)
 
-**Month 1:** npm published, 50+ GitHub stars, 10 real users, HN post
-**Month 2:** PageIndex integrated, blog posts getting shared, first acquirer conversation
-**Month 3:** RTK shipped, eval harness working, demo video viral
-**Exit timeline:** 3-6 months from first acquirer conversation
+### Tonight: MCP/Skill Health + Execution Traces
+
+**Step 1: Health probes** (~2h)
+- `src/services/healthService.ts` — probe MCP servers (connect, list tools, latency)
+- `src/store/healthStore.ts` — health state per server/skill
+- Wire into SourcesPanel McpSection (green/yellow/red dots with detail tooltip)
+
+**Step 2: Execution trace capture** (~2h)
+- `src/store/traceStore.ts` — trace events (tool_call, retrieval, error, token_usage)
+- Wrap LLM service calls to emit trace events
+- `src/panels/TraceViewer.tsx` — timeline of events per conversation, expandable details
+
+**Step 3: Knowledge graph store** (~2h)
+- `src/store/teamStore.ts` — agents, shared facts, cross-references
+- `src/panels/TeamGraph.tsx` — simple SVG graph of agent relationships
+- Fact scope selector in MemorySection (per_agent / per_team / global)
+
+### This Week: PageIndex + Polish
+- PageIndex API client
+- Wire knowledge sources to PageIndex
+- Test panel shows retrieval provenance
+- Version badge in dashboard header
+- `npm publish` v0.1.0
 
 ---
 
-*"Don't build a company. Build IP that a company needs."*
+## Syroco Dogfood Targets
+
+| Agent | Purpose | Tests |
+|-------|---------|-------|
+| Route Optimizer | Voyage Prep TCE calculations | Does it pick the right MCP (weather, AIS)? |
+| Fleet Monitor | Track vessel performance | Does shared context propagate fuel savings? |
+| Report Generator | Weekly fleet reports | Does it pull from both agents' facts? |
+| Competitor Intel | Track StormGeo/ZeroNorth | Does Fact Insights suggest new knowledge sources? |
+
+---
+
+*"Build for yourself. If it works for your team, it works for everyone."*

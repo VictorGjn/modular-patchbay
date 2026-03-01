@@ -15,8 +15,9 @@ import {
   Play, Send, Download, Copy, Check,
   Maximize2, X, FileText, FileCode,
   MessageSquare, TestTube, History,
-  Settings,
+  Settings, Activity,
 } from 'lucide-react';
+import { TraceViewer } from './TraceViewer';
 
 /* ── Chat Section ── */
 function ChatSection() {
@@ -194,7 +195,7 @@ function ExportSection() {
 /* ── Main TestPanel ── */
 export function TestPanel() {
   const t = useTheme();
-  const [activeTab, setActiveTab] = useState<'chat' | 'export'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'traces' | 'export'>('chat');
 
   return (
     <div className="flex flex-col h-full">
@@ -202,13 +203,18 @@ export function TestPanel() {
       <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px rgba(0,255,136,0.4)' }} />
         <span className="text-[10px] font-bold tracking-[0.15em] uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}>
-          {activeTab === 'chat' ? 'Conversation Tester' : 'Export'}
+          {activeTab === 'chat' ? 'Conversation Tester' : activeTab === 'traces' ? 'Execution Traces' : 'Export'}
         </span>
         <div className="flex gap-0.5 rounded-md overflow-hidden" role="tablist" style={{ border: `1px solid ${t.border}` }}>
           <button type="button" role="tab" aria-selected={activeTab === 'chat'} onClick={() => setActiveTab('chat')}
             className="text-[9px] px-2.5 py-1.5 cursor-pointer border-none"
             style={{ background: activeTab === 'chat' ? '#FE5000' : 'transparent', color: activeTab === 'chat' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}>
             Chat
+          </button>
+          <button type="button" role="tab" aria-selected={activeTab === 'traces'} onClick={() => setActiveTab('traces')}
+            className="text-[9px] px-2.5 py-1.5 cursor-pointer border-none"
+            style={{ background: activeTab === 'traces' ? '#FE5000' : 'transparent', color: activeTab === 'traces' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}>
+            Traces
           </button>
           <button type="button" role="tab" aria-selected={activeTab === 'export'} onClick={() => setActiveTab('export')}
             className="text-[9px] px-2.5 py-1.5 cursor-pointer border-none"
@@ -218,7 +224,13 @@ export function TestPanel() {
         </div>
       </div>
 
-      {activeTab === 'chat' ? <ChatSection /> : (
+      {activeTab === 'chat' && <ChatSection />}
+      {activeTab === 'traces' && (
+        <div className="flex-1 overflow-y-auto">
+          <TraceViewer />
+        </div>
+      )}
+      {activeTab === 'export' && (
         <div className="flex-1 overflow-y-auto">
           <ExportSection />
         </div>
