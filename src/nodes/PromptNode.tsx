@@ -1,6 +1,6 @@
 import { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { ResizeHandle } from '../components/ResizeHandle';
+
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { OutputIcon } from '../components/icons/SectionIcons';
@@ -102,8 +102,6 @@ export const PromptNode = memo(function PromptNode() {
   const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
   return (
-    <>
-    <ResizeHandle minWidth={340} minHeight={200} />
     <div
       className="rounded-lg overflow-visible"
       style={{
@@ -145,7 +143,7 @@ export const PromptNode = memo(function PromptNode() {
       </div>
 
       {/* Textarea */}
-      <div className="p-3 relative flex-1 overflow-y-auto nowheel">
+      <div className="px-5 py-3 relative flex-1 overflow-y-auto nowheel">
         <TextArea
           ref={textareaRef}
           value={prompt}
@@ -344,6 +342,5 @@ export const PromptNode = memo(function PromptNode() {
       </div>
       </div>
     </div>
-    </>
   );
 });

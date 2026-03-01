@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { ResizeHandle } from '../components/ResizeHandle';
+
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS, KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { Copy, Check, Maximize2, X } from 'lucide-react';
@@ -104,7 +104,6 @@ export const ResponseNode = memo(function ResponseNode() {
 
   return (
     <>
-      <ResizeHandle minWidth={300} minHeight={120} />
       <div
         className="rounded-lg overflow-visible"
         style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)'}`, width: 320 }}
@@ -112,7 +111,7 @@ export const ResponseNode = memo(function ResponseNode() {
         <Handle type="target" position={Position.Left} id="response-in" style={{ ...HANDLE, background: '#FE5000', top: '50%', left: -4 }} />
         <div className="flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-2 px-4 shrink-0" style={{ height: 40, background: t.surfaceElevated, borderBottom: `1px solid ${t.border}` }}>
+        <div className="flex items-center gap-2 px-5 shrink-0" style={{ height: 40, background: t.surfaceElevated, borderBottom: `1px solid ${t.border}` }}>
           <div
             className="w-1.5 h-1.5 rounded-full"
             style={{
@@ -195,7 +194,7 @@ export const ResponseNode = memo(function ResponseNode() {
 
         {/* Source list */}
         {response && !running && activeChannels.length > 0 && (
-          <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5 shrink-0" style={{ borderColor: t.borderSubtle }}>
+          <div className="px-5 pb-3 pt-1 border-t flex flex-wrap gap-1.5 shrink-0" style={{ borderColor: t.borderSubtle }}>
             <span className="text-[11px] tracking-wider font-semibold self-center mr-1" style={{ color: t.textFaint }}>Sources:</span>
             {activeChannels.map((ch) => {
               const kt = KNOWLEDGE_TYPES[ch.knowledgeType];

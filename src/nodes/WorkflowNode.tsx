@@ -1,6 +1,6 @@
 import { memo, useState, useCallback, useMemo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { ResizeHandle } from '../components/ResizeHandle';
+
 import { Input } from '../components/ds/Input';
 import { TextArea } from '../components/ds/TextArea';
 import { Select, type SelectOption } from '../components/ds/Select';
@@ -182,7 +182,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
 
       {/* Flowchart body */}
       <div className="flex-1 overflow-y-auto nowheel nodrag" style={{ maxHeight: 700 }}>
-        <div className="flex flex-col items-center py-3 px-2">
+        <div className="flex flex-col items-center py-3 px-5">
           {/* Start indicator */}
           <div
             className="flex items-center justify-center rounded-full mb-1"
@@ -432,7 +432,6 @@ export const WorkflowNode = memo(function WorkflowNode() {
         </div>
       </div>
 
-      <ResizeHandle />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { memo, useState, useCallback, useMemo, useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { ResizeHandle } from '../components/ResizeHandle';
+
 import { Input } from '../components/ds/Input';
 import { TextArea } from '../components/ds/TextArea';
 import { Toggle } from '../components/ds/Toggle';
@@ -436,7 +436,7 @@ export const AgentNode = memo(function AgentNode() {
         )}
       </div>
 
-      <ResizeHandle />
+
     </div>
   );
 });
