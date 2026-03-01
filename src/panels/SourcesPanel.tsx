@@ -15,7 +15,8 @@ import { generateMemoryConfig, generateKnowledge } from '../utils/generateSectio
 import { analyzeFactsForPromotion, type FactPromotion, type FactAnalysisResult } from '../utils/analyzeFactsForPromotion';
 import { useVersionStore } from '../store/versionStore';
 import { useHealthStore } from '../store/healthStore';
-import { KNOWLEDGE_TYPES } from '../store/knowledgeBase';
+import { useTreeIndexStore } from '../store/treeIndexStore';
+import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 // import { formatTokens } from '../utils/formatTokens';
 import {
   Wand2, Sparkles, Loader2, RotateCcw,
@@ -187,17 +188,40 @@ function GeneratorSection() {
 function KnowledgeSection() {
   const t = useTheme();
   const channels = useConsoleStore(s => s.channels);
-  // const toggleChannel = useConsoleStore(s => s.toggleChannel);
   const setChannelDepth = useConsoleStore(s => s.setChannelDepth);
   const removeChannel = useConsoleStore(s => s.removeChannel);
   const addChannel = useConsoleStore(s => s.addChannel);
   const setShowFilePicker = useConsoleStore(s => s.setShowFilePicker);
+  const treeIndexes = useTreeIndexStore(s => s.indexes);
+  const treeLoading = useTreeIndexStore(s => s.loading);
+  const treeErrors = useTreeIndexStore(s => s.errors);
   const [collapsed, setCollapsed] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [scanning, setScanning] = useState(false);
+
+  // Compute real tokens from tree indexes where available
+  const getChannelTokens = (ch: typeof channels[number]) => {
+    const entry = treeIndexes[ch.path];
+    if (entry) {
+      const depthLevel = DEPTH_LEVELS[ch.depth];
+      return Math.round(entry.index.totalTokens * depthLevel.pct);
+    }
+    return ch.baseTokens ?? 0;
+  };
 
   const enabledCount = channels.filter(c => c.enabled).length;
-  const totalTokens = channels.reduce((sum, c) => sum + ((c as any).effectiveTokens ?? c.baseTokens ?? 0), 0);
+  const indexedCount = channels.filter(c => c.enabled && treeIndexes[c.path]).length;
+  const totalTokens = channels.filter(c => c.enabled).reduce((sum, c) => sum + getChannelTokens(c), 0);
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
+
+  const handleScanSources = useCallback(async () => {
+    setScanning(true);
+    const paths = channels.filter(c => c.enabled && c.path).map(c => c.path);
+    if (paths.length > 0) {
+      await useTreeIndexStore.getState().indexFiles(paths);
+    }
+    setScanning(false);
+  }, [channels]);
 
   const DEPTH_LABELS = ['Full', 'High', 'Ref', 'Skim', 'Mention'] as const;
   const DEPTH_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e67e22', '#999'];
@@ -224,10 +248,10 @@ function KnowledgeSection() {
   return (
     <Section
       icon={Database} label="Knowledge" color="#3498db"
-      badge={`${enabledCount} sources · ${fmtTokens(totalTokens)} tokens`}
+      badge={`${indexedCount}/${enabledCount} indexed · ${fmtTokens(totalTokens)} tokens`}
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
-      {/* Type legend + generate */}
+      {/* Type legend + actions */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(KNOWLEDGE_TYPES).map(([key, kt]) => (
@@ -238,7 +262,10 @@ function KnowledgeSection() {
             </div>
           ))}
         </div>
-        <GenerateBtn loading={generating} onClick={handleGenerate} label="Suggest" />
+        <div className="flex gap-1">
+          <GenerateBtn loading={scanning} onClick={handleScanSources} label="Scan" />
+          <GenerateBtn loading={generating} onClick={handleGenerate} label="Suggest" />
+        </div>
       </div>
 
       {/* Channel list */}
@@ -248,11 +275,27 @@ function KnowledgeSection() {
           const depth = ch.depth ?? 0;
           const barPct = ((4 - depth) / 4) * 100;
           const barColor = DEPTH_COLORS[depth] || '#999';
+          const isIndexed = !!treeIndexes[ch.path];
+          const isLoading = !!treeLoading[ch.path];
+          const hasError = !!treeErrors[ch.path];
+          const realTokens = getChannelTokens(ch);
+
           return (
             <div key={ch.sourceId} className="flex items-center gap-2 py-2"
               style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
-              {/* Type dot */}
-              <div style={{ width: 8, height: 8, borderRadius: 2, background: kt.color, flexShrink: 0 }} />
+              {/* Type dot + index status */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: kt.color }} />
+                {isIndexed && (
+                  <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#00ff88' }} />
+                )}
+                {isLoading && (
+                  <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ffaa00' }} />
+                )}
+                {hasError && (
+                  <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ff3344' }} />
+                )}
+              </div>
               {/* Name */}
               <span className="flex-1 truncate text-[12px]" style={{ color: ch.enabled ? t.textPrimary : t.textDim }}>
                 {ch.name}
@@ -274,9 +317,10 @@ function KnowledgeSection() {
                   {DEPTH_LABELS[depth]}
                 </span>
               </div>
-              {/* Token count */}
-              <span className="text-[9px] w-8 text-right" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
-                {fmtTokens((ch as any).effectiveTokens ?? ch.baseTokens ?? 0)}
+              {/* Token count (real if indexed, estimated if not) */}
+              <span className="text-[9px] w-8 text-right" style={{ fontFamily: "'Space Mono', monospace", color: isIndexed ? t.textPrimary : t.textDim }}
+                title={isIndexed ? `Indexed: ${treeIndexes[ch.path].index.nodeCount} nodes` : 'Estimated (not yet indexed)'}>
+                {fmtTokens(realTokens)}
               </span>
               {/* Remove */}
               <button type="button" aria-label={`Remove ${ch.name}`} onClick={() => removeChannel(ch.sourceId)}
@@ -311,7 +355,7 @@ function KnowledgeSection() {
             {Object.entries(KNOWLEDGE_TYPES).map(([key, kt]) => {
               const typeTokens = channels
                 .filter(c => c.enabled && c.knowledgeType === key)
-                .reduce((sum, c) => sum + ((c as any).effectiveTokens ?? c.baseTokens ?? 0), 0);
+                .reduce((sum, c) => sum + getChannelTokens(c), 0);
               if (typeTokens === 0) return null;
               const pct = totalTokens > 0 ? (typeTokens / totalTokens) * 100 : 0;
               return <div key={key} style={{ width: `${pct}%`, background: kt.color, borderRadius: 2 }} />;

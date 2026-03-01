@@ -21,7 +21,9 @@ import {
 } from './pipeline';
 import { useTraceStore } from '../store/traceStore';
 import { useVersionStore } from '../store/versionStore';
+import { useTreeIndexStore } from '../store/treeIndexStore';
 import { estimateTokens } from './treeIndexer';
+import { renderFilteredMarkdown, applyDepthFilter } from '../utils/depthFilter';
 import { streamCompletion, streamAgentSdk } from './llmService';
 
 // ── Types ──
@@ -118,19 +120,6 @@ function buildSystemFrame(): string {
   return parts.join('\n\n');
 }
 
-// ── Convert ChannelConfig[] → PipelineSource[] ──
-
-function channelsToPipelineSources(channels: ChannelConfig[]): PipelineSource[] {
-  return channels
-    .filter(ch => ch.enabled)
-    .map(ch => ({
-      name: ch.name,
-      type: 'markdown' as const, // For now — structured/chrono connectors come when UI has connector picker
-      content: '', // Pipeline will use tree index store cache or re-index from path
-      sourceType: ch.knowledgeType,
-    }));
-}
-
 // ── Fallback: build knowledge section without pipeline (same as old assembleContext) ──
 
 function buildKnowledgeFallback(channels: ChannelConfig[]): string {
@@ -179,27 +168,56 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     const systemFrame = buildSystemFrame();
 
     // 2. Run pipeline on knowledge channels (if any enabled)
-    const activeChannels = channels.filter(ch => ch.enabled && ch.path);
+    const activeChannels = channels.filter(ch => ch.enabled);
     let knowledgeBlock = '';
 
     if (activeChannels.length > 0) {
-      const sources = channelsToPipelineSources(activeChannels);
+      const treeStore = useTreeIndexStore.getState();
 
-      // For channels with content loaded in tree index store, pull from there
-      // For now, fall back to metadata-only if content isn't available
-      const sourcesWithContent = sources.filter(s => s.content && s.content.length > 0);
+      // 2a. Index files that have paths (fetches content from backend, caches in treeIndexStore)
+      const pathChannels = activeChannels.filter(ch => ch.path);
+      if (pathChannels.length > 0) {
+        const indexStart = Date.now();
+        await treeStore.indexFiles(pathChannels.map(ch => ch.path));
 
+        traceStore.addEvent(traceId, {
+          kind: 'retrieval',
+          sourceName: 'pipeline:fetch',
+          query: `${pathChannels.length} sources`,
+          resultCount: pathChannels.filter(ch => treeStore.getIndex(ch.path) != null).length,
+          durationMs: Date.now() - indexStart,
+        });
+      }
+
+      // 2b. Build pipeline sources from indexed content
+      const sourcesWithContent: PipelineSource[] = [];
+      for (const ch of activeChannels) {
+        const treeIndex = treeStore.getIndex(ch.path);
+        if (treeIndex) {
+          // Use depth-filtered content from the tree index
+          const filtered = applyDepthFilter(treeIndex, ch.depth);
+          const content = renderFilteredMarkdown(filtered.filtered);
+          if (content.trim()) {
+            sourcesWithContent.push({
+              name: ch.name,
+              type: 'markdown',
+              content,
+              sourceType: ch.knowledgeType,
+            });
+          }
+        }
+      }
+
+      // 2c. Run pipeline if we have indexed content
       if (sourcesWithContent.length > 0) {
         const totalBudget = activeChannels.reduce((sum, ch) => sum + ch.baseTokens, 0);
 
-        // Start pipeline (index + build navigation prompt)
         const pipelineStart = startPipeline({
           task: userMessage,
           sources: sourcesWithContent,
           tokenBudget: totalBudget,
         });
 
-        // Emit retrieval trace for indexing
         traceStore.addEvent(traceId, {
           kind: 'retrieval',
           sourceName: 'pipeline:index',
@@ -208,17 +226,18 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
           durationMs: pipelineStart.indexMs,
         });
 
-        // Use manual depth-based selections instead of LLM navigation call
-        // (LLM navigation would require an extra API call — we use channel depths as manual overrides)
-        const manualSelections = activeChannels.map(ch => ({
-          nodeId: ch.name,
-          depth: ch.depth,
-          priority: ch.knowledgeType === 'ground-truth' ? 0 : ch.knowledgeType === 'signal' ? 1 : 2,
-        }));
+        // Manual depth-based selections (channel depths act as user overrides)
+        const manualSelections = activeChannels
+          .filter(ch => treeStore.getIndex(ch.path) != null)
+          .map(ch => ({
+            nodeId: ch.name,
+            depth: ch.depth,
+            priority: ch.knowledgeType === 'ground-truth' ? 0 : ch.knowledgeType === 'signal' ? 1 : 2,
+          }));
 
         pipelineResult = completePipeline(
           pipelineStart.indexes,
-          '', // no LLM navigation response — using manual selections
+          '',
           {
             task: userMessage,
             sources: sourcesWithContent,
@@ -229,7 +248,6 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
           pipelineStart.indexMs,
         );
 
-        // Emit compression trace
         traceStore.addEvent(traceId, {
           kind: 'retrieval',
           sourceName: 'pipeline:compress',
@@ -238,7 +256,6 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         });
 
         if (pipelineResult.context.trim()) {
-          // Wrap pipeline output in knowledge XML with type annotations
           const sourceAnnotations = pipelineResult.sources
             .map(s => `${s.name} (${s.type}, ${s.totalTokens} tokens, ${s.indexedNodes} nodes)`)
             .join(', ');
@@ -246,7 +263,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         }
       }
 
-      // If pipeline didn't produce content, fall back to metadata references
+      // Fallback to metadata references if pipeline produced nothing
       if (!knowledgeBlock) {
         knowledgeBlock = buildKnowledgeFallback(channels);
       }
