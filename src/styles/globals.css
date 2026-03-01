@@ -57,21 +57,15 @@ html, body, #root {
   color: var(--color-text-primary);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #111114;
-}
-::-webkit-scrollbar-thumb {
-  background: #2a2a30;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3a3a40;
-}
+/* Scrollbar — dark */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #111114; }
+::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a40; }
+/* Scrollbar — light */
+[data-theme="light"] ::-webkit-scrollbar-track { background: #f0f1f3; }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #ccccd4; }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #aaaaB0; }
 
 /* Remove default ReactFlow node background/border/shadow */
 .react-flow__node {
@@ -81,21 +75,72 @@ html, body, #root {
   padding: 0 !important;
 }
 
-/* B14: Zoom controls visibility */
-.zoom-controls .react-flow__controls-button {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+/* ── React Flow Controls (zoom +/- and fit) ── */
+.react-flow__controls {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
 }
-.zoom-controls .react-flow__controls-button:last-child {
-  border-bottom: none;
+.react-flow__controls-button {
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #1c1c20 !important;
+  border: none !important;
+  border-bottom: 1px solid #2a2a30 !important;
+  color: #f0f0f0 !important;
+  fill: #f0f0f0 !important;
 }
-.zoom-controls .react-flow__controls-button svg {
-  max-width: 14px;
-  max-height: 14px;
+.react-flow__controls-button:hover {
+  background: #25252a !important;
+}
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+.react-flow__controls-button svg {
+  max-width: 14px !important;
+  max-height: 14px !important;
+  fill: currentColor !important;
+}
+
+/* ── React Flow Minimap ── */
+.react-flow__minimap {
+  background: #1c1c20 !important;
+  border: 1px solid #2a2a30 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+}
+.react-flow__minimap-mask {
+  fill: rgba(17,17,20,0.85) !important;
+}
+.react-flow__minimap-node {
+  fill: #3a3a42 !important;
+  stroke: #555 !important;
+  stroke-width: 1 !important;
+}
+
+/* ── Light mode overrides ── */
+[data-theme="light"] .react-flow__controls-button {
+  background: #ffffff !important;
+  border-bottom-color: #dddde2 !important;
+  color: #1a1a20 !important;
+  fill: #1a1a20 !important;
+}
+[data-theme="light"] .react-flow__controls-button:hover {
+  background: #f0f0f5 !important;
+}
+[data-theme="light"] .react-flow__minimap {
+  background: #ffffff !important;
+  border-color: #ccccd4 !important;
+}
+[data-theme="light"] .react-flow__minimap-mask {
+  fill: rgba(240,241,243,0.85) !important;
+}
+[data-theme="light"] .react-flow__minimap-node {
+  fill: #ccccd4 !important;
+  stroke: #999 !important;
 }
 
 /* Accessibility: respect reduced motion preference */
