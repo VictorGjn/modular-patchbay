@@ -67,24 +67,25 @@ const edgeTypes = {
   feedback: FeedbackEdge,
 };
 
+const W = 480;
 const initialNodes: Node[] = [
   // Generator — entry point
-  { id: 'generator', type: 'generator', position: { x: -560, y: 60 }, data: {} },
+  { id: 'generator', type: 'generator', position: { x: -560, y: 60 }, data: {}, style: { width: W } },
   // Left column
-  { id: 'knowledge', type: 'knowledge', position: { x: 50, y: 60 }, data: {} },
-  { id: 'skills', type: 'skills', position: { x: 50, y: 400 }, data: {} },
-  { id: 'mcp', type: 'mcp', position: { x: 50, y: 740 }, data: {} },
+  { id: 'knowledge', type: 'knowledge', position: { x: 50, y: 60 }, data: {}, style: { width: W } },
+  { id: 'skills', type: 'skills', position: { x: 50, y: 400 }, data: {}, style: { width: W } },
+  { id: 'mcp', type: 'mcp', position: { x: 50, y: 740 }, data: {}, style: { width: W } },
   // Middle column - Agent + Workflow
-  { id: 'agent', type: 'agent', position: { x: 660, y: -120 }, data: {} },
-  { id: 'workflow', type: 'workflow', position: { x: 660, y: 520 }, data: {} },
-  { id: 'memory', type: 'memory', position: { x: 660, y: 920 }, data: {} },
+  { id: 'agent', type: 'agent', position: { x: 660, y: -120 }, data: {}, style: { width: W } },
+  { id: 'workflow', type: 'workflow', position: { x: 660, y: 520 }, data: {}, style: { width: W } },
+  { id: 'memory', type: 'memory', position: { x: 660, y: 920 }, data: {}, style: { width: W } },
   // Center — Hero Prompt node
-  { id: 'prompt', type: 'prompt', position: { x: 1270, y: 120 }, data: {} },
+  { id: 'prompt', type: 'prompt', position: { x: 1270, y: 120 }, data: {}, style: { width: W } },
   // Right column
-  { id: 'output', type: 'output', position: { x: 1880, y: 120 }, data: {} },
-  { id: 'response', type: 'response', position: { x: 1880, y: 520 }, data: {} },
+  { id: 'output', type: 'output', position: { x: 1880, y: 120 }, data: {}, style: { width: W } },
+  { id: 'response', type: 'response', position: { x: 1880, y: 520 }, data: {}, style: { width: W } },
   // Far right — the final agent preview (outcome of the whole process)
-  { id: 'agent-preview', type: 'agentPreview', position: { x: 2490, y: 120 }, data: {} },
+  { id: 'agent-preview', type: 'agentPreview', position: { x: 2490, y: 120 }, data: {}, style: { width: W } },
 ];
 
 const initialEdges: Edge[] = [
