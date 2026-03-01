@@ -8,6 +8,7 @@ import { useKnowledgeStore } from '../store/knowledgeStore';
 import { TextArea } from '../components/ds/TextArea';
 import { Input } from '../components/ds/Input';
 import { Toggle } from '../components/ds/Toggle';
+import { Select } from '../components/ds/Select';
 import { Tooltip } from '../components/ds/Tooltip';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
 import { generateMemoryConfig } from '../utils/generateSection';
@@ -401,61 +402,281 @@ function SkillsSection() {
 }
 
 /* ── Memory Section ── */
+
+const STRATEGY_OPTIONS = [
+  { value: 'full', label: 'Full History' },
+  { value: 'sliding_window', label: 'Sliding Window' },
+  { value: 'summarize_and_recent', label: 'Summarize + Recent' },
+  { value: 'rag', label: 'RAG over History' },
+];
+const STORE_OPTIONS = [
+  { value: 'local_sqlite', label: 'SQLite (local)' },
+  { value: 'postgres', label: 'PostgreSQL' },
+  { value: 'redis', label: 'Redis' },
+  { value: 'chromadb', label: 'ChromaDB' },
+  { value: 'pinecone', label: 'Pinecone' },
+  { value: 'custom', label: 'Custom' },
+];
+const EMBEDDING_OPTIONS = [
+  { value: 'text-embedding-3-small', label: 'Ada 3 Small' },
+  { value: 'text-embedding-3-large', label: 'Ada 3 Large' },
+  { value: 'voyage-3', label: 'Voyage 3' },
+  { value: 'custom', label: 'Custom' },
+];
+const RECALL_OPTIONS = [
+  { value: 'top_k', label: 'Top-K' },
+  { value: 'threshold', label: 'Threshold' },
+  { value: 'hybrid', label: 'Hybrid' },
+];
+const WRITE_MODE_OPTIONS = [
+  { value: 'auto_extract', label: 'Auto Extract' },
+  { value: 'explicit', label: 'Explicit Only' },
+  { value: 'both', label: 'Both' },
+];
+const SCOPE_OPTIONS = [
+  { value: 'per_user', label: 'Per User' },
+  { value: 'per_agent', label: 'Per Agent' },
+  { value: 'global', label: 'Global' },
+];
+const EXTRACT_TYPES: Array<{ value: string; label: string; color: string }> = [
+  { value: 'user_preferences', label: 'Preferences', color: '#3498db' },
+  { value: 'decisions', label: 'Decisions', color: '#e67e22' },
+  { value: 'facts', label: 'Facts', color: '#2ecc71' },
+  { value: 'feedback', label: 'Feedback', color: '#9b59b6' },
+  { value: 'entities', label: 'Entities', color: '#f1c40f' },
+];
+const FACT_TYPE_COLORS: Record<string, string> = {
+  preference: '#3498db',
+  decision: '#e67e22',
+  fact: '#2ecc71',
+  entity: '#f1c40f',
+  custom: '#999',
+};
+
+function SubLabel({ children }: { children: React.ReactNode }) {
+  const t = useTheme();
+  return (
+    <div className="text-[9px] uppercase tracking-[0.12em] font-semibold mt-2 mb-1"
+      style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+      {children}
+    </div>
+  );
+}
+
+function SliderRow({ label, value, min, max, step, onChange, suffix }: {
+  label: string; value: number; min: number; max: number; step: number;
+  onChange: (v: number) => void; suffix?: string;
+}) {
+  const t = useTheme();
+  const display = suffix === 'K' ? `${(value / 1000).toFixed(0)}K` : `${value}`;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[9px] uppercase tracking-wider shrink-0"
+        style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, width: 90 }}>
+        {label}
+      </span>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        aria-label={label} className="flex-1" style={{ accentColor: '#FE5000' }} />
+      <span className="text-[10px] w-10 text-right"
+        style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}>
+        {display}
+      </span>
+    </div>
+  );
+}
+
 function MemorySection() {
   const t = useTheme();
-  const sessionMemory = useMemoryStore(s => s.sessionMemory);
-  const longTermMemory = useMemoryStore(s => s.longTermMemory);
-  const workingMemory = useMemoryStore(s => s.workingMemory);
+  const session = useMemoryStore(s => s.session);
+  const longTerm = useMemoryStore(s => s.longTerm);
+  const working = useMemoryStore(s => s.working);
+  const facts = useMemoryStore(s => s.facts);
   const setSessionConfig = useMemoryStore(s => s.setSessionConfig);
-  const updateScratchpad = useMemoryStore(s => s.updateScratchpad);
+  const setLongTermConfig = useMemoryStore(s => s.setLongTermConfig);
+  const setRecallConfig = useMemoryStore(s => s.setRecallConfig);
+  const setWriteConfig = useMemoryStore(s => s.setWriteConfig);
+  const toggleExtractType = useMemoryStore(s => s.toggleExtractType);
+  const setWorkingConfig = useMemoryStore(s => s.setWorkingConfig);
   const addFact = useMemoryStore(s => s.addFact);
   const removeFact = useMemoryStore(s => s.removeFact);
   const [collapsed, setCollapsed] = useState(false);
+  const [newFactText, setNewFactText] = useState('');
+
+  const totalBudget = session.tokenBudget + longTerm.tokenBudget + working.tokenBudget;
+  const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
 
   return (
     <Section
       icon={Brain} label="Memory" color="#e74c3c"
-      badge={`session + ${longTermMemory.length} facts`}
+      badge={`${facts.length} facts · ${fmtTokens(totalBudget)} tokens`}
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
-      {/* Session config */}
-      <div className="flex flex-col gap-2 mb-3">
-        <Toggle
-          checked={sessionMemory.summarizeEnabled}
-          onChange={v => setSessionConfig({ summarizeEnabled: v })}
-          label="Auto-summarize after overflow"
-        />
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] uppercase tracking-wider" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, width: 90 }}>Max messages</span>
-          <input type="range" min={5} max={50} step={5} value={sessionMemory.maxMessages}
-            onChange={e => setSessionConfig({ maxMessages: parseInt(e.target.value) })}
-            aria-label="Max messages" className="flex-1" style={{ accentColor: '#FE5000' }} />
-          <span className="text-[10px] w-6 text-right" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}>{sessionMemory.maxMessages}</span>
-        </div>
+      {/* ── Session Memory ── */}
+      <SubLabel>Session Strategy</SubLabel>
+      <Select
+        options={STRATEGY_OPTIONS}
+        value={session.strategy}
+        onChange={v => setSessionConfig({ strategy: v as any })}
+        size="sm"
+      />
+      <div className="mt-2 flex flex-col gap-1.5">
+        <SliderRow label="Window" value={session.windowSize} min={5} max={100} step={5}
+          onChange={v => setSessionConfig({ windowSize: v })} />
+        {(session.strategy === 'summarize_and_recent') && (
+          <SliderRow label="Summarize at" value={session.summarizeAfter} min={5} max={session.windowSize} step={5}
+            onChange={v => setSessionConfig({ summarizeAfter: v })} />
+        )}
+        <SliderRow label="Token budget" value={session.tokenBudget} min={1000} max={60000} step={1000}
+          onChange={v => setSessionConfig({ tokenBudget: v })} suffix="K" />
       </div>
 
-      {/* Long-term facts */}
-      <div className="text-[9px] uppercase tracking-wider mb-1.5" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
-        Long-term facts
-      </div>
+      {/* ── Long-Term Memory ── */}
+      <SubLabel>Long-Term Memory</SubLabel>
+      <Toggle checked={longTerm.enabled} onChange={v => setLongTermConfig({ enabled: v })} label="Enabled" size="sm" />
+
+      {longTerm.enabled && (
+        <div className="flex flex-col gap-2 mt-2">
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Select options={STORE_OPTIONS} value={longTerm.store}
+                onChange={v => setLongTermConfig({ store: v as any })} size="sm" label="Store" />
+            </div>
+            <div className="flex-1">
+              <Select options={SCOPE_OPTIONS} value={longTerm.scope}
+                onChange={v => setLongTermConfig({ scope: v as any })} size="sm" label="Scope" />
+            </div>
+          </div>
+          <Select options={EMBEDDING_OPTIONS} value={longTerm.embeddingModel}
+            onChange={v => setLongTermConfig({ embeddingModel: v as any })} size="sm" label="Embedding Model" />
+
+          {/* Recall config */}
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Select options={RECALL_OPTIONS} value={longTerm.recall.strategy}
+                onChange={v => setRecallConfig({ strategy: v as any })} size="sm" label="Recall" />
+            </div>
+            <div className="flex-1">
+              <SliderRow label="K" value={longTerm.recall.k} min={1} max={20} step={1}
+                onChange={v => setRecallConfig({ k: v })} />
+            </div>
+          </div>
+          <SliderRow label="Min score" value={Math.round(longTerm.recall.minScore * 100)} min={0} max={100} step={5}
+            onChange={v => setRecallConfig({ minScore: v / 100 })} />
+
+          {/* Write mode */}
+          <Select options={WRITE_MODE_OPTIONS} value={longTerm.write.mode}
+            onChange={v => setWriteConfig({ mode: v as any })} size="sm" label="Write Mode" />
+
+          {/* Extract types */}
+          <div className="flex flex-wrap gap-1">
+            {EXTRACT_TYPES.map(et => {
+              const active = longTerm.write.extractTypes.includes(et.value as any);
+              return (
+                <button key={et.value} type="button" aria-label={`Toggle ${et.label}`}
+                  onClick={() => toggleExtractType(et.value as any)}
+                  className="text-[9px] px-2 py-1 rounded-full cursor-pointer border-none"
+                  style={{
+                    fontFamily: "'Space Mono', monospace",
+                    background: active ? `${et.color}20` : t.isDark ? '#1c1c20' : '#f0f0f5',
+                    color: active ? et.color : t.textDim,
+                    border: `1px solid ${active ? `${et.color}40` : 'transparent'}`,
+                  }}>
+                  {et.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <SliderRow label="Max entries" value={longTerm.maxEntries} min={100} max={10000} step={100}
+            onChange={v => setLongTermConfig({ maxEntries: v })} />
+          <SliderRow label="Token budget" value={longTerm.tokenBudget} min={1000} max={30000} step={1000}
+            onChange={v => setLongTermConfig({ tokenBudget: v })} suffix="K" />
+        </div>
+      )}
+
+      {/* ── Seed Facts ── */}
+      <SubLabel>Seed Facts</SubLabel>
       <div className="flex flex-col gap-1 mb-2">
-        {longTermMemory.map(fact => (
-          <div key={fact.id} className="flex items-start gap-2 text-[11px]" style={{ color: t.textSecondary }}>
-            <span className="flex-1">{fact.content}</span>
-            <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)} className="border-none bg-transparent cursor-pointer p-1 rounded shrink-0 hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
+        {facts.map(fact => (
+          <div key={fact.id} className="flex items-center gap-1.5 text-[11px] py-1 px-2 rounded"
+            style={{ background: t.surfaceElevated, color: t.textSecondary }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: FACT_TYPE_COLORS[fact.type] || '#999', flexShrink: 0 }} />
+            <span className="flex-1 truncate" style={{ fontFamily: "'Inter', sans-serif" }}>{fact.content}</span>
+            {fact.tags.length > 0 && fact.tags.map(tag => (
+              <span key={tag} className="text-[8px] px-1 py-0.5 rounded"
+                style={{ background: `${FACT_TYPE_COLORS[fact.type] || '#999'}15`, color: FACT_TYPE_COLORS[fact.type] || '#999', fontFamily: "'Space Mono', monospace" }}>
+                {tag}
+              </span>
+            ))}
+            <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)}
+              className="border-none bg-transparent cursor-pointer p-0.5 rounded shrink-0" style={{ color: t.textFaint }}>
               <X size={9} />
             </button>
           </div>
         ))}
       </div>
-      <button type="button" onClick={() => addFact('New fact', [])}
-        className="flex items-center gap-1 text-[10px] cursor-pointer border-none bg-transparent"
-        style={{ color: t.textDim }}
-        onMouseEnter={e => { e.currentTarget.style.color = '#FE5000'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}
-      >
-        <Plus size={10} /> Add fact
-      </button>
+      <div className="flex gap-1">
+        <Input value={newFactText} onChange={e => setNewFactText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && newFactText.trim()) { addFact(newFactText.trim()); setNewFactText(''); } }}
+          placeholder="Add a seed fact..." />
+        <button type="button" aria-label="Add fact"
+          onClick={() => { if (newFactText.trim()) { addFact(newFactText.trim()); setNewFactText(''); } }}
+          className="px-2 border-none rounded cursor-pointer shrink-0"
+          style={{ background: t.surfaceElevated, color: t.textDim }}>
+          <Plus size={12} />
+        </button>
+      </div>
+
+      {/* ── Working Memory ── */}
+      <SubLabel>Working Memory</SubLabel>
+      <Toggle checked={working.enabled} onChange={v => setWorkingConfig({ enabled: v })} label="Enabled" size="sm" />
+      {working.enabled && (
+        <div className="mt-1.5">
+          <SliderRow label="Max tokens" value={working.maxTokens} min={500} max={8000} step={500}
+            onChange={v => setWorkingConfig({ maxTokens: v })} />
+        </div>
+      )}
+
+      {/* ── Token Budget Allocation ── */}
+      {totalBudget > 0 && (
+        <div className="mt-3">
+          <div className="text-[9px] tracking-[0.1em] uppercase mb-1.5"
+            style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+            Memory budget allocation
+          </div>
+          <div className="flex gap-0.5 h-1.5 rounded overflow-hidden">
+            <div style={{ width: `${(session.tokenBudget / totalBudget) * 100}%`, background: '#3498db', borderRadius: 2 }}
+              title={`Session: ${fmtTokens(session.tokenBudget)}`} />
+            {longTerm.enabled && (
+              <div style={{ width: `${(longTerm.tokenBudget / totalBudget) * 100}%`, background: '#2ecc71', borderRadius: 2 }}
+                title={`Long-term: ${fmtTokens(longTerm.tokenBudget)}`} />
+            )}
+            {working.enabled && (
+              <div style={{ width: `${(working.tokenBudget / totalBudget) * 100}%`, background: '#f1c40f', borderRadius: 2 }}
+                title={`Working: ${fmtTokens(working.tokenBudget)}`} />
+            )}
+          </div>
+          <div className="flex justify-between mt-1">
+            <div className="flex gap-2">
+              {[
+                { label: 'Session', color: '#3498db', tokens: session.tokenBudget },
+                ...(longTerm.enabled ? [{ label: 'Long-term', color: '#2ecc71', tokens: longTerm.tokenBudget }] : []),
+                ...(working.enabled ? [{ label: 'Working', color: '#f1c40f', tokens: working.tokenBudget }] : []),
+              ].map(item => (
+                <span key={item.label} className="flex items-center gap-1 text-[8px]"
+                  style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+                  <div style={{ width: 4, height: 4, borderRadius: 1, background: item.color }} />
+                  {item.label}
+                </span>
+              ))}
+            </div>
+            <span className="text-[9px]" style={{ fontFamily: "'Space Mono', monospace", color: '#FE5000' }}>
+              {fmtTokens(totalBudget)} total
+            </span>
+          </div>
+        </div>
+      )}
     </Section>
   );
 }
