@@ -1,5 +1,7 @@
 import { memo, useState, useCallback } from 'react';
-import { JackGutter, type JackDef } from '../components/JackGutter';
+import { Handle, Position } from '@xyflow/react';
+import { Input } from '../components/ds/Input';
+import { TextArea } from '../components/ds/TextArea';
 import { useMemoryStore } from '../store/memoryStore';
 import { useTheme } from '../theme';
 import {
@@ -88,30 +90,27 @@ export const MemoryNode = memo(function MemoryNode() {
     fontSize: 11,
   };
 
-  const leftJacks: JackDef[] = [
-    { id: 'memory-in', type: 'target', label: 'IN', color: '#e74c3c' },
-  ];
-  const rightJacks: JackDef[] = [
-    { id: 'memory-out', type: 'source', label: 'OUT', color: '#9b59b6' },
-  ];
+  const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
   return (
     <div
-      className="flex rounded-lg overflow-visible"
+      className="rounded-lg overflow-visible"
       style={{
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
         boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`,
+        width: 320,
       }}
     >
-      <JackGutter jacks={leftJacks} side="left" />
+      <Handle type="target" position={Position.Left} id="memory-in" style={{ ...HANDLE, background: '#e74c3c', top: '50%', left: -4 }} />
+      <Handle type="source" position={Position.Right} id="memory-out" style={{ ...HANDLE, background: '#9b59b6', top: '50%', right: -4 }} />
 
-      <div className="flex flex-col flex-1" style={{ width: 340, minWidth: 340 }}>
+      <div className="flex flex-col">
         {/* Header */}
         <div
           className="flex items-center gap-2 px-3 shrink-0 select-none"
           style={{
-            height: 36,
+            height: 40,
             background: t.surfaceElevated,
             borderBottom: `1px solid ${t.border}`,
           }}
@@ -289,22 +288,16 @@ export const MemoryNode = memo(function MemoryNode() {
 
               {/* Add fact form */}
               <div className="flex flex-col gap-1 mt-1">
-                <input
-                  type="text"
+                <Input
                   value={newFactText}
                   onChange={(e) => setNewFactText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleAddFact(); }}
                   placeholder="New fact..."
-                  className="w-full text-[11px] px-2 py-1.5 rounded outline-none nodrag"
-                  style={inputStyle}
                 />
-                <input
-                  type="text"
+                <Input
                   value={newFactTags}
                   onChange={(e) => setNewFactTags(e.target.value)}
                   placeholder="Tags (comma-separated)"
-                  className="w-full text-[10px] px-2 py-1 rounded outline-none nodrag"
-                  style={inputStyle}
                 />
                 <button
                   type="button"
@@ -328,19 +321,15 @@ export const MemoryNode = memo(function MemoryNode() {
           />
           {workingOpen && (
             <div className="px-3 py-2">
-              <textarea
+              <TextArea
                 value={workingMemory}
                 onChange={(e) => updateScratchpad(e.target.value)}
                 placeholder="Scratchpad — intermediate results, notes..."
-                className="w-full text-[11px] px-3 py-2 rounded-lg outline-none resize-y nowheel nodrag"
-                style={{ ...inputStyle, minHeight: 64 }}
               />
             </div>
           )}
         </div>
       </div>
-
-      <JackGutter jacks={rightJacks} side="right" />
     </div>
   );
 });

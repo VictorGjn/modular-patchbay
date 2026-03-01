@@ -1,10 +1,9 @@
 import { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react';
-// Position used by JackGutter internally
+import { Handle, Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { OutputIcon } from '../components/icons/SectionIcons';
-import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { useTheme } from '../theme';
 import { Play, Download, Settings } from 'lucide-react';
@@ -98,41 +97,38 @@ export const PromptNode = memo(function PromptNode() {
     }
   };
 
-  const leftJacks: JackDef[] = [
-    { id: 'prompt-knowledge-in', type: 'target', label: 'KNOW', color: '#3498db' },
-    { id: 'prompt-skills-in', type: 'target', label: 'SKILLS', color: t.cableSkills },
-    { id: 'prompt-mcp-in', type: 'target', label: 'MCP', color: t.cableMcp },
-    { id: 'prompt-knowledge-out', type: 'source', label: 'KB OUT', color: '#00d4ff' },
-    { id: 'prompt-skills-out', type: 'source', label: 'SKILL OUT', color: t.cableSkills },
-  ];
-  const rightJacks: JackDef[] = [
-    { id: 'prompt-out', type: 'source', label: 'OUTPUT', color: '#FE5000' },
-  ];
+  const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
   return (
     <>
     <ResizeHandle minWidth={340} minHeight={200} />
     <div
-      className="rounded-xl h-full flex overflow-visible"
+      className="rounded-lg overflow-visible"
       style={{
-        background: t.surface,
-        backdropFilter: 'blur(8px)',
+        background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
-        minWidth: 340,
+        boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
+        width: 480,
         minHeight: 160,
       }}
     >
-      {/* Left gutter — inputs + feedback outputs */}
-      <JackGutter jacks={leftJacks} side="left" />
+      {/* Left handles */}
+      <Handle type="target" position={Position.Left} id="prompt-knowledge-in" style={{ ...HANDLE, top: '15%', left: -4, background: '#9b59b6' }} />
+      <Handle type="target" position={Position.Left} id="prompt-skills-in" style={{ ...HANDLE, top: '30%', left: -4, background: '#f1c40f' }} />
+      <Handle type="target" position={Position.Left} id="prompt-mcp-in" style={{ ...HANDLE, top: '45%', left: -4, background: '#2ecc71' }} />
+      <Handle type="source" position={Position.Left} id="prompt-knowledge-out" style={{ ...HANDLE, top: '65%', left: -4, background: '#95a5a6' }} />
+      <Handle type="source" position={Position.Left} id="prompt-skills-out" style={{ ...HANDLE, top: '80%', left: -4, background: '#95a5a6' }} />
+      {/* Right handle */}
+      <Handle type="source" position={Position.Right} id="prompt-out" style={{ ...HANDLE, top: '50%', right: -4, background: '#FE5000' }} />
 
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-xl">
+      <div className="flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-center px-3 py-2 shrink-0" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+      <div className="flex items-center justify-center px-3 shrink-0" style={{ height: 40, background: t.surfaceElevated, borderBottom: `1px solid ${t.border}`, borderRadius: '8px 8px 0 0' }}>
         <div className="flex flex-col items-center">
           <Tooltip content="Compose the user prompt, select model, and run your agent">
             <span
-              className="text-xs font-bold tracking-[3px] uppercase"
-              style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, fontSize: 12 }}
+              className="font-bold uppercase"
+              style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.15em' }}
             >
               PROMPT
             </span>
@@ -376,9 +372,6 @@ export const PromptNode = memo(function PromptNode() {
         </button>
       </div>
       </div>
-
-      {/* Right gutter — output */}
-      <JackGutter jacks={rightJacks} side="right" />
     </div>
     </>
   );

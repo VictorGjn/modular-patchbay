@@ -1,9 +1,8 @@
 import { memo, useState, useEffect, useCallback } from 'react';
-// Position used by JackGutter internally
+import { Handle, Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useMcpStore, startHealthPolling, type McpServerState, type McpTool } from '../store/mcpStore';
 import { Tile } from '../components/Tile';
-import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { McpIcon } from '../components/icons/SectionIcons';
 import { LibraryPicker, type LibraryItem } from '../components/LibraryPicker';
@@ -13,6 +12,8 @@ import {
   Loader2, AlertCircle, Wrench, Library,
 } from 'lucide-react';
 import { useAutoListMode } from '../hooks/useAutoListMode';
+
+const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
 function getStatusColor(status: McpServerState['status'], t: ReturnType<typeof useTheme>): string {
   if (status === 'connected') return t.statusSuccess;
@@ -244,20 +245,17 @@ export const McpNode = memo(function McpNode() {
     type: undefined, // TODO: add transport type to McpServerState
   }));
 
-  const rightJacks: JackDef[] = [
-    { id: 'mcp-out', type: 'source', label: 'OUTPUT', color: t.cableMcp },
-  ];
-
   return (
     <>
     <ResizeHandle minWidth={240} minHeight={120} />
     <div
-      className="rounded-xl h-full flex overflow-visible"
-      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 240 }}
+      className="rounded-xl h-full overflow-visible"
+      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: 320 }}
     >
-    <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-xl">
+    <Handle type="source" position={Position.Right} id="mcp-out" style={{ ...HANDLE, background: '#2ecc71', top: '50%', right: -4 }} />
+    <div className="flex flex-col min-w-0 overflow-hidden rounded-xl h-full">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
+      <div className="flex items-center gap-2 px-3" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}`, borderRadius: '12px 12px 0 0' }}>
         <button
           type="button"
           onClick={() => setNodeCollapsed(!nodeCollapsed)}
@@ -267,9 +265,9 @@ export const McpNode = memo(function McpNode() {
         >
           {nodeCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
         </button>
-        <Plug size={14} style={{ color: t.textSecondary }} />
+        <Plug size={14} style={{ color: '#2ecc71' }} />
         <Tooltip content="Connect Model Context Protocol servers to give your agent external tools and APIs">
-          <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}>
+          <span className="font-bold uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.15em' }}>
             MCP
           </span>
         </Tooltip>
@@ -302,7 +300,7 @@ export const McpNode = memo(function McpNode() {
 
       {nodeCollapsed ? null : <>
       {/* Active MCP servers only */}
-      <div ref={cardContainerRef} className="flex-1 p-3 overflow-y-auto nowheel">
+      <div ref={cardContainerRef} className="flex-1 px-4 py-3 overflow-y-auto nowheel">
         {effectiveView === 'card' ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
             {activeServers.length === 0 ? (
@@ -356,7 +354,6 @@ export const McpNode = memo(function McpNode() {
       </div>
       </>}
     </div>
-    <JackGutter jacks={rightJacks} side="right" />
     </div>
 
     {/* Library picker — modal overlay */}

@@ -1,9 +1,8 @@
 import { memo, useState, useEffect } from 'react';
-// Position used by JackGutter internally
+import { Handle, Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS, type OutputFormat } from '../store/knowledgeBase';
-import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { ConnectorTile } from '../components/ConnectorTile';
 import { OutputIcon } from '../components/icons/SectionIcons';
@@ -475,24 +474,21 @@ export const OutputNode = memo(function OutputNode() {
     try { localStorage.setItem('output-node-view', viewMode); } catch {}
   }, [viewMode]);
 
-  const leftJacks: JackDef[] = [
-    { id: 'output-in', type: 'target', label: 'INPUT', color: '#FE5000' },
-  ];
-  const rightJacks: JackDef[] = [
-    { id: 'output-out', type: 'source', label: 'OUT', color: '#FE5000' },
-  ];
+  const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
   return (
     <>
     <ResizeHandle minWidth={220} minHeight={100} />
     <div
-      className="rounded-xl h-full flex overflow-visible"
-      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 220 }}
+      className="rounded-lg overflow-visible"
+      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 2px 12px rgba(0,0,0,0.25)', width: 320, minWidth: 220 }}
     >
-      <JackGutter jacks={leftJacks} side="left" />
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-xl">
+      <Handle type="target" position={Position.Left} id="output-in" style={{ ...HANDLE, top: '50%', left: -4, background: '#FE5000' }} />
+      <Handle type="source" position={Position.Right} id="output-out" style={{ ...HANDLE, top: '50%', right: -4, background: '#FE5000' }} />
+
+      <div className="flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
+      <div className="flex items-center gap-2 px-3" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}`, borderRadius: '8px 8px 0 0' }}>
         <button
           type="button"
           onClick={() => setNodeCollapsed(!nodeCollapsed)}
@@ -504,7 +500,7 @@ export const OutputNode = memo(function OutputNode() {
         </button>
         <ArrowUpRight size={14} style={{ color: t.textSecondary }} />
         <Tooltip content="Choose output format and destination connectors for your agent's responses">
-          <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}>
+          <span className="font-bold uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.15em' }}>
             Output
           </span>
         </Tooltip>
@@ -669,7 +665,6 @@ export const OutputNode = memo(function OutputNode() {
       </div>
       </>}
       </div>
-      <JackGutter jacks={rightJacks} side="right" />
     </div>
     </>
   );

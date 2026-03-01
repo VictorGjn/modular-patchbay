@@ -1,16 +1,17 @@
 import { memo, useState, useEffect, useCallback } from 'react';
-// Position used by JackGutter internally
+import { Handle, Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { useSkillsStore } from '../store/skillsStore';
 import { Tile } from '../components/Tile';
-import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { SkillIcon } from '../components/icons/SectionIcons';
 import { LibraryPicker, type LibraryItem } from '../components/LibraryPicker';
 import { useTheme } from '../theme';
 import { Zap, Check, X, Loader2, Download, ChevronDown, ChevronRight, LayoutGrid, List, Library } from 'lucide-react';
 import { useAutoListMode } from '../hooks/useAutoListMode';
+
+const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
 export const SkillsNode = memo(function SkillsNode() {
   const registrySkills = useConsoleStore((s) => s.registrySkills);
@@ -58,27 +59,24 @@ export const SkillsNode = memo(function SkillsNode() {
   useEffect(() => { try { localStorage.setItem('skills-node-collapsed', String(nodeCollapsed)); } catch {} }, [nodeCollapsed]);
   useEffect(() => { try { localStorage.setItem('skills-node-view', viewMode); } catch {} }, [viewMode]);
 
-  const rightJacks: JackDef[] = [
-    { id: 'skills-out', type: 'source', label: 'OUTPUT', color: t.cableSkills },
-    { id: 'skills-feedback-in', type: 'target', label: 'SUGGEST', color: t.cableSkills },
-  ];
-
   return (
     <>
     <ResizeHandle minWidth={240} minHeight={120} />
     <div
-      className="rounded-xl h-full flex overflow-visible"
-      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 240 }}
+      className="rounded-lg overflow-visible"
+      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: 320 }}
     >
-    <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-xl">
+    <Handle type="target" position={Position.Left} id="skills-feedback-in" style={{ ...HANDLE, background: '#95a5a6', top: '50%', left: -4 }} />
+    <Handle type="source" position={Position.Right} id="skills-out" style={{ ...HANDLE, background: '#f1c40f', top: '50%', right: -4 }} />
+    <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-lg">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 shrink-0" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
+      <div className="flex items-center gap-2 px-3 shrink-0" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}` }}>
         <button type="button" onClick={() => setNodeCollapsed(!nodeCollapsed)} aria-label={nodeCollapsed ? 'Expand skills panel' : 'Collapse skills panel'} className="p-0 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}>
           {nodeCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
         </button>
-        <Zap size={14} style={{ color: t.textSecondary }} />
+        <Zap size={14} style={{ color: '#f1c40f' }} />
         <Tooltip content="Equip your agent with reusable skill modules for specialized capabilities">
-          <span className="text-xs font-medium tracking-wide uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}>Skills</span>
+          <span className="font-bold uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 10, letterSpacing: '0.15em' }}>Skills</span>
         </Tooltip>
         <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>{activeSkills.length}</span>
         {!nodeCollapsed && (
@@ -155,7 +153,6 @@ export const SkillsNode = memo(function SkillsNode() {
       </div>
       </>}
     </div>
-    <JackGutter jacks={rightJacks} side="right" />
     </div>
 
     {/* Library picker — modal overlay */}
