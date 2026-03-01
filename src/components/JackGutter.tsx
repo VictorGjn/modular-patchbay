@@ -27,14 +27,12 @@ export function JackGutter({ jacks, side }: JackGutterProps) {
     <div
       className="flex flex-col shrink-0 justify-around relative"
       style={{
-        width: 8,
+        width: 0,
         minHeight: jacks.length * 26,
         paddingTop: 10,
         paddingBottom: 10,
         overflow: 'visible',
         alignItems: side === 'left' ? 'flex-start' : 'flex-end',
-        marginLeft: side === 'left' ? -8 : 0,
-        marginRight: side === 'right' ? -8 : 0,
       }}
     >
       {jacks.map((jack) => (
