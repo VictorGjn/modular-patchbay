@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440,height=900">
+<title>Modular Studio — Context Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111114; color: #f0f0f0; font-family: 'Inter', sans-serif; height: 900px; width: 1440px; overflow: hidden; }
+
+  /* Top bar */
+  .topbar { height: 48px; background: #1c1c20; border-bottom: 1px solid #2a2a30; display: flex; align-items: center; padding: 0 20px; gap: 16px; }
+  .topbar-logo { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; color: #FE5000; text-transform: uppercase; }
+  .topbar-sep { width: 1px; height: 20px; background: #2a2a30; }
+  .topbar-agent { font-size: 14px; font-weight: 600; color: #f0f0f0; }
+  .topbar-meta { font-size: 11px; color: #666; }
+  .topbar-spacer { flex: 1; }
+  .topbar-btn { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 14px; border-radius: 6px; border: 1px solid #2a2a30; background: transparent; color: #888; cursor: pointer; transition: all 150ms; }
+  .topbar-btn:hover { border-color: #FE5000; color: #FE5000; }
+  .topbar-btn.primary { background: #FE5000; border-color: #FE5000; color: #fff; }
+  .topbar-btn.primary:hover { background: #e54700; }
+
+  /* Main grid */
+  .main { display: grid; grid-template-columns: 320px 1fr 360px; height: calc(100% - 48px); }
+
+  /* Left panel */
+  .panel-left { background: #161619; border-right: 1px solid #2a2a30; overflow-y: auto; }
+
+  /* Center panel */
+  .panel-center { background: #111114; overflow-y: auto; padding: 24px 32px; }
+
+  /* Right panel */
+  .panel-right { background: #161619; border-left: 1px solid #2a2a30; overflow-y: auto; }
+
+  /* Section */
+  .section { border-bottom: 1px solid #1e1e22; }
+  .section-header { display: flex; align-items: center; gap: 8px; padding: 14px 20px; cursor: pointer; user-select: none; }
+  .section-header:hover { background: #1a1a1e; }
+  .section-icon { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .section-title { font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #aaa; flex: 1; }
+  .section-badge { font-family: 'Space Mono', monospace; font-size: 9px; color: #555; background: #25252a; padding: 2px 8px; border-radius: 10px; }
+  .section-body { padding: 0 20px 16px; }
+
+  /* Knowledge items */
+  .knowledge-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1a1a1e; }
+  .knowledge-item:last-child { border-bottom: none; }
+  .ki-type { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .ki-name { font-size: 12px; color: #ccc; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ki-depth { display: flex; gap: 2px; align-items: center; }
+  .ki-depth-bar { width: 40px; height: 6px; background: #25252a; border-radius: 3px; overflow: hidden; position: relative; }
+  .ki-depth-fill { height: 100%; border-radius: 3px; transition: width 300ms; }
+  .ki-depth-label { font-family: 'Space Mono', monospace; font-size: 8px; color: #666; width: 32px; text-align: right; }
+  .ki-tokens { font-family: 'Space Mono', monospace; font-size: 9px; color: #555; width: 40px; text-align: right; }
+
+  /* Type legend */
+  .type-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .type-chip { display: flex; align-items: center; gap: 4px; font-size: 9px; color: #777; padding: 3px 8px; border-radius: 4px; background: #1c1c20; }
+  .type-chip .dot { width: 6px; height: 6px; border-radius: 2px; }
+
+  /* Tool items */
+  .tool-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1a1a1e; }
+  .tool-item:last-child { border-bottom: none; }
+  .tool-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .tool-status.ok { background: #00ff88; box-shadow: 0 0 6px rgba(0,255,136,0.4); }
+  .tool-status.warn { background: #ffaa00; box-shadow: 0 0 6px rgba(255,170,0,0.4); }
+  .tool-status.err { background: #ff3344; box-shadow: 0 0 6px rgba(255,51,68,0.4); }
+  .tool-status.off { background: #333; }
+  .tool-name { font-size: 12px; color: #ccc; flex: 1; }
+  .tool-meta { font-size: 10px; color: #555; }
+  .tool-tag { font-family: 'Space Mono', monospace; font-size: 8px; padding: 2px 6px; border-radius: 3px; background: #25252a; color: #777; }
+  .tool-tag.outdated { background: #ffaa0015; color: #ffaa00; border: 1px solid #ffaa0030; }
+
+  /* Center — Agent builder */
+  .agent-card { background: #1c1c20; border: 1px solid #2a2a30; border-radius: 12px; overflow: hidden; }
+  .agent-header { padding: 24px; border-bottom: 1px solid #25252a; display: flex; gap: 16px; align-items: flex-start; }
+  .agent-avatar { width: 48px; height: 48px; border-radius: 10px; background: #FE500015; border: 1.5px solid #FE500030; display: flex; align-items: center; justify-content: center; color: #FE5000; font-size: 20px; flex-shrink: 0; }
+  .agent-info { flex: 1; }
+  .agent-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .agent-desc { font-size: 13px; color: #888; line-height: 1.5; }
+  .agent-tags { display: flex; gap: 6px; margin-top: 8px; }
+  .agent-tag { font-size: 10px; padding: 3px 10px; border-radius: 4px; background: #FE500010; color: #FE5000; border: 1px solid #FE500020; }
+
+  .agent-section { padding: 20px 24px; border-bottom: 1px solid #25252a; }
+  .agent-section:last-child { border-bottom: none; }
+  .agent-section-label { font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #777; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .agent-section-label .bar { width: 3px; height: 14px; border-radius: 2px; }
+  .agent-textarea { width: 100%; min-height: 80px; background: #141417; border: 1px solid #2a2a30; border-radius: 8px; color: #ddd; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.6; padding: 12px 14px; resize: none; outline: none; }
+  .agent-textarea:focus { border-color: #FE500040; }
+  .agent-textarea::placeholder { color: #555; }
+
+  /* Workflow steps */
+  .workflow-steps { display: flex; flex-direction: column; gap: 0; }
+  .workflow-step { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+  .ws-num { width: 24px; height: 24px; border-radius: 50%; background: #25252a; border: 1.5px solid #e67e2230; display: flex; align-items: center; justify-content: center; font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700; color: #e67e22; flex-shrink: 0; }
+  .ws-connector { width: 2px; height: 12px; background: #e67e2220; margin-left: 11px; }
+  .ws-label { font-size: 12px; color: #ccc; flex: 1; }
+  .ws-action { font-size: 10px; color: #666; background: #25252a; padding: 2px 8px; border-radius: 4px; }
+
+  /* Constraint toggles */
+  .constraint-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+  .constraint-toggle { width: 32px; height: 18px; border-radius: 9px; background: #25252a; position: relative; cursor: pointer; flex-shrink: 0; transition: background 150ms; }
+  .constraint-toggle.on { background: #FE5000; }
+  .constraint-toggle .knob { width: 14px; height: 14px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; transition: left 150ms; }
+  .constraint-toggle.on .knob { left: 16px; }
+  .constraint-label { font-size: 12px; color: #bbb; }
+
+  /* Context budget */
+  .budget-bar { margin-top: 16px; }
+  .budget-track { height: 8px; background: #25252a; border-radius: 4px; overflow: hidden; position: relative; }
+  .budget-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #FE5000, #ff8c55); transition: width 500ms; }
+  .budget-labels { display: flex; justify-content: space-between; margin-top: 6px; }
+  .budget-label { font-family: 'Space Mono', monospace; font-size: 9px; color: #666; }
+  .budget-label.used { color: #FE5000; font-weight: 600; }
+
+  /* Budget breakdown */
+  .budget-breakdown { display: flex; gap: 4px; margin-top: 10px; height: 4px; border-radius: 2px; overflow: hidden; }
+  .bb-seg { height: 100%; border-radius: 2px; }
+
+  /* Right panel — Preview */
+  .preview-header { padding: 16px 20px; border-bottom: 1px solid #1e1e22; display: flex; align-items: center; gap: 8px; }
+  .preview-title { font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #aaa; }
+  .preview-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .chat-area { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .chat-msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 12px; line-height: 1.5; }
+  .chat-msg.user { background: #FE500015; border: 1px solid #FE500020; color: #ddd; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .chat-msg.agent { background: #1c1c20; border: 1px solid #2a2a30; color: #bbb; align-self: flex-start; border-bottom-left-radius: 4px; }
+
+  .chat-input { padding: 12px 20px; border-top: 1px solid #1e1e22; display: flex; gap: 8px; position: absolute; bottom: 0; left: 0; right: 0; background: #161619; }
+  .chat-input input { flex: 1; background: #111114; border: 1px solid #2a2a30; border-radius: 8px; color: #ddd; font-size: 12px; padding: 10px 14px; outline: none; font-family: 'Inter', sans-serif; }
+  .chat-input input:focus { border-color: #FE500040; }
+  .chat-input button { background: #FE5000; border: none; border-radius: 8px; color: #fff; padding: 0 16px; cursor: pointer; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.1em; }
+
+  /* Export section */
+  .export-section { padding: 16px 20px; border-top: 1px solid #1e1e22; }
+  .export-targets { display: flex; flex-direction: column; gap: 6px; }
+  .export-target { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #1c1c20; border: 1px solid #2a2a30; border-radius: 8px; cursor: pointer; transition: border-color 150ms; }
+  .export-target:hover { border-color: #FE500040; }
+  .export-target-icon { width: 24px; height: 24px; border-radius: 6px; background: #25252a; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .export-target-name { font-size: 11px; color: #ccc; flex: 1; }
+  .export-target-fmt { font-family: 'Space Mono', monospace; font-size: 9px; color: #555; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 2px; }
+
+  /* Tone/Expertise row */
+  .meta-row { display: flex; gap: 16px; margin-top: 12px; }
+  .meta-group { flex: 1; }
+  .meta-label { font-family: 'Space Mono', monospace; font-size: 9px; color: #666; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+  .meta-segments { display: flex; border-radius: 6px; overflow: hidden; border: 1px solid #2a2a30; }
+  .meta-seg { flex: 1; text-align: center; font-size: 11px; padding: 6px 0; color: #666; cursor: pointer; background: transparent; transition: all 150ms; }
+  .meta-seg.active { background: #FE5000; color: #fff; }
+
+  .panel-right { position: relative; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <span class="topbar-logo">Modular</span>
+  <div class="topbar-sep"></div>
+  <span class="topbar-agent">Senior PM Agent</span>
+  <span class="topbar-meta">v2.1.4 · 67% context</span>
+  <div class="topbar-spacer"></div>
+  <button class="topbar-btn">Import</button>
+  <button class="topbar-btn">Settings</button>
+  <button class="topbar-btn primary">Export ↗</button>
+</div>
+
+<!-- Main 3-panel -->
+<div class="main">
+
+  <!-- LEFT: Sources -->
+  <div class="panel-left">
+
+    <!-- Knowledge -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background: #3498db"></div>
+        <span class="section-title">Knowledge</span>
+        <span class="section-badge">9 sources · 84K tokens</span>
+      </div>
+      <div class="section-body">
+        <div class="type-legend">
+          <div class="type-chip"><div class="dot" style="background:#e74c3c"></div> Ground Truth</div>
+          <div class="type-chip"><div class="dot" style="background:#f1c40f"></div> Signal</div>
+          <div class="type-chip"><div class="dot" style="background:#3498db"></div> Evidence</div>
+          <div class="type-chip"><div class="dot" style="background:#2ecc71"></div> Framework</div>
+        </div>
+
+        <div class="knowledge-item">
+          <div class="ki-type" style="background:#e74c3c"></div>
+          <span class="ki-name">Product Requirements Doc</span>
+          <div class="ki-depth">
+            <div class="ki-depth-bar"><div class="ki-depth-fill" style="width:100%; background:#2ecc71"></div></div>
+            <span class="ki-depth-label">Full</span>
+          </div>
+          <span class="ki-tokens">24K</span>
+        </div>
+        <div class="knowledge-item">
+          <div class="ki-type" style="background:#e74c3c"></div>
+          <span class="ki-name">API Documentation</span>
+          <div class="ki-depth">
+            <div class="ki-depth-bar"><div class="ki-depth-fill" style="width:75%; background:#3498db"></div></div>
+            <span class="ki-depth-label">High</span>
+          </div>
+          <span class="ki-tokens">18K</span>
+        </div>
+        <div class="knowledge-item">
+          <div class="ki-type" style="background:#f1c40f"></div>
+          <span class="ki-name">Competitor Analysis Q4</span>
+          <div class="ki-depth">
+            <div class="ki-depth-bar"><div class="ki-depth-fill" style="width:50%; background:#f1c40f"></div></div>
+            <span class="ki-depth-label">Ref</span>
+          </div>
+          <span class="ki-tokens">12K</span>
+        </div>
+        <div class="knowledge-item">
+          <div class="ki-type" style="background:#3498db"></div>
+          <span class="ki-name">User Research Interviews</span>
+          <div class="ki-depth">
+            <div class="ki-depth-bar"><div class="ki-depth-fill" style="width:50%; background:#f1c40f"></div></div>
+            <span class="ki-depth-label">Ref</span>
+          </div>
+          <span class="ki-tokens">15K</span>
+        </div>
+        <div class="knowledge-item">
+          <div class="ki-type" style="background:#2ecc71"></div>
+          <span class="ki-name">PM Playbook</span>
+          <div class="ki-depth">
+            <div class="ki-depth-bar"><div class="ki-depth-fill" style="width:25%; background:#e67e22"></div></div>
+            <span class="ki-depth-label">Skim</span>
+          </div>
+          <span class="ki-tokens">8K</span>
+        </div>
+        <div class="knowledge-item">
+          <div class="ki-type" style="background:#f1c40f"></div>
+          <span class="ki-name">Slack #product channel</span>
+          <div class="ki-depth">
+            <div class="ki-depth-bar"><div class="ki-depth-fill" style="width:10%; background:#999"></div></div>
+            <span class="ki-depth-label">Mention</span>
+          </div>
+          <span class="ki-tokens">3K</span>
+        </div>
+
+        <!-- Context budget breakdown -->
+        <div class="budget-bar" style="margin-top: 16px;">
+          <div style="font-family: 'Space Mono', monospace; font-size: 9px; color: #555; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px;">Context allocation</div>
+          <div class="budget-breakdown">
+            <div class="bb-seg" style="width: 30%; background: #e74c3c" title="Ground Truth"></div>
+            <div class="bb-seg" style="width: 22%; background: #f1c40f" title="Signal"></div>
+            <div class="bb-seg" style="width: 18%; background: #3498db" title="Evidence"></div>
+            <div class="bb-seg" style="width: 10%; background: #2ecc71" title="Framework"></div>
+            <div class="bb-seg" style="width: 20%; background: #25252a" title="Available"></div>
+          </div>
+          <div class="budget-labels">
+            <span class="budget-label used">84K used</span>
+            <span class="budget-label">128K available</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MCP Servers -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background: #2ecc71"></div>
+        <span class="section-title">MCP Servers</span>
+        <span class="section-badge">4 active</span>
+      </div>
+      <div class="section-body">
+        <div class="tool-item">
+          <div class="tool-status ok"></div>
+          <span class="tool-name">GitHub</span>
+          <span class="tool-tag">stdio</span>
+          <span class="tool-meta">12 tools</span>
+        </div>
+        <div class="tool-item">
+          <div class="tool-status ok"></div>
+          <span class="tool-name">Slack</span>
+          <span class="tool-tag">stdio</span>
+          <span class="tool-meta">8 tools</span>
+        </div>
+        <div class="tool-item">
+          <div class="tool-status warn"></div>
+          <span class="tool-name">Notion</span>
+          <span class="tool-tag">sse</span>
+          <span class="tool-meta">slow · 2.3s</span>
+        </div>
+        <div class="tool-item">
+          <div class="tool-status err"></div>
+          <span class="tool-name">Jira</span>
+          <span class="tool-tag">stdio</span>
+          <span class="tool-meta">auth failed</span>
+        </div>
+        <div class="tool-item">
+          <div class="tool-status off"></div>
+          <span class="tool-name">Linear</span>
+          <span class="tool-tag">http</span>
+          <span class="tool-meta">disabled</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background: #f1c40f"></div>
+        <span class="section-title">Skills</span>
+        <span class="section-badge">3 installed</span>
+      </div>
+      <div class="section-body">
+        <div class="tool-item">
+          <div class="tool-status ok"></div>
+          <span class="tool-name">clean-code</span>
+          <span class="tool-meta">v1.2.0</span>
+        </div>
+        <div class="tool-item">
+          <div class="tool-status ok"></div>
+          <span class="tool-name">github</span>
+          <span class="tool-meta">v2.0.1</span>
+        </div>
+        <div class="tool-item">
+          <div class="tool-status warn"></div>
+          <span class="tool-name">gh-issues</span>
+          <span class="tool-tag outdated">update available</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background: #e74c3c"></div>
+        <span class="section-title">Memory</span>
+        <span class="section-badge">session + long-term</span>
+      </div>
+      <div class="section-body">
+        <div class="constraint-row">
+          <div class="constraint-toggle on"><div class="knob"></div></div>
+          <span class="constraint-label">Session memory (sliding window)</span>
+        </div>
+        <div class="constraint-row">
+          <div class="constraint-toggle on"><div class="knob"></div></div>
+          <span class="constraint-label">Long-term facts (vector store)</span>
+        </div>
+        <div class="constraint-row">
+          <div class="constraint-toggle"><div class="knob"></div></div>
+          <span class="constraint-label">Working scratchpad</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CENTER: Agent Builder -->
+  <div class="panel-center">
+    <div class="agent-card">
+      <!-- Header -->
+      <div class="agent-header">
+        <div class="agent-avatar">🤖</div>
+        <div class="agent-info">
+          <div class="agent-name">Senior PM Agent</div>
+          <div class="agent-desc">Tracks competitors, manages roadmap, synthesizes user research into actionable insights</div>
+          <div class="agent-tags">
+            <span class="agent-tag">product</span>
+            <span class="agent-tag">analysis</span>
+            <span class="agent-tag">competitor</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Persona -->
+      <div class="agent-section">
+        <div class="agent-section-label">
+          <div class="bar" style="background: #9b59b6"></div>
+          Persona
+        </div>
+        <textarea class="agent-textarea" placeholder="Who is this agent?">You are a senior product manager with 8+ years of experience in B2B SaaS. You think in frameworks (RICE, Jobs-to-be-Done) but communicate in plain language. You push back on vague requirements and always ask "what problem are we solving?"</textarea>
+        <div class="meta-row">
+          <div class="meta-group">
+            <div class="meta-label">Tone</div>
+            <div class="meta-segments">
+              <div class="meta-seg">Formal</div>
+              <div class="meta-seg active">Neutral</div>
+              <div class="meta-seg">Casual</div>
+            </div>
+          </div>
+          <div class="meta-group">
+            <div class="meta-label">Expertise</div>
+            <div class="meta-segments">
+              <div class="meta-seg">Junior</div>
+              <div class="meta-seg">Mid</div>
+              <div class="meta-seg active">Senior</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Constraints -->
+      <div class="agent-section">
+        <div class="agent-section-label">
+          <div class="bar" style="background: #2ecc71"></div>
+          Constraints
+        </div>
+        <div class="constraint-row">
+          <div class="constraint-toggle on"><div class="knob"></div></div>
+          <span class="constraint-label">Never make up data — cite sources or say "I don't know"</span>
+        </div>
+        <div class="constraint-row">
+          <div class="constraint-toggle on"><div class="knob"></div></div>
+          <span class="constraint-label">Ask before taking destructive actions</span>
+        </div>
+        <div class="constraint-row">
+          <div class="constraint-toggle on"><div class="knob"></div></div>
+          <span class="constraint-label">Stay within defined scope</span>
+        </div>
+        <div class="constraint-row">
+          <div class="constraint-toggle"><div class="knob"></div></div>
+          <span class="constraint-label">Limit responses to 500 words</span>
+        </div>
+      </div>
+
+      <!-- Workflow -->
+      <div class="agent-section">
+        <div class="agent-section-label">
+          <div class="bar" style="background: #e67e22"></div>
+          Workflow
+        </div>
+        <div class="workflow-steps">
+          <div class="workflow-step">
+            <div class="ws-num">1</div>
+            <span class="ws-label">Gather context from knowledge sources</span>
+            <span class="ws-action">read</span>
+          </div>
+          <div class="ws-connector"></div>
+          <div class="workflow-step">
+            <div class="ws-num">2</div>
+            <span class="ws-label">Analyze request against product strategy</span>
+            <span class="ws-action">think</span>
+          </div>
+          <div class="ws-connector"></div>
+          <div class="workflow-step">
+            <div class="ws-num">3</div>
+            <span class="ws-label">Draft response with recommendations</span>
+            <span class="ws-action">write</span>
+          </div>
+          <div class="ws-connector"></div>
+          <div class="workflow-step">
+            <div class="ws-num">4</div>
+            <span class="ws-label">Verify claims against source documents</span>
+            <span class="ws-action">verify</span>
+          </div>
+          <div class="ws-connector"></div>
+          <div class="workflow-step">
+            <div class="ws-num">5</div>
+            <span class="ws-label">Format output for target platform</span>
+            <span class="ws-action">format</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context Budget (bottom of center) -->
+    <div style="margin-top: 20px; background: #1c1c20; border: 1px solid #2a2a30; border-radius: 12px; padding: 16px 20px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <span style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #777;">Context Budget</span>
+        <span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #FE5000; font-weight: 600;">134K / 200K</span>
+      </div>
+      <div class="budget-track">
+        <div class="budget-fill" style="width: 67%"></div>
+      </div>
+      <div style="display: flex; gap: 12px; margin-top: 10px;">
+        <span style="font-size: 10px; color: #666; display: flex; align-items: center; gap: 4px;"><span style="width:8px;height:8px;border-radius:2px;background:#3498db;"></span> Knowledge 84K</span>
+        <span style="font-size: 10px; color: #666; display: flex; align-items: center; gap: 4px;"><span style="width:8px;height:8px;border-radius:2px;background:#9b59b6;"></span> Instructions 22K</span>
+        <span style="font-size: 10px; color: #666; display: flex; align-items: center; gap: 4px;"><span style="width:8px;height:8px;border-radius:2px;background:#e67e22;"></span> Workflow 8K</span>
+        <span style="font-size: 10px; color: #666; display: flex; align-items: center; gap: 4px;"><span style="width:8px;height:8px;border-radius:2px;background:#e74c3c;"></span> Memory 20K</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Test + Export -->
+  <div class="panel-right">
+    <div class="preview-header">
+      <div class="preview-dot" style="background: #00ff88; box-shadow: 0 0 6px rgba(0,255,136,0.4);"></div>
+      <span class="preview-title">Conversation Tester</span>
+    </div>
+
+    <div class="chat-area" style="height: calc(100% - 250px); overflow-y: auto;">
+      <div class="chat-msg user">What's our competitive position against StormGeo on route optimization?</div>
+      <div class="chat-msg agent">Based on the competitor analysis (Q4), StormGeo offers static waypoint optimization while our approach uses <strong>dynamic power modulation</strong> — adjusting continuously rather than at fixed points.<br><br>Key differentiators:<br>• Real-time adaptation vs pre-computed routes<br>• 12-18% fuel savings vs their claimed 8-12%<br>• EU ETS cost integration (they don't have this yet)<br><br>Their advantage: larger fleet coverage (200+ vessels) and dedicated FuelEU module. <em>Source: competitor-analysis-q4.md, regulatory-cost-analysis.md</em></div>
+      <div class="chat-msg user">Summarize this as 3 bullets for the exec team</div>
+      <div class="chat-msg agent">• <strong>We win on tech</strong> — dynamic power modulation saves 50% more fuel than StormGeo's static routing<br>• <strong>Regulation is our moat</strong> — EU ETS integration adds $7.4K/voyage value they can't match<br>• <strong>They win on scale</strong> — 200+ vessels vs our 16, but fleet expansion closes this gap by Jul 2026</div>
+    </div>
+
+    <!-- Export targets -->
+    <div class="export-section">
+      <div style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #777; margin-bottom: 10px;">Export to</div>
+      <div class="export-targets">
+        <div class="export-target">
+          <div class="export-target-icon">📋</div>
+          <span class="export-target-name">Claude Code / .claude</span>
+          <span class="export-target-fmt">.md</span>
+        </div>
+        <div class="export-target">
+          <div class="export-target-icon">⚡</div>
+          <span class="export-target-name">OpenClaw Agent</span>
+          <span class="export-target-fmt">.yaml</span>
+        </div>
+        <div class="export-target">
+          <div class="export-target-icon">🔧</div>
+          <span class="export-target-name">Vibe Kanban / BloopAI</span>
+          <span class="export-target-fmt">.json</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input">
+      <input type="text" placeholder="Test your agent...">
+      <button>Send</button>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
