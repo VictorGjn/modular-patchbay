@@ -1,9 +1,9 @@
 import { useProviderStore } from '../store/providerStore';
+import { fetchCompletion, fetchAgentSdkCompletion } from '../services/llmService';
 
 /**
  * Anthropic-inspired metaprompt for agent instruction generation.
  * Takes a user's brain dump and produces structured, best-practice instructions.
- * Based on Anthropic's official prompt generator methodology.
  */
 const METAPROMPT = `You are an expert prompt engineer. Your job is to take a user's rough brain dump about an AI agent they want to build, and transform it into structured, high-quality agent instructions following Anthropic's prompting best practices.
 
@@ -36,9 +36,7 @@ Output ONLY the JSON object. No markdown fences, no explanation.`;
 
 const REFINE_FIELD_PROMPTS: Record<string, string> = {
   persona: `You are an expert prompt engineer. Transform this rough persona description into a clear, specific 2-4 sentence persona. Use "You are..." framing. Be concrete about expertise, domain knowledge, and communication style. Output ONLY the refined persona text.`,
-
   constraints: `You are an expert prompt engineer. Transform these rough constraint notes into clear, actionable rules — one per line, imperative voice. Remove redundancy, sharpen vague rules, infer reasonable additions from the domain. Output ONLY the constraints, one per line.`,
-
   scope: `You are an expert prompt engineer. Transform this rough scope description into a clear one-sentence definition of what the agent handles and what it does NOT handle. Output ONLY the scope sentence.`,
 };
 
@@ -67,101 +65,39 @@ export async function refineField(
   const provider = store.providers.find(p => p.id === store.selectedProviderId);
   if (!provider) throw new Error('No provider configured — add one in Settings');
 
-  const model = provider.models?.[0] || 'claude-sonnet-4-20250514';
-  const systemPrompt = field === 'full'
-    ? METAPROMPT
-    : REFINE_FIELD_PROMPTS[field];
+  const model = typeof provider.models?.[0] === 'object'
+    ? (provider.models[0] as { id: string }).id
+    : (provider.models?.[0] || 'claude-sonnet-4-20250514');
 
+  const systemPrompt = field === 'full' ? METAPROMPT : REFINE_FIELD_PROMPTS[field];
   if (!systemPrompt) throw new Error(`Unknown field: ${field}`);
 
-  const { API_BASE } = await import('../config');
+  const isAgentSdk = provider.authMethod === 'claude-agent-sdk';
 
-  let raw: string;
-  if (provider.id === 'claude-agent-sdk' || provider.authMethod === 'claude-agent-sdk') {
-    // Use agent-sdk endpoint for Claude Agent SDK
-    const modelId = typeof model === 'object' ? (model as { id: string }).id : (model as string);
-    const res = await fetch(`${API_BASE}/agent-sdk/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: userInput,
-        model: modelId,
-        systemPrompt,
-        maxTurns: 1,
-      }),
-    });
-    if (!res.ok) throw new Error(`Agent SDK error: ${res.status}`);
-    raw = await res.text();
-  } else {
-    const modelId = typeof model === 'object' ? (model as { id: string }).id : (model as string);
-    const res = await fetch(`${API_BASE}/llm/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: provider.id,
-        model: modelId,
+  const text = isAgentSdk
+    ? await fetchAgentSdkCompletion({ prompt: userInput, model, systemPrompt, maxTurns: 1 })
+    : await fetchCompletion({
+        providerId: provider.id,
+        model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userInput },
         ],
         temperature: 0.3,
         maxTokens: 1024,
-      }),
-    });
-    if (!res.ok) throw new Error(`LLM error: ${res.status}`);
-    raw = await res.text();
+      });
+
+  if (field !== 'full') return text;
+
+  // Parse JSON from response
+  try { return JSON.parse(text) as RefinedAgent; } catch { /* continue */ }
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) {
+    try { return JSON.parse(fenceMatch[1].trim()) as RefinedAgent; } catch { /* continue */ }
   }
-
-  const providerType = (provider.id === 'claude-agent-sdk' || provider.id === 'anthropic') ? 'anthropic' : 'openai';
-  const text = parseSSEResponse(raw, providerType);
-
-  if (field === 'full') {
-    // Try direct parse first
-    try { return JSON.parse(text) as RefinedAgent; } catch { /* continue */ }
-
-    // Extract JSON from markdown code fence: ```json { ... } ```
-    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (fenceMatch) {
-      try { return JSON.parse(fenceMatch[1].trim()) as RefinedAgent; } catch { /* continue */ }
-    }
-
-    // Extract first { ... } block (greedy)
-    const braceMatch = text.match(/\{[\s\S]*\}/);
-    if (braceMatch) {
-      try { return JSON.parse(braceMatch[0]) as RefinedAgent; } catch { /* continue */ }
-    }
-
-    throw new Error('Could not parse agent structure from LLM response');
+  const braceMatch = text.match(/\{[\s\S]*\}/);
+  if (braceMatch) {
+    try { return JSON.parse(braceMatch[0]) as RefinedAgent; } catch { /* continue */ }
   }
-
-  return text;
-}
-
-function parseSSEResponse(raw: string, _providerType: string): string {
-  const lines = raw.split('\n');
-  const chunks: string[] = [];
-
-  for (const line of lines) {
-    if (!line.startsWith('data: ')) continue;
-    const data = line.slice(6).trim();
-    if (data === '[DONE]') break;
-
-    try {
-      const parsed = JSON.parse(data);
-      // Agent SDK format: {"type":"text","content":"..."}
-      if (parsed.type === 'text' && parsed.content) {
-        chunks.push(parsed.content);
-      // Anthropic format: {"type":"content_block_delta","delta":{"text":"..."}}
-      } else if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-        chunks.push(parsed.delta.text);
-      // OpenAI format: {"choices":[{"delta":{"content":"..."}}]}
-      } else if (parsed.choices?.[0]?.delta?.content) {
-        chunks.push(parsed.choices[0].delta.content);
-      }
-    } catch {
-      // skip unparseable lines
-    }
-  }
-
-  return chunks.join('').trim();
+  throw new Error('Could not parse agent structure from LLM response');
 }
