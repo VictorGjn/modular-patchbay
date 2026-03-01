@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { PipelineChatStats } from '../services/pipelineChat';
 
 export interface ChatMessage {
   id: string;
@@ -27,6 +28,9 @@ export interface ConversationState {
   inputText: string;
   streaming: boolean;
 
+  // Pipeline
+  lastPipelineStats: PipelineChatStats | null;
+
   // Test cases
   testCases: TestCase[];
   runningTests: boolean;
@@ -40,6 +44,7 @@ export interface ConversationState {
   updateLastAssistant: (content: string) => void;
   clearMessages: () => void;
   setStreaming: (streaming: boolean) => void;
+  setLastPipelineStats: (stats: PipelineChatStats | null) => void;
 
   // Test cases
   addTestCase: (tc: Omit<TestCase, 'id'>) => void;
@@ -56,6 +61,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   messages: [],
   inputText: '',
   streaming: false,
+  lastPipelineStats: null,
   testCases: [],
   runningTests: false,
 
@@ -83,8 +89,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     set({ messages: msgs });
   },
 
-  clearMessages: () => set({ messages: [] }),
+  clearMessages: () => set({ messages: [], lastPipelineStats: null }),
   setStreaming: (streaming) => set({ streaming }),
+  setLastPipelineStats: (stats) => set({ lastPipelineStats: stats }),
 
   addTestCase: (tc) => set({
     testCases: [...get().testCases, {
