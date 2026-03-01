@@ -137,7 +137,7 @@ export async function refineField(
   return text;
 }
 
-function parseSSEResponse(raw: string, providerType: string): string {
+function parseSSEResponse(raw: string, _providerType: string): string {
   const lines = raw.split('\n');
   const chunks: string[] = [];
 

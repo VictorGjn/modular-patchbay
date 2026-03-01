@@ -47,8 +47,10 @@ export function createApp() {
     }
   });
 
-  // Serve built frontend
-  const distPath = join(__dirname, '..', 'dist');
+  // Serve built frontend — check both source layout (../dist) and npm package layout (../../dist)
+  const distPath = existsSync(join(__dirname, '..', 'dist'))
+    ? join(__dirname, '..', 'dist')
+    : join(__dirname, '..', '..', 'dist');
   if (existsSync(distPath)) {
     app.use(express.static(distPath));
     app.get('/{*path}', (_req, res) => {

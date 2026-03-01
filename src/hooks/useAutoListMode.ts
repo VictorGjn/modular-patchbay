@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 /**
  * Returns a ref for the card container and whether it's too narrow for cards.

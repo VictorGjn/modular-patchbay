@@ -16,9 +16,9 @@ export interface WorkflowStep {
   action: string;
   tool: string;
   condition: 'always' | 'if' | 'unless';
-  conditionText: string;
-  loopTarget: string;
-  loopMax: number;
+  conditionText?: string;
+  loopTarget?: string;
+  loopMax?: number;
 }
 
 export function compileWorkflow(steps: WorkflowStep[]): string {

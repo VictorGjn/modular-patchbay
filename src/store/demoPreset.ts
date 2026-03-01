@@ -23,7 +23,7 @@ export const REACT_CODE_REVIEWER_PRESET: DemoPresetData = {
 
   instructionState: {
     persona: 'You are a senior React engineer with 8+ years of experience in building production-ready applications. You have deep expertise in TypeScript, modern React patterns, performance optimization, and web accessibility standards.',
-    tone: 'professional' as const,
+    tone: 'formal' as const,
     expertise: 5,
     constraints: {
       neverMakeUp: true,

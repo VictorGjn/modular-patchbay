@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, type KeyboardEvent as ReactKe
 import {
   X, Eye, EyeOff, ExternalLink, CheckCircle, XCircle, Loader2, Plus,
   Trash2, Server, Plug, PlugZap, Sun, Moon, Monitor, Grid3X3, Minimize2,
-  Waypoints, GitBranch, ArrowDownRight, Cpu, Wrench, Terminal, Edit,
+  Waypoints, GitBranch, ArrowDownRight, Cpu, Wrench, Terminal,
   Settings,
 } from 'lucide-react';
 import { useTheme } from '../theme';
@@ -21,7 +21,7 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'general', label: 'General' },
 ];
 
-function statusColor(status: ProviderStatus, t: { statusSuccess: string; statusWarning: string; statusError: string; textMuted: string }): string {
+function statusColor(status: ProviderStatus | 'connecting', t: { statusSuccess: string; statusWarning: string; statusError: string; textMuted: string }): string {
   switch (status) {
     case 'connected': return t.statusSuccess;
     case 'configured': return t.statusWarning;

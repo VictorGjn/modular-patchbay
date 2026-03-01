@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useEffect, useRef, type DragEvent } from 'react';
+import { memo, useState, useCallback, useEffect, type DragEvent } from 'react';
 import { Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
@@ -467,7 +467,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
                   <span className="text-[11px]" style={{ color: t.textFaint }}>No active channels</span>
                 </div>
               ) : allChannelItems.map((ch) => {
-                const kType = KNOWLEDGE_TYPE_ORDER[ch.knowledgeType] ?? 'evidence';
+                const kType = (ch.knowledgeType || 'evidence') as KnowledgeType;
                 const meta = KNOWLEDGE_TYPES[kType];
                 return (
                   <Tile

@@ -13,7 +13,7 @@ export function Tooltip({ content, children, position = 'top', delay = 300 }: To
   const t = useTheme();
   const [show, setShow] = useState(false);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const triggerRef = useRef<HTMLSpanElement>(null);
 
   const handleEnter = () => {

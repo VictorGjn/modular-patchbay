@@ -1,5 +1,5 @@
 import { useTheme } from '../../theme';
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 export interface EmptyStateProps {
   icon: ReactNode;

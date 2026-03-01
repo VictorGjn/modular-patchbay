@@ -185,7 +185,7 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       {/* Load Demo */}
       <button
         type="button"
-        onClick={loadDemoPreset}
+        onClick={() => loadDemoPreset()}
         className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
         style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
         onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
