@@ -13,7 +13,7 @@ import { Toggle } from '../components/ds/Toggle';
 import { Chip } from '../components/ds/Chip';
 import { Badge } from '../components/ds/Badge';
 import { useTheme } from '../theme';
-import { ArrowUpRight, ChevronDown, ChevronRight, LayoutGrid, List, Plus, Trash2 } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, ChevronRight, LayoutGrid, List, Plus, Trash2, Sparkles, Loader2 } from 'lucide-react';
 import {
   type OutputTarget,
   type OutputTemplateConfig,
@@ -24,7 +24,7 @@ import {
   SECTION_TYPES,
   MESSAGE_TONES,
   MESSAGE_TEMPLATES,
-  defaultConfigForTarget,
+
   type NotionTemplateConfig,
   type HtmlSlidesTemplateConfig,
   type SlackEmailTemplateConfig,
@@ -280,13 +280,32 @@ function SlackEmailConfig({ config, onChange }: { config: SlackEmailTemplateConf
 function TemplateConfigPanel({ target }: { target: OutputTarget }) {
   const t = useTheme();
   const [expanded, setExpanded] = useState(true);
+  const [brainDump, setBrainDump] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+  const [hasGenerated, setHasGenerated] = useState(false);
   const outputTemplateConfig = useConsoleStore((s) => s.outputTemplateConfig);
   const setConfig = useConsoleStore((s) => s.setOutputTemplateConfig);
 
-  const config = outputTemplateConfig[target] ?? defaultConfigForTarget(target);
+  const config = outputTemplateConfig[target] ?? null;
 
   const handleChange = (newConfig: OutputTemplateConfig) => {
     setConfig(target, newConfig);
+  };
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setGenError(null);
+    try {
+      const { generateOutputTemplate } = await import('../utils/refineOutputTemplate');
+      const generated = await generateOutputTemplate(target, brainDump || 'Generate a sensible default');
+      setConfig(target, generated);
+      setHasGenerated(true);
+    } catch (e) {
+      setGenError(e instanceof Error ? e.message : 'Generation failed');
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const targetLabels: Record<OutputTarget, string> = {
@@ -294,6 +313,13 @@ function TemplateConfigPanel({ target }: { target: OutputTarget }) {
     'html-slides': 'HTML Slides',
     slack: 'Slack',
     email: 'Email',
+  };
+
+  const placeholders: Record<OutputTarget, string> = {
+    notion: 'e.g. "Bug tracking database with severity, component, assignee, and resolution date"',
+    'html-slides': 'e.g. "Q3 product review for executives, 10 slides, professional but modern"',
+    slack: 'e.g. "Weekly standup summary to #engineering, casual tone"',
+    email: 'e.g. "Client update email, formal, include metrics and next steps"',
   };
 
   return (
@@ -308,12 +334,86 @@ function TemplateConfigPanel({ target }: { target: OutputTarget }) {
         <span className="text-[9px] tracking-wider uppercase font-semibold" style={{ fontFamily: "'Space Mono', monospace", color: '#FE5000' }}>
           {targetLabels[target]} Config
         </span>
+        {config && <span className="text-[8px] px-1 py-0.5 rounded" style={{ background: '#22c55e15', color: '#22c55e', fontFamily: "'Space Mono', monospace" }}>configured</span>}
       </button>
       {expanded && (
-        <div className="px-3 pb-2">
-          {config.target === 'notion' && <NotionConfig config={config as NotionTemplateConfig} onChange={handleChange} />}
-          {config.target === 'html-slides' && <HtmlSlidesConfig config={config as HtmlSlidesTemplateConfig} onChange={handleChange} />}
-          {(config.target === 'slack' || config.target === 'email') && <SlackEmailConfig config={config as SlackEmailTemplateConfig} onChange={handleChange} />}
+        <div className="px-3 pb-2 flex flex-col gap-2">
+          {/* Generate section — shown when no config exists or user wants to regenerate */}
+          {(!config || !hasGenerated) && (
+            <div className="flex flex-col gap-1.5 nodrag nowheel">
+              <textarea
+                value={brainDump}
+                onChange={(e) => setBrainDump(e.target.value)}
+                placeholder={placeholders[target]}
+                rows={2}
+                className="w-full text-[10px] px-2 py-1.5 rounded border-none outline-none resize-none nodrag nowheel"
+                style={{
+                  background: t.inputBg || t.surfaceElevated,
+                  color: t.textPrimary,
+                  fontFamily: "'Inter', sans-serif",
+                  lineHeight: 1.4,
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={generating}
+                className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[10px] font-semibold tracking-wide uppercase cursor-pointer border-none nodrag nowheel"
+                style={{
+                  background: generating ? '#FE500030' : '#FE500018',
+                  color: '#FE5000',
+                  fontFamily: "'Space Mono', monospace",
+                  opacity: generating ? 0.7 : 1,
+                  transition: 'background 150ms ease',
+                }}
+                onMouseEnter={(e) => { if (!generating) e.currentTarget.style.background = '#FE500028'; }}
+                onMouseLeave={(e) => { if (!generating) e.currentTarget.style.background = '#FE500018'; }}
+              >
+                {generating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                {generating ? 'Generating...' : 'Generate ✨'}
+              </button>
+              {genError && (
+                <span className="text-[9px]" style={{ color: t.statusError }}>{genError}</span>
+              )}
+            </div>
+          )}
+
+          {/* Editable config — shown after generation or when config exists */}
+          {config && (
+            <>
+              {config.target === 'notion' && <NotionConfig config={config as NotionTemplateConfig} onChange={handleChange} />}
+              {config.target === 'html-slides' && <HtmlSlidesConfig config={config as HtmlSlidesTemplateConfig} onChange={handleChange} />}
+              {(config.target === 'slack' || config.target === 'email') && <SlackEmailConfig config={config as SlackEmailTemplateConfig} onChange={handleChange} />}
+
+              {/* Regenerate button */}
+              <div className="flex items-center gap-2 pt-1" style={{ borderTop: `1px solid ${t.borderSubtle}` }}>
+                <button
+                  type="button"
+                  onClick={() => { setHasGenerated(false); }}
+                  className="text-[9px] px-2 py-1 rounded border-none cursor-pointer nodrag nowheel"
+                  style={{ background: 'transparent', color: t.textDim, fontFamily: "'Space Mono', monospace" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = t.textDim; }}
+                >
+                  ✨ Regenerate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    useConsoleStore.getState().removeOutputTemplateConfig(target);
+                    setHasGenerated(false);
+                    setBrainDump('');
+                  }}
+                  className="text-[9px] px-2 py-1 rounded border-none cursor-pointer nodrag nowheel"
+                  style={{ background: 'transparent', color: t.textFaint, fontFamily: "'Space Mono', monospace" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = t.statusError; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = t.textFaint; }}
+                >
+                  Reset
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
