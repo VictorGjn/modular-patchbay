@@ -4,8 +4,9 @@ import { useMemoryStore } from '../store/memoryStore';
 import { useTheme } from '../theme';
 import {
   Brain, ChevronDown, ChevronRight, Clock, Database, FileEdit,
-  Plus, X, ToggleLeft, ToggleRight,
+  Plus, X, ToggleLeft, ToggleRight, Sparkles, Loader2,
 } from 'lucide-react';
+import { generateMemoryConfig } from '../utils/generateSection';
 
 /* ── Reusable SectionHeader (same pattern as AgentNode) ── */
 function SectionHeader({ label, icon, collapsed, onToggle, t }: {
@@ -41,6 +42,7 @@ export const MemoryNode = memo(function MemoryNode() {
   const [workingOpen, setWorkingOpen] = useState(true);
   const [newFactText, setNewFactText] = useState('');
   const [newFactTags, setNewFactTags] = useState('');
+  const [generating, setGenerating] = useState(false);
 
   const sessionMemory = useMemoryStore((s) => s.sessionMemory);
   const longTermMemory = useMemoryStore((s) => s.longTermMemory);
@@ -49,6 +51,26 @@ export const MemoryNode = memo(function MemoryNode() {
   const addFact = useMemoryStore((s) => s.addFact);
   const removeFact = useMemoryStore((s) => s.removeFact);
   const updateScratchpad = useMemoryStore((s) => s.updateScratchpad);
+
+  const handleGenerate = useCallback(async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const config = await generateMemoryConfig();
+      setSessionConfig({
+        maxMessages: config.maxMessages,
+        summarizeAfter: config.summarizeAfter,
+        summarizeEnabled: config.summarizeEnabled,
+      });
+      for (const fact of config.suggestedFacts || []) {
+        addFact(fact, ['generated']);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setGenerating(false);
+    }
+  }, [generating, setSessionConfig, addFact]);
 
   const handleAddFact = useCallback(() => {
     if (!newFactText.trim()) return;
@@ -101,8 +123,24 @@ export const MemoryNode = memo(function MemoryNode() {
           >
             Memory
           </span>
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={generating}
+            className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded cursor-pointer border-none nodrag"
+            style={{
+              background: '#FE500015',
+              color: '#FE5000',
+              fontFamily: "'Space Mono', monospace",
+              opacity: generating ? 0.6 : 1,
+            }}
+          >
+            {generating ? <Loader2 size={9} className="animate-spin" /> : <Sparkles size={9} />}
+            Generate
+          </button>
           <span
-            className="text-[9px] ml-auto px-1.5 py-0.5 rounded"
+            className="text-[9px] px-1.5 py-0.5 rounded"
             style={{ background: '#e74c3c15', color: '#e74c3c', fontFamily: "'Space Mono', monospace" }}
           >
             {longTermMemory.length} facts

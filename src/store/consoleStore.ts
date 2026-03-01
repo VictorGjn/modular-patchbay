@@ -8,6 +8,7 @@ import { useProviderStore } from './providerStore';
 import { REACT_CODE_REVIEWER_PRESET } from './demoPreset';
 import { DEMO_PRESETS } from './demoPresets';
 import type { OutputTemplateConfig } from './outputTemplates';
+import { MCP_REGISTRY } from './mcp-registry';
 
 // Module-level abort controller for run cancellation (avoids type-punning the store)
 let _runAbortController: AbortController | undefined;
@@ -297,6 +298,9 @@ export interface ConsoleState {
 
   // Demo preset
   loadDemoPreset: (presetId?: string) => void;
+
+  // Generator — hydrate all nodes from AI-generated config
+  hydrateFromGenerated: (config: import('../utils/generateAgent').GeneratedAgentConfig) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -841,6 +845,115 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     const next = { ...get().outputTemplateConfig };
     delete next[target];
     set({ outputTemplateConfig: next });
+  },
+
+  // Generator — hydrate all nodes from AI-generated config
+  hydrateFromGenerated: (config) => {
+    // Hydrate agent meta
+    set({
+      agentMeta: {
+        name: config.agentMeta.name || '',
+        description: config.agentMeta.description || '',
+        icon: 'brain',
+        category: 'general',
+        tags: config.agentMeta.tags || [],
+        avatar: config.agentMeta.avatar || '🤖',
+      },
+    });
+
+    // Hydrate instructions
+    set({
+      instructionState: {
+        persona: config.instructionState.persona || '',
+        tone: config.instructionState.tone || 'neutral',
+        expertise: config.instructionState.expertise || 3,
+        constraints: {
+          neverMakeUp: config.instructionState.constraints?.neverMakeUp ?? true,
+          askBeforeActions: config.instructionState.constraints?.askBeforeActions ?? false,
+          stayInScope: config.instructionState.constraints?.stayInScope ?? true,
+          useOnlyTools: config.instructionState.constraints?.useOnlyTools ?? false,
+          limitWords: config.instructionState.constraints?.limitWords ?? false,
+          wordLimit: config.instructionState.constraints?.wordLimit ?? 0,
+          customConstraints: (config.instructionState.constraints?.customConstraints || []).join('\n'),
+          scopeDefinition: config.instructionState.constraints?.scopeDefinition || '',
+        },
+        objectives: {
+          primary: config.instructionState.objectives?.primary || '',
+          successCriteria: config.instructionState.objectives?.successCriteria || [],
+          failureModes: config.instructionState.objectives?.failureModes || [],
+        },
+        rawPrompt: '',
+        autoSync: true,
+      },
+    });
+
+    // Hydrate workflow steps
+    const workflowSteps: WorkflowStep[] = (config.workflowSteps || []).map((s, i) => ({
+      id: `gen-step-${i}-${Date.now()}`,
+      label: s.label,
+      action: s.action,
+      tool: '',
+      condition: (s.condition ? 'if' : 'always') as 'always' | 'if' | 'unless',
+      loop: s.loop,
+      maxIterations: s.loop ? 3 : 0,
+    }));
+    set({ workflowSteps });
+
+    // Hydrate MCP servers from registry matches
+    const mcpServers: McpServer[] = (config.mcpServerIds || [])
+      .map(id => {
+        const reg = MCP_REGISTRY.find(m => m.id === id);
+        if (!reg) return null;
+        return {
+          id: reg.id,
+          name: reg.name,
+          icon: reg.icon || 'server',
+          connected: false,
+          enabled: true,
+          added: true,
+          capabilities: [],
+          category: mapMcpCategory(reg.category),
+          description: reg.description,
+        } as McpServer;
+      })
+      .filter(Boolean) as McpServer[];
+    set({ mcpServers });
+
+    // Hydrate skills from registry matches
+    const skills: Skill[] = (config.skillIds || [])
+      .map(id => {
+        const reg = REGISTRY_SKILLS.find(s => s.id === id);
+        if (!reg) return null;
+        return {
+          id: reg.id,
+          name: reg.name,
+          icon: reg.icon,
+          enabled: true,
+          added: true,
+          description: reg.description,
+          category: mapSkillCategory(reg.category),
+        } as Skill;
+      })
+      .filter(Boolean) as Skill[];
+    set({ skills });
+
+    // Hydrate knowledge suggestions as channels
+    const channels: ChannelConfig[] = (config.knowledgeSuggestions || []).map((k, i) => {
+      const classification = classifyKnowledge(k.name);
+      return {
+        sourceId: `gen-knowledge-${i}-${Date.now()}`,
+        label: k.name,
+        enabled: true,
+        tokenAllocation: 2000,
+        accessMode: 'read' as const,
+        depth: 0,
+        knowledgeTypeIndex: ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'].indexOf(k.type) ?? classification.typeIndex,
+      };
+    });
+    set({ channels });
+
+    // Clear response
+    set({ response: '', selectedPreset: '' });
   },
 
   // Demo preset
