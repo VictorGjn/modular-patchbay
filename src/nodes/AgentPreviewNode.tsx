@@ -139,7 +139,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
       <div>
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3" style={{ background: `linear-gradient(135deg, #FE500010 0%, transparent 100%)`, borderBottom: `1px solid ${t.borderSubtle}` }}>
+      <div className="flex items-center gap-3 px-5 py-3" style={{ background: `linear-gradient(135deg, #FE500010 0%, transparent 100%)`, borderBottom: `1px solid ${t.borderSubtle}` }}>
         <Avatar emoji={agentMeta.icon || '🤖'} size="md" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -197,7 +197,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
       </div>
 
       {/* Bottom bar: Verification + Error + Eval status */}
-      <div className="flex items-center gap-3 px-3 py-2" style={{ borderTop: `1px solid ${t.borderSubtle}`, background: t.surfaceElevated }}>
+      <div className="flex items-center gap-3 px-5 py-3" style={{ borderTop: `1px solid ${t.borderSubtle}`, background: t.surfaceElevated }}>
         <Tooltip content={verification.enabled ? `Verification: ${VERIFY_LABELS[verification.strategy]}` : 'No verification configured'}>
           <div className="flex items-center gap-1">
             <StatusDot status={verification.enabled ? 'success' : 'info'} />

@@ -393,7 +393,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
           <button
             type="button"
             onClick={addStep}
-            className="flex items-center justify-center gap-1.5 text-[10px] px-4 py-2 rounded-lg cursor-pointer border-none nodrag"
+            className="flex items-center justify-center gap-1.5 text-[10px] px-5 py-3 rounded-lg cursor-pointer border-none nodrag"
             style={{
               background: '#e67e2210',
               border: `1.5px dashed #e67e2240`,

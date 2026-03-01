@@ -78,7 +78,7 @@ function Section({ label, color, collapsed, onToggle, right, t }: {
   onToggle: () => void; right?: React.ReactNode; t: ReturnType<typeof useTheme>;
 }) {
   return (
-    <div className="flex items-center gap-2.5 px-4 py-2.5 cursor-pointer select-none nodrag"
+    <div className="flex items-center gap-2.5 px-5 py-3.5 cursor-pointer select-none nodrag"
       onClick={onToggle}
       style={{ borderTop: `1px solid ${t.borderSubtle}`, background: t.isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.01)' }}>
       {collapsed ? <ChevronRight size={10} style={{ color: t.textDim }} /> : <ChevronDown size={10} style={{ color: t.textDim }} />}
@@ -247,7 +247,7 @@ export const AgentNode = memo(function AgentNode() {
       <Handle type="source" position={Position.Right} id="agent-memory-out" style={{ ...handleBase, top: '75%', right: -4, background: '#e74c3c' }} />
 
       {/* Header */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 select-none"
+      <div className="flex items-center gap-2.5 px-5 py-3.5 select-none"
         style={{ borderBottom: `1px solid ${t.border}`, background: t.surfaceElevated }}>
         <Bot size={14} style={{ color: '#FE5000' }} />
         <Tooltip content="Build your agent step by step">

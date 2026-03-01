@@ -300,7 +300,7 @@ export const McpNode = memo(function McpNode() {
 
       {nodeCollapsed ? null : <>
       {/* Active MCP servers only */}
-      <div ref={cardContainerRef} className="flex-1 px-4 py-3 overflow-y-auto nowheel">
+      <div ref={cardContainerRef} className="flex-1 px-5 py-3 overflow-y-auto nowheel">
         {effectiveView === 'card' ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
             {activeServers.length === 0 ? (
@@ -344,7 +344,7 @@ export const McpNode = memo(function McpNode() {
           type="button"
           onClick={() => setShowLibrary(true)}
           aria-label="Open MCP library"
-          className="w-full min-h-[36px] px-4 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel flex items-center justify-center gap-1.5"
+          className="w-full min-h-[36px] px-5 py-3 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel flex items-center justify-center gap-1.5"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}

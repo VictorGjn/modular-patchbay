@@ -167,7 +167,7 @@ export const ResponseNode = memo(function ResponseNode() {
 
         {/* Content */}
         <div
-          className="px-4 py-3 text-sm leading-relaxed overflow-y-auto nowheel flex-1 min-h-0"
+          className="px-5 py-3 text-sm leading-relaxed overflow-y-auto nowheel flex-1 min-h-0"
           style={{ color: t.responseText, minHeight: 40 }}
         >
           {running && !displayedText ? (
@@ -220,7 +220,7 @@ export const ResponseNode = memo(function ResponseNode() {
             style={{ background: t.isDark ? '#141417' : '#ffffff', border: `1px solid ${t.border}`, boxShadow: '0 24px 48px rgba(0,0,0,0.4)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: t.borderSubtle, background: t.surfaceOpaque }}>
+            <div className="flex items-center gap-2 px-5 py-3 border-b shrink-0" style={{ borderColor: t.borderSubtle, background: t.surfaceOpaque }}>
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: t.statusSuccess, boxShadow: t.statusSuccessGlow }} />
               <span className="text-xs tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>Response -- Expanded</span>
               <button type="button" onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy response'} className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text" style={{ color: copied ? t.statusSuccess : t.textDim }}>

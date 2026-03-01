@@ -9,7 +9,7 @@ Definitive visual rules for ALL canvas nodes. Every node MUST follow these.
 --node-width-md: 320px    (Knowledge, Skills, MCP, Workflow, Memory)
 --node-width-lg: 480px    (Agent, Prompt)
 --node-radius: 10px
---node-padding-x: 16px
+--node-padding-x: 20px    (px-5 — leaves gutter for handles on edges)
 --node-padding-y: 12px
 --node-gap: 12px          (gap between elements inside a section)
 --section-gap: 0px        (sections are flush, divided by border)
@@ -90,7 +90,7 @@ const HANDLE: React.CSSProperties = {
 
 ## Body Content Rules
 
-- Padding: `px-4 py-3` for every content section
+- Padding: `px-5 py-3` for every content section (20px horizontal = handle gutter)
 - Gap: `gap-3` (12px) between elements
 - ALL text inputs use DS `<Input>` component
 - ALL text areas use DS `<TextArea>` component  

@@ -197,7 +197,7 @@ export const PromptNode = memo(function PromptNode() {
           type="button"
           onClick={() => setSettingsOpen(!settingsOpen)}
           aria-label={settingsOpen ? 'Collapse advanced settings' : 'Expand advanced settings'}
-          className="flex items-center gap-2 w-full px-3 py-2 nodrag"
+          className="flex items-center gap-2 w-full px-5 py-3 nodrag"
           style={{
             background: 'transparent',
             border: 'none',
