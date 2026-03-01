@@ -140,8 +140,8 @@ test.describe('Dashboard Layout', () => {
 
   test('memory section has session config controls', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Auto-summarize after overflow')).toBeVisible();
-    await expect(page.getByLabel('Max messages')).toBeVisible();
-    await expect(page.getByText('Long-term facts')).toBeVisible();
+    await expect(page.getByText('Session Strategy')).toBeVisible();
+    await expect(page.getByText('Seed Facts')).toBeVisible();
+    await expect(page.getByText('Working Memory')).toBeVisible();
   });
 });
