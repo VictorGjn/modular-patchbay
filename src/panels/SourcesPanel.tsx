@@ -539,6 +539,7 @@ function MemorySection() {
   const [collapsed, setCollapsed] = useState(false);
   const [newFactText, setNewFactText] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
@@ -555,99 +556,34 @@ function MemorySection() {
   const totalBudget = session.tokenBudget + longTerm.tokenBudget + working.tokenBudget;
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
 
+  // Compute a simple summary line for the badge
+  const features: string[] = [];
+  if (longTerm.enabled) features.push('long-term');
+  if (working.enabled) features.push('scratchpad');
+  const badgeText = facts.length > 0
+    ? `${facts.length} facts${features.length ? ' · ' + features.join(' · ') : ''}`
+    : features.length ? features.join(' · ') : 'session only';
+
   return (
     <Section
       icon={Brain} label="Memory" color="#e74c3c"
-      badge={`${facts.length} facts · ${fmtTokens(totalBudget)} tokens`}
+      badge={badgeText}
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
-      <div className="flex justify-end mb-2">
+      {/* ── Simple view: conversation window + facts ── */}
+
+      <div className="flex items-center justify-between mb-2">
+        <SubLabel>Conversation Window</SubLabel>
         <GenerateBtn loading={generating} onClick={handleGenerate} label="Configure" />
       </div>
-      {/* ── Session Memory ── */}
-      <SubLabel>Session Strategy</SubLabel>
-      <Select
-        options={STRATEGY_OPTIONS}
-        value={session.strategy}
-        onChange={v => setSessionConfig({ strategy: v as any })}
-        size="sm"
-      />
-      <div className="mt-2 flex flex-col gap-1.5">
-        <SliderRow label="Window" value={session.windowSize} min={5} max={100} step={5}
-          onChange={v => setSessionConfig({ windowSize: v })} />
-        {(session.strategy === 'summarize_and_recent') && (
-          <SliderRow label="Summarize at" value={session.summarizeAfter} min={5} max={session.windowSize} step={5}
-            onChange={v => setSessionConfig({ summarizeAfter: v })} />
-        )}
-        <SliderRow label="Token budget" value={session.tokenBudget} min={1000} max={60000} step={1000}
-          onChange={v => setSessionConfig({ tokenBudget: v })} suffix="K" />
+      <SliderRow label="Messages" value={session.windowSize} min={5} max={100} step={5}
+        onChange={v => setSessionConfig({ windowSize: v })} />
+      <div className="mt-1.5">
+        <Toggle checked={session.summarizeEnabled} onChange={v => setSessionConfig({ summarizeEnabled: v })}
+          label="Summarize older messages" size="sm" />
       </div>
 
-      {/* ── Long-Term Memory ── */}
-      <SubLabel>Long-Term Memory</SubLabel>
-      <Toggle checked={longTerm.enabled} onChange={v => setLongTermConfig({ enabled: v })} label="Enabled" size="sm" />
-
-      {longTerm.enabled && (
-        <div className="flex flex-col gap-2 mt-2">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Select options={STORE_OPTIONS} value={longTerm.store}
-                onChange={v => setLongTermConfig({ store: v as any })} size="sm" label="Store" />
-            </div>
-            <div className="flex-1">
-              <Select options={SCOPE_OPTIONS} value={longTerm.scope}
-                onChange={v => setLongTermConfig({ scope: v as any })} size="sm" label="Scope" />
-            </div>
-          </div>
-          <Select options={EMBEDDING_OPTIONS} value={longTerm.embeddingModel}
-            onChange={v => setLongTermConfig({ embeddingModel: v as any })} size="sm" label="Embedding Model" />
-
-          {/* Recall config */}
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Select options={RECALL_OPTIONS} value={longTerm.recall.strategy}
-                onChange={v => setRecallConfig({ strategy: v as any })} size="sm" label="Recall" />
-            </div>
-            <div className="flex-1">
-              <SliderRow label="K" value={longTerm.recall.k} min={1} max={20} step={1}
-                onChange={v => setRecallConfig({ k: v })} />
-            </div>
-          </div>
-          <SliderRow label="Min score" value={Math.round(longTerm.recall.minScore * 100)} min={0} max={100} step={5}
-            onChange={v => setRecallConfig({ minScore: v / 100 })} />
-
-          {/* Write mode */}
-          <Select options={WRITE_MODE_OPTIONS} value={longTerm.write.mode}
-            onChange={v => setWriteConfig({ mode: v as any })} size="sm" label="Write Mode" />
-
-          {/* Extract types */}
-          <div className="flex flex-wrap gap-1">
-            {EXTRACT_TYPES.map(et => {
-              const active = longTerm.write.extractTypes.includes(et.value as any);
-              return (
-                <button key={et.value} type="button" aria-label={`Toggle ${et.label}`}
-                  onClick={() => toggleExtractType(et.value as any)}
-                  className="text-[9px] px-2 py-1 rounded-full cursor-pointer border-none"
-                  style={{
-                    fontFamily: "'Space Mono', monospace",
-                    background: active ? `${et.color}20` : t.isDark ? '#1c1c20' : '#f0f0f5',
-                    color: active ? et.color : t.textDim,
-                    border: `1px solid ${active ? `${et.color}40` : 'transparent'}`,
-                  }}>
-                  {et.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <SliderRow label="Max entries" value={longTerm.maxEntries} min={100} max={10000} step={100}
-            onChange={v => setLongTermConfig({ maxEntries: v })} />
-          <SliderRow label="Token budget" value={longTerm.tokenBudget} min={1000} max={30000} step={1000}
-            onChange={v => setLongTermConfig({ tokenBudget: v })} suffix="K" />
-        </div>
-      )}
-
-      {/* ── Seed Facts ── */}
+      {/* ── Seed Facts (always visible — most tangible) ── */}
       <SubLabel>Seed Facts</SubLabel>
       <div className="flex flex-col gap-1 mb-2">
         {facts.map(fact => (
@@ -662,11 +598,16 @@ function MemorySection() {
               </span>
             ))}
             <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)}
-              className="border-none bg-transparent cursor-pointer p-0.5 rounded shrink-0" style={{ color: t.textFaint }}>
+              className="border-none bg-transparent cursor-pointer p-1 rounded shrink-0 hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
               <X size={9} />
             </button>
           </div>
         ))}
+        {facts.length === 0 && (
+          <div className="text-[10px] py-2 text-center" style={{ color: t.textFaint }}>
+            Pre-load facts the agent should always know
+          </div>
+        )}
       </div>
       <div className="flex gap-1">
         <Input value={newFactText} onChange={e => setNewFactText(e.target.value)}
@@ -680,22 +621,104 @@ function MemorySection() {
         </button>
       </div>
 
-      {/* ── Working Memory ── */}
-      <SubLabel>Working Memory</SubLabel>
-      <Toggle checked={working.enabled} onChange={v => setWorkingConfig({ enabled: v })} label="Enabled" size="sm" />
-      {working.enabled && (
-        <div className="mt-1.5">
-          <SliderRow label="Max tokens" value={working.maxTokens} min={500} max={8000} step={500}
-            onChange={v => setWorkingConfig({ maxTokens: v })} />
+      {/* ── Advanced toggle ── */}
+      <button type="button" onClick={() => setShowAdvanced(!showAdvanced)}
+        className="flex items-center gap-1 mt-3 text-[9px] tracking-wider uppercase cursor-pointer border-none bg-transparent w-full"
+        style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, padding: 0, transition: 'color 150ms' }}
+        onMouseEnter={e => { e.currentTarget.style.color = '#FE5000'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}
+      >
+        {showAdvanced ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+        Advanced memory config
+      </button>
+
+      {/* ── Advanced: everything else ── */}
+      {showAdvanced && (
+        <div className="mt-2 pt-2 flex flex-col gap-1.5" style={{ borderTop: `1px solid ${t.isDark ? '#1e1e22' : '#e8e8ec'}` }}>
+
+          {/* Session strategy */}
+          <SubLabel>Session Strategy</SubLabel>
+          <Select options={STRATEGY_OPTIONS} value={session.strategy}
+            onChange={v => setSessionConfig({ strategy: v as any })} size="sm" />
+          {(session.strategy === 'summarize_and_recent') && (
+            <SliderRow label="Summarize at" value={session.summarizeAfter} min={5} max={session.windowSize} step={5}
+              onChange={v => setSessionConfig({ summarizeAfter: v })} />
+          )}
+          <SliderRow label="Token budget" value={session.tokenBudget} min={1000} max={60000} step={1000}
+            onChange={v => setSessionConfig({ tokenBudget: v })} suffix="K" />
+
+          {/* Long-term */}
+          <SubLabel>Long-Term Memory</SubLabel>
+          <Toggle checked={longTerm.enabled} onChange={v => setLongTermConfig({ enabled: v })} label="Enabled" size="sm" />
+          {longTerm.enabled && (
+            <div className="flex flex-col gap-2 mt-1">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Select options={STORE_OPTIONS} value={longTerm.store}
+                    onChange={v => setLongTermConfig({ store: v as any })} size="sm" label="Store" />
+                </div>
+                <div className="flex-1">
+                  <Select options={SCOPE_OPTIONS} value={longTerm.scope}
+                    onChange={v => setLongTermConfig({ scope: v as any })} size="sm" label="Scope" />
+                </div>
+              </div>
+              <Select options={EMBEDDING_OPTIONS} value={longTerm.embeddingModel}
+                onChange={v => setLongTermConfig({ embeddingModel: v as any })} size="sm" label="Embedding Model" />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Select options={RECALL_OPTIONS} value={longTerm.recall.strategy}
+                    onChange={v => setRecallConfig({ strategy: v as any })} size="sm" label="Recall" />
+                </div>
+                <div className="flex-1">
+                  <SliderRow label="K" value={longTerm.recall.k} min={1} max={20} step={1}
+                    onChange={v => setRecallConfig({ k: v })} />
+                </div>
+              </div>
+              <SliderRow label="Min score" value={Math.round(longTerm.recall.minScore * 100)} min={0} max={100} step={5}
+                onChange={v => setRecallConfig({ minScore: v / 100 })} />
+              <Select options={WRITE_MODE_OPTIONS} value={longTerm.write.mode}
+                onChange={v => setWriteConfig({ mode: v as any })} size="sm" label="Write Mode" />
+              <div className="flex flex-wrap gap-1">
+                {EXTRACT_TYPES.map(et => {
+                  const active = longTerm.write.extractTypes.includes(et.value as any);
+                  return (
+                    <button key={et.value} type="button" aria-label={`Toggle ${et.label}`}
+                      onClick={() => toggleExtractType(et.value as any)}
+                      className="text-[9px] px-2 py-1 rounded-full cursor-pointer border-none"
+                      style={{
+                        fontFamily: "'Space Mono', monospace",
+                        background: active ? `${et.color}20` : t.isDark ? '#1c1c20' : '#f0f0f5',
+                        color: active ? et.color : t.textDim,
+                        border: `1px solid ${active ? `${et.color}40` : 'transparent'}`,
+                      }}>
+                      {et.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <SliderRow label="Max entries" value={longTerm.maxEntries} min={100} max={10000} step={100}
+                onChange={v => setLongTermConfig({ maxEntries: v })} />
+              <SliderRow label="Token budget" value={longTerm.tokenBudget} min={1000} max={30000} step={1000}
+                onChange={v => setLongTermConfig({ tokenBudget: v })} suffix="K" />
+            </div>
+          )}
+
+          {/* Working memory */}
+          <SubLabel>Working Memory</SubLabel>
+          <Toggle checked={working.enabled} onChange={v => setWorkingConfig({ enabled: v })} label="Scratchpad" size="sm" />
+          {working.enabled && (
+            <SliderRow label="Max tokens" value={working.maxTokens} min={500} max={8000} step={500}
+              onChange={v => setWorkingConfig({ maxTokens: v })} />
+          )}
         </div>
       )}
 
-      {/* ── Token Budget Allocation ── */}
-      {totalBudget > 0 && (
+      {/* ── Token Budget Allocation (always visible when meaningful) ── */}
+      {(longTerm.enabled || working.enabled) && totalBudget > 0 && (
         <div className="mt-3">
           <div className="text-[9px] tracking-[0.1em] uppercase mb-1.5"
             style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
-            Memory budget allocation
+            Memory budget
           </div>
           <div className="flex gap-0.5 h-1.5 rounded overflow-hidden">
             <div style={{ width: `${(session.tokenBudget / totalBudget) * 100}%`, background: '#3498db', borderRadius: 2 }}
@@ -724,7 +747,7 @@ function MemorySection() {
               ))}
             </div>
             <span className="text-[9px]" style={{ fontFamily: "'Space Mono', monospace", color: '#FE5000' }}>
-              {fmtTokens(totalBudget)} total
+              {fmtTokens(totalBudget)}
             </span>
           </div>
         </div>
