@@ -143,6 +143,23 @@ html, body, #root {
   stroke: #999 !important;
 }
 
+/* ── Placeholder text contrast ── */
+::placeholder {
+  color: #666 !important;
+  opacity: 1 !important;
+}
+[data-theme="light"] ::placeholder {
+  color: #888 !important;
+}
+
+/* ── Edge labels ── */
+.react-flow__edge-textwrapper .react-flow__edge-text {
+  fill: #888 !important;
+}
+[data-theme="light"] .react-flow__edge-textwrapper .react-flow__edge-text {
+  fill: #555 !important;
+}
+
 /* Accessibility: respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
