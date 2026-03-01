@@ -108,7 +108,7 @@ export const PromptNode = memo(function PromptNode() {
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
         boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
-        width: 480,
+        width: '100%',
         minHeight: 160,
       }}
     >

@@ -110,7 +110,7 @@ function SegmentedControl<T extends string | number>({ options, value, onChange 
 }) {
   const t = useTheme();
   return (
-    <div className="flex rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
+    <div className="flex rounded-md overflow-visible" style={{ border: `1px solid ${t.border}` }}>
       {options.map(opt => (
         <button key={String(opt.value)} type="button" onClick={() => onChange(opt.value)}
           className="flex-1 py-1.5 cursor-pointer border-none nodrag text-[11px]"
@@ -232,11 +232,12 @@ export const AgentNode = memo(function AgentNode() {
   const handleBase: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
   return (
-    <div className="rounded-lg overflow-visible" style={{
+    <div className="rounded-lg" style={{
       background: t.surfaceOpaque,
       border: `1px solid ${t.border}`,
       boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`,
-      width: 480,
+      width: '100%',
+      overflow: 'hidden',
     }}>
       {/* Handles — fixed % positions, 8px dots on the border edge */}
       <Handle type="target" position={Position.Left} id="agent-knowledge-in" style={{ ...handleBase, top: '20%', left: -4, background: '#3498db' }} />

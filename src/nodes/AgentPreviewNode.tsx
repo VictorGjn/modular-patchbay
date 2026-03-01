@@ -129,7 +129,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
     <div
       className="rounded-lg nowheel overflow-visible"
       style={{
-        width: 480,
+        width: '100%',
         background: t.surfaceOpaque,
         border: `2px solid #FE500040`,
         boxShadow: `0 0 30px #FE500008, 0 8px 32px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.1)'}`,
@@ -269,7 +269,7 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
       </div>
 
       {/* Right: Details grid */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-visible">
         {/* Knowledge */}
         <div className="flex-1 p-2" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
           <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Knowledge</div>
@@ -494,7 +494,7 @@ function LayersView() {
   return (
     <div className="flex flex-col gap-[2px] p-2">
       {layers.map((l) => (
-        <div key={l.key} className="rounded overflow-hidden" style={{ background: `${l.color}05`, border: `1px solid ${l.color}15` }}>
+        <div key={l.key} className="rounded overflow-visible" style={{ background: `${l.color}05`, border: `1px solid ${l.color}15` }}>
           <button
             type="button"
             onClick={() => toggle(l.key)}

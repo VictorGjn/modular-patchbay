@@ -106,7 +106,7 @@ export const ResponseNode = memo(function ResponseNode() {
     <>
       <div
         className="rounded-lg overflow-visible"
-        style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)'}`, width: 480 }}
+        style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)'}`, width: '100%' }}
       >
         <Handle type="target" position={Position.Left} id="response-in" style={{ ...HANDLE, background: '#FE5000', top: '50%', left: -4 }} />
         <div className="flex flex-col">
@@ -215,7 +215,7 @@ export const ResponseNode = memo(function ResponseNode() {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center" onClick={() => setExpanded(false)}>
           <div className="absolute inset-0" style={{ background: t.isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }} />
           <div
-            className="relative w-[90vw] max-w-[800px] max-h-[85vh] flex flex-col rounded-xl overflow-hidden"
+            className="relative w-[90vw] max-w-[800px] max-h-[85vh] flex flex-col rounded-xl overflow-visible"
             style={{ background: t.isDark ? '#141417' : '#ffffff', border: `1px solid ${t.border}`, boxShadow: '0 24px 48px rgba(0,0,0,0.4)' }}
             onClick={(e) => e.stopPropagation()}
           >
