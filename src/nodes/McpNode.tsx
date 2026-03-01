@@ -246,6 +246,7 @@ export const McpNode = memo(function McpNode() {
   }));
 
   return (
+    <>
     <div
       className="rounded-xl h-full overflow-visible"
       style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: 320 }}
@@ -364,6 +365,7 @@ export const McpNode = memo(function McpNode() {
       onToggle={toggleMcp}
       kind="mcp"
     />
+    </>
   );
 });
 
