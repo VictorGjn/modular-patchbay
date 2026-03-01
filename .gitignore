@@ -25,3 +25,5 @@ dist-ssr
 dist-server/
 test-results/
 playwright-report/
+
+archive/
