@@ -210,7 +210,7 @@ export default function App() {
   }), [t.minimapBg]);
 
   return (
-    <div className="w-full h-full flex flex-col" style={{ background: t.bg }}>
+    <div className="w-full h-full flex flex-col" data-theme={t.isDark ? 'dark' : 'light'} style={{ background: t.bg }}>
       <input ref={importInputRef} type="file" accept=".md,.yaml,.yml,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
       <Topbar onImportClick={handleImportClick} onSettingsClick={() => setShowSettings(true, 'providers')} />
 
