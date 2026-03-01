@@ -12,12 +12,12 @@ import { formatTokens } from '../utils/formatTokens';
 import {
   Bot, Sparkles, Loader2,
   ChevronDown, ChevronRight,
-  Plus, X, GripVertical,
+  Plus, X,
 } from 'lucide-react';
 
 /* ── Types ── */
-type InstructionState = ReturnType<typeof useConsoleStore.getState>['instructionState'];
-type WorkflowStep = ReturnType<typeof useConsoleStore.getState>['workflowSteps'][number];
+// type InstructionState = ReturnType<typeof useConsoleStore.getState>['instructionState'];
+// type WorkflowStep = ReturnType<typeof useConsoleStore.getState>['workflowSteps'][number];
 
 /* ── Section Header ── */
 function SectionHeader({
@@ -77,7 +77,7 @@ export function AgentBuilder() {
   const [constraintsOpen, setConstraintsOpen] = useState(false);
   const [objectivesOpen, setObjectivesOpen] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
-  const [workflowOpen, setWorkflowOpen] = useState(true);
+  // workflow section is always open in dashboard mode
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [refining, setRefining] = useState<string | null>(null);
@@ -92,7 +92,7 @@ export function AgentBuilder() {
   const handleRefineAll = useCallback(async () => {
     setRefining('all');
     try {
-      const refined = await refineField('full', persona, { channels, mcpServers, skills });
+      const refined = await refineField('full', persona);
       if (typeof refined === 'object' && refined !== null) {
         const r = refined as RefinedAgent;
         if (r.persona) updateInstruction({ persona: r.persona });
@@ -106,8 +106,8 @@ export function AgentBuilder() {
   const handleGenerateWorkflow = useCallback(async () => {
     setRefining('workflow');
     try {
-      const steps = await generateWorkflow({ persona, constraints, objectives, channels, mcpServers, skills });
-      if (steps) updateWorkflowSteps(steps);
+      const steps = await generateWorkflow();
+      if (steps) updateWorkflowSteps(steps as any);
     } catch {}
     setRefining(null);
   }, [persona, constraints, objectives, channels, mcpServers, skills, updateWorkflowSteps]);
@@ -122,7 +122,7 @@ export function AgentBuilder() {
   const progress = Object.values(done).filter(Boolean).length;
 
   // Token budget breakdown
-  const knowledgeTokens = channels.reduce((sum, c) => sum + (c.effectiveTokens ?? c.tokenEstimate ?? 0), 0);
+  const knowledgeTokens = channels.reduce((sum, c) => sum + ((c as any).effectiveTokens ?? c.baseTokens ?? 0), 0);
   const instructionTokens = Math.ceil(persona.length / 4) + Math.ceil(constraints.customConstraints.length / 4);
   const workflowTokens = workflowSteps.reduce((sum, s) => sum + Math.ceil(s.label.length / 4), 0);
   const totalUsed = knowledgeTokens + instructionTokens + workflowTokens;
@@ -332,7 +332,7 @@ export function AgentBuilder() {
               )}
             </div>
           ))}
-          <button type="button" onClick={() => addWorkflowStep({ id: crypto.randomUUID(), label: '', action: '', tool: '', condition: 'always', conditionText: '', loop: false, maxIterations: 1 })}
+          <button type="button" onClick={() => addWorkflowStep({ label: '', action: '', tool: '', condition: 'always', conditionText: '' })}
             className="flex items-center justify-center gap-1.5 text-[10px] px-4 py-2.5 mt-2 rounded-lg cursor-pointer border-none"
             style={{ background: '#e67e2215', color: '#e67e22', fontFamily: "'Space Mono', monospace" }}>
             <Plus size={11} /> Add Step

@@ -83,13 +83,7 @@ export const MemoryNode = memo(function MemoryNode() {
     setNewFactTags('');
   }, [newFactText, newFactTags, addFact]);
 
-  const inputStyle = {
-    background: t.inputBg,
-    border: `1px solid ${t.border}`,
-    color: t.textPrimary,
-    fontFamily: "'Space Mono', monospace",
-    fontSize: 11,
-  };
+  // inputStyle removed — DS components handle their own styling
 
   const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 

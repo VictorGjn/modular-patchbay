@@ -3,26 +3,25 @@ import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMemoryStore } from '../store/memoryStore';
 import { useMcpStore } from '../store/mcpStore';
-import { useSkillsStore } from '../store/skillsStore';
-import { useKnowledgeStore } from '../store/knowledgeStore';
+// import { useSkillsStore } from '../store/skillsStore';
+// import { useKnowledgeStore } from '../store/knowledgeStore';
 import { TextArea } from '../components/ds/TextArea';
 import { Input } from '../components/ds/Input';
 import { Toggle } from '../components/ds/Toggle';
 import { Select } from '../components/ds/Select';
-import { Tooltip } from '../components/ds/Tooltip';
+// import { Tooltip } from '../components/ds/Tooltip';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
 import { generateMemoryConfig, generateKnowledge } from '../utils/generateSection';
 import { analyzeFactsForPromotion, type FactPromotion, type FactAnalysisResult } from '../utils/analyzeFactsForPromotion';
 import { useVersionStore } from '../store/versionStore';
 import { useHealthStore } from '../store/healthStore';
 import { KNOWLEDGE_TYPES } from '../store/knowledgeBase';
-import { formatTokens } from '../utils/formatTokens';
+// import { formatTokens } from '../utils/formatTokens';
 import {
   Wand2, Sparkles, Loader2, RotateCcw,
   ChevronDown, ChevronRight,
   Database, Plug, Zap, Brain,
   Plus, X, Minus, Library,
-  File, Folder, Search, ExternalLink,
   Lightbulb, ArrowUpRight, Check, AlertCircle, Bot,
 } from 'lucide-react';
 
@@ -60,7 +59,7 @@ function Section({
         className="flex items-center gap-2 w-full px-5 py-3.5 border-none cursor-pointer select-none"
         style={{ background: 'transparent' }}
       >
-        <div style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+        <Icon size={10} style={{ color, flexShrink: 0 }} />
         {collapsed
           ? <ChevronRight size={12} style={{ color: t.textDim }} />
           : <ChevronDown size={12} style={{ color: t.textDim }} />}
@@ -188,7 +187,7 @@ function GeneratorSection() {
 function KnowledgeSection() {
   const t = useTheme();
   const channels = useConsoleStore(s => s.channels);
-  const toggleChannel = useConsoleStore(s => s.toggleChannel);
+  // const toggleChannel = useConsoleStore(s => s.toggleChannel);
   const setChannelDepth = useConsoleStore(s => s.setChannelDepth);
   const removeChannel = useConsoleStore(s => s.removeChannel);
   const addChannel = useConsoleStore(s => s.addChannel);
@@ -197,7 +196,7 @@ function KnowledgeSection() {
   const [generating, setGenerating] = useState(false);
 
   const enabledCount = channels.filter(c => c.enabled).length;
-  const totalTokens = channels.reduce((sum, c) => sum + (c.effectiveTokens ?? c.tokenEstimate ?? 0), 0);
+  const totalTokens = channels.reduce((sum, c) => sum + ((c as any).effectiveTokens ?? c.baseTokens ?? 0), 0);
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
 
   const DEPTH_LABELS = ['Full', 'High', 'Ref', 'Skim', 'Mention'] as const;
@@ -211,11 +210,11 @@ function KnowledgeSection() {
         addChannel({
           sourceId: `gen-${crypto.randomUUID().slice(0, 8)}`,
           name: s.name,
-          type: 'file',
-          enabled: true,
+          path: '',
+          category: 'file' as any,
           knowledgeType: s.type as any,
           depth: 0,
-          tokenEstimate: 500,
+          baseTokens: 500,
         });
       }
     } catch { /* user sees no change */ }
@@ -277,7 +276,7 @@ function KnowledgeSection() {
               </div>
               {/* Token count */}
               <span className="text-[9px] w-8 text-right" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
-                {fmtTokens(ch.effectiveTokens ?? ch.tokenEstimate ?? 0)}
+                {fmtTokens((ch as any).effectiveTokens ?? ch.baseTokens ?? 0)}
               </span>
               {/* Remove */}
               <button type="button" aria-label={`Remove ${ch.name}`} onClick={() => removeChannel(ch.sourceId)}
@@ -312,7 +311,7 @@ function KnowledgeSection() {
             {Object.entries(KNOWLEDGE_TYPES).map(([key, kt]) => {
               const typeTokens = channels
                 .filter(c => c.enabled && c.knowledgeType === key)
-                .reduce((sum, c) => sum + (c.effectiveTokens ?? c.tokenEstimate ?? 0), 0);
+                .reduce((sum, c) => sum + ((c as any).effectiveTokens ?? c.baseTokens ?? 0), 0);
               if (typeTokens === 0) return null;
               const pct = totalTokens > 0 ? (typeTokens / totalTokens) * 100 : 0;
               return <div key={key} style={{ width: `${pct}%`, background: kt.color, borderRadius: 2 }} />;
@@ -331,7 +330,7 @@ function KnowledgeSection() {
 function McpSection() {
   const t = useTheme();
   const mcpServers = useConsoleStore(s => s.mcpServers);
-  const toggleMcp = useConsoleStore(s => s.toggleMcp);
+  // const toggleMcp = useConsoleStore(s => s.toggleMcp);
   const removeMcp = useConsoleStore(s => s.removeMcp);
   const setShowMarketplace = useConsoleStore(s => s.setShowMarketplace);
   const mcpState = useMcpStore(s => s.servers);
@@ -397,9 +396,9 @@ function McpSection() {
               <div className="flex items-center gap-2.5 py-2.5">
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: sc.bg, boxShadow: sc.glow, flexShrink: 0 }} />
                 <span className="flex-1 text-[12px]" style={{ color: t.textPrimary }}>{server.name}</span>
-                {server.type && (
+                {(server as any).type && (
                   <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ fontFamily: "'Space Mono', monospace", background: t.badgeBg, color: t.textDim }}>
-                    {server.type}
+                    {(server as any).type}
                   </span>
                 )}
                 {toolCount > 0 && (
@@ -445,10 +444,10 @@ function McpSection() {
 function SkillsSection() {
   const t = useTheme();
   const skills = useConsoleStore(s => s.skills);
-  const toggleSkill = useConsoleStore(s => s.toggleSkill);
+  // const toggleSkill = useConsoleStore(s => s.toggleSkill);
   const removeSkill = useConsoleStore(s => s.removeSkill);
   const setShowMarketplace = useConsoleStore(s => s.setShowMarketplace);
-  const installedSkills = useSkillsStore(s => s.skills);
+  // const installedSkills = useSkillsStore(s => s.skills);
   const [collapsed, setCollapsed] = useState(false);
 
   const activeCount = skills.filter(s => s.enabled !== false).length;
@@ -862,12 +861,12 @@ function FactInsightsSection() {
         break;
       case 'workflow':
         if (p.workflowStep) {
-          addWorkflowStep({ id: crypto.randomUUID(), label: p.workflowStep.label, action: p.workflowStep.action, tool: '', condition: 'always', conditionText: '', loop: false, maxIterations: 1 });
+          addWorkflowStep({ label: p.workflowStep.label, action: p.workflowStep.action, tool: '', condition: 'always', conditionText: '' });
         }
         break;
       case 'knowledge':
         if (p.knowledgeSource) {
-          addChannel({ sourceId: `promoted-${crypto.randomUUID().slice(0, 8)}`, name: p.knowledgeSource.name, type: 'file', enabled: true, knowledgeType: p.knowledgeSource.type as any, depth: 0, tokenEstimate: 500 });
+          addChannel({ sourceId: `promoted-${crypto.randomUUID().slice(0, 8)}`, name: p.knowledgeSource.name, path: '', category: 'file' as any, knowledgeType: p.knowledgeSource.type as any, depth: 0, baseTokens: 500 });
         }
         break;
       default:

@@ -1,29 +1,48 @@
 /**
- * Markdown Tree Indexer
+ * Tree Indexer — Source-Agnostic Document Indexing
  *
- * Parses markdown into a PageIndex-compatible tree structure.
- * Headings become tree nodes; text between headings becomes node content.
- * Each node tracks token count for budget-aware depth filtering.
+ * Converts ANY structured content into a PageIndex-compatible tree.
+ * The tree is the universal intermediate representation for the
+ * context engineering pipeline:
+ *
+ *   Source (any) → Connector (normalize) → TreeIndex → DepthFilter → Context Assembly
+ *
+ * Connectors:
+ *   - markdown: heading-based hierarchy (built-in)
+ *   - structured: pre-structured data (API responses, CRM records, meeting notes)
+ *   - flat: unstructured text (wraps in single root node)
+ *
+ * Future connectors (external):
+ *   - Notion pages (block hierarchy)
+ *   - HubSpot records (field groups)
+ *   - Slack threads (chronological)
+ *   - Granola transcripts (timestamped sections)
+ *   - PDF via PageIndex API
  */
 
 export interface TreeNode {
   nodeId: string;
   title: string;
-  depth: number;        // heading level: 0 = root/document, 1 = h1, 2 = h2, etc.
-  text: string;         // raw text content under this heading (excluding children)
-  tokens: number;       // estimated token count for this node's text
+  depth: number;        // 0 = root, 1+ = nested levels
+  text: string;         // content at this node (excluding children)
+  tokens: number;       // estimated tokens for this node's text
   totalTokens: number;  // tokens including all descendants
   children: TreeNode[];
   meta?: {
-    lineStart: number;
-    lineEnd: number;
+    lineStart?: number;
+    lineEnd?: number;
     firstSentence: string;
     firstParagraph: string;
+    sourceType?: string;   // 'markdown' | 'notion' | 'hubspot' | 'slack' | 'granola' | 'api' | etc.
+    sourceId?: string;     // original ID in source system (Notion block ID, HubSpot record ID, etc.)
+    timestamp?: number;    // for chronological sources (Slack, Granola)
+    fieldGroup?: string;   // for structured sources (HubSpot: 'deal_info', 'contacts', etc.)
   };
 }
 
 export interface TreeIndex {
-  source: string;       // file path or identifier
+  source: string;       // identifier (file path, URL, record ID)
+  sourceType: string;   // connector type that produced this
   root: TreeNode;
   totalTokens: number;
   nodeCount: number;
@@ -50,8 +69,24 @@ function genNodeId(depth: number, index: number): string {
   return `n${depth}-${index}`;
 }
 
+function computeTotals(node: TreeNode): number {
+  let total = node.tokens;
+  for (const child of node.children) total += computeTotals(child);
+  node.totalTokens = total;
+  return total;
+}
+
+function countNodes(node: TreeNode): number {
+  let c = 1;
+  for (const child of node.children) c += countNodes(child);
+  return c;
+}
+
+// ── Markdown Connector ──
+
 /**
- * Parse markdown string into a tree of heading-based nodes.
+ * Parse markdown into a tree of heading-based nodes.
+ * Most common connector — works for any .md, README, docs, AGENTS.md, etc.
  */
 export function indexMarkdown(source: string, markdown: string): TreeIndex {
   const lines = markdown.split('\n');
@@ -67,7 +102,6 @@ export function indexMarkdown(source: string, markdown: string): TreeIndex {
     children: [],
   };
 
-  // Stack tracks the current ancestry path
   const stack: TreeNode[] = [root];
   let currentText: string[] = [];
   let currentLineStart = 0;
@@ -87,6 +121,7 @@ export function indexMarkdown(source: string, markdown: string): TreeIndex {
         lineEnd,
         firstSentence: extractFirstSentence(text),
         firstParagraph: extractFirstParagraph(text),
+        sourceType: 'markdown',
       };
     }
     currentText = [];
@@ -99,10 +134,8 @@ export function indexMarkdown(source: string, markdown: string): TreeIndex {
     const match = headingRegex.exec(line);
 
     if (match) {
-      // Flush accumulated text to current node
       flushText(i - 1);
-
-      const level = match[1].length; // 1-6
+      const level = match[1].length;
       const title = match[2].trim();
 
       const node: TreeNode = {
@@ -113,14 +146,10 @@ export function indexMarkdown(source: string, markdown: string): TreeIndex {
         tokens: 0,
         totalTokens: 0,
         children: [],
-        meta: { lineStart: i, lineEnd: i, firstSentence: '', firstParagraph: '' },
+        meta: { lineStart: i, lineEnd: i, firstSentence: '', firstParagraph: '', sourceType: 'markdown' },
       };
 
-      // Pop stack until we find a parent with lower depth
-      while (stack.length > 1 && stack[stack.length - 1].depth >= level) {
-        stack.pop();
-      }
-
+      while (stack.length > 1 && stack[stack.length - 1].depth >= level) stack.pop();
       stack[stack.length - 1].children.push(node);
       stack.push(node);
       currentLineStart = i + 1;
@@ -129,33 +158,201 @@ export function indexMarkdown(source: string, markdown: string): TreeIndex {
     }
   }
 
-  // Flush remaining text
   flushText(lines.length - 1);
+  computeTotals(root);
 
-  // Calculate totalTokens bottom-up
-  function computeTotals(node: TreeNode): number {
-    let total = node.tokens;
-    for (const child of node.children) {
-      total += computeTotals(child);
-    }
-    node.totalTokens = total;
-    return total;
+  return {
+    source,
+    sourceType: 'markdown',
+    root,
+    totalTokens: root.totalTokens,
+    nodeCount: countNodes(root),
+    created: Date.now(),
+  };
+}
+
+// ── Structured Data Connector ──
+
+export interface StructuredField {
+  key: string;
+  label: string;
+  value: string;
+  group?: string;   // optional grouping (e.g. 'deal_info', 'contacts', 'timeline')
+}
+
+/**
+ * Index structured data (CRM records, API responses, etc.) into a tree.
+ * Groups fields by their `group` property, creating a 2-level tree.
+ *
+ * Works for: HubSpot deals/contacts, Notion databases, any key-value data.
+ */
+export function indexStructured(source: string, fields: StructuredField[], sourceType = 'structured'): TreeIndex {
+  let nodeCounter = 0;
+
+  const root: TreeNode = {
+    nodeId: genNodeId(0, nodeCounter++),
+    title: source,
+    depth: 0,
+    text: '',
+    tokens: 0,
+    totalTokens: 0,
+    children: [],
+  };
+
+  // Group fields
+  const groups = new Map<string, StructuredField[]>();
+  for (const f of fields) {
+    const g = f.group || 'default';
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g)!.push(f);
+  }
+
+  for (const [groupName, groupFields] of groups) {
+    const text = groupFields.map(f => `${f.label}: ${f.value}`).join('\n');
+    const groupNode: TreeNode = {
+      nodeId: genNodeId(1, nodeCounter++),
+      title: groupName === 'default' ? source : groupName,
+      depth: 1,
+      text,
+      tokens: estimateTokens(text),
+      totalTokens: 0,
+      children: [],
+      meta: {
+        firstSentence: groupFields[0] ? `${groupFields[0].label}: ${groupFields[0].value}` : '',
+        firstParagraph: text.slice(0, 1000),
+        sourceType,
+        fieldGroup: groupName,
+      },
+    };
+    root.children.push(groupNode);
   }
 
   computeTotals(root);
 
-  // Count nodes
-  function countNodes(node: TreeNode): number {
-    let c = 1;
-    for (const child of node.children) c += countNodes(child);
-    return c;
-  }
-
   return {
     source,
+    sourceType,
     root,
     totalTokens: root.totalTokens,
     nodeCount: countNodes(root),
+    created: Date.now(),
+  };
+}
+
+// ── Chronological Connector ──
+
+export interface ChronoEntry {
+  timestamp: number;
+  speaker?: string;
+  text: string;
+}
+
+/**
+ * Index chronological data (chat threads, meeting transcripts) into a tree.
+ * Groups entries into time-based segments.
+ *
+ * Works for: Slack threads, Granola transcripts, chat logs.
+ */
+export function indexChronological(
+  source: string,
+  entries: ChronoEntry[],
+  sourceType = 'chronological',
+  segmentMinutes = 10,
+): TreeIndex {
+  let nodeCounter = 0;
+
+  const root: TreeNode = {
+    nodeId: genNodeId(0, nodeCounter++),
+    title: source,
+    depth: 0,
+    text: '',
+    tokens: 0,
+    totalTokens: 0,
+    children: [],
+  };
+
+  if (entries.length === 0) {
+    computeTotals(root);
+    return { source, sourceType, root, totalTokens: 0, nodeCount: 1, created: Date.now() };
+  }
+
+  // Segment by time gaps
+  const segmentMs = segmentMinutes * 60 * 1000;
+  let currentSegment: ChronoEntry[] = [entries[0]];
+  const segments: ChronoEntry[][] = [];
+
+  for (let i = 1; i < entries.length; i++) {
+    if (entries[i].timestamp - entries[i - 1].timestamp > segmentMs) {
+      segments.push(currentSegment);
+      currentSegment = [];
+    }
+    currentSegment.push(entries[i]);
+  }
+  segments.push(currentSegment);
+
+  for (const seg of segments) {
+    const start = new Date(seg[0].timestamp);
+    const title = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const text = seg.map(e => e.speaker ? `${e.speaker}: ${e.text}` : e.text).join('\n');
+
+    const segNode: TreeNode = {
+      nodeId: genNodeId(1, nodeCounter++),
+      title,
+      depth: 1,
+      text,
+      tokens: estimateTokens(text),
+      totalTokens: 0,
+      children: [],
+      meta: {
+        firstSentence: seg[0].text.slice(0, 200),
+        firstParagraph: text.slice(0, 1000),
+        sourceType,
+        timestamp: seg[0].timestamp,
+      },
+    };
+    root.children.push(segNode);
+  }
+
+  computeTotals(root);
+
+  return {
+    source,
+    sourceType,
+    root,
+    totalTokens: root.totalTokens,
+    nodeCount: countNodes(root),
+    created: Date.now(),
+  };
+}
+
+// ── Flat Text Connector ──
+
+/**
+ * Wrap unstructured text in a single root node.
+ * Fallback for any source without inherent structure.
+ */
+export function indexFlat(source: string, text: string, sourceType = 'flat'): TreeIndex {
+  const root: TreeNode = {
+    nodeId: 'n0-0',
+    title: source,
+    depth: 0,
+    text: text.trim(),
+    tokens: estimateTokens(text),
+    totalTokens: estimateTokens(text),
+    children: [],
+    meta: {
+      firstSentence: extractFirstSentence(text),
+      firstParagraph: extractFirstParagraph(text),
+      sourceType,
+    },
+  };
+
+  return {
+    source,
+    sourceType,
+    root,
+    totalTokens: root.totalTokens,
+    nodeCount: 1,
     created: Date.now(),
   };
 }

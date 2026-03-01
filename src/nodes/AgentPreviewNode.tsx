@@ -457,7 +457,7 @@ function LayersView() {
     {
       key: 'knowledge', icon: '📚', title: 'Knowledge', color: '#3498db', pct: knowledgePct,
       count: `${activeChannels.length} sources`,
-      items: activeChannels.map((ch) => ({ label: KNOWLEDGE_TYPES[ch.knowledgeType] ?? KNOWLEDGE_TYPES['evidence']?.icon + ' ' + ch.name, value: DEPTH_LEVELS[ch.depth]?.label ?? 'Full' })),
+      items: activeChannels.map((ch) => ({ label: (KNOWLEDGE_TYPES[ch.knowledgeType]?.icon ?? '📄') + ' ' + ch.name, value: DEPTH_LEVELS[ch.depth]?.label ?? 'Full' })),
     },
     {
       key: 'instructions', icon: '📋', title: 'Instructions', color: '#f1c40f', pct: instructionsPct,
