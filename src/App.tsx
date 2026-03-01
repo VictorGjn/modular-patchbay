@@ -40,6 +40,7 @@ import { ResponseNode } from './nodes/ResponseNode';
 import { AgentNode } from './nodes/AgentNode';
 import { AgentPreviewNode } from './nodes/AgentPreviewNode';
 import { WorkflowNode } from './nodes/WorkflowNode';
+import { MemoryNode } from './nodes/MemoryNode';
 import { PatchCable } from './edges/PatchCable';
 import { FeedbackEdge } from './edges/FeedbackEdge';
 import { TestMode } from './components/TestMode';
@@ -54,6 +55,7 @@ const nodeTypes = {
   response: ResponseNode,
   agent: AgentNode,
   workflow: WorkflowNode,
+  memory: MemoryNode,
   agentPreview: AgentPreviewNode,
 };
 
@@ -70,6 +72,7 @@ const initialNodes: Node[] = [
   // Middle column - Agent + Workflow
   { id: 'agent', type: 'agent', position: { x: 340, y: -120 }, data: {} },
   { id: 'workflow', type: 'workflow', position: { x: 340, y: 520 }, data: {} },
+  { id: 'memory', type: 'memory', position: { x: 340, y: 820 }, data: {} },
   // Center — Hero Prompt node
   { id: 'prompt', type: 'prompt', position: { x: 760, y: 120 }, data: {} },
   // Right column
@@ -87,6 +90,9 @@ const initialEdges: Edge[] = [
   // Agent -> Workflow -> Prompt
   { id: 'e-agent-workflow', source: 'agent', target: 'workflow', sourceHandle: 'agent-workflow-out', targetHandle: 'workflow-in', type: 'patch', style: { stroke: '#e67e22' }, data: { label: 'workflow' } },
   { id: 'e-workflow-prompt', source: 'workflow', target: 'prompt', sourceHandle: 'workflow-out', targetHandle: 'prompt-knowledge-in', type: 'patch', style: { stroke: '#9b59b6' }, data: { label: 'agent' } },
+  // Agent -> Memory -> Prompt
+  { id: 'e-agent-memory', source: 'agent', target: 'memory', sourceHandle: 'agent-memory-out', targetHandle: 'memory-in', type: 'patch', style: { stroke: '#e74c3c' }, data: { label: 'memory' } },
+  { id: 'e-memory-prompt', source: 'memory', target: 'prompt', sourceHandle: 'memory-out', targetHandle: 'prompt-knowledge-in', type: 'patch', style: { stroke: '#9b59b6' }, data: { label: 'context' } },
   // Prompt -> Output/Response
   { id: 'e-prompt-output', source: 'prompt', target: 'output', sourceHandle: 'prompt-out', targetHandle: 'output-in', type: 'patch', style: { stroke: '#FE5000' }, data: { label: 'output' } },
   { id: 'e-prompt-response', source: 'prompt', target: 'response', sourceHandle: 'prompt-out', targetHandle: 'response-in', type: 'patch', style: { stroke: '#FE5000' }, data: { label: 'response' } },

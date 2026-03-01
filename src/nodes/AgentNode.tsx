@@ -199,6 +199,7 @@ export const AgentNode = memo(function AgentNode() {
   const rightJacks: JackDef[] = [
     { id: 'agent-prompt-out', type: 'source', label: 'PROMPT', color: '#9b59b6' },
     { id: 'agent-workflow-out', type: 'source', label: 'FLOW', color: '#e67e22' },
+    { id: 'agent-memory-out', type: 'source', label: 'MEM', color: '#e74c3c' },
   ];
 
   return (
