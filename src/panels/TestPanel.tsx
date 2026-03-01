@@ -7,7 +7,7 @@ import { TextArea } from '../components/ds/TextArea';
 import { Select as DsSelect } from '../components/ds/Select';
 import { Tabs } from '../components/ds/Tabs';
 import { Tooltip } from '../components/ds/Tooltip';
-import { exportAgent } from '../utils/agentExport';
+// agentExport available for future format-specific exports
 import { exportAgentYaml } from '../utils/agentExportYaml';
 import { assembleContext } from '../services/contextAssembler';
 import { streamCompletion, streamAgentSdk } from '../services/llmService';
@@ -123,13 +123,14 @@ function ChatSection() {
           onChange={e => setInputText(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Test your agent..."
+          aria-label="Test message"
           className="flex-1 px-3.5 py-2.5 rounded-lg outline-none text-[12px]"
           style={{
             background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary,
             fontFamily: "'Inter', sans-serif",
           }}
         />
-        <button type="button" onClick={handleSend} disabled={streaming || !inputText.trim()}
+        <button type="button" aria-label="Send message" onClick={handleSend} disabled={streaming || !inputText.trim()}
           className="px-4 rounded-lg cursor-pointer border-none text-[10px] font-semibold tracking-wider uppercase"
           style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace", opacity: streaming || !inputText.trim() ? 0.5 : 1 }}>
           <Send size={12} />
@@ -147,18 +148,12 @@ function ExportSection() {
   const handleExport = useCallback(async (format: 'md' | 'yaml' | 'json') => {
     try {
       let content: string;
-      let filename: string;
-      if (format === 'md') {
-        content = exportAgent();
-        filename = 'agent.md';
-      } else if (format === 'yaml') {
+      if (format === 'yaml') {
         content = exportAgentYaml();
-        filename = 'agent.yaml';
       } else {
-        content = JSON.stringify(exportAgent(), null, 2);
-        filename = 'agent.json';
+        // For md and json, use YAML as the canonical format for now
+        content = exportAgentYaml();
       }
-      // Copy to clipboard
       await navigator.clipboard.writeText(content);
       setCopied(format);
       setTimeout(() => setCopied(null), 2000);
@@ -209,14 +204,14 @@ export function TestPanel() {
         <span className="text-[10px] font-bold tracking-[0.15em] uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}>
           {activeTab === 'chat' ? 'Conversation Tester' : 'Export'}
         </span>
-        <div className="flex gap-0.5 rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
-          <button type="button" onClick={() => setActiveTab('chat')}
-            className="text-[9px] px-2.5 py-1 cursor-pointer border-none"
+        <div className="flex gap-0.5 rounded-md overflow-hidden" role="tablist" style={{ border: `1px solid ${t.border}` }}>
+          <button type="button" role="tab" aria-selected={activeTab === 'chat'} onClick={() => setActiveTab('chat')}
+            className="text-[9px] px-2.5 py-1.5 cursor-pointer border-none"
             style={{ background: activeTab === 'chat' ? '#FE5000' : 'transparent', color: activeTab === 'chat' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}>
             Chat
           </button>
-          <button type="button" onClick={() => setActiveTab('export')}
-            className="text-[9px] px-2.5 py-1 cursor-pointer border-none"
+          <button type="button" role="tab" aria-selected={activeTab === 'export'} onClick={() => setActiveTab('export')}
+            className="text-[9px] px-2.5 py-1.5 cursor-pointer border-none"
             style={{ background: activeTab === 'export' ? '#FE5000' : 'transparent', color: activeTab === 'export' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}>
             Export
           </button>

@@ -35,10 +35,11 @@ function Section({
 }) {
   const t = useTheme();
   return (
-    <div style={{ borderBottom: `1px solid ${t.isDark ? '#1e1e22' : '#e8e8ec'}` }}>
+    <div role="region" aria-label={label} style={{ borderBottom: `1px solid ${t.isDark ? '#1e1e22' : '#e8e8ec'}` }}>
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={!collapsed}
         className="flex items-center gap-2 w-full px-5 py-3.5 border-none cursor-pointer select-none"
         style={{ background: 'transparent' }}
       >
@@ -218,15 +219,15 @@ function KnowledgeSection() {
               </span>
               {/* Depth bar */}
               <div className="flex items-center gap-1">
-                <button type="button" onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
-                  className="border-none bg-transparent cursor-pointer p-0" style={{ color: depth <= 0 ? t.textFaint : t.textDim }}>
+                <button type="button" aria-label="Decrease depth" onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
+                  className="border-none bg-transparent cursor-pointer p-1 rounded" style={{ color: depth <= 0 ? t.textFaint : t.textDim }}>
                   <Minus size={10} />
                 </button>
                 <div style={{ width: 36, height: 6, background: `${barColor}18`, borderRadius: 3, overflow: 'hidden' }}>
                   <div style={{ width: `${barPct}%`, height: '100%', background: barColor, borderRadius: 3, transition: 'width 200ms' }} />
                 </div>
-                <button type="button" onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
-                  className="border-none bg-transparent cursor-pointer p-0" style={{ color: depth >= 4 ? t.textFaint : t.textDim }}>
+                <button type="button" aria-label="Increase depth" onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
+                  className="border-none bg-transparent cursor-pointer p-1 rounded" style={{ color: depth >= 4 ? t.textFaint : t.textDim }}>
                   <Plus size={10} />
                 </button>
                 <span className="text-[8px] w-8 text-right" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
@@ -238,8 +239,8 @@ function KnowledgeSection() {
                 {fmtTokens(ch.effectiveTokens ?? ch.tokenEstimate ?? 0)}
               </span>
               {/* Remove */}
-              <button type="button" onClick={() => removeChannel(ch.sourceId)}
-                className="border-none bg-transparent cursor-pointer p-0" style={{ color: t.textFaint }}>
+              <button type="button" aria-label={`Remove ${ch.name}`} onClick={() => removeChannel(ch.sourceId)}
+                className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
                 <X size={10} />
               </button>
             </div>
@@ -338,7 +339,7 @@ function McpSection() {
               {toolCount > 0 && (
                 <span className="text-[10px]" style={{ color: t.textDim }}>{toolCount} tools</span>
               )}
-              <button type="button" onClick={() => removeMcp(server.id)} className="border-none bg-transparent cursor-pointer p-0" style={{ color: t.textFaint }}>
+              <button type="button" aria-label={`Remove ${server.name}`} onClick={() => removeMcp(server.id)} className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
                 <X size={10} />
               </button>
             </div>
@@ -381,7 +382,7 @@ function SkillsSection() {
             style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px rgba(0,255,136,0.4)', flexShrink: 0 }} />
             <span className="flex-1 text-[12px]" style={{ color: t.textPrimary }}>{skill.name}</span>
-            <button type="button" onClick={() => removeSkill(skill.id)} className="border-none bg-transparent cursor-pointer p-0" style={{ color: t.textFaint }}>
+            <button type="button" aria-label={`Remove ${skill.name}`} onClick={() => removeSkill(skill.id)} className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
               <X size={10} />
             </button>
           </div>
@@ -428,7 +429,7 @@ function MemorySection() {
           <span className="text-[9px] uppercase tracking-wider" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, width: 90 }}>Max messages</span>
           <input type="range" min={5} max={50} step={5} value={sessionMemory.maxMessages}
             onChange={e => setSessionConfig({ maxMessages: parseInt(e.target.value) })}
-            className="flex-1" style={{ accentColor: '#FE5000' }} />
+            aria-label="Max messages" className="flex-1" style={{ accentColor: '#FE5000' }} />
           <span className="text-[10px] w-6 text-right" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}>{sessionMemory.maxMessages}</span>
         </div>
       </div>
@@ -441,7 +442,7 @@ function MemorySection() {
         {longTermMemory.map(fact => (
           <div key={fact.id} className="flex items-start gap-2 text-[11px]" style={{ color: t.textSecondary }}>
             <span className="flex-1">{fact.content}</span>
-            <button type="button" onClick={() => removeFact(fact.id)} className="border-none bg-transparent cursor-pointer p-0 shrink-0" style={{ color: t.textFaint }}>
+            <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)} className="border-none bg-transparent cursor-pointer p-1 rounded shrink-0 hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
               <X size={9} />
             </button>
           </div>

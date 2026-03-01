@@ -5,9 +5,8 @@ import { Input } from '../components/ds/Input';
 import { TextArea } from '../components/ds/TextArea';
 import { Toggle } from '../components/ds/Toggle';
 import { Tooltip } from '../components/ds/Tooltip';
-import { Avatar } from '../components/ds/Avatar';
-import { PRESET_AVATARS, AvatarIcon } from '../components/ds/Avatar';
-import { refineInstruction, type RefinedAgent } from '../utils/refineInstruction';
+import { PRESET_AVATARS, AvatarIcon } from '../components/ds/AvatarIcon';
+import { refineField, type RefinedAgent } from '../utils/refineInstruction';
 import { generateWorkflow } from '../utils/generateSection';
 import { formatTokens } from '../utils/formatTokens';
 import {
@@ -27,7 +26,7 @@ function SectionHeader({
   label: string; color: string; collapsed: boolean; onToggle: () => void; right?: React.ReactNode; t: ThemePalette & { isDark: boolean };
 }) {
   return (
-    <button type="button" onClick={onToggle}
+    <button type="button" onClick={onToggle} aria-expanded={!collapsed}
       className="flex items-center gap-2.5 w-full px-5 py-3.5 cursor-pointer select-none border-none"
       style={{ borderTop: `1px solid ${t.isDark ? '#222226' : '#e8e8ec'}`, background: `${color}08` }}>
       {collapsed ? <ChevronRight size={12} style={{ color: t.textDim }} /> : <ChevronDown size={12} style={{ color: t.textDim }} />}
@@ -91,7 +90,7 @@ export function AgentBuilder() {
   const handleRefineAll = useCallback(async () => {
     setRefining('all');
     try {
-      const refined = await refineInstruction('full', persona, { channels, mcpServers, skills });
+      const refined = await refineField('full', persona, { channels, mcpServers, skills });
       if (typeof refined === 'object' && refined !== null) {
         const r = refined as RefinedAgent;
         if (r.persona) updateInstruction({ persona: r.persona });
@@ -152,7 +151,7 @@ export function AgentBuilder() {
           <div className="px-5 py-4 flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <button type="button" onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                <button type="button" aria-label="Choose avatar" onClick={() => setShowAvatarPicker(!showAvatarPicker)}
                   className="w-11 h-11 rounded-lg cursor-pointer flex items-center justify-center"
                   style={{ background: t.surfaceElevated, border: `1.5px solid ${t.border}`, color: '#FE5000' }}>
                   <AvatarIcon avatarId={agentMeta.avatar} size={20} />
@@ -272,10 +271,10 @@ export function AgentBuilder() {
                     updated[i] = e.target.value;
                     updateInstruction({ objectives: { ...objectives, successCriteria: updated } });
                   }} style={{ flex: 1 }} />
-                  <button type="button" onClick={() => {
+                  <button type="button" aria-label="Remove criterion" onClick={() => {
                     const updated = objectives.successCriteria.filter((_, j) => j !== i);
                     updateInstruction({ objectives: { ...objectives, successCriteria: updated } });
-                  }} className="border-none bg-transparent cursor-pointer p-0" style={{ color: t.textFaint }}><X size={11} /></button>
+                  }} className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}><X size={11} /></button>
                 </div>
               ))}
               <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, successCriteria: [...objectives.successCriteria, ''] } })}
@@ -323,8 +322,8 @@ export function AgentBuilder() {
                 <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: t.badgeBg, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
                   {step.action || 'action'}
                 </span>
-                <button type="button" onClick={() => removeWorkflowStep(step.id)}
-                  className="border-none bg-transparent cursor-pointer p-0" style={{ color: t.textFaint }}><X size={11} /></button>
+                <button type="button" aria-label={`Remove step ${i + 1}`} onClick={() => removeWorkflowStep(step.id)}
+                  className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}><X size={11} /></button>
               </div>
               {i < workflowSteps.length - 1 && (
                 <div style={{ width: 2, height: 12, background: '#e67e2220', marginLeft: 11 }} />
