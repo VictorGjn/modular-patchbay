@@ -11,7 +11,7 @@ import { Toggle } from '../components/ds/Toggle';
 import { Select } from '../components/ds/Select';
 import { Tooltip } from '../components/ds/Tooltip';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
-import { generateMemoryConfig } from '../utils/generateSection';
+import { generateMemoryConfig, generateKnowledge } from '../utils/generateSection';
 import { KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { formatTokens } from '../utils/formatTokens';
 import {
@@ -21,6 +21,18 @@ import {
   Plus, X, Minus, Library,
   File, Folder, Search, ExternalLink,
 } from 'lucide-react';
+
+/* ── Shared Generate Button ── */
+function GenerateBtn({ loading, onClick, label = 'Generate' }: { loading: boolean; onClick: () => void; label?: string }) {
+  return (
+    <button type="button" onClick={e => { e.stopPropagation(); onClick(); }} disabled={loading} aria-label={label}
+      className="flex items-center gap-1 text-[9px] px-2 py-1 rounded cursor-pointer border-none"
+      style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Space Mono', monospace", opacity: loading ? 0.6 : 1 }}>
+      {loading ? <Loader2 size={9} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={9} />}
+      {label}
+    </button>
+  );
+}
 
 /* ── Shared Section Shell ── */
 function Section({
@@ -175,8 +187,10 @@ function KnowledgeSection() {
   const toggleChannel = useConsoleStore(s => s.toggleChannel);
   const setChannelDepth = useConsoleStore(s => s.setChannelDepth);
   const removeChannel = useConsoleStore(s => s.removeChannel);
+  const addChannel = useConsoleStore(s => s.addChannel);
   const setShowFilePicker = useConsoleStore(s => s.setShowFilePicker);
   const [collapsed, setCollapsed] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   const enabledCount = channels.filter(c => c.enabled).length;
   const totalTokens = channels.reduce((sum, c) => sum + (c.effectiveTokens ?? c.tokenEstimate ?? 0), 0);
@@ -185,21 +199,43 @@ function KnowledgeSection() {
   const DEPTH_LABELS = ['Full', 'High', 'Ref', 'Skim', 'Mention'] as const;
   const DEPTH_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e67e22', '#999'];
 
+  const handleGenerate = useCallback(async () => {
+    setGenerating(true);
+    try {
+      const suggestions = await generateKnowledge();
+      for (const s of suggestions) {
+        addChannel({
+          sourceId: `gen-${crypto.randomUUID().slice(0, 8)}`,
+          name: s.name,
+          type: 'file',
+          enabled: true,
+          knowledgeType: s.type as any,
+          depth: 0,
+          tokenEstimate: 500,
+        });
+      }
+    } catch { /* user sees no change */ }
+    setGenerating(false);
+  }, [addChannel]);
+
   return (
     <Section
       icon={Database} label="Knowledge" color="#3498db"
       badge={`${enabledCount} sources · ${fmtTokens(totalTokens)} tokens`}
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
-      {/* Type legend */}
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        {Object.entries(KNOWLEDGE_TYPES).map(([key, kt]) => (
-          <div key={key} className="flex items-center gap-1 text-[9px] px-2 py-1 rounded"
-            style={{ color: t.textDim, background: t.isDark ? '#1c1c20' : '#f0f0f5' }}>
-            <div style={{ width: 6, height: 6, borderRadius: 2, background: kt.color }} />
-            {kt.label}
-          </div>
-        ))}
+      {/* Type legend + generate */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap gap-1.5">
+          {Object.entries(KNOWLEDGE_TYPES).map(([key, kt]) => (
+            <div key={key} className="flex items-center gap-1 text-[9px] px-2 py-1 rounded"
+              style={{ color: t.textDim, background: t.isDark ? '#1c1c20' : '#f0f0f5' }}>
+              <div style={{ width: 6, height: 6, borderRadius: 2, background: kt.color }} />
+              {kt.label}
+            </div>
+          ))}
+        </div>
+        <GenerateBtn loading={generating} onClick={handleGenerate} label="Suggest" />
       </div>
 
       {/* Channel list */}
@@ -502,6 +538,19 @@ function MemorySection() {
   const removeFact = useMemoryStore(s => s.removeFact);
   const [collapsed, setCollapsed] = useState(false);
   const [newFactText, setNewFactText] = useState('');
+  const [generating, setGenerating] = useState(false);
+
+  const handleGenerate = useCallback(async () => {
+    setGenerating(true);
+    try {
+      const config = await generateMemoryConfig();
+      setSessionConfig({ maxMessages: config.maxMessages, summarizeAfter: config.summarizeAfter, summarizeEnabled: config.summarizeEnabled });
+      for (const fact of config.suggestedFacts || []) {
+        addFact(fact, ['generated']);
+      }
+    } catch { /* silent */ }
+    setGenerating(false);
+  }, [setSessionConfig, addFact]);
 
   const totalBudget = session.tokenBudget + longTerm.tokenBudget + working.tokenBudget;
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
@@ -512,6 +561,9 @@ function MemorySection() {
       badge={`${facts.length} facts · ${fmtTokens(totalBudget)} tokens`}
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
+      <div className="flex justify-end mb-2">
+        <GenerateBtn loading={generating} onClick={handleGenerate} label="Configure" />
+      </div>
       {/* ── Session Memory ── */}
       <SubLabel>Session Strategy</SubLabel>
       <Select
