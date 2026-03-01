@@ -279,7 +279,7 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
           {activeChannels.length === 0 ? <span style={{ fontSize: 9, color: t.textFaint }}>None</span> : (
             <div className="flex flex-col gap-0.5">
               {activeChannels.map((ch) => {
-                const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
+                const kt = KNOWLEDGE_TYPES[ch.knowledgeType] ?? KNOWLEDGE_TYPES['evidence'];
                 const pct = DEPTH_BAR_PCT[ch.depth] ?? 50;
                 return (
                   <div key={ch.sourceId} className="flex items-center gap-1.5">
@@ -361,7 +361,7 @@ function CircuitView() {
       {/* Left pins */}
       <div className="flex flex-col gap-1 shrink-0" style={{ width: 140 }}>
         {left.map((ch) => {
-          const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
+          const kt = KNOWLEDGE_TYPES[ch.knowledgeType] ?? KNOWLEDGE_TYPES['evidence'];
           return (
             <div key={ch.sourceId} className="flex items-center gap-1.5 px-1.5 py-0.5 rounded" style={{ background: '#ffffff04' }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: kt.color, boxShadow: `0 0 3px ${kt.color}60` }} />
@@ -378,7 +378,7 @@ function CircuitView() {
           <rect x="70" y="5" width="60" height={h - 10} rx="4" fill="#FE500003" stroke="#FE500012" strokeWidth="1" strokeDasharray="3 3" />
           <text x="100" y={h / 2} textAnchor="middle" fill="#FE500025" fontFamily="Space Mono, monospace" fontSize="6">BUS</text>
           {left.map((ch, i) => {
-            const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
+            const kt = KNOWLEDGE_TYPES[ch.knowledgeType] ?? KNOWLEDGE_TYPES['evidence'];
             const y = 14 + i * 28;
             return <path key={i} d={`M0,${y} C40,${y} 40,${10 + (i / Math.max(rows - 1, 1)) * (h - 20)} 70,${10 + (i / Math.max(rows - 1, 1)) * (h - 20)}`} stroke={kt.color} strokeWidth="1" opacity="0.2" fill="none" />;
           })}
@@ -387,7 +387,7 @@ function CircuitView() {
             return <path key={i} d={`M130,${10 + (i / Math.max(rows - 1, 1)) * (h - 20)} C160,${10 + (i / Math.max(rows - 1, 1)) * (h - 20)} 160,${y} 200,${y}`} stroke="#FE5000" strokeWidth="1" opacity="0.15" fill="none" />;
           })}
           {left.slice(0, 2).map((ch, i) => {
-            const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
+            const kt = KNOWLEDGE_TYPES[ch.knowledgeType] ?? KNOWLEDGE_TYPES['evidence'];
             const y = 14 + i * 28;
             const busY = 10 + (i / Math.max(rows - 1, 1)) * (h - 20);
             const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -460,7 +460,7 @@ function LayersView() {
     {
       key: 'knowledge', icon: '📚', title: 'Knowledge', color: '#3498db', pct: knowledgePct,
       count: `${activeChannels.length} sources`,
-      items: activeChannels.map((ch) => ({ label: KNOWLEDGE_TYPES[ch.knowledgeType]?.icon + ' ' + ch.name, value: DEPTH_LEVELS[ch.depth]?.label ?? 'Full' })),
+      items: activeChannels.map((ch) => ({ label: KNOWLEDGE_TYPES[ch.knowledgeType] ?? KNOWLEDGE_TYPES['evidence']?.icon + ' ' + ch.name, value: DEPTH_LEVELS[ch.depth]?.label ?? 'Full' })),
     },
     {
       key: 'instructions', icon: '📋', title: 'Instructions', color: '#f1c40f', pct: instructionsPct,
