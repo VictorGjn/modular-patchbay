@@ -26,15 +26,17 @@ function SectionHeader({
   label: string; color: string; collapsed: boolean; onToggle: () => void; right?: React.ReactNode; t: ThemePalette & { isDark: boolean };
 }) {
   return (
-    <button type="button" onClick={onToggle} aria-expanded={!collapsed}
-      className="flex items-center gap-2.5 w-full px-5 py-3.5 cursor-pointer select-none border-none"
+    <div className="flex items-center gap-2.5 w-full px-5 py-3.5 select-none"
       style={{ borderTop: `1px solid ${t.isDark ? '#222226' : '#e8e8ec'}`, background: `${color}08` }}>
-      {collapsed ? <ChevronRight size={12} style={{ color: t.textDim }} /> : <ChevronDown size={12} style={{ color: t.textDim }} />}
-      <div style={{ width: 3, height: 14, borderRadius: 2, background: color, opacity: 0.8 }} />
-      <span className="text-[10px] font-bold tracking-[0.15em] uppercase flex-1 text-left"
-        style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>{label}</span>
+      <button type="button" onClick={onToggle} aria-expanded={!collapsed}
+        className="flex items-center gap-2.5 flex-1 cursor-pointer border-none bg-transparent p-0 text-left">
+        {collapsed ? <ChevronRight size={12} style={{ color: t.textDim }} /> : <ChevronDown size={12} style={{ color: t.textDim }} />}
+        <div style={{ width: 3, height: 14, borderRadius: 2, background: color, opacity: 0.8 }} />
+        <span className="text-[10px] font-bold tracking-[0.15em] uppercase"
+          style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>{label}</span>
+      </button>
       {right}
-    </button>
+    </div>
   );
 }
 
