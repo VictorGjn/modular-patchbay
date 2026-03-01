@@ -14,9 +14,8 @@ interface JackGutterProps {
 }
 
 /**
- * Narrow gutter that positions jack ports on the node border.
- * The jack circle straddles the edge (half in, half out).
- * Labels overflow outside the node bounds.
+ * Zero-width gutter that positions jack ports on the node border.
+ * Ports are small colored dots — no text labels (they always overlap neighbors).
  */
 export function JackGutter({ jacks, side }: JackGutterProps) {
   if (jacks.length === 0) return null;
@@ -28,9 +27,9 @@ export function JackGutter({ jacks, side }: JackGutterProps) {
       className="flex flex-col shrink-0 justify-around relative"
       style={{
         width: 0,
-        minHeight: jacks.length * 26,
-        paddingTop: 10,
-        paddingBottom: 10,
+        minHeight: jacks.length * 20,
+        paddingTop: 12,
+        paddingBottom: 12,
         overflow: 'visible',
         alignItems: side === 'left' ? 'flex-start' : 'flex-end',
       }}

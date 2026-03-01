@@ -28,7 +28,7 @@ Produce a JSON response with this EXACT structure:
   "agentMeta": {
     "name": "<short agent name>",
     "description": "<one-line description>",
-    "avatar": "<single emoji>",
+    "avatar": "<icon id: bot|brain|zap|flame|lightbulb|target|rocket|shield|microscope|chart|palette|file|drama|star|gem|bird|bug|cat|dog|heart>",
     "tags": ["<tag1>", "<tag2>"]
   },
   "instructionState": {
