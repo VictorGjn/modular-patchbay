@@ -5,9 +5,29 @@ All components live in `src/components/ds/` and are barrel-exported from `src/co
 ## Principles
 
 - **Theme-driven** — every component calls `useTheme()` for colors; no hardcoded palette except accent `#FE5000`
-- **Typography** — Space Mono for labels, headers & UI chrome; Inter for body text
+- **Typography** — Space Mono for labels, headers & UI chrome; Inter for body text and inputs
 - **Sizes** — most components support `sm` | `md` (some add `lg`)
 - **Composable** — components accept `className` / `style` for overrides
+- **No raw HTML inputs** — always use `<Input>`, `<TextArea>`, `<Toggle>`, `<Select>` from DS
+- **No emojis as icons** — use Lucide SVG icons; Avatar accepts icon IDs (`'bot'`, `'rocket'`, etc.)
+- **ReactFlow compat** — all DS inputs include `nodrag` class; textareas include `nowheel nodrag`
+
+## Node Handle Pattern
+
+Canvas nodes use **fixed-position React Flow `<Handle>`** components placed on the node border:
+- **No JackGutter or JackPort** on nodes where content is tall (e.g., AgentNode)
+- Handles are 8px colored dots at percentage positions (`top: '25%'`, `left: -4`)
+- Colors match the edge/connection type (blue=knowledge, yellow=skills, green=MCP, purple=prompt, orange=workflow, red=memory)
+- Smaller nodes (KnowledgeNode, McpNode, SkillsNode) may still use `JackGutter` if content is short
+
+## Section Divider Pattern
+
+Large nodes use `Section` dividers with:
+- 3px colored bar indicator (unique per section)
+- Bold uppercase label in Space Mono
+- Optional right-aligned action button (Generate, toggle, etc.)
+- Click to collapse/expand
+- Subtle background tint on hover row
 
 ---
 
@@ -204,19 +224,21 @@ Animated loading indicator.
 
 ### Avatar
 
-Circular avatar with image, emoji, or initials fallback.
+Circular avatar with image, SVG icon ID, or initials fallback.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Diameter (24/32/48px) |
 | `src` | `string` | — | Image URL |
 | `alt` | `string` | — | Alt text |
-| `emoji` | `string` | — | Emoji fallback |
+| `emoji` | `string` | — | SVG icon ID (e.g. `'bot'`, `'brain'`, `'rocket'`) or legacy emoji string |
 | `initials` | `string` | — | 2-letter initials fallback |
+
+Supported icon IDs: `bot`, `brain`, `zap`, `flame`, `lightbulb`, `target`, `rocket`, `shield`, `microscope`, `chart`, `palette`, `file`, `drama`, `star`, `gem`, `bird`, `bug`, `cat`, `dog`, `heart`
 
 ```tsx
 <Avatar src="/avatar.jpg" size="lg" />
-<Avatar emoji="🤖" />
+<Avatar emoji="bot" />
 ```
 
 ---

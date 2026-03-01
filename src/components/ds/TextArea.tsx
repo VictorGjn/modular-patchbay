@@ -25,13 +25,14 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
       <textarea
         ref={ref}
         value={value}
-        className={`w-full text-xs px-3 py-2 rounded-lg outline-none resize-y nowheel nodrag ${className}`}
+        className={`w-full px-3 py-2.5 rounded-md outline-none resize-none nowheel nodrag ${className}`}
         style={{
           background: t.inputBg,
           border: `1px solid ${error ? t.statusError : t.border}`,
           color: t.textPrimary,
-          fontFamily: "'Space Mono', monospace",
-          fontSize: 11,
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 13,
+          lineHeight: 1.5,
           minHeight: 64,
           ...style,
         }}

@@ -1,18 +1,22 @@
 import { memo, useState, useCallback, useMemo, useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
+import { Input } from '../components/ds/Input';
+import { TextArea } from '../components/ds/TextArea';
+import { Toggle } from '../components/ds/Toggle';
+import { Card } from '../components/ds/Card';
 import { Tooltip } from '../components/ds/Tooltip';
 import { useConsoleStore } from '../store/consoleStore';
 import { useTheme } from '../theme';
 import { refineField, type RefinedAgent } from '../utils/refineInstruction';
 import {
   ChevronDown, ChevronRight, User, ShieldCheck, Plus, X,
-  ToggleLeft, ToggleRight, Sparkles, Loader2,
+  Sparkles, Loader2,
   Bot, Brain as BrainIcon, Zap, Flame, Lightbulb, Target, Rocket, Shield,
   Microscope, BarChart3, Palette, FileText, Drama, Star, Gem, Bird, Bug, Cat, Dog, Heart,
 } from 'lucide-react';
 
-// ── Avatar system (SVG icons, no emojis) ──
+// ── Avatar icon system (SVG, no emojis) ──
 const PRESET_AVATARS = [
   { id: 'bot', icon: Bot }, { id: 'brain', icon: BrainIcon }, { id: 'zap', icon: Zap },
   { id: 'flame', icon: Flame }, { id: 'lightbulb', icon: Lightbulb }, { id: 'target', icon: Target },
@@ -24,8 +28,7 @@ const PRESET_AVATARS = [
 ];
 
 function AvatarIcon({ avatarId, size = 20 }: { avatarId: string; size?: number }) {
-  const entry = PRESET_AVATARS.find(a => a.id === avatarId);
-  const Icon = entry?.icon ?? Bot;
+  const Icon = PRESET_AVATARS.find(a => a.id === avatarId)?.icon ?? Bot;
   return <Icon size={size} />;
 }
 
@@ -43,57 +46,45 @@ type InstructionState = ReturnType<typeof useConsoleStore.getState>['instruction
 function compileInstructions(state: InstructionState): string {
   const lines: string[] = [];
   if (state.persona.trim()) {
-    lines.push('## Persona');
-    lines.push(state.persona.trim());
+    lines.push('## Persona', state.persona.trim());
     if (state.tone !== 'neutral') lines.push(`Tone: ${state.tone}`);
-    const expertiseLabels: Record<number, string> = { 1: 'beginner-friendly', 2: 'intermediate', 3: 'intermediate', 4: 'advanced', 5: 'expert' };
-    if (state.expertise !== 3) lines.push(`Expertise level: ${expertiseLabels[state.expertise] || 'intermediate'}`);
+    const exp: Record<number, string> = { 1: 'beginner-friendly', 2: 'intermediate', 3: 'intermediate', 4: 'advanced', 5: 'expert' };
+    if (state.expertise !== 3) lines.push(`Expertise: ${exp[state.expertise] || 'intermediate'}`);
     lines.push('');
   }
-  const activeToggles = CONSTRAINT_TOGGLES.filter(ct => state.constraints[ct.key]);
-  if (activeToggles.length > 0 || state.constraints.customConstraints.trim()) {
+  const active = CONSTRAINT_TOGGLES.filter(ct => state.constraints[ct.key]);
+  if (active.length > 0 || state.constraints.customConstraints.trim()) {
     lines.push('## Constraints');
-    for (const ct of activeToggles) lines.push(`- ${ct.label}`);
+    for (const ct of active) lines.push(`- ${ct.label}`);
     if (state.constraints.stayInScope && state.constraints.scopeDefinition.trim()) lines.push(`- Scope: ${state.constraints.scopeDefinition.trim()}`);
-    if (state.constraints.limitWords) lines.push(`- Keep responses under ${state.constraints.wordLimit} words`);
-    if (state.constraints.customConstraints.trim()) {
-      for (const line of state.constraints.customConstraints.split('\n').filter(Boolean)) lines.push(`- ${line.trim()}`);
-    }
+    if (state.constraints.limitWords) lines.push(`- Max ${state.constraints.wordLimit} words`);
+    if (state.constraints.customConstraints.trim()) for (const l of state.constraints.customConstraints.split('\n').filter(Boolean)) lines.push(`- ${l.trim()}`);
     lines.push('');
   }
   if (state.objectives.primary.trim()) {
-    lines.push('## Objectives');
-    lines.push(`Primary: ${state.objectives.primary.trim()}`);
+    lines.push('## Objectives', `Primary: ${state.objectives.primary.trim()}`);
     const sc = state.objectives.successCriteria.filter(Boolean);
-    if (sc.length > 0) { lines.push(''); lines.push('Success criteria:'); for (const s of sc) lines.push(`- ${s}`); }
+    if (sc.length) { lines.push('', 'Success criteria:'); for (const s of sc) lines.push(`- ${s}`); }
     const fm = state.objectives.failureModes.filter(Boolean);
-    if (fm.length > 0) { lines.push(''); lines.push('Failure modes (avoid):'); for (const f of fm) lines.push(`- ${f}`); }
+    if (fm.length) { lines.push('', 'Failure modes:'); for (const f of fm) lines.push(`- ${f}`); }
     lines.push('');
   }
   return lines.join('\n');
 }
 
-// ── Visual components ──
-
-function SectionDivider({ label, icon, color, collapsed, onToggle, right, t }: {
-  label: string; icon: React.ReactNode; color: string; collapsed: boolean;
+// ── Section divider with color bar ──
+function Section({ label, color, collapsed, onToggle, right, t }: {
+  label: string; color: string; collapsed: boolean;
   onToggle: () => void; right?: React.ReactNode; t: ReturnType<typeof useTheme>;
 }) {
   return (
-    <div
-      className="flex items-center gap-2 px-4 py-2.5 cursor-pointer select-none nodrag"
+    <div className="flex items-center gap-2.5 px-4 py-2.5 cursor-pointer select-none nodrag"
       onClick={onToggle}
-      style={{
-        borderTop: `1px solid ${t.borderSubtle}`,
-        background: t.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
-      }}
-    >
+      style={{ borderTop: `1px solid ${t.borderSubtle}`, background: t.isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.01)' }}>
       {collapsed ? <ChevronRight size={10} style={{ color: t.textDim }} /> : <ChevronDown size={10} style={{ color: t.textDim }} />}
-      <div style={{ width: 4, height: 14, borderRadius: 2, background: color, opacity: 0.7 }} />
-      <span
-        className="text-[10px] font-bold tracking-[0.15em] uppercase"
-        style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}
-      >
+      <div style={{ width: 3, height: 14, borderRadius: 2, background: color, opacity: 0.8 }} />
+      <span className="text-[10px] font-bold tracking-[0.15em] uppercase"
+        style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
         {label}
       </span>
       <div className="flex-1" />
@@ -102,32 +93,70 @@ function SectionDivider({ label, icon, color, collapsed, onToggle, right, t }: {
   );
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  const t = useTheme();
-  return (
-    <label
-      className="text-[9px] font-semibold tracking-[0.12em] uppercase block mb-1.5"
-      style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
-    >
-      {children}
-    </label>
-  );
-}
-
 function GenerateBtn({ loading, onClick }: { loading: boolean; onClick: () => void }) {
   return (
-    <button
-      type="button" onClick={onClick} disabled={loading}
+    <button type="button" onClick={onClick} disabled={loading}
       className="flex items-center gap-1 text-[9px] px-2 py-1 rounded cursor-pointer border-none nodrag"
-      style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Space Mono', monospace", opacity: loading ? 0.5 : 1 }}
-    >
+      style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Space Mono', monospace", opacity: loading ? 0.5 : 1 }}>
       {loading ? <Loader2 size={9} className="animate-spin" /> : <Sparkles size={9} />}
       Generate
     </button>
   );
 }
 
-// ── Main component ──
+// Segmented button group
+function SegmentedControl<T extends string | number>({ options, value, onChange }: {
+  options: { value: T; label: string }[]; value: T; onChange: (v: T) => void;
+}) {
+  const t = useTheme();
+  return (
+    <div className="flex rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
+      {options.map(opt => (
+        <button key={String(opt.value)} type="button" onClick={() => onChange(opt.value)}
+          className="flex-1 py-1.5 cursor-pointer border-none nodrag text-[11px]"
+          style={{
+            background: value === opt.value ? '#FE5000' : 'transparent',
+            color: value === opt.value ? '#fff' : t.textSecondary,
+            fontFamily: "'Inter', sans-serif",
+            transition: 'all 100ms',
+          }}>
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// List item with dot + input + remove
+function ListItem({ color, value, onChange, onRemove, placeholder }: {
+  color: string; value: string; onChange: (v: string) => void; onRemove: () => void; placeholder: string;
+}) {
+  const t = useTheme();
+  return (
+    <div className="flex items-center gap-2 mb-1.5">
+      <div style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+      <Input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        style={{ fontSize: 12, padding: '6px 10px' }} />
+      <button type="button" onClick={onRemove}
+        className="p-0.5 border-none bg-transparent cursor-pointer nodrag shrink-0" style={{ color: t.textDim }}>
+        <X size={11} />
+      </button>
+    </div>
+  );
+}
+
+function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
+  const t = useTheme();
+  return (
+    <button type="button" onClick={onClick}
+      className="flex items-center gap-1 text-[11px] px-2 py-1 rounded cursor-pointer border-none nodrag mt-1"
+      style={{ background: t.surfaceElevated, color: t.textSecondary, fontFamily: "'Inter', sans-serif" }}>
+      <Plus size={10} /> {label}
+    </button>
+  );
+}
+
+// ── Main ──
 
 export const AgentNode = memo(function AgentNode() {
   const t = useTheme();
@@ -150,24 +179,15 @@ export const AgentNode = memo(function AgentNode() {
   const compiled = useMemo(() => compileInstructions(instructionState), [instructionState]);
   useEffect(() => { if (autoSync) updateInstruction({ rawPrompt: compiled }); }, [compiled, autoSync, updateInstruction]);
 
-  const inputStyle: React.CSSProperties = {
-    background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary,
-    fontFamily: "'Inter', sans-serif", fontSize: 13, lineHeight: 1.5, borderRadius: 6,
-  };
-
-  const autoGrow = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const ta = e.target; ta.style.height = 'auto'; ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
-  }, []);
-
   const handleTagsChange = useCallback((value: string) => {
-    setAgentMeta({ tags: value.split(',').map(tag => tag.trim()).filter(Boolean) });
+    setAgentMeta({ tags: value.split(',').map(t => t.trim()).filter(Boolean) });
   }, [setAgentMeta]);
 
   // ── Refine handlers ──
   const handleRefineAll = useCallback(async () => {
     const dump = [persona, constraints.customConstraints, constraints.scopeDefinition, objectives.primary, ...objectives.successCriteria, ...objectives.failureModes].filter(Boolean).join('\n');
     if (!dump.trim()) return;
-    setRefining('persona'); setRefineError(null);
+    setRefining('all'); setRefineError(null);
     try {
       const result = await refineField('full', dump) as RefinedAgent;
       updateInstruction({
@@ -199,77 +219,73 @@ export const AgentNode = memo(function AgentNode() {
     finally { setRefining(null); }
   }, [constraints, updateInstruction]);
 
-  // Section completeness for progress dots
-  const sectionDone = {
+  // Progress
+  const done = {
     identity: !!(agentMeta.name && agentMeta.description),
     persona: !!persona.trim(),
     constraints: CONSTRAINT_TOGGLES.some(ct => constraints[ct.key]) || !!constraints.customConstraints.trim(),
     objectives: !!objectives.primary.trim(),
   };
-  const progress = Object.values(sectionDone).filter(Boolean).length;
+  const progress = Object.values(done).filter(Boolean).length;
+
+  // Handle styles — positioned on the border, outside node content
+  const handleBase: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
   return (
-    <div
-      className="rounded-lg overflow-visible"
-      style={{
-        background: t.surfaceOpaque,
-        border: `1px solid ${t.border}`,
-        boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`,
-        width: 480,
-      }}
-    >
-      {/* ── TOP HANDLES (inputs) ── */}
-      <Handle type="target" position={Position.Left} id="agent-knowledge-in" style={{ top: '20%', left: -4, width: 8, height: 8, background: '#3498db', border: 'none', borderRadius: '50%' }} />
-      <Handle type="target" position={Position.Left} id="agent-skills-in" style={{ top: '40%', left: -4, width: 8, height: 8, background: '#f1c40f', border: 'none', borderRadius: '50%' }} />
-      <Handle type="target" position={Position.Left} id="agent-mcp-in" style={{ top: '60%', left: -4, width: 8, height: 8, background: '#2ecc71', border: 'none', borderRadius: '50%' }} />
-      {/* ── RIGHT HANDLES (outputs) ── */}
-      <Handle type="source" position={Position.Right} id="agent-prompt-out" style={{ top: '25%', right: -4, width: 8, height: 8, background: '#9b59b6', border: 'none', borderRadius: '50%' }} />
-      <Handle type="source" position={Position.Right} id="agent-workflow-out" style={{ top: '50%', right: -4, width: 8, height: 8, background: '#e67e22', border: 'none', borderRadius: '50%' }} />
-      <Handle type="source" position={Position.Right} id="agent-memory-out" style={{ top: '75%', right: -4, width: 8, height: 8, background: '#e74c3c', border: 'none', borderRadius: '50%' }} />
+    <div className="rounded-lg overflow-visible" style={{
+      background: t.surfaceOpaque,
+      border: `1px solid ${t.border}`,
+      boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`,
+      width: 480,
+    }}>
+      {/* Handles — fixed % positions, 8px dots on the border edge */}
+      <Handle type="target" position={Position.Left} id="agent-knowledge-in" style={{ ...handleBase, top: '20%', left: -4, background: '#3498db' }} />
+      <Handle type="target" position={Position.Left} id="agent-skills-in" style={{ ...handleBase, top: '40%', left: -4, background: '#f1c40f' }} />
+      <Handle type="target" position={Position.Left} id="agent-mcp-in" style={{ ...handleBase, top: '60%', left: -4, background: '#2ecc71' }} />
+      <Handle type="source" position={Position.Right} id="agent-prompt-out" style={{ ...handleBase, top: '25%', right: -4, background: '#9b59b6' }} />
+      <Handle type="source" position={Position.Right} id="agent-workflow-out" style={{ ...handleBase, top: '50%', right: -4, background: '#e67e22' }} />
+      <Handle type="source" position={Position.Right} id="agent-memory-out" style={{ ...handleBase, top: '75%', right: -4, background: '#e74c3c' }} />
 
-      {/* ── Header ── */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 select-none" style={{ borderBottom: `1px solid ${t.border}`, background: t.surfaceElevated }}>
+      {/* Header */}
+      <div className="flex items-center gap-2.5 px-4 py-2.5 select-none"
+        style={{ borderBottom: `1px solid ${t.border}`, background: t.surfaceElevated }}>
         <Bot size={14} style={{ color: '#FE5000' }} />
-        <Tooltip content="Build your agent step by step: identity → persona → constraints → objectives">
-          <span className="text-[11px] font-bold tracking-[0.2em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
+        <Tooltip content="Build your agent step by step">
+          <span className="text-[11px] font-bold tracking-[0.2em] uppercase"
+            style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
             Agent
           </span>
         </Tooltip>
         <div className="flex-1" />
-        {/* Progress dots */}
         <div className="flex items-center gap-1">
-          {(['identity', 'persona', 'constraints', 'objectives'] as const).map(key => (
-            <div key={key} style={{
+          {Object.entries(done).map(([key, v]) => (
+            <div key={key} title={key} style={{
               width: 6, height: 6, borderRadius: '50%',
-              background: sectionDone[key] ? '#FE5000' : t.borderSubtle,
-              transition: 'background 200ms ease',
-            }} title={`${key}: ${sectionDone[key] ? 'done' : 'empty'}`} />
+              background: v ? '#FE5000' : t.borderSubtle,
+              transition: 'background 200ms',
+            }} />
           ))}
-          <span className="text-[9px] ml-1" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
-            {progress}/4
-          </span>
+          <span className="text-[9px] ml-1" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>{progress}/4</span>
         </div>
       </div>
 
-      {/* ── Scrollable document ── */}
+      {/* Document body */}
       <div className="overflow-y-auto nowheel nodrag" style={{ maxHeight: 700 }}>
 
-        {/* ═══ 1. IDENTITY ═══ */}
-        <SectionDivider label="Identity" icon={<User size={10} />} color="#FE5000" collapsed={!identityOpen} onToggle={() => setIdentityOpen(!identityOpen)} t={t} />
+        {/* ── 1. IDENTITY ── */}
+        <Section label="Identity" color="#FE5000" collapsed={!identityOpen} onToggle={() => setIdentityOpen(!identityOpen)} t={t} />
         {identityOpen && (
           <div className="px-5 py-4 flex flex-col gap-4">
-            {/* Name + Avatar row */}
             <div className="flex items-center gap-3">
               <div className="relative">
                 <button type="button" onClick={() => setShowAvatarPicker(!showAvatarPicker)}
                   className="w-11 h-11 rounded-lg cursor-pointer nodrag flex items-center justify-center"
-                  style={{ background: t.surfaceElevated, border: `1.5px solid ${t.border}`, color: '#FE5000' }}
-                >
+                  style={{ background: t.surfaceElevated, border: `1.5px solid ${t.border}`, color: '#FE5000' }}>
                   <AvatarIcon avatarId={agentMeta.avatar} size={20} />
                 </button>
                 {showAvatarPicker && (
                   <div className="absolute top-13 left-0 z-50 grid grid-cols-5 gap-0.5 p-2 rounded-lg nodrag"
-                    style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 8px 24px rgba(0,0,0,0.2)`, width: 185 }}>
+                    style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', width: 185 }}>
                     {PRESET_AVATARS.map(av => {
                       const Icon = av.icon;
                       return (
@@ -286,14 +302,12 @@ export const AgentNode = memo(function AgentNode() {
               </div>
               <div className="flex-1">
                 {editingName ? (
-                  <input type="text" value={agentMeta.name} autoFocus
+                  <Input value={agentMeta.name} autoFocus
                     onChange={e => setAgentMeta({ name: e.target.value })}
                     onBlur={() => setEditingName(false)}
                     onKeyDown={e => { if (e.key === 'Enter') setEditingName(false); }}
                     placeholder="Agent name"
-                    className="w-full px-3 py-2 rounded-md outline-none nodrag"
-                    style={{ ...inputStyle, fontSize: 16, fontWeight: 600 }}
-                  />
+                    style={{ fontSize: 16, fontWeight: 600 }} />
                 ) : (
                   <button type="button" onClick={() => setEditingName(true)}
                     className="text-left font-semibold cursor-pointer border-none bg-transparent p-0 nodrag w-full"
@@ -303,201 +317,122 @@ export const AgentNode = memo(function AgentNode() {
                 )}
               </div>
             </div>
-            {/* Description */}
-            <div>
-              <FieldLabel>Description</FieldLabel>
-              <textarea value={agentMeta.description}
-                onChange={e => { setAgentMeta({ description: e.target.value }); autoGrow(e); }}
-                placeholder="One-line summary of what this agent does..."
-                className="w-full px-3 py-2 rounded-md outline-none resize-none nowheel nodrag"
-                style={{ ...inputStyle, minHeight: 40 }}
-              />
-            </div>
-            {/* Tags */}
-            <div>
-              <FieldLabel>Tags</FieldLabel>
-              <input type="text" value={agentMeta.tags.join(', ')} onChange={e => handleTagsChange(e.target.value)}
-                placeholder="pm, analysis, competitor" className="w-full px-3 py-2 rounded-md outline-none nodrag" style={inputStyle} />
-            </div>
+            <TextArea label="Description" value={agentMeta.description}
+              onChange={e => setAgentMeta({ description: e.target.value })}
+              placeholder="One-line summary of what this agent does..."
+              style={{ minHeight: 40 }} />
+            <Input label="Tags" value={agentMeta.tags.join(', ')}
+              onChange={e => handleTagsChange(e.target.value)}
+              placeholder="pm, analysis, competitor" />
           </div>
         )}
 
-        {/* ═══ 2. PERSONA ═══ */}
-        <SectionDivider label="Persona" icon={<User size={10} />} color="#9b59b6" collapsed={!personaOpen} onToggle={() => setPersonaOpen(!personaOpen)} t={t}
-          right={<GenerateBtn loading={refining === 'persona'} onClick={handleRefineAll} />}
-        />
+        {/* ── 2. PERSONA ── */}
+        <Section label="Persona" color="#9b59b6" collapsed={!personaOpen} onToggle={() => setPersonaOpen(!personaOpen)} t={t}
+          right={<GenerateBtn loading={refining === 'all'} onClick={handleRefineAll} />} />
         {personaOpen && (
           <div className="px-5 py-4 flex flex-col gap-4">
-            <div>
-              <FieldLabel>Who is this agent?</FieldLabel>
-              <textarea value={persona}
-                onChange={e => { updateInstruction({ persona: e.target.value }); autoGrow(e); }}
-                placeholder="Describe the agent's role, expertise, and personality..."
-                className="w-full px-3 py-2.5 rounded-md outline-none resize-none nowheel nodrag"
-                style={{ ...inputStyle, minHeight: 64 }}
-              />
-            </div>
+            <TextArea label="Who is this agent?" value={persona}
+              onChange={e => updateInstruction({ persona: e.target.value })}
+              placeholder="Describe the agent's role, expertise, and personality..."
+              style={{ minHeight: 64 }} />
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <FieldLabel>Tone</FieldLabel>
-                <div className="flex rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
-                  {TONE_OPTIONS.map(opt => (
-                    <button key={opt} type="button" onClick={() => updateInstruction({ tone: opt })}
-                      className="flex-1 py-1.5 cursor-pointer border-none capitalize nodrag text-[11px]"
-                      style={{ background: tone === opt ? '#FE5000' : 'transparent', color: tone === opt ? '#fff' : t.textSecondary, fontFamily: "'Inter', sans-serif", transition: 'all 100ms' }}>
-                      {opt}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Tone</label>
+                <SegmentedControl options={TONE_OPTIONS.map(o => ({ value: o, label: o.charAt(0).toUpperCase() + o.slice(1) }))} value={tone} onChange={v => updateInstruction({ tone: v })} />
               </div>
-              <div>
-                <FieldLabel>Expertise</FieldLabel>
-                <div className="flex rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
-                  {([1, 3, 5] as const).map(val => (
-                    <button key={val} type="button" onClick={() => updateInstruction({ expertise: val })}
-                      className="flex-1 py-1.5 cursor-pointer border-none nodrag text-[11px]"
-                      style={{ background: expertise === val ? '#FE5000' : 'transparent', color: expertise === val ? '#fff' : t.textSecondary, fontFamily: "'Inter', sans-serif", transition: 'all 100ms' }}>
-                      {val === 1 ? 'Junior' : val === 3 ? 'Mid' : 'Senior'}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Expertise</label>
+                <SegmentedControl options={[{ value: 1, label: 'Junior' }, { value: 3, label: 'Mid' }, { value: 5, label: 'Senior' }]} value={expertise} onChange={v => updateInstruction({ expertise: v })} />
               </div>
             </div>
           </div>
         )}
 
-        {/* ═══ 3. CONSTRAINTS ═══ */}
-        <SectionDivider label="Constraints" icon={<ShieldCheck size={10} />} color="#e74c3c" collapsed={!constraintsOpen} onToggle={() => setConstraintsOpen(!constraintsOpen)} t={t}
-          right={<GenerateBtn loading={refining === 'constraints'} onClick={handleRefineConstraints} />}
-        />
+        {/* ── 3. CONSTRAINTS ── */}
+        <Section label="Constraints" color="#e74c3c" collapsed={!constraintsOpen} onToggle={() => setConstraintsOpen(!constraintsOpen)} t={t}
+          right={<GenerateBtn loading={refining === 'constraints'} onClick={handleRefineConstraints} />} />
         {constraintsOpen && (
           <div className="px-5 py-4 flex flex-col gap-2">
-            {/* Toggle grid — 2 columns for compactness */}
-            <div className="grid grid-cols-1 gap-1.5">
-              {CONSTRAINT_TOGGLES.map(ct => (
-                <button key={ct.key} type="button"
-                  onClick={() => updateInstruction({ constraints: { ...constraints, [ct.key]: !constraints[ct.key] } })}
-                  className="flex items-center gap-2 text-left px-3 py-2 rounded-md cursor-pointer border-none nodrag"
-                  style={{
-                    fontSize: 12, fontFamily: "'Inter', sans-serif",
-                    background: constraints[ct.key] ? '#FE500008' : 'transparent',
-                    color: constraints[ct.key] ? t.textPrimary : t.textMuted,
-                    border: `1px solid ${constraints[ct.key] ? '#FE500025' : 'transparent'}`,
-                  }}>
-                  {constraints[ct.key] ? <ToggleRight size={14} style={{ color: '#FE5000', flexShrink: 0 }} /> : <ToggleLeft size={14} style={{ color: t.textDim, flexShrink: 0 }} />}
-                  <span>{ct.label}</span>
-                </button>
-              ))}
-            </div>
-
+            {CONSTRAINT_TOGGLES.map(ct => (
+              <Toggle key={ct.key} checked={constraints[ct.key]} label={ct.label}
+                onChange={() => updateInstruction({ constraints: { ...constraints, [ct.key]: !constraints[ct.key] } })} />
+            ))}
             {constraints.stayInScope && (
-              <div className="mt-2">
-                <div className="flex items-center justify-between">
-                  <FieldLabel>Scope Definition</FieldLabel>
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Scope</label>
                   <GenerateBtn loading={refining === 'scope'} onClick={handleRefineScope} />
                 </div>
-                <input type="text" value={constraints.scopeDefinition}
+                <Input value={constraints.scopeDefinition}
                   onChange={e => updateInstruction({ constraints: { ...constraints, scopeDefinition: e.target.value } })}
-                  placeholder="e.g. 'frontend bugs only, no backend'"
-                  className="w-full px-3 py-2 rounded-md outline-none nodrag" style={inputStyle} />
+                  placeholder="e.g. 'frontend bugs only, no backend'" />
               </div>
             )}
-
-            <div className="mt-2">
-              <FieldLabel>Custom Rules</FieldLabel>
-              <textarea value={constraints.customConstraints}
-                onChange={e => { updateInstruction({ constraints: { ...constraints, customConstraints: e.target.value } }); autoGrow(e); }}
+            <div className="mt-3">
+              <TextArea label="Custom Rules" value={constraints.customConstraints}
+                onChange={e => updateInstruction({ constraints: { ...constraints, customConstraints: e.target.value } })}
                 placeholder="One rule per line..."
-                className="w-full px-3 py-2 rounded-md outline-none resize-none nowheel nodrag"
-                style={{ ...inputStyle, minHeight: 40 }} />
+                style={{ minHeight: 40 }} />
             </div>
           </div>
         )}
 
-        {/* ═══ 4. OBJECTIVES ═══ */}
-        <SectionDivider label="Objectives" icon={<Target size={10} />} color="#2ecc71" collapsed={!objectivesOpen} onToggle={() => setObjectivesOpen(!objectivesOpen)} t={t}
-          right={<GenerateBtn loading={refining === 'persona'} onClick={handleRefineAll} />}
-        />
+        {/* ── 4. OBJECTIVES ── */}
+        <Section label="Objectives" color="#2ecc71" collapsed={!objectivesOpen} onToggle={() => setObjectivesOpen(!objectivesOpen)} t={t}
+          right={<GenerateBtn loading={refining === 'all'} onClick={handleRefineAll} />} />
         {objectivesOpen && (
-          <div className="px-5 py-4 flex flex-col gap-3">
-            <div>
-              <FieldLabel>Primary Goal</FieldLabel>
-              <input type="text" value={objectives.primary}
-                onChange={e => updateInstruction({ objectives: { ...objectives, primary: e.target.value } })}
-                placeholder="The single most important thing this agent does..."
-                className="w-full px-3 py-2 rounded-md outline-none nodrag" style={inputStyle} />
-            </div>
+          <div className="px-5 py-4 flex flex-col gap-4">
+            <Input label="Primary Goal" value={objectives.primary}
+              onChange={e => updateInstruction({ objectives: { ...objectives, primary: e.target.value } })}
+              placeholder="The single most important thing this agent does..." />
 
             <div>
-              <FieldLabel>Success Looks Like</FieldLabel>
+              <label className="text-[9px] tracking-wider uppercase font-semibold block mb-2" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Success Looks Like</label>
               {objectives.successCriteria.map((sc, i) => (
-                <div key={i} className="flex items-center gap-2 mb-1.5">
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2ecc71', flexShrink: 0 }} />
-                  <input type="text" value={sc}
-                    onChange={e => { const next = [...objectives.successCriteria]; next[i] = e.target.value; updateInstruction({ objectives: { ...objectives, successCriteria: next } }); }}
-                    placeholder="Measurable criterion..."
-                    className="flex-1 px-3 py-1.5 rounded-md outline-none nodrag" style={{ ...inputStyle, fontSize: 12 }} />
-                  <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, successCriteria: objectives.successCriteria.filter((_, j) => j !== i) } })}
-                    className="p-0.5 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim }}><X size={11} /></button>
-                </div>
+                <ListItem key={i} color="#2ecc71" value={sc} placeholder="Measurable criterion..."
+                  onChange={v => { const next = [...objectives.successCriteria]; next[i] = v; updateInstruction({ objectives: { ...objectives, successCriteria: next } }); }}
+                  onRemove={() => updateInstruction({ objectives: { ...objectives, successCriteria: objectives.successCriteria.filter((_, j) => j !== i) } })} />
               ))}
-              <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, successCriteria: [...objectives.successCriteria, ''] } })}
-                className="flex items-center gap-1 text-[11px] px-2 py-1 rounded cursor-pointer border-none nodrag mt-1"
-                style={{ background: t.surfaceElevated, color: t.textSecondary, fontFamily: "'Inter', sans-serif" }}>
-                <Plus size={10} /> Add criterion
-              </button>
+              <AddButton label="Add criterion" onClick={() => updateInstruction({ objectives: { ...objectives, successCriteria: [...objectives.successCriteria, ''] } })} />
             </div>
 
             <div>
-              <FieldLabel>Failure Modes (avoid)</FieldLabel>
+              <label className="text-[9px] tracking-wider uppercase font-semibold block mb-2" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Failure Modes</label>
               {objectives.failureModes.map((fm, i) => (
-                <div key={i} className="flex items-center gap-2 mb-1.5">
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#e74c3c', flexShrink: 0 }} />
-                  <input type="text" value={fm}
-                    onChange={e => { const next = [...objectives.failureModes]; next[i] = e.target.value; updateInstruction({ objectives: { ...objectives, failureModes: next } }); }}
-                    placeholder="What must never happen..."
-                    className="flex-1 px-3 py-1.5 rounded-md outline-none nodrag" style={{ ...inputStyle, fontSize: 12 }} />
-                  <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, failureModes: objectives.failureModes.filter((_, j) => j !== i) } })}
-                    className="p-0.5 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim }}><X size={11} /></button>
-                </div>
+                <ListItem key={i} color="#e74c3c" value={fm} placeholder="What must never happen..."
+                  onChange={v => { const next = [...objectives.failureModes]; next[i] = v; updateInstruction({ objectives: { ...objectives, failureModes: next } }); }}
+                  onRemove={() => updateInstruction({ objectives: { ...objectives, failureModes: objectives.failureModes.filter((_, j) => j !== i) } })} />
               ))}
-              <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, failureModes: [...objectives.failureModes, ''] } })}
-                className="flex items-center gap-1 text-[11px] px-2 py-1 rounded cursor-pointer border-none nodrag mt-1"
-                style={{ background: t.surfaceElevated, color: t.textSecondary, fontFamily: "'Inter', sans-serif" }}>
-                <Plus size={10} /> Add failure mode
-              </button>
+              <AddButton label="Add failure mode" onClick={() => updateInstruction({ objectives: { ...objectives, failureModes: [...objectives.failureModes, ''] } })} />
             </div>
           </div>
         )}
 
-        {/* ═══ 5. RAW PROMPT (collapsed by default) ═══ */}
-        <SectionDivider label="System Prompt" icon={<FileText size={10} />} color={t.textDim} collapsed={!rawOpen} onToggle={() => setRawOpen(!rawOpen)} t={t}
+        {/* ── 5. SYSTEM PROMPT ── */}
+        <Section label="System Prompt" color={t.textDim} collapsed={!rawOpen} onToggle={() => setRawOpen(!rawOpen)} t={t}
           right={
-            <button type="button" onClick={() => updateInstruction({ autoSync: !autoSync })}
-              className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded cursor-pointer border-none nodrag"
-              style={{ background: autoSync ? '#FE500012' : 'transparent', color: autoSync ? '#FE5000' : t.textDim, fontFamily: "'Space Mono', monospace" }}>
-              {autoSync ? 'Auto' : 'Manual'}
-            </button>
-          }
-        />
+            <Toggle size="sm" checked={autoSync} onChange={v => updateInstruction({ autoSync: v })}
+              label={autoSync ? 'Auto' : 'Manual'} />
+          } />
         {rawOpen && (
           <div className="px-5 py-4">
-            <textarea value={rawPrompt}
+            <TextArea value={rawPrompt}
               onChange={e => { if (!autoSync) updateInstruction({ rawPrompt: e.target.value }); }}
               readOnly={autoSync}
-              className="w-full px-3 py-2.5 rounded-md outline-none resize-none nowheel nodrag"
-              style={{ ...inputStyle, fontFamily: "'Space Mono', monospace", fontSize: 11, minHeight: 120, opacity: autoSync ? 0.5 : 1, cursor: autoSync ? 'default' : 'text' }} />
-            {autoSync && <p className="text-[10px] mt-1.5 m-0" style={{ color: t.textFaint }}>Auto-compiled from sections above. Switch to Manual to edit directly.</p>}
+              style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, minHeight: 120, opacity: autoSync ? 0.5 : 1, cursor: autoSync ? 'default' : 'text' }} />
+            {autoSync && <p className="text-[10px] mt-2 m-0" style={{ color: t.textFaint }}>Auto-compiled from sections above. Switch to Manual to edit.</p>}
           </div>
         )}
 
-        {/* Refine error */}
+        {/* Error banner */}
         {refineError && (
-          <div className="flex items-center gap-2 mx-4 mb-3 px-3 py-2 rounded-md text-[11px]"
-            style={{ background: '#ff000010', color: '#ff4444', border: '1px solid #ff000020' }}>
-            <X size={10} className="shrink-0 cursor-pointer" onClick={() => setRefineError(null)} />
-            {refineError}
-          </div>
+          <Card className="mx-4 mb-3">
+            <div className="flex items-center gap-2 text-[11px]" style={{ color: '#ff4444' }}>
+              <X size={10} className="shrink-0 cursor-pointer" onClick={() => setRefineError(null)} />
+              {refineError}
+            </div>
+          </Card>
         )}
       </div>
 

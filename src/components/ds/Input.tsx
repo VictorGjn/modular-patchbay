@@ -20,13 +20,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       )}
       <input
         ref={ref}
-        className={`w-full text-xs px-3 py-2 rounded-lg outline-none nodrag ${className}`}
+        className={`w-full px-3 py-2 rounded-md outline-none nodrag ${className}`}
         style={{
           background: t.inputBg,
           border: `1px solid ${error ? t.statusError : t.border}`,
           color: t.textPrimary,
-          fontFamily: "'Space Mono', monospace",
-          fontSize: 11,
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 13,
+          lineHeight: 1.5,
           ...style,
         }}
         {...rest}
