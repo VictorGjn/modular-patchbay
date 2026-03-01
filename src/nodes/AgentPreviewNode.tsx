@@ -129,7 +129,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
     <div
       className="rounded-lg nowheel overflow-visible"
       style={{
-        width: 320,
+        width: 480,
         background: t.surfaceOpaque,
         border: `2px solid #FE500040`,
         boxShadow: `0 0 30px #FE500008, 0 8px 32px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.1)'}`,

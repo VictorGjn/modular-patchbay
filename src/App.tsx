@@ -69,22 +69,22 @@ const edgeTypes = {
 
 const initialNodes: Node[] = [
   // Generator — entry point
-  { id: 'generator', type: 'generator', position: { x: -260, y: 60 }, data: {} },
+  { id: 'generator', type: 'generator', position: { x: -560, y: 60 }, data: {} },
   // Left column
   { id: 'knowledge', type: 'knowledge', position: { x: 50, y: 60 }, data: {} },
-  { id: 'skills', type: 'skills', position: { x: 50, y: 340 }, data: {} },
-  { id: 'mcp', type: 'mcp', position: { x: 50, y: 620 }, data: {} },
+  { id: 'skills', type: 'skills', position: { x: 50, y: 400 }, data: {} },
+  { id: 'mcp', type: 'mcp', position: { x: 50, y: 740 }, data: {} },
   // Middle column - Agent + Workflow
-  { id: 'agent', type: 'agent', position: { x: 340, y: -120 }, data: {} },
-  { id: 'workflow', type: 'workflow', position: { x: 340, y: 520 }, data: {} },
-  { id: 'memory', type: 'memory', position: { x: 340, y: 820 }, data: {} },
+  { id: 'agent', type: 'agent', position: { x: 660, y: -120 }, data: {} },
+  { id: 'workflow', type: 'workflow', position: { x: 660, y: 520 }, data: {} },
+  { id: 'memory', type: 'memory', position: { x: 660, y: 920 }, data: {} },
   // Center — Hero Prompt node
-  { id: 'prompt', type: 'prompt', position: { x: 760, y: 120 }, data: {} },
+  { id: 'prompt', type: 'prompt', position: { x: 1270, y: 120 }, data: {} },
   // Right column
-  { id: 'output', type: 'output', position: { x: 1120, y: 120 }, data: {} },
-  { id: 'response', type: 'response', position: { x: 1120, y: 520 }, data: {} },
+  { id: 'output', type: 'output', position: { x: 1880, y: 120 }, data: {} },
+  { id: 'response', type: 'response', position: { x: 1880, y: 520 }, data: {} },
   // Far right — the final agent preview (outcome of the whole process)
-  { id: 'agent-preview', type: 'agentPreview', position: { x: 1660, y: 120 }, data: {} },
+  { id: 'agent-preview', type: 'agentPreview', position: { x: 2490, y: 120 }, data: {} },
 ];
 
 const initialEdges: Edge[] = [

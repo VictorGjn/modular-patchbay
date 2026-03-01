@@ -70,7 +70,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
         boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`,
-        width: 260,
+        width: 480,
       }}
     >
       <Handle type="source" position={Position.Right} id="generator-out" style={{ ...HANDLE, background: '#FE5000', top: '50%', right: -4 }} />
