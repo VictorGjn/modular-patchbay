@@ -69,12 +69,20 @@ function loadSavedServers() {
   }
 }
 
-export function startServer(port: number = 4800): void {
+export function startServer(port: number = 4800) {
   loadSavedServers();
   const app = createApp();
-  app.listen(port, () => {
+  const server = app.listen(port, '0.0.0.0', () => {
     console.log(`Modular Studio running at http://localhost:${port}`);
   });
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    console.error(`Failed to start server on port ${port}:`, err.message);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${port} is already in use`);
+    }
+    process.exit(1);
+  });
+  return server;
 }
 
 // Prevent crashes from unhandled rejections
@@ -86,6 +94,10 @@ process.on('unhandledRejection', (err) => {
 });
 
 // Start when run directly via `npm run server` or `tsx server/index.ts`
-if (import.meta.url.includes('server/index')) {
-  startServer();
+const isMainModule = import.meta.url.includes('server/index');
+if (isMainModule) {
+  const server = startServer();
+  // Prevent Node from exiting — keep a reference to the server
+  process.on('SIGINT', () => { server.close(); process.exit(0); });
+  process.on('SIGTERM', () => { server.close(); process.exit(0); });
 }
