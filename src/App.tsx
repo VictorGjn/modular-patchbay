@@ -41,6 +41,7 @@ import { AgentNode } from './nodes/AgentNode';
 import { AgentPreviewNode } from './nodes/AgentPreviewNode';
 import { WorkflowNode } from './nodes/WorkflowNode';
 import { MemoryNode } from './nodes/MemoryNode';
+import { GeneratorNode } from './nodes/GeneratorNode';
 import { PatchCable } from './edges/PatchCable';
 import { FeedbackEdge } from './edges/FeedbackEdge';
 import { TestMode } from './components/TestMode';
@@ -56,6 +57,7 @@ const nodeTypes = {
   agent: AgentNode,
   workflow: WorkflowNode,
   memory: MemoryNode,
+  generator: GeneratorNode,
   agentPreview: AgentPreviewNode,
 };
 
@@ -65,6 +67,8 @@ const edgeTypes = {
 };
 
 const initialNodes: Node[] = [
+  // Generator — entry point
+  { id: 'generator', type: 'generator', position: { x: -260, y: 60 }, data: {} },
   // Left column
   { id: 'knowledge', type: 'knowledge', position: { x: 50, y: 60 }, data: {} },
   { id: 'skills', type: 'skills', position: { x: 50, y: 340 }, data: {} },
@@ -83,6 +87,8 @@ const initialNodes: Node[] = [
 ];
 
 const initialEdges: Edge[] = [
+  // Generator -> Agent (generates full config)
+  { id: 'e-generator-agent', source: 'generator', target: 'agent', sourceHandle: 'generator-out', targetHandle: 'agent-knowledge-in', type: 'patch', style: { stroke: '#FE5000' }, data: { label: 'generate' } },
   // Left sources -> Agent
   { id: 'e-knowledge-agent', source: 'knowledge', target: 'agent', sourceHandle: 'knowledge-out', targetHandle: 'agent-knowledge-in', type: 'patch', style: { stroke: '#3498db' }, data: { label: 'knowledge' } },
   { id: 'e-skills-agent', source: 'skills', target: 'agent', sourceHandle: 'skills-out', targetHandle: 'agent-skills-in', type: 'patch', style: { stroke: '#f1c40f' }, data: { label: 'skills' } },

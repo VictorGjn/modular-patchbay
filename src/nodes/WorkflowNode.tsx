@@ -7,8 +7,9 @@ import { useMcpStore } from '../store/mcpStore';
 import { useTheme } from '../theme';
 import {
   ListOrdered, Plus, X, GripVertical, RotateCw,
-  ArrowDown, GitBranch, Wrench,
+  ArrowDown, GitBranch, Wrench, Sparkles, Loader2,
 } from 'lucide-react';
+import { generateWorkflow } from '../utils/generateSection';
 
 export interface WorkflowStep {
   id: string;
@@ -50,6 +51,31 @@ export const WorkflowNode = memo(function WorkflowNode() {
 
   const workflowSteps = useConsoleStore((s) => s.workflowSteps);
   const updateWorkflowSteps = useConsoleStore((s) => s.updateWorkflowSteps);
+
+  const [generating, setGenerating] = useState(false);
+
+  const handleGenerate = useCallback(async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const steps = await generateWorkflow();
+      const newSteps: WorkflowStep[] = steps.map((s, i) => ({
+        id: `gen-${Date.now()}-${i}`,
+        label: s.label,
+        action: s.action,
+        tool: '',
+        condition: (s.condition ? 'if' : 'always') as 'always' | 'if' | 'unless',
+        conditionText: '',
+        loopTarget: '',
+        loopMax: s.loop ? 3 : 0,
+      }));
+      updateWorkflowSteps(newSteps);
+    } catch {
+      // silently fail — user can see the empty state
+    } finally {
+      setGenerating(false);
+    }
+  }, [generating, updateWorkflowSteps]);
 
   const mcpServers = useMcpStore((s) => s.servers);
   const connectedServers = mcpServers.filter(s => s.status === 'connected');
@@ -130,6 +156,22 @@ export const WorkflowNode = memo(function WorkflowNode() {
         <span className="text-[9px] ml-1" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
           {workflowSteps.length} {workflowSteps.length === 1 ? 'step' : 'steps'}
         </span>
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={generating}
+          className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded cursor-pointer border-none nodrag"
+          style={{
+            background: '#FE500015',
+            color: '#FE5000',
+            fontFamily: "'Space Mono', monospace",
+            opacity: generating ? 0.6 : 1,
+          }}
+        >
+          {generating ? <Loader2 size={9} className="animate-spin" /> : <Sparkles size={9} />}
+          Generate
+        </button>
       </div>
 
       {/* Flowchart body */}
