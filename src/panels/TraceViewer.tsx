@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTheme } from '../theme';
 import { useTraceStore, type TraceEvent, type ConversationTrace } from '../store/traceStore';
 import {
-  Activity, AlertTriangle, Bot, Clock, Cpu, Database,
+  Activity, AlertTriangle, Bot, Cpu, Database,
   ChevronDown, ChevronRight, Zap, ArrowRightLeft, X,
 } from 'lucide-react';
 

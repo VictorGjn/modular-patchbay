@@ -29,7 +29,7 @@ function unknownResult(): HealthProbeResult {
   return { status: 'unknown', latencyMs: null, toolCount: null, errorMessage: null, checkedAt: 0 };
 }
 
-export const useHealthStore = create<HealthState>((set, get) => ({
+export const useHealthStore = create<HealthState>((set, _get) => ({
   mcpHealth: {},
   skillHealth: {},
 

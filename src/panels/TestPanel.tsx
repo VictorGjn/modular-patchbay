@@ -1,21 +1,15 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useConversationStore } from '../store/conversationStore';
 import { useProviderStore } from '../store/providerStore';
-import { TextArea } from '../components/ds/TextArea';
-import { Select as DsSelect } from '../components/ds/Select';
-import { Tabs } from '../components/ds/Tabs';
-import { Tooltip } from '../components/ds/Tooltip';
 // agentExport available for future format-specific exports
 import { exportAgentYaml } from '../utils/agentExportYaml';
 import { assembleContext } from '../services/contextAssembler';
 import { streamCompletion, streamAgentSdk } from '../services/llmService';
 import {
-  Play, Send, Download, Copy, Check,
-  Maximize2, X, FileText, FileCode,
-  MessageSquare, TestTube, History,
-  Settings, Activity,
+  Send, Download, Check,
+  FileText, FileCode,
 } from 'lucide-react';
 import { TraceViewer } from './TraceViewer';
 
@@ -28,7 +22,7 @@ function ChatSection() {
   const streaming = useConversationStore(s => s.streaming);
   const addMessage = useConversationStore(s => s.addMessage);
   const setStreaming = useConversationStore(s => s.setStreaming);
-  const appendToLastMessage = useConversationStore(s => s.appendToLastMessage);
+  const updateLastAssistant = useConversationStore(s => s.updateLastAssistant);
 
   const agentConfig = useConsoleStore(s => s.agentConfig);
   const channels = useConsoleStore(s => s.channels);
@@ -51,37 +45,53 @@ function ChatSection() {
     setInputText('');
     addMessage({ role: 'user', content: userMsg });
 
-    const systemPrompt = assembleContext(
-      { name: agentMeta.name, description: agentMeta.description } as any,
-      channels, instructionState, workflowSteps as any, mcpServers, skills,
+    const assembled = assembleContext(
+      channels,
+      userMsg,
+      { name: agentMeta.name, description: agentMeta.description },
     );
 
     const msgs = [
-      { role: 'system' as const, content: systemPrompt },
-      ...messages.map(m => ({ role: m.role, content: m.content })),
-      { role: 'user' as const, content: userMsg },
+      ...assembled,
+      ...messages.map(m => ({ role: m.role as 'system' | 'user', content: m.content })),
     ];
 
     addMessage({ role: 'assistant', content: '' });
     setStreaming(true);
+    let accum = '';
 
     try {
       const provider = selectedProviderId || 'anthropic';
       if (provider === 'claude-agent-sdk') {
-        await streamAgentSdk(agentConfig.model, msgs, (chunk) => appendToLastMessage(chunk));
+        const systemMsg = msgs.find(m => m.role === 'system');
+        await new Promise<void>((resolve, reject) => {
+          streamAgentSdk({
+            prompt: userMsg,
+            model: agentConfig.model,
+            systemPrompt: systemMsg?.content,
+            onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
+            onDone: () => resolve(),
+            onError: (err: Error) => reject(err),
+          });
+        });
       } else {
-        await streamCompletion({
-          providerId: provider,
-          model: agentConfig.model,
-          messages: msgs,
-        }, (chunk) => appendToLastMessage(chunk));
+        await new Promise<void>((resolve, reject) => {
+          streamCompletion({
+            providerId: provider,
+            model: agentConfig.model,
+            messages: msgs,
+            onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
+            onDone: () => resolve(),
+            onError: (err: Error) => reject(err),
+          });
+        });
       }
     } catch (err) {
-      appendToLastMessage(`\n\n_Error: ${err instanceof Error ? err.message : 'Unknown error'}_`);
+      updateLastAssistant(accum + `\n\n_Error: ${err instanceof Error ? err.message : 'Unknown error'}_`);
     } finally {
       setStreaming(false);
     }
-  }, [inputText, streaming, messages, agentConfig, channels, mcpServers, skills, instructionState, workflowSteps, agentMeta, selectedProviderId, setInputText, addMessage, setStreaming, appendToLastMessage]);
+  }, [inputText, streaming, messages, agentConfig, channels, mcpServers, skills, instructionState, workflowSteps, agentMeta, selectedProviderId, setInputText, addMessage, setStreaming, updateLastAssistant]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {

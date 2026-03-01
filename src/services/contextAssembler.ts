@@ -2,10 +2,32 @@ import { type ChannelConfig, KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/know
 import { useMcpStore, type McpTool } from '../store/mcpStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { compileWorkflow } from '../nodes/WorkflowNode';
+import { useTreeIndexStore } from '../store/treeIndexStore';
+import { applyDepthFilter, renderFilteredMarkdown } from '../utils/depthFilter';
 
 export interface AssembledMessage {
   role: 'system' | 'user';
   content: string;
+}
+
+export interface AssemblyStats {
+  totalTokens: number;
+  knowledgeTokens: number;
+  channelBreakdown: { sourceId: string; name: string; depth: number; tokens: number; filtered: boolean }[];
+}
+
+/**
+ * Pre-index all enabled knowledge channels.
+ * Call this before assembleContext() to ensure tree indexes are cached.
+ */
+export async function preIndexChannels(channels: ChannelConfig[]): Promise<void> {
+  const active = channels.filter(ch => ch.enabled);
+  const mdPaths = active
+    .map(ch => ch.path)
+    .filter(p => p.endsWith('.md') || p.endsWith('.txt'));
+  if (mdPaths.length > 0) {
+    await useTreeIndexStore.getState().indexFiles(mdPaths);
+  }
 }
 
 export function assembleContext(
@@ -96,7 +118,7 @@ export function assembleContext(
     systemParts.push(`<workflow>\n${compiledWorkflow}\n</workflow>`);
   }
 
-  // Knowledge Sources
+  // Knowledge Sources — tree-indexed content with depth filtering
   if (activeChannels.length > 0) {
     const grouped: Record<string, ChannelConfig[]> = {};
     const typeOrder = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
@@ -106,19 +128,41 @@ export function assembleContext(
       grouped[ch.knowledgeType].push(ch);
     }
 
+    const treeStore = useTreeIndexStore.getState();
     const knowledgeLines = [];
+
     for (const type of typeOrder) {
       const group = grouped[type];
       if (!group || group.length === 0) continue;
 
       const kt = KNOWLEDGE_TYPES[type as keyof typeof KNOWLEDGE_TYPES];
-      const depthDescriptions = group.map((ch) => {
+      const sourceBlocks: string[] = [];
+
+      for (const ch of group) {
         const depth = DEPTH_LEVELS[ch.depth];
-        return `- ${ch.name} (${depth.label}, ~${Math.round(ch.baseTokens * depth.pct).toLocaleString()} tokens) [${ch.path}]`;
-      });
+        const treeIndex = treeStore.getIndex(ch.path);
+
+        if (treeIndex) {
+          // Tree-indexed: apply depth filter and include actual content
+          const filtered = applyDepthFilter(treeIndex, ch.depth);
+          const content = renderFilteredMarkdown(filtered.filtered);
+          if (content.trim()) {
+            sourceBlocks.push(
+              `<source name="${ch.name}" type="${kt.label}" depth="${depth.label}" tokens="${filtered.totalTokens}">\n${content}\n</source>`,
+            );
+          } else {
+            sourceBlocks.push(`- ${ch.name} (${depth.label}, title only) [${ch.path}]`);
+          }
+        } else {
+          // No tree index — fallback to metadata-only reference
+          sourceBlocks.push(
+            `- ${ch.name} (${depth.label}, ~${Math.round(ch.baseTokens * depth.pct).toLocaleString()} tokens) [${ch.path}]`,
+          );
+        }
+      }
 
       knowledgeLines.push(
-        `[${kt.label.toUpperCase()}] ${kt.instruction}\nSources:\n${depthDescriptions.join('\n')}`,
+        `[${kt.label.toUpperCase()}] ${kt.instruction}\n${sourceBlocks.join('\n')}`,
       );
     }
     systemParts.push(`<knowledge>\n${knowledgeLines.join('\n\n')}\n</knowledge>`);

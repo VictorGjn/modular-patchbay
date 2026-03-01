@@ -10,7 +10,7 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useTheme } from '../theme';
 import { refineField, type RefinedAgent } from '../utils/refineInstruction';
 import {
-  ChevronDown, ChevronRight, User, ShieldCheck, Plus, X,
+  ChevronDown, ChevronRight, Plus, X,
   Sparkles, Loader2, Bot,
 } from 'lucide-react';
 import { PRESET_AVATARS, AvatarIcon } from '../components/ds/AvatarIcon';

@@ -3,7 +3,7 @@ import { Handle, Position } from '@xyflow/react';
 
 import { Input } from '../components/ds/Input';
 import { TextArea } from '../components/ds/TextArea';
-import { Select, type SelectOption } from '../components/ds/Select';
+import { Select } from '../components/ds/Select';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore } from '../store/mcpStore';
 import { useTheme } from '../theme';
@@ -339,7 +339,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
                             <Select
                               options={[
                                 { value: '', label: 'No loop' },
-                                ...workflowSteps.filter((_, j) => j !== idx).map((s, _, arr) => ({
+                                ...workflowSteps.filter((_, j) => j !== idx).map((s) => ({
                                   value: s.id,
                                   label: `Step ${workflowSteps.indexOf(s) + 1}${s.label ? `: ${s.label}` : ''}`,
                                 })),
@@ -353,7 +353,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
                             <span className="flex items-center gap-0.5 text-[9px]" style={{ color: t.textDim }}>
                               max <Input type="number" min={1} max={10} value={step.loopMax}
                                 onChange={(e) => updateStep(idx, { loopMax: parseInt(e.target.value) || 3 })}
-                                style={{ width: 32, textAlign: 'center', fontSize: 9, padding: '2px 2px', ...inputStyle }}
+                                style={{ width: 32, textAlign: 'center', padding: '2px 2px', ...inputStyle, fontSize: 9 }}
                               />x
                             </span>
                           )}
