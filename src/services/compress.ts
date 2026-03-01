@@ -1,13 +1,15 @@
 /**
- * RTK — Token Killer
+ * Context Compressor
  *
- * Compresses selected context for maximum signal density.
- * Sits between the Agent Navigator and Context Assembler:
+ * Compresses selected knowledge context for maximum signal density.
+ * Sits between the Agent Navigator and Context Assembler in the pipeline:
  *
- *   Navigator picks branches → RTK compresses → Assembler packs into budget
+ *   Navigator picks branches → Compressor reduces noise → Assembler packs into budget
  *
- * Phase 1: JS implementation (ship fast)
- * Phase 2: Rust WASM (if JS is bottleneck — 10-100x speedup)
+ * Inspired by RTK (Rust Token Killer) by rtk-ai — https://github.com/rtk-ai/rtk
+ * RTK compresses CLI command outputs (ls, git, test) before they reach the LLM context.
+ * This module applies similar principles to knowledge documents: semantic dedup,
+ * filler removal, and code compression — targeting assembled context rather than stdout.
  *
  * Techniques:
  * 1. Semantic dedup — remove near-duplicate paragraphs across sources
@@ -21,7 +23,7 @@ import { estimateTokens } from './treeIndexer';
 // ── Types ──
 
 export interface CompressOptions {
-  /** Target token budget. RTK compresses to fit. */
+  /** Target token budget. Compressor trims to fit. */
   tokenBudget?: number;
   /** Enable semantic dedup across paragraphs (default: true) */
   dedup?: boolean;
@@ -209,7 +211,7 @@ function compressCodeBlocks(content: string): { result: string; removedComments:
 // ── Main Compressor ──
 
 /**
- * Compress content using all RTK techniques.
+ * Compress content using all available techniques.
  */
 export function compress(content: string, options: CompressOptions = {}): CompressResult {
   const {

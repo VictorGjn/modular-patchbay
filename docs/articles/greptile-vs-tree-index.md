@@ -86,9 +86,9 @@ The agent sees this map (63 tokens — practically free) and selects:
 
 **The agent reads the table of contents and picks what to read.** Critical sections get full depth. Background context gets headlines. Irrelevant sections get skipped entirely.
 
-### Step 3: RTK Compresses Selected Content
+### Step 3: Compressor Reduces Selected Content
 
-Even within the selected branches, there's noise. The RTK (Token Killer) removes:
+Even within the selected branches, there's noise. The compressor (inspired by [rtk-ai/rtk](https://github.com/rtk-ai/rtk)) removes:
 
 - **Duplicate information** across branches (same fact stated in overview and feature doc)
 - **Filler sentences** ("As mentioned above...", "It is worth noting that...")
@@ -106,7 +106,7 @@ Budget: 8,000 tokens
 Used: 4,200 tokens (52% utilization)
 Sections: 3 branches selected, 2 at full depth, 1 at headlines
 
-Indexing: 3ms | Navigation: 0ms (cached) | RTK: 1ms | Total: 4ms
+Indexing: 3ms | Navigation: 0ms (cached) | Compress: 1ms | Total: 4ms
 ```
 
 The agent gets the order store internals at full depth, stack context as a one-liner, and conventions as headlines. It knows where to add the filter, what patterns to follow, and what stores to touch. On one prompt.
@@ -145,7 +145,7 @@ But context isn't retrieval. It's **curation**. The right context for "add a dat
 What you need is:
 1. **A map** of all available knowledge (tree index)
 2. **A navigator** that reads the map per task (agent-driven selection)
-3. **A compressor** that maximizes signal density (RTK)
+3. **A compressor** that maximizes signal density
 4. **A budget** that's visible and controllable (context assembler)
 
 That's what we built. Every piece is open source, composable, and runs locally.
