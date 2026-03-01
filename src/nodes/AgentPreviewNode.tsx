@@ -130,7 +130,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
 
   return (
     <div
-      className="rounded-xl overflow-hidden nowheel flex"
+      className="rounded-xl nowheel flex overflow-visible"
       style={{
         width: 480,
         background: t.surfaceOpaque,

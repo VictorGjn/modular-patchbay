@@ -8,9 +8,10 @@ interface JackPortProps {
   label: string;
   color?: string;
   id?: string;
-  /** When set, positions the port absolutely on the node edge at this CSS top value (e.g. '25%', '60px'). */
   offset?: string;
 }
+
+const JACK_SIZE = 16;
 
 export function JackPort({ type, position, label, color = '#FE5000', id, offset }: JackPortProps) {
   const isLeft = position === Position.Left;
@@ -21,42 +22,42 @@ export function JackPort({ type, position, label, color = '#FE5000', id, offset 
     ? {
         position: 'absolute',
         top: offset,
-        ...(isLeft ? { left: -11 } : { right: -11 }),
+        ...(isLeft ? { left: -JACK_SIZE / 2 } : { right: -JACK_SIZE / 2 }),
         transform: 'translateY(-50%)',
       }
     : {};
 
-  // Labels face OUTWARD: left gutter → label left of jack, right gutter → label right of jack
-  const flexDir: React.CSSProperties['flexDirection'] = isLeft ? 'row-reverse' : 'row';
-
   return (
     <div style={wrapperStyle}>
+      {/* Label sits outside the node, jack sits on the border */}
       <div
-        className="flex items-center gap-1"
-        style={{ flexDirection: flexDir }}
+        className="flex items-center gap-0.5"
+        style={{
+          flexDirection: isLeft ? 'row-reverse' : 'row',
+        }}
       >
-        <div className="relative" style={{ width: 18, height: 18 }}>
+        {/* Jack circle — positioned to straddle the node border */}
+        <div className="relative shrink-0" style={{ width: JACK_SIZE, height: JACK_SIZE }}>
           <div
             className="rounded-full"
             style={{
-              width: 18,
-              height: 18,
+              width: JACK_SIZE,
+              height: JACK_SIZE,
               background: t.isDark
-                ? `radial-gradient(circle, #0a0a0a 35%, ${color} 50%, #888 58%, #555 68%, #333 100%)`
-                : `radial-gradient(circle, #e0e0e5 30%, ${color} 48%, #bbb 56%, #999 66%, #ccc 100%)`,
+                ? `radial-gradient(circle, #0a0a0a 30%, ${color} 48%, #888 56%, #555 66%, #333 100%)`
+                : `radial-gradient(circle, #e0e0e5 28%, ${color} 46%, #bbb 54%, #999 64%, #ccc 100%)`,
               boxShadow: t.isDark
-                ? `inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05), 0 0 6px ${color}30`
-                : `inset 0 1px 3px rgba(0,0,0,0.2), 0 1px 0 rgba(255,255,255,0.5), 0 0 4px ${color}20`,
+                ? `inset 0 1px 3px rgba(0,0,0,0.8), 0 0 5px ${color}30`
+                : `inset 0 1px 2px rgba(0,0,0,0.2), 0 0 4px ${color}20`,
             }}
           />
-          {/* IN/OUT label centered on the ring */}
           <span
             className="absolute inset-0 flex items-center justify-center select-none pointer-events-none"
             style={{
               fontFamily: "'Space Mono', monospace",
               fontSize: 5,
               fontWeight: 700,
-              letterSpacing: '0.5px',
+              letterSpacing: '0.3px',
               textTransform: 'uppercase',
               color: t.jackLabelOnRing,
               textShadow: t.isDark ? '0 1px 2px rgba(0,0,0,0.8)' : '0 1px 1px rgba(255,255,255,0.6)',
@@ -69,8 +70,8 @@ export function JackPort({ type, position, label, color = '#FE5000', id, offset 
             position={position}
             id={id}
             style={{
-              width: 18,
-              height: 18,
+              width: JACK_SIZE,
+              height: JACK_SIZE,
               background: 'transparent',
               border: 'none',
               position: 'absolute',
@@ -80,12 +81,13 @@ export function JackPort({ type, position, label, color = '#FE5000', id, offset 
             }}
           />
         </div>
+        {/* Label — outside the node */}
         <span
-          className="text-[7px] tracking-[1px] uppercase select-none whitespace-nowrap"
+          className="text-[6px] tracking-[0.8px] uppercase select-none whitespace-nowrap"
           style={{
             fontFamily: "'Space Mono', monospace",
             color: t.jackLabelBeside,
-            opacity: 0.7,
+            opacity: 0.5,
           }}
         >
           {label}
