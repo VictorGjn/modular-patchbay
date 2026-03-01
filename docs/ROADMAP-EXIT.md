@@ -10,58 +10,143 @@
 
 ---
 
-## 5 Pillars (Trimmed from 8)
+## 7 Pillars
 
-### 1. Execution Traces + MCP/Skill Health 🔴 PRIORITY
-**The problem:** Agents fail silently. MCP server returns 429, skill import breaks, tool schema changed — you find out when the agent hallucinates instead of calling the tool.
+### 1. Execution Traces + MCP/Skill Health ✅ STORES BUILT
+**The problem:** Agents fail silently. MCP returns 429, skill import breaks, tool schema changed — you find out when the agent hallucinates instead of calling the tool.
 
-**What we build:**
-- **Pre-flight checks:** Before running, probe every MCP server (connect, auth, list tools, latency). Probe every skill (file exists, parseable, no import errors).
-- **Execution trace viewer:** Every agent run captures: tool calls (which MCP, which tool, args, response, latency), retrieval hits (which knowledge source, what was returned, relevance), token usage per step, errors with stack traces.
-- **Root cause analysis:** "Step 3 failed → `github-mcp` returned 403 → API token expired" not just "agent gave wrong answer."
-- **Health dashboard in Sources panel:** Green/yellow/red dots with last-check timestamp. Yellow = slow (>2s). Red = unreachable or auth failure.
+**Built:** `healthStore.ts`, `traceStore.ts`, `healthService.ts`, `TraceViewer.tsx`, MCP "Check Health" button.
+**Remaining:** Backend route `/api/mcp/:id/health`, skill health route, wire trace capture into LLM service calls.
 
-**Why it matters:** This is the unsexy infrastructure work nobody builds. But it's the #1 pain point when running agents.
+### 2. Knowledge Graph Between Agents ✅ STORE BUILT
+**The problem:** Agents are islands. Agent A learns something, Agent B doesn't know.
 
-### 2. Knowledge Graph Between Agents 🔴 PRIORITY
-**The problem:** Agents are islands. Agent A learns something, Agent B doesn't know. In a team (Syroco: route optimizer, fleet monitor, report generator), shared context is everything.
+**Built:** `teamStore.ts` — agents, shared facts (per_agent/per_team/global scope), edges, fact propagation, promotion tracking.
+**Remaining:** `TeamGraph.tsx` visualization, fact scope selector in MemorySection, team YAML export.
 
-**What we build:**
-- **Shared fact store:** Facts can be scoped: `per_agent` (private), `per_team` (shared within agent group), `global` (all agents).
-- **Cross-agent references:** Agent A's output connector → Agent B's knowledge source. Visible as edges in a team graph.
-- **Fact propagation:** When Agent A promotes a fact to its design, prompt: "This fact is relevant to Agent B and C — propagate?"
-- **Team view:** Simple graph showing agents as nodes, shared knowledge/facts as edges. Not a fancy orchestration UI — just visibility into what's shared.
-- **Export:** Team YAML that defines agent relationships and shared context.
-
-**Why it matters:** Letta has "Conversations API" for runtime sharing. We have design-time shared context — complementary, not competing.
-
-### 3. PageIndex Integration (Vectorless RAG) 🔴 NEXT
-**The problem:** Vector RAG (embed→chunk→cosine) is unreliable for domain-specific docs. Similarity ≠ relevance. No explainability.
+### 3. Markdown Tree Indexer 🔴 PRIORITY — BUILD TONIGHT
+**The problem:** PageIndex is PDF-only. Agent context is mostly markdown. But the core insight — tree-structured index + reasoning-based retrieval — applies to ALL structured text.
 
 **What we build:**
-- Knowledge sources → PageIndex indexing (JSON tree, no vector DB)
-- Knowledge Depth levels map to PageIndex retrieval depth
-- Test panel shows retrieved sections with exact page/section references
-- Retrieval quality scoring (did the agent use the right context?)
+- `src/services/treeIndexer.ts` — parse markdown headings (`#`/`##`/`###`) into PageIndex-compatible tree JSON
+- Same tree structure: `{ title, node_id, text, depth, children[] }`
+- Each node has token count, enabling depth-aware budget allocation
+- Code files: AST-based tree (functions/classes as nodes) — later
+- PDFs: PageIndex API integration — later
 
-**Why it matters:** First agent design tool with vectorless RAG. Technical moat.
+**How it connects to the Depth Mixer:**
+- **Full (depth 0):** Include leaf nodes with full text
+- **High (depth 1):** Include all nodes but summarize leaves to first paragraph
+- **Reference (depth 2):** Section titles + first sentence only
+- **Skim (depth 3):** Top-level tree headings only
+- **Mention (depth 4):** Document title only
 
-### 4. Fact Insights + Self-Improving Loop ✅ BUILT, ENHANCE
-**What exists:** LLM analyzes facts → suggests promotions → one-click apply → version bump.
+**This makes the Knowledge Depth Mixer FUNCTIONAL, not just visual.**
+
+### 4. RTK — Rust Token Killer 🔴 BUILD AFTER TREE INDEXER
+**The problem:** A 200K context window with 180K of noise is worse than 50K of compressed, relevant content. Token costs dropping ≠ unlimited context. The bottleneck is signal-to-noise ratio, not price.
+
+**What RTK does in the pipeline:**
+```
+Knowledge Sources → Tree Index → Depth Mixer (what to include) → RTK (how much to include) → Context Assembly
+```
+
+**Techniques:**
+- **Semantic dedup:** Remove near-duplicate paragraphs across sources (same fact stated 3 ways → keep best one)
+- **Instruction compression:** Strip filler words, compress to essence while preserving meaning
+- **Depth-aware summarization:** At depth 2 (Reference), RTK summarizes each tree node to 1-2 sentences instead of just truncating
+- **Budget-aware packing:** Given a token budget, pack maximum signal by compressing low-priority nodes more aggressively
+
+**Why Rust:**
+- Tokenization + text processing is CPU-bound — Rust is 10-100x faster than JS/Python
+- Ships as WASM for browser (design-time preview of compressed context)
+- Ships as native binary for server-side (runtime compression)
+- Standalone value as `@modular-studio/rtk` npm package — useful even without the UI
+
+**RTK + Tree Indexer together = the full context engineering pipeline.** Nobody has this.
+
+### 5. Fact Insights + Self-Improving Loop ✅ BUILT, ENHANCE
+**Built:** LLM analyzes facts → suggests promotions → one-click apply → version bump.
 **Enhance:**
 - Auto-analyze after N test conversations
-- Propagation to other agents (see Pillar 2)
-- Version timeline: visual history of how agent evolved through promotions
-- Promotion audit trail
+- Propagation to other agents via teamStore
+- Version timeline visualization
 
-### 5. Versioning ✅ BUILT, KEEP
-**What exists:** Automatic semver (MAJOR.MINOR.PATCH) based on change detection. Snapshots, restore, changelog.
-**Keep as-is.** It's solid. Just wire it into the dashboard UI (version badge + history drawer).
+### 6. Versioning ✅ BUILT
+**Built:** Automatic semver, snapshots, restore, changelog. Solid — just wire into dashboard UI.
+
+### 7. PageIndex for PDFs 🟡 LATER
+**After tree indexer works for markdown**, extend to PDFs via PageIndex API. Syroco use case: IMO regulations, EU ETS documents, fleet performance reports. Same tree structure, same depth mixer, same RTK compression — just different source parser.
+
+---
+
+## The Context Engineering Pipeline
+
+```
+                    ┌─────────────┐
+                    │   Sources   │
+                    │ md / pdf /  │
+                    │ code / url  │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │ Tree Indexer│  ← markdown parser / PageIndex API / AST parser
+                    │  (JSON tree)│
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │ Depth Mixer │  ← WHAT to include (5 levels)
+                    │ (per source)│
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │     RTK     │  ← HOW MUCH to include (compression)
+                    │ (Rust/WASM) │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │  Context    │  ← Final assembly with token budget
+                    │  Assembler  │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │   Agent     │  ← Run with traces + health checks
+                    │  Execution  │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │   Facts     │  ← Extract learnings → feed back to design
+                    │  Insights   │
+                    └─────────────┘
+```
+
+This pipeline IS the product. Everything else is UI around it.
+
+---
+
+## Build Order (Tonight)
+
+| # | What | Time | Status |
+|---|------|------|--------|
+| 1 | Execution traces + health stores | 2h | ✅ Done |
+| 2 | Team knowledge graph store | 1h | ✅ Done |
+| 3 | **Markdown tree indexer** | 1h | 🔴 Now |
+| 4 | Wire tree indexer to Depth Mixer | 1h | Next |
+| 5 | Backend `/api/mcp/:id/health` route | 30min | Next |
+| 6 | TeamGraph visualization (simple SVG) | 1h | Next |
+
+## This Week
+
+| # | What | Days |
+|---|------|------|
+| 7 | RTK prototype (Rust WASM, semantic dedup + compression) | 2-3 |
+| 8 | Wire trace capture into LLM service | 0.5 |
+| 9 | `npm publish` v0.1.0 | 0.5 |
+| 10 | PageIndex PDF integration | 1 |
 
 ---
 
 ## What We're NOT Building
-- ❌ RTK (Rust token killer) — token costs dropping 10x/year, diminishing returns
 - ❌ Output target hinting — nice feature, not a moat, later
 - ❌ Eval harness / A/B testing — Vellum/Braintrust own this
 - ❌ Multi-agent orchestration runtime — we design, others run
@@ -69,43 +154,15 @@
 
 ---
 
-## Build Order (Tonight + This Week)
-
-### Tonight: MCP/Skill Health + Execution Traces
-
-**Step 1: Health probes** (~2h)
-- `src/services/healthService.ts` — probe MCP servers (connect, list tools, latency)
-- `src/store/healthStore.ts` — health state per server/skill
-- Wire into SourcesPanel McpSection (green/yellow/red dots with detail tooltip)
-
-**Step 2: Execution trace capture** (~2h)
-- `src/store/traceStore.ts` — trace events (tool_call, retrieval, error, token_usage)
-- Wrap LLM service calls to emit trace events
-- `src/panels/TraceViewer.tsx` — timeline of events per conversation, expandable details
-
-**Step 3: Knowledge graph store** (~2h)
-- `src/store/teamStore.ts` — agents, shared facts, cross-references
-- `src/panels/TeamGraph.tsx` — simple SVG graph of agent relationships
-- Fact scope selector in MemorySection (per_agent / per_team / global)
-
-### This Week: PageIndex + Polish
-- PageIndex API client
-- Wire knowledge sources to PageIndex
-- Test panel shows retrieval provenance
-- Version badge in dashboard header
-- `npm publish` v0.1.0
-
----
-
 ## Syroco Dogfood Targets
 
-| Agent | Purpose | Tests |
-|-------|---------|-------|
-| Route Optimizer | Voyage Prep TCE calculations | Does it pick the right MCP (weather, AIS)? |
-| Fleet Monitor | Track vessel performance | Does shared context propagate fuel savings? |
-| Report Generator | Weekly fleet reports | Does it pull from both agents' facts? |
-| Competitor Intel | Track StormGeo/ZeroNorth | Does Fact Insights suggest new knowledge sources? |
+| Agent | Purpose | Context Sources | Tests |
+|-------|---------|----------------|-------|
+| Route Optimizer | Voyage Prep TCE | Weather MCP, AIS MCP, regulatory markdown | Tree index on EU ETS docs |
+| Fleet Monitor | Vessel performance | Live data MCP, performance markdown | Shared facts with Route Optimizer |
+| Report Generator | Weekly fleet reports | Both agents' facts + templates | RTK compression of multi-source context |
+| Competitor Intel | StormGeo/ZeroNorth | Web scraper MCP, product docs | Fact Insights → new knowledge sources |
 
 ---
 
-*"Build for yourself. If it works for your team, it works for everyone."*
+*"Tree Index → Depth Mixer → RTK → Context Assembly. That's the pipeline. Everything else is UI."*
