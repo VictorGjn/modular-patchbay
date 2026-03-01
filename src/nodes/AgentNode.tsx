@@ -1,7 +1,7 @@
 import { memo, useState, useCallback, useMemo, useEffect } from 'react';
-import { Position } from '@xyflow/react';
+// Position used by JackGutter internally
 import { ResizeHandle } from '../components/ResizeHandle';
-import { JackPort } from '../components/JackPort';
+import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { useConsoleStore } from '../store/consoleStore';
 import { useTheme } from '../theme';
@@ -191,17 +191,30 @@ export const AgentNode = memo(function AgentNode() {
     finally { setRefining(null); }
   }, [constraints, updateInstruction]);
 
+  const leftJacks: JackDef[] = [
+    { id: 'agent-knowledge-in', type: 'target', label: 'KNOW', color: '#3498db' },
+    { id: 'agent-skills-in', type: 'target', label: 'SKILLS', color: '#f1c40f' },
+    { id: 'agent-mcp-in', type: 'target', label: 'MCP', color: '#2ecc71' },
+  ];
+  const rightJacks: JackDef[] = [
+    { id: 'agent-prompt-out', type: 'source', label: 'PROMPT', color: '#9b59b6' },
+    { id: 'agent-workflow-out', type: 'source', label: 'FLOW', color: '#e67e22' },
+  ];
+
   return (
     <div
-      className="flex flex-col rounded-lg overflow-hidden"
+      className="flex rounded-lg overflow-hidden"
       style={{
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
-        width: 420,
-        minWidth: 420,
         boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`,
       }}
     >
+      {/* Left gutter — inputs */}
+      <JackGutter jacks={leftJacks} side="left" />
+
+      {/* Main content column */}
+      <div className="flex flex-col flex-1" style={{ width: 380, minWidth: 380 }}>
       {/* ── Node Header ── */}
       <div
         className="flex items-center gap-2 px-3 shrink-0 select-none"
@@ -211,10 +224,6 @@ export const AgentNode = memo(function AgentNode() {
           borderBottom: `1px solid ${t.border}`,
         }}
       >
-        <JackPort id="agent-knowledge-in" type="target" position={Position.Left} color="#3498db" label="KNOW" offset="25%" />
-        <JackPort id="agent-skills-in" type="target" position={Position.Left} color="#f1c40f" label="SKILLS" offset="50%" />
-        <JackPort id="agent-mcp-in" type="target" position={Position.Left} color="#2ecc71" label="MCP" offset="75%" />
-
         <Bot size={13} style={{ color: '#FE5000' }} />
         <Tooltip content="Unified agent configuration: identity, persona, constraints, objectives, workflow, and compiled prompt">
           <span className="text-[10px] font-bold tracking-widest uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
@@ -226,9 +235,6 @@ export const AgentNode = memo(function AgentNode() {
             {agentMeta.name.slice(0, 20)}{agentMeta.name.length > 20 ? '…' : ''}
           </span>
         )}
-
-        <JackPort id="agent-prompt-out" type="source" position={Position.Right} color="#9b59b6" label="PROMPT" offset="35%" />
-        <JackPort id="agent-workflow-out" type="source" position={Position.Right} color="#e67e22" label="FLOW" offset="65%" />
       </div>
 
       {/* ── Scrollable body ── */}
@@ -485,6 +491,10 @@ export const AgentNode = memo(function AgentNode() {
       </div>
 
       <ResizeHandle />
+      </div>
+
+      {/* Right gutter — outputs */}
+      <JackGutter jacks={rightJacks} side="right" />
     </div>
   );
 });

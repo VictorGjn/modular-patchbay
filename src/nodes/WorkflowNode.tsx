@@ -1,7 +1,7 @@
 import { memo, useState, useCallback, useMemo } from 'react';
-import { Position } from '@xyflow/react';
+// Position used by JackGutter internally
 import { ResizeHandle } from '../components/ResizeHandle';
-import { JackPort } from '../components/JackPort';
+import { JackGutter, type JackDef } from '../components/JackGutter';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore } from '../store/mcpStore';
 import { useTheme } from '../theme';
@@ -102,15 +102,15 @@ export const WorkflowNode = memo(function WorkflowNode() {
 
   return (
     <div
-      className="flex flex-col rounded-lg overflow-hidden"
+      className="flex rounded-lg overflow-hidden"
       style={{
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
-        width: 340,
-        minWidth: 340,
         boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`,
       }}
     >
+      <JackGutter jacks={[{ id: 'workflow-in', type: 'target', label: 'IN', color: '#e67e22' }] as JackDef[]} side="left" />
+      <div className="flex flex-col flex-1" style={{ width: 280, minWidth: 280 }}>
       {/* Header */}
       <div
         className="flex items-center gap-2 px-3 shrink-0 select-none"
@@ -120,8 +120,6 @@ export const WorkflowNode = memo(function WorkflowNode() {
           borderBottom: `1px solid ${t.border}`,
         }}
       >
-        <JackPort id="workflow-in" type="target" position={Position.Left} color="#e67e22" label="IN" offset="50%" />
-
         <ListOrdered size={13} style={{ color: '#e67e22' }} />
         <span
           className="text-[10px] font-bold tracking-widest uppercase"
@@ -132,8 +130,6 @@ export const WorkflowNode = memo(function WorkflowNode() {
         <span className="text-[9px] ml-1" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
           {workflowSteps.length} {workflowSteps.length === 1 ? 'step' : 'steps'}
         </span>
-
-        <JackPort id="workflow-out" type="source" position={Position.Right} color="#9b59b6" label="OUT" offset="50%" />
       </div>
 
       {/* Flowchart body */}
@@ -390,6 +386,8 @@ export const WorkflowNode = memo(function WorkflowNode() {
       </div>
 
       <ResizeHandle />
+      </div>
+      <JackGutter jacks={[{ id: 'workflow-out', type: 'source', label: 'OUT', color: '#9b59b6' }] as JackDef[]} side="right" />
     </div>
   );
 });

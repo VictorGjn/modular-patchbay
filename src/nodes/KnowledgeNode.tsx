@@ -1,10 +1,10 @@
 import { memo, useState, useCallback, useEffect, type DragEvent } from 'react';
-import { Position } from '@xyflow/react';
+// Position used by JackGutter internally
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
 import { KNOWLEDGE_TYPES, type KnowledgeType, type ChannelConfig } from '../store/knowledgeBase';
 import { ConnectorTile } from '../components/ConnectorTile';
-import { JackPort } from '../components/JackPort';
+import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { useTheme } from '../theme';
 import { useKnowledgeStore, type FileNode } from '../store/knowledgeStore';
@@ -95,13 +95,19 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
     items: channels.filter((ch) => ch.knowledgeType === type),
   }));
 
+  const rightJacks: JackDef[] = [
+    { id: 'knowledge-out', type: 'source', label: 'OUTPUT', color: '#3498db' },
+    { id: 'knowledge-feedback-in', type: 'target', label: 'FEEDBACK', color: '#00d4ff' },
+  ];
+
   return (
     <>
     <ResizeHandle minWidth={260} minHeight={120} />
     <div
-      className="rounded-xl overflow-hidden h-full flex flex-col"
+      className="rounded-xl overflow-hidden h-full flex"
       style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 260 }}
     >
+    <div className="flex flex-col flex-1 min-w-0">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
         <button
@@ -150,7 +156,6 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
             </button>
           </div>
         )}
-        <JackPort type="source" position={Position.Right} label="OUTPUT" color="#3498db" id="knowledge-out" />
       </div>
 
       {/* Content — hidden when collapsed */}
@@ -270,7 +275,6 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
             <span className="text-[9px] tracking-wider uppercase" style={{ color: '#00d4ff', fontFamily: "'Space Mono', monospace" }}>Feedback</span>
-            <JackPort type="target" position={Position.Right} label="FEEDBACK" color="#00d4ff" id="knowledge-feedback-in" />
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
           </div>
           <div className="flex flex-col gap-1">
@@ -310,13 +314,9 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         </div>
       )}
 
-      {/* Feedback input port */}
-      {pendingKnowledge.length === 0 && (
-        <div className="px-3 py-1 flex justify-end">
-          <JackPort type="target" position={Position.Right} label="FEEDBACK" color="#00d4ff" id="knowledge-feedback-in" />
-        </div>
-      )}
       </>}
+    </div>
+    <JackGutter jacks={rightJacks} side="right" />
     </div>
     </>
   );

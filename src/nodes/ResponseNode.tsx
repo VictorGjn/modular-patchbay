@@ -1,11 +1,11 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
-import { Position } from '@xyflow/react';
+// Position used by JackGutter internally
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS, KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { Copy, Check, Maximize2, X } from 'lucide-react';
 import { OutputIcon } from '../components/icons/SectionIcons';
-import { JackPort } from '../components/JackPort';
+import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { useTheme } from '../theme';
 
@@ -101,16 +101,21 @@ export const ResponseNode = memo(function ResponseNode() {
     });
   }, [displayedText]);
 
+  const leftJacks: JackDef[] = [
+    { id: 'response-in', type: 'target', label: 'INPUT', color: '#FE5000' },
+  ];
+
   return (
     <>
       <ResizeHandle minWidth={300} minHeight={120} />
       <div
-        className="rounded-xl overflow-hidden h-full flex flex-col"
+        className="rounded-xl overflow-hidden h-full flex"
         style={{ background: t.responseBg, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 300, minHeight: 100 }}
       >
+        <JackGutter jacks={leftJacks} side="left" />
+        <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
         <div className="flex items-center gap-2 px-4 py-2.5 shrink-0" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-          <JackPort type="target" position={Position.Left} label="INPUT" color="#FE5000" id="response-in" />
           <div
             className="w-1.5 h-1.5 rounded-full"
             style={{
@@ -206,6 +211,7 @@ export const ResponseNode = memo(function ResponseNode() {
             })}
           </div>
         )}
+        </div>
       </div>
 
       {/* Fullscreen modal */}
