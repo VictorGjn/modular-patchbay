@@ -9,6 +9,7 @@ interface PickerModalProps {
   title: string;
   searchPlaceholder?: string;
   width?: number;
+  hideSearch?: boolean;
   children: (filter: string) => ReactNode;
 }
 
@@ -16,7 +17,7 @@ interface PickerModalProps {
  * Shared modal shell for picker overlays.
  * Provides: backdrop, escape-to-close, search input, focus trap, close button.
  */
-export function PickerModal({ open, onClose, title, searchPlaceholder, width = 520, children }: PickerModalProps) {
+export function PickerModal({ open, onClose, title, searchPlaceholder, width = 520, hideSearch, children }: PickerModalProps) {
   const [filter, setFilter] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -97,6 +98,7 @@ export function PickerModal({ open, onClose, title, searchPlaceholder, width = 5
         </div>
 
         {/* Search */}
+        {!hideSearch && (
         <div className="px-5 py-3" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: t.textDim }} />
@@ -117,6 +119,7 @@ export function PickerModal({ open, onClose, title, searchPlaceholder, width = 5
             />
           </div>
         </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto py-2">
