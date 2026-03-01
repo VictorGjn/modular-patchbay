@@ -47,6 +47,7 @@ import { PatchCable } from './edges/PatchCable';
 import { FeedbackEdge } from './edges/FeedbackEdge';
 import { TestMode } from './components/TestMode';
 import { useModeStore } from './store/modeStore';
+import { DashboardLayout } from './layouts/DashboardLayout';
 
 const nodeTypes = {
   prompt: PromptNode,
@@ -214,45 +215,11 @@ export default function App() {
       <input ref={importInputRef} type="file" accept=".md,.yaml,.yml,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
       <Topbar onImportClick={handleImportClick} onSettingsClick={() => setShowSettings(true, 'providers')} />
 
-      {/* Canvas: Design mode or Test mode */}
+      {/* Design mode: Dashboard layout | Test mode: ReactFlow test canvas */}
       {mode === 'test' ? (
         <TestMode />
       ) : (
-        <div className="flex-1 overflow-hidden relative">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onReconnect={onReconnect}
-            isValidConnection={isValidConnection}
-            edgesReconnectable
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            fitView
-            fitViewOptions={{ padding: 0.15 }}
-            deleteKeyCode="Delete"
-            defaultEdgeOptions={{ type: 'patch' }}
-            style={{ background: t.bg }}
-            proOptions={{ hideAttribution: true }}
-          >
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color={t.dotGrid} />
-            <Controls
-              position="bottom-left"
-              style={{ background: t.controlsBg, border: `1px solid ${t.controlsBorder}`, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-              className="zoom-controls"
-            />
-            <MiniMap
-              position="bottom-right"
-              style={minimapStyle}
-              maskColor={t.minimapMask}
-              nodeColor={t.minimapNode}
-              nodeBorderRadius={8}
-            />
-          </ReactFlow>
-          <CanvasLegend />
-        </div>
+        <DashboardLayout />
       )}
 
       {/* Accessibility: aria-live region for canvas state announcements */}
