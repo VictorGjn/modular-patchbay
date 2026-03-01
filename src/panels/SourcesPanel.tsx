@@ -12,6 +12,8 @@ import { Select } from '../components/ds/Select';
 import { Tooltip } from '../components/ds/Tooltip';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
 import { generateMemoryConfig, generateKnowledge } from '../utils/generateSection';
+import { analyzeFactsForPromotion, type FactPromotion, type FactAnalysisResult } from '../utils/analyzeFactsForPromotion';
+import { useVersionStore } from '../store/versionStore';
 import { KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { formatTokens } from '../utils/formatTokens';
 import {
@@ -20,6 +22,7 @@ import {
   Database, Plug, Zap, Brain,
   Plus, X, Minus, Library,
   File, Folder, Search, ExternalLink,
+  Lightbulb, ArrowUpRight, Check, AlertCircle, Bot,
 } from 'lucide-react';
 
 /* ── Shared Generate Button ── */
@@ -757,6 +760,220 @@ function MemorySection() {
 }
 
 /* ── Main SourcesPanel ── */
+/* ── Promotion Target Config ── */
+const TARGET_META: Record<string, { icon: React.ElementType; color: string; label: string; verb: string }> = {
+  instruction: { icon: Bot, color: '#9b59b6', label: 'Instruction', verb: 'Add to persona' },
+  constraint:  { icon: AlertCircle, color: '#2ecc71', label: 'Constraint', verb: 'Add constraint' },
+  workflow:    { icon: Zap, color: '#e67e22', label: 'Workflow', verb: 'Add step' },
+  knowledge:   { icon: Database, color: '#3498db', label: 'Knowledge', verb: 'Add source' },
+  mcp:         { icon: Plug, color: '#2ecc71', label: 'MCP Server', verb: 'Add server' },
+  skill:       { icon: Zap, color: '#f1c40f', label: 'Skill', verb: 'Add skill' },
+};
+
+/* ── Fact Insights Section ── */
+function FactInsightsSection() {
+  const t = useTheme();
+  const facts = useMemoryStore(s => s.facts);
+  const removeFact = useMemoryStore(s => s.removeFact);
+  const updateInstruction = useConsoleStore(s => s.updateInstruction);
+  const instructionState = useConsoleStore(s => s.instructionState);
+  const addWorkflowStep = useConsoleStore(s => s.addWorkflowStep);
+  const addChannel = useConsoleStore(s => s.addChannel);
+  const checkpoint = useVersionStore(s => s.checkpoint);
+
+  const [collapsed, setCollapsed] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [result, setResult] = useState<FactAnalysisResult | null>(null);
+  const [applied, setApplied] = useState<Set<string>>(new Set());
+  const [error, setError] = useState('');
+
+  const handleAnalyze = useCallback(async () => {
+    if (facts.length === 0) return;
+    setAnalyzing(true);
+    setError('');
+    setApplied(new Set());
+    try {
+      const analysis = await analyzeFactsForPromotion(facts);
+      setResult(analysis);
+      if (collapsed) setCollapsed(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analysis failed');
+    }
+    setAnalyzing(false);
+  }, [facts, collapsed]);
+
+  const handlePromote = useCallback((promo: FactPromotion) => {
+    const p = promo.payload;
+    switch (promo.target) {
+      case 'instruction':
+        if (p.instructionAppend) {
+          const current = instructionState.persona;
+          updateInstruction({ persona: current ? `${current}\n\n${p.instructionAppend}` : p.instructionAppend });
+        }
+        break;
+      case 'constraint':
+        if (p.constraintText) {
+          const current = instructionState.constraints.customConstraints;
+          updateInstruction({ constraints: { ...instructionState.constraints, customConstraints: current ? `${current}\n${p.constraintText}` : p.constraintText } });
+        }
+        break;
+      case 'workflow':
+        if (p.workflowStep) {
+          addWorkflowStep({ id: crypto.randomUUID(), label: p.workflowStep.label, action: p.workflowStep.action, tool: '', condition: 'always', conditionText: '', loop: false, maxIterations: 1 });
+        }
+        break;
+      case 'knowledge':
+        if (p.knowledgeSource) {
+          addChannel({ sourceId: `promoted-${crypto.randomUUID().slice(0, 8)}`, name: p.knowledgeSource.name, type: 'file', enabled: true, knowledgeType: p.knowledgeSource.type as any, depth: 0, tokenEstimate: 500 });
+        }
+        break;
+      default:
+        break;
+    }
+    // Mark as applied, remove from facts
+    setApplied(prev => new Set([...prev, promo.factId]));
+    removeFact(promo.factId);
+  }, [instructionState, updateInstruction, addWorkflowStep, addChannel, removeFact]);
+
+  const handleApplyAll = useCallback(() => {
+    if (!result) return;
+    for (const promo of result.promotions) {
+      if (!applied.has(promo.factId)) {
+        handlePromote(promo);
+      }
+    }
+    checkpoint('Facts promoted to agent design');
+  }, [result, applied, handlePromote, checkpoint]);
+
+  if (facts.length === 0 && !result) return null;
+
+  const promotableCount = result ? result.promotions.filter(p => !applied.has(p.factId)).length : 0;
+
+  return (
+    <Section
+      icon={Lightbulb} label="Insights" color="#FE5000"
+      badge={result ? `${promotableCount} suggestion${promotableCount !== 1 ? 's' : ''}` : `${facts.length} facts to analyze`}
+      collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
+    >
+      {/* Analyze button */}
+      {!result && (
+        <div className="flex flex-col gap-2">
+          <div className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
+            Analyze your accumulated facts and discover which ones should become permanent parts of your agent — instructions, constraints, workflow steps, or knowledge sources.
+          </div>
+          <button type="button" onClick={handleAnalyze} disabled={analyzing || facts.length === 0}
+            className="flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer border-none"
+            style={{ background: analyzing ? '#CC4000' : '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace", opacity: analyzing || facts.length === 0 ? 0.6 : 1 }}>
+            {analyzing ? <Loader2 size={11} className="animate-spin motion-reduce:animate-none" /> : <Lightbulb size={11} />}
+            {analyzing ? 'Analyzing...' : `Analyze ${facts.length} fact${facts.length !== 1 ? 's' : ''}`}
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div className="text-[10px] px-2 py-1.5 rounded mt-1" style={{ background: '#ff000012', color: '#ff4444', border: '1px solid #ff000020' }}>
+          {error}
+        </div>
+      )}
+
+      {/* Results */}
+      {result && (
+        <div className="flex flex-col gap-2">
+          {/* Summary */}
+          <div className="text-[10px] leading-relaxed px-2 py-1.5 rounded" style={{ background: '#FE500008', color: t.textSecondary, border: '1px solid #FE500015' }}>
+            {result.summary}
+            {result.versionImpact !== 'none' && (
+              <span className="text-[8px] ml-1.5 px-1.5 py-0.5 rounded-full"
+                style={{ fontFamily: "'Space Mono', monospace", background: result.versionImpact === 'major' ? '#e74c3c20' : result.versionImpact === 'minor' ? '#f1c40f20' : '#2ecc7120', color: result.versionImpact === 'major' ? '#e74c3c' : result.versionImpact === 'minor' ? '#f1c40f' : '#2ecc71' }}>
+                {result.versionImpact} bump
+              </span>
+            )}
+          </div>
+
+          {/* Promotion cards */}
+          {result.promotions.map(promo => {
+            const meta = TARGET_META[promo.target];
+            const isApplied = applied.has(promo.factId);
+            if (!meta) return null;
+            const Icon = meta.icon;
+            return (
+              <div key={promo.factId} className="rounded-lg overflow-hidden"
+                style={{ border: `1px solid ${isApplied ? '#2ecc7130' : t.border}`, opacity: isApplied ? 0.5 : 1, transition: 'opacity 300ms' }}>
+                {/* Fact content */}
+                <div className="px-3 py-2 text-[11px]" style={{ background: t.surfaceElevated, color: t.textSecondary }}>
+                  "{promo.factContent}"
+                </div>
+                {/* Suggestion */}
+                <div className="px-3 py-2 flex items-start gap-2" style={{ borderTop: `1px solid ${t.isDark ? '#1e1e22' : '#eee'}` }}>
+                  <div className="mt-0.5" style={{ width: 16, height: 16, borderRadius: 4, background: `${meta.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={9} style={{ color: meta.color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ fontFamily: "'Space Mono', monospace", background: `${meta.color}15`, color: meta.color }}>
+                        {meta.label}
+                      </span>
+                      <span className="text-[8px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+                        {Math.round(promo.confidence * 100)}%
+                      </span>
+                    </div>
+                    <div className="text-[10px] leading-snug" style={{ color: t.textPrimary }}>{promo.suggestion}</div>
+                    <div className="text-[9px] mt-0.5" style={{ color: t.textDim }}>{promo.reason}</div>
+                  </div>
+                  {!isApplied ? (
+                    <button type="button" aria-label={meta.verb} onClick={() => handlePromote(promo)}
+                      className="flex items-center gap-1 text-[9px] px-2 py-1 rounded cursor-pointer border-none shrink-0"
+                      style={{ background: `${meta.color}15`, color: meta.color, fontFamily: "'Space Mono', monospace" }}>
+                      <ArrowUpRight size={9} />
+                      {meta.verb}
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1 text-[9px] px-2 py-1 shrink-0" style={{ color: '#2ecc71' }}>
+                      <Check size={9} /> Applied
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Bulk actions */}
+          {promotableCount > 0 && (
+            <div className="flex gap-2 mt-1">
+              <button type="button" onClick={handleApplyAll}
+                className="flex items-center justify-center gap-1.5 flex-1 px-3 py-2 rounded text-[10px] tracking-wide uppercase cursor-pointer border-none"
+                style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace" }}>
+                <ArrowUpRight size={10} /> Apply all ({promotableCount})
+              </button>
+              <button type="button" onClick={() => { setResult(null); setApplied(new Set()); }}
+                className="flex items-center gap-1 px-3 py-2 rounded text-[10px] cursor-pointer"
+                style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
+                <RotateCcw size={9} /> Re-analyze
+              </button>
+            </div>
+          )}
+
+          {promotableCount === 0 && result.promotions.length > 0 && (
+            <div className="flex items-center justify-center gap-1.5 py-2 text-[10px]" style={{ color: '#2ecc71' }}>
+              <Check size={11} /> All suggestions applied
+              <button type="button" onClick={() => { setResult(null); setApplied(new Set()); }}
+                className="ml-2 text-[9px] cursor-pointer border-none bg-transparent underline" style={{ color: t.textDim }}>
+                Re-analyze
+              </button>
+            </div>
+          )}
+
+          {result.promotions.length === 0 && (
+            <div className="text-[10px] text-center py-2" style={{ color: t.textDim }}>
+              All facts are contextual — no promotions suggested
+            </div>
+          )}
+        </div>
+      )}
+    </Section>
+  );
+}
+
 export function SourcesPanel() {
   return (
     <div className="flex flex-col">
@@ -765,6 +982,7 @@ export function SourcesPanel() {
       <McpSection />
       <SkillsSection />
       <MemorySection />
+      <FactInsightsSection />
     </div>
   );
 }
