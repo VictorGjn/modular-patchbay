@@ -107,7 +107,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
     <Handle type="source" position={Position.Right} id="knowledge-out" style={{ ...HANDLE, background: '#3498db', top: '50%', right: -4 }} />
     <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-lg">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}` }}>
+      <div className="flex items-center gap-2 px-5" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}` }}>
         <button
           type="button"
           onClick={() => setNodeCollapsed(!nodeCollapsed)}
@@ -160,12 +160,12 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
       {nodeCollapsed ? null : <>
 
       {/* Section tabs */}
-      <div className="flex px-3 pt-2 gap-1 nodrag nowheel">
+      <div className="flex px-5 pt-2 gap-1 nodrag nowheel">
         <button
           type="button"
           onClick={() => setActiveSection('files')}
           aria-label="Local files section"
-          className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded cursor-pointer border-none nodrag nowheel"
+          className="flex items-center gap-1 text-[11px] px-5 py-1.5 rounded cursor-pointer border-none nodrag nowheel"
           style={{
             background: activeSection === 'files' ? t.surfaceElevated : 'transparent',
             color: activeSection === 'files' ? t.textPrimary : t.textDim,
@@ -180,7 +180,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
           type="button"
           onClick={() => setActiveSection('external')}
           aria-label="External sources section"
-          className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded cursor-pointer border-none nodrag nowheel"
+          className="flex items-center gap-1 text-[11px] px-5 py-1.5 rounded cursor-pointer border-none nodrag nowheel"
           style={{
             background: activeSection === 'external' ? t.surfaceElevated : 'transparent',
             color: activeSection === 'external' ? t.textPrimary : t.textDim,
@@ -251,7 +251,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
           </div>
 
           {/* Add connector button */}
-          <div className="px-3 pb-3 pt-1">
+          <div className="px-5 pb-3 pt-1">
             <button
               type="button"
               onClick={() => setShowConnectorPicker(true)}
@@ -269,7 +269,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
 
       {/* Feedback ghost tiles */}
       {pendingKnowledge.length > 0 && (
-        <div className="px-3 pt-1 pb-2">
+        <div className="px-5 pt-1 pb-2">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
             <span className="text-[9px] tracking-wider uppercase" style={{ color: '#00d4ff', fontFamily: "'Space Mono', monospace" }}>Feedback</span>
@@ -385,7 +385,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
   return (
     <>
       {/* Scanner UI */}
-      <div className="px-3 pt-2 pb-1">
+      <div className="px-5 pt-2 pb-1">
         <div className="flex items-center gap-1 nodrag nowheel">
           <input
             type="text"
@@ -432,7 +432,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
 
       {/* Selection actions */}
       {selectedFiles.size > 0 && (
-        <div className="px-3 py-1 flex gap-1.5">
+        <div className="px-5 py-1 flex gap-1.5">
           <button
             type="button"
             onClick={() => void handleAddSelected()}
@@ -502,7 +502,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
                     <button
                       type="button"
                       aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${meta.label} group`}
-                      className="flex items-center gap-1.5 w-full px-3 py-1.5 border-none cursor-pointer nodrag nowheel"
+                      className="flex items-center gap-1.5 w-full px-5 py-1.5 border-none cursor-pointer nodrag nowheel"
                       style={{ background: 'transparent', opacity: isEmpty ? 0.4 : 1 }}
                       onClick={() => !isEmpty && toggleCollapse(type)}
                     >
@@ -546,7 +546,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
       )}
 
       {/* Add files button */}
-      <div className="px-3 pb-3 pt-1">
+      <div className="px-5 pb-3 pt-1">
         <button
           type="button"
           onClick={() => setShowFilePicker(true)}
@@ -700,7 +700,7 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
       onDragStart={onDragStart as unknown as (e: React.DragEvent<HTMLDivElement>) => void}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="flex items-center gap-1.5 px-3 nodrag"
+      className="flex items-center gap-1.5 px-5 nodrag"
       style={{ height: 28, background: hovered ? t.surfaceHover : 'transparent', borderRadius: 4, transition: 'background 100ms ease', cursor: 'grab' }}
     >
       {/* Toggle dot */}

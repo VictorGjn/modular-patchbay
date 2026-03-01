@@ -172,7 +172,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
       </div>
 
       {/* View toggle */}
-      <div className="flex items-center gap-1 px-3" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+      <div className="flex items-center gap-1 px-5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
         <Tabs
           tabs={[
             { id: 'card', label: 'Card', icon: <BarChart3 size={9} /> },
@@ -257,7 +257,7 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
   return (
     <div className="flex gap-0" style={{ minHeight: 180 }}>
       {/* Left: Radar */}
-      <div className="flex flex-col items-center justify-center px-3 shrink-0" style={{ width: 150, borderRight: `1px solid ${t.borderSubtle}` }}>
+      <div className="flex flex-col items-center justify-center px-5 shrink-0" style={{ width: 150, borderRight: `1px solid ${t.borderSubtle}` }}>
         <Radar axes={radarAxes} size={120} />
         <div className="flex items-center gap-1 mt-1">
           <span style={{ fontSize: 7, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>EXP</span>
@@ -498,7 +498,7 @@ function LayersView() {
           <button
             type="button"
             onClick={() => toggle(l.key)}
-            className="flex items-center gap-2 px-3 py-1.5 w-full border-none cursor-pointer nodrag nowheel"
+            className="flex items-center gap-2 px-5 py-1.5 w-full border-none cursor-pointer nodrag nowheel"
             style={{ background: 'transparent' }}
           >
             {expanded[l.key] ? <ChevronDown size={9} style={{ color: l.color, flexShrink: 0 }} /> : <ChevronRight size={9} style={{ color: l.color, flexShrink: 0 }} />}
@@ -510,7 +510,7 @@ function LayersView() {
             <div style={{ width: `${l.pct}%`, height: '100%', background: l.color, opacity: 0.4, transition: 'width 0.4s' }} />
           </div>
           {expanded[l.key] && l.items.length > 0 && (
-            <div className="px-3 py-1.5 flex flex-col gap-0.5" style={{ borderTop: `1px solid ${l.color}10` }}>
+            <div className="px-5 py-1.5 flex flex-col gap-0.5" style={{ borderTop: `1px solid ${l.color}10` }}>
               {l.items.map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <span style={{ fontSize: 8, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
@@ -520,7 +520,7 @@ function LayersView() {
             </div>
           )}
           {expanded[l.key] && l.items.length === 0 && (
-            <div className="px-3 py-1" style={{ borderTop: `1px solid ${l.color}10` }}>
+            <div className="px-5 py-1" style={{ borderTop: `1px solid ${l.color}10` }}>
               <span style={{ fontSize: 8, color: t.textFaint }}>None configured</span>
             </div>
           )}

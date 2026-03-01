@@ -255,7 +255,7 @@ export const McpNode = memo(function McpNode() {
     <Handle type="source" position={Position.Right} id="mcp-out" style={{ ...HANDLE, background: '#2ecc71', top: '50%', right: -4 }} />
     <div className="flex flex-col min-w-0 overflow-hidden rounded-xl h-full">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}`, borderRadius: '12px 12px 0 0' }}>
+      <div className="flex items-center gap-2 px-5" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}`, borderRadius: '12px 12px 0 0' }}>
         <button
           type="button"
           onClick={() => setNodeCollapsed(!nodeCollapsed)}
@@ -339,7 +339,7 @@ export const McpNode = memo(function McpNode() {
       </div>
 
       {/* Library button */}
-      <div className="px-3 pb-3 pt-1 shrink-0">
+      <div className="px-5 pb-3 pt-1 shrink-0">
         <button
           type="button"
           onClick={() => setShowLibrary(true)}

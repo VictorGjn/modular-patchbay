@@ -123,7 +123,7 @@ export const PromptNode = memo(function PromptNode() {
 
       <div className="flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-center px-3 shrink-0" style={{ height: 40, background: t.surfaceElevated, borderBottom: `1px solid ${t.border}`, borderRadius: '8px 8px 0 0' }}>
+      <div className="flex items-center justify-center px-5 shrink-0" style={{ height: 40, background: t.surfaceElevated, borderBottom: `1px solid ${t.border}`, borderRadius: '8px 8px 0 0' }}>
         <div className="flex flex-col items-center">
           <Tooltip content="Compose the user prompt, select model, and run your agent">
             <span
@@ -221,7 +221,7 @@ export const PromptNode = memo(function PromptNode() {
             transition: 'max-height 150ms ease',
           }}
         >
-          <div className="px-3 pb-3 flex flex-col gap-2">
+          <div className="px-5 pb-3 flex flex-col gap-2">
             {/* Model dropdown */}
             <div className="flex flex-col gap-1">
               <label
@@ -333,7 +333,7 @@ export const PromptNode = memo(function PromptNode() {
       </div>
 
       {/* Action buttons */}
-      <div className="flex items-center gap-2 px-3 pb-3 shrink-0">
+      <div className="flex items-center gap-2 px-5 pb-3 shrink-0">
         {/* Test Run */}
         <button
           type="button"

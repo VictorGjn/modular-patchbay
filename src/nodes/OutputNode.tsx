@@ -326,7 +326,7 @@ function TemplateConfigPanel({ target }: { target: OutputTarget }) {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 px-3 py-1.5 border-none bg-transparent cursor-pointer nodrag"
+        className="flex items-center gap-1.5 px-5 py-1.5 border-none bg-transparent cursor-pointer nodrag"
         style={{ color: t.textSecondary }}
       >
         {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
@@ -336,7 +336,7 @@ function TemplateConfigPanel({ target }: { target: OutputTarget }) {
         {config && <span className="text-[8px] px-1 py-0.5 rounded" style={{ background: '#22c55e15', color: '#22c55e', fontFamily: "'Space Mono', monospace" }}>configured</span>}
       </button>
       {expanded && (
-        <div className="px-3 pb-2 flex flex-col gap-2">
+        <div className="px-5 pb-2 flex flex-col gap-2">
           {/* Generate section — shown when no config exists or user wants to regenerate */}
           {(!config || !hasGenerated) && (
             <div className="flex flex-col gap-1.5 nodrag nowheel">
@@ -488,7 +488,7 @@ export const OutputNode = memo(function OutputNode() {
 
       <div className="flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}`, borderRadius: '8px 8px 0 0' }}>
+      <div className="flex items-center gap-2 px-5" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}`, borderRadius: '8px 8px 0 0' }}>
         <button
           type="button"
           onClick={() => setNodeCollapsed(!nodeCollapsed)}
@@ -623,7 +623,7 @@ export const OutputNode = memo(function OutputNode() {
 
       {/* Destinations section */}
       {writeConnectors.length > 0 && (
-        <div className="px-3 pt-1 pb-2">
+        <div className="px-5 pt-1 pb-2">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
             <span className="text-[11px] tracking-wider font-semibold" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Destinations</span>
@@ -650,7 +650,7 @@ export const OutputNode = memo(function OutputNode() {
       )}
 
       {/* Add connector button */}
-      <div className="px-3 pb-3 pt-1">
+      <div className="px-5 pb-3 pt-1">
         <button
           type="button"
           onClick={() => setShowConnectorPicker(true)}

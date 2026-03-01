@@ -145,7 +145,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
       <div className="flex flex-col overflow-hidden rounded-lg">
       {/* Header */}
       <div
-        className="flex items-center gap-2 px-3 shrink-0 select-none"
+        className="flex items-center gap-2 px-5 shrink-0 select-none"
         style={{
           height: 40,
           background: t.surfaceElevated,

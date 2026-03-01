@@ -70,7 +70,7 @@ export const SkillsNode = memo(function SkillsNode() {
     <Handle type="source" position={Position.Right} id="skills-out" style={{ ...HANDLE, background: '#f1c40f', top: '50%', right: -4 }} />
     <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-lg">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 shrink-0" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}` }}>
+      <div className="flex items-center gap-2 px-5 shrink-0" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}` }}>
         <button type="button" onClick={() => setNodeCollapsed(!nodeCollapsed)} aria-label={nodeCollapsed ? 'Expand skills panel' : 'Collapse skills panel'} className="p-0 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}>
           {nodeCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
         </button>
@@ -119,7 +119,7 @@ export const SkillsNode = memo(function SkillsNode() {
 
       {/* Suggested skills */}
       {suggestedSkills.length > 0 && (
-        <div className="px-3 pt-1 pb-2 shrink-0">
+        <div className="px-5 pt-1 pb-2 shrink-0">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
             <span className="text-[11px] tracking-wider font-semibold" style={{ color: t.cableSkills, fontFamily: "'Space Mono', monospace" }}>Suggest</span>
@@ -146,7 +146,7 @@ export const SkillsNode = memo(function SkillsNode() {
       )}
 
       {/* Library button */}
-      <div className="px-3 pb-3 pt-1 shrink-0">
+      <div className="px-5 pb-3 pt-1 shrink-0">
         <button type="button" onClick={() => setShowLibrary(true)} aria-label="Open skill library" className="w-full min-h-[36px] px-5 py-3 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel flex items-center justify-center gap-1.5" style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}>
           <Library size={12} /> Library
         </button>

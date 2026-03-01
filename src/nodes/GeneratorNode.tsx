@@ -75,7 +75,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
     >
       <Handle type="source" position={Position.Right} id="generator-out" style={{ ...HANDLE, background: '#FE5000', top: '50%', right: -4 }} />
         {/* Header */}
-        <div className="flex items-center justify-center px-3" style={{ height: 40, background: t.surfaceElevated, borderBottom: `1px solid ${t.border}`, borderRadius: '12px 12px 0 0' }}>
+        <div className="flex items-center justify-center px-5" style={{ height: 40, background: t.surfaceElevated, borderBottom: `1px solid ${t.border}`, borderRadius: '12px 12px 0 0' }}>
           <Tooltip content="Describe your agent — AI generates the full configuration for every node on the canvas">
             <div className="flex items-center gap-2">
               <Wand2 size={13} style={{ color: '#FE5000' }} />
@@ -131,7 +131,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2 px-3 pb-3">
+        <div className="flex items-center gap-2 px-5 pb-3">
           <button
             type="button"
             onClick={handleGenerate}
