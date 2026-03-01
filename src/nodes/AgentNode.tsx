@@ -7,12 +7,41 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useTheme } from '../theme';
 import { refineField, type RefinedAgent } from '../utils/refineInstruction';
 import {
-  ChevronDown, ChevronRight, User, ShieldCheck, Target, FileText,
-  Plus, X,
-  ToggleLeft, ToggleRight, Sparkles, Loader2, Bot,
+  ChevronDown, ChevronRight, User, ShieldCheck, Plus, X,
+  ToggleLeft, ToggleRight, Sparkles, Loader2,
+  Bot, Brain as BrainIcon, Zap, Flame, Lightbulb, Target, Rocket, Shield,
+  Microscope, BarChart3, Palette, FileText, Drama, Star, Gem, Bird, Bug, Cat, Dog, Heart,
 } from 'lucide-react';
 
-const PRESET_EMOJIS = ['🤖', '👨‍💻', '👩‍💻', '🧠', '⚡', '🔥', '💡', '🎯', '🚀', '🛡️', '🔬', '📊', '🎨', '📝', '🎭', '🌟', '💎', '🦉', '🦋', '🐱'];
+const PRESET_AVATARS = [
+  { id: 'bot', icon: Bot, label: 'Bot' },
+  { id: 'brain', icon: BrainIcon, label: 'Brain' },
+  { id: 'zap', icon: Zap, label: 'Zap' },
+  { id: 'flame', icon: Flame, label: 'Flame' },
+  { id: 'lightbulb', icon: Lightbulb, label: 'Lightbulb' },
+  { id: 'target', icon: Target, label: 'Target' },
+  { id: 'rocket', icon: Rocket, label: 'Rocket' },
+  { id: 'shield', icon: Shield, label: 'Shield' },
+  { id: 'microscope', icon: Microscope, label: 'Microscope' },
+  { id: 'chart', icon: BarChart3, label: 'Chart' },
+  { id: 'palette', icon: Palette, label: 'Palette' },
+  { id: 'file', icon: FileText, label: 'File' },
+  { id: 'drama', icon: Drama, label: 'Drama' },
+  { id: 'star', icon: Star, label: 'Star' },
+  { id: 'gem', icon: Gem, label: 'Gem' },
+  { id: 'bird', icon: Bird, label: 'Bird' },
+  { id: 'bug', icon: Bug, label: 'Bug' },
+  { id: 'cat', icon: Cat, label: 'Cat' },
+  { id: 'dog', icon: Dog, label: 'Dog' },
+  { id: 'heart', icon: Heart, label: 'Heart' },
+];
+
+function AvatarIcon({ avatarId, size = 20 }: { avatarId: string; size?: number }) {
+  const entry = PRESET_AVATARS.find(a => a.id === avatarId);
+  if (!entry) return <Bot size={size} />;
+  const Icon = entry.icon;
+  return <Icon size={size} />;
+}
 const TONE_OPTIONS: ('formal' | 'neutral' | 'casual')[] = ['formal', 'neutral', 'casual'];
 
 const CONSTRAINT_TOGGLES = [
@@ -268,27 +297,42 @@ export const AgentNode = memo(function AgentNode() {
                 <button
                   type="button"
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className="w-12 h-12 text-xl border rounded-lg cursor-pointer nodrag flex items-center justify-center"
-                  style={{ background: t.surfaceElevated, border: `1px solid ${t.border}`, color: t.textPrimary }}
+                  className="w-10 h-10 border rounded-lg cursor-pointer nodrag flex items-center justify-center"
+                  style={{ background: t.surfaceElevated, border: `1px solid ${t.border}`, color: '#FE5000' }}
                   title="Click to change avatar"
                 >
-                  {agentMeta.avatar}
+                  <AvatarIcon avatarId={agentMeta.avatar} size={18} />
                 </button>
                 {showEmojiPicker && (
                   <div
-                    className="absolute top-14 left-0 z-50 grid grid-cols-5 gap-1 p-2 rounded-lg border"
-                    style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 4px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)'}` }}
+                    className="absolute top-12 left-0 z-50 grid grid-cols-5 gap-0.5 p-2 rounded-lg border nodrag"
+                    style={{
+                      background: t.surfaceOpaque,
+                      border: `1px solid ${t.border}`,
+                      boxShadow: `0 4px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)'}`,
+                      width: 180,
+                    }}
                   >
-                    {PRESET_EMOJIS.map((emoji) => (
-                      <button
-                        key={emoji} type="button"
-                        onClick={() => { setAgentMeta({ avatar: emoji }); setShowEmojiPicker(false); }}
-                        className="w-8 h-8 text-sm border-none rounded cursor-pointer nodrag flex items-center justify-center hover:bg-opacity-20"
-                        style={{ background: agentMeta.avatar === emoji ? '#FE500020' : 'transparent' }}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
+                    {PRESET_AVATARS.map((avatar) => {
+                      const Icon = avatar.icon;
+                      const isSelected = agentMeta.avatar === avatar.id;
+                      return (
+                        <button
+                          key={avatar.id}
+                          type="button"
+                          onClick={() => { setAgentMeta({ avatar: avatar.id }); setShowEmojiPicker(false); }}
+                          title={avatar.label}
+                          className="w-8 h-8 border-none rounded cursor-pointer nodrag flex items-center justify-center"
+                          style={{
+                            background: isSelected ? '#FE500020' : 'transparent',
+                            color: isSelected ? '#FE5000' : t.textSecondary,
+                            transition: 'background 100ms ease, color 100ms ease',
+                          }}
+                        >
+                          <Icon size={15} />
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

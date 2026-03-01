@@ -18,7 +18,7 @@ export const REACT_CODE_REVIEWER_PRESET: DemoPresetData = {
     icon: 'search',
     category: 'coding',
     tags: ['react', 'code-review', 'typescript', 'accessibility'],
-    avatar: '🔍',
+    avatar: 'bug',
   },
 
   instructionState: {

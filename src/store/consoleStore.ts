@@ -332,7 +332,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   registrySkills: REGISTRY_SKILLS.map((s) => ({ ...s })),
   registryMcpServers: REGISTRY_MCP_SERVERS.map((s) => ({ ...s })),
   agentConfig: { ...DEFAULT_AGENT_CONFIG },
-  agentMeta: { name: '', description: '', icon: 'brain', category: 'general', tags: [], avatar: '🤖' },
+  agentMeta: { name: '', description: '', icon: 'brain', category: 'general', tags: [], avatar: 'bot' },
   mcpServers: [] as McpServer[],
   skills: REGISTRY_SKILLS.filter((s) => s.installed).map((s) => ({
     id: s.id,
@@ -857,7 +857,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         icon: 'brain',
         category: 'general',
         tags: config.agentMeta.tags || [],
-        avatar: config.agentMeta.avatar || '🤖',
+        avatar: config.agentMeta.avatar || 'bot',
       },
     });
 

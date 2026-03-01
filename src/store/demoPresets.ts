@@ -12,7 +12,7 @@ export const SENIOR_PM_PRESET: DemoPresetData = {
     icon: 'user',
     category: 'strategy',
     tags: ['discovery', 'strategy', 'synthesis', 'prioritization'],
-    avatar: '(◕‿◕)',
+    avatar: 'target',
   },
 
   instructionState: {
@@ -93,7 +93,7 @@ export const FEEDBACK_MANAGER_PRESET: DemoPresetData = {
     icon: 'inbox',
     category: 'feedback',
     tags: ['feedback', 'triage', 'patterns', 'improvement'],
-    avatar: '📬',
+    avatar: 'chart',
   },
 
   instructionState: {
@@ -169,7 +169,7 @@ export const COMPETITOR_SCRAPER_PRESET: DemoPresetData = {
     icon: 'search',
     category: 'intel',
     tags: ['competitors', 'scraping', 'features', 'intel'],
-    avatar: '🔍',
+    avatar: 'microscope',
   },
 
   instructionState: {
