@@ -220,7 +220,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
       {/* ── EXTERNAL SOURCES SECTION ── */}
       {activeSection === 'external' && (
         <>
-          <div className="overflow-y-auto nowheel px-3 py-2" style={{ maxHeight: 340 }}>
+          <div className="overflow-y-auto nowheel px-5 py-3" style={{ maxHeight: 340 }}>
             {readConnectors.length === 0 ? (
               <div
                 className="flex flex-col items-center justify-center py-6 rounded-lg nodrag nowheel"
@@ -255,7 +255,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
             <button
               type="button"
               onClick={() => setShowConnectorPicker(true)}
-              className="w-full min-h-[36px] px-4 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel"
+              className="w-full min-h-[36px] px-5 py-3 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel"
               style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3498db'; e.currentTarget.style.color = '#3498db'; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
@@ -402,7 +402,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
             onClick={handleScan}
             disabled={scanning}
             aria-label="Scan directory"
-            className="flex items-center gap-1 px-4 py-2 rounded text-[12px] cursor-pointer border-none nodrag nowheel"
+            className="flex items-center gap-1 px-5 py-3 rounded text-[12px] cursor-pointer border-none nodrag nowheel"
             style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace", opacity: scanning ? 0.6 : 1 }}
           >
             {scanning ? <Loader2 size={10} className="animate-spin" /> : <Search size={10} />}
@@ -551,7 +551,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
           type="button"
           onClick={() => setShowFilePicker(true)}
           aria-label="Add knowledge files"
-          className="w-full min-h-[36px] px-4 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel"
+          className="w-full min-h-[36px] px-5 py-3 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}

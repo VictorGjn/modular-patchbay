@@ -90,7 +90,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
         </div>
 
         {/* Brain dump input */}
-        <div className="px-4 py-3">
+        <div className="px-5 py-3">
           <TextArea
             value={brainDump}
             onChange={e => setBrainDump(e.target.value)}
@@ -136,7 +136,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
             type="button"
             onClick={handleGenerate}
             disabled={generating || !brainDump.trim()}
-            className="flex items-center gap-1.5 px-3 py-2 rounded text-[11px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center nodrag"
+            className="flex items-center gap-1.5 px-5 py-3 rounded text-[11px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center nodrag"
             style={{
               background: generating ? '#CC4000' : '#FE5000',
               color: '#fff',

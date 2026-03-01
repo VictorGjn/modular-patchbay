@@ -158,7 +158,7 @@ export const MemoryNode = memo(function MemoryNode() {
             t={t}
           />
           {sessionOpen && (
-            <div className="px-3 py-2 flex flex-col gap-2.5">
+            <div className="px-5 py-3 flex flex-col gap-2.5">
               {/* Max messages slider */}
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
@@ -236,7 +236,7 @@ export const MemoryNode = memo(function MemoryNode() {
             t={t}
           />
           {longTermOpen && (
-            <div className="px-3 py-2 flex flex-col gap-2">
+            <div className="px-5 py-3 flex flex-col gap-2">
               {/* Fact list */}
               {longTermMemory.map((fact) => (
                 <div
@@ -320,7 +320,7 @@ export const MemoryNode = memo(function MemoryNode() {
             t={t}
           />
           {workingOpen && (
-            <div className="px-3 py-2">
+            <div className="px-5 py-3">
               <TextArea
                 value={workingMemory}
                 onChange={(e) => updateScratchpad(e.target.value)}
