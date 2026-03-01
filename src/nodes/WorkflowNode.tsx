@@ -102,7 +102,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
 
   return (
     <div
-      className="flex rounded-lg overflow-hidden"
+      className="flex rounded-lg overflow-visible"
       style={{
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
@@ -110,7 +110,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
       }}
     >
       <JackGutter jacks={[{ id: 'workflow-in', type: 'target', label: 'IN', color: '#e67e22' }] as JackDef[]} side="left" />
-      <div className="flex flex-col flex-1" style={{ width: 280, minWidth: 280 }}>
+      <div className="flex flex-col flex-1 overflow-hidden rounded-lg" style={{ width: 280, minWidth: 280 }}>
       {/* Header */}
       <div
         className="flex items-center gap-2 px-3 shrink-0 select-none"

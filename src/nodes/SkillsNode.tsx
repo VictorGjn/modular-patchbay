@@ -67,10 +67,10 @@ export const SkillsNode = memo(function SkillsNode() {
     <>
     <ResizeHandle minWidth={240} minHeight={120} />
     <div
-      className="rounded-xl overflow-hidden h-full flex"
+      className="rounded-xl h-full flex overflow-visible"
       style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 240 }}
     >
-    <div className="flex flex-col flex-1 min-w-0">
+    <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-xl">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 shrink-0" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
         <button type="button" onClick={() => setNodeCollapsed(!nodeCollapsed)} aria-label={nodeCollapsed ? 'Expand skills panel' : 'Collapse skills panel'} className="p-0 border-none bg-transparent cursor-pointer nodrag" style={{ color: t.textDim, display: 'flex', alignItems: 'center' }}>

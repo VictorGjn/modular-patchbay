@@ -204,7 +204,7 @@ export const AgentNode = memo(function AgentNode() {
 
   return (
     <div
-      className="flex rounded-lg overflow-hidden"
+      className="flex rounded-lg overflow-visible"
       style={{
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
@@ -215,7 +215,7 @@ export const AgentNode = memo(function AgentNode() {
       <JackGutter jacks={leftJacks} side="left" />
 
       {/* Main content column */}
-      <div className="flex flex-col flex-1" style={{ width: 380, minWidth: 380 }}>
+      <div className="flex flex-col flex-1 overflow-hidden rounded-lg" style={{ width: 380, minWidth: 380 }}>
       {/* ── Node Header ── */}
       <div
         className="flex items-center gap-2 px-3 shrink-0 select-none"

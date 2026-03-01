@@ -75,7 +75,7 @@ export const MemoryNode = memo(function MemoryNode() {
 
   return (
     <div
-      className="flex rounded-lg overflow-hidden"
+      className="flex rounded-lg overflow-visible"
       style={{
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,

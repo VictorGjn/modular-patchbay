@@ -486,11 +486,11 @@ export const OutputNode = memo(function OutputNode() {
     <>
     <ResizeHandle minWidth={220} minHeight={100} />
     <div
-      className="rounded-xl overflow-hidden h-full flex"
+      className="rounded-xl h-full flex overflow-visible"
       style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 220 }}
     >
       <JackGutter jacks={leftJacks} side="left" />
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-xl">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
         <button

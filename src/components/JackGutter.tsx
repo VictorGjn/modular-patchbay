@@ -14,10 +14,9 @@ interface JackGutterProps {
 }
 
 /**
- * Vertical gutter strip for jack ports.
- * Jacks sit on the node edge, labels face outward (away from content).
- * Left gutter: jacks aligned right, labels extend left.
- * Right gutter: jacks aligned left, labels extend right.
+ * Narrow gutter that positions jack ports on the node border.
+ * The jack circle straddles the edge (half in, half out).
+ * Labels overflow outside the node bounds.
  */
 export function JackGutter({ jacks, side }: JackGutterProps) {
   if (jacks.length === 0) return null;
@@ -26,13 +25,16 @@ export function JackGutter({ jacks, side }: JackGutterProps) {
 
   return (
     <div
-      className="flex flex-col shrink-0 justify-around"
+      className="flex flex-col shrink-0 justify-around relative"
       style={{
-        width: 24,
-        minHeight: jacks.length * 28,
+        width: 8,
+        minHeight: jacks.length * 26,
         paddingTop: 10,
         paddingBottom: 10,
+        overflow: 'visible',
         alignItems: side === 'left' ? 'flex-start' : 'flex-end',
+        marginLeft: side === 'left' ? -8 : 0,
+        marginRight: side === 'right' ? -8 : 0,
       }}
     >
       {jacks.map((jack) => (
