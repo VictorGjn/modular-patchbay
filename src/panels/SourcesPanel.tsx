@@ -17,13 +17,14 @@ import { useVersionStore } from '../store/versionStore';
 import { useHealthStore } from '../store/healthStore';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
+import { API_BASE } from '../config';
 // import { formatTokens } from '../utils/formatTokens';
 import {
   Wand2, Sparkles, Loader2, RotateCcw,
   ChevronDown, ChevronRight,
   Database, Plug, Zap, Brain,
   Plus, X, Minus, Library,
-  Lightbulb, ArrowUpRight, Check, AlertCircle, Bot,
+  Lightbulb, ArrowUpRight, Check, AlertCircle, Bot, FolderGit2,
 } from 'lucide-react';
 
 /* ── Shared Generate Button ── */
@@ -201,6 +202,9 @@ function KnowledgeSection() {
   const [collapsed, setCollapsed] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [repoScanning, setRepoScanning] = useState(false);
+  const [repoPath, setRepoPath] = useState('');
+  const [repoPrompt, setRepoPrompt] = useState(false);
 
   // Compute real tokens from tree indexes where available
   const getChannelTokens = (ch: typeof channels[number]) => {
@@ -225,6 +229,44 @@ function KnowledgeSection() {
     }
     setScanning(false);
   }, [channels]);
+
+  const handleRepoIndex = useCallback(async () => {
+    if (!repoPath.trim() || repoScanning) return;
+    setRepoScanning(true);
+    try {
+      const resp = await fetch(`${API_BASE}/repo/index`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: repoPath.trim() }),
+      });
+      const json = await resp.json() as {
+        status: string;
+        data?: { outputDir: string; files: string[]; stack: string[]; features: number; totalTokens: number };
+        error?: string;
+      };
+      if (json.status === 'ok' && json.data) {
+        for (const file of json.data.files) {
+          const filePath = `${json.data.outputDir}/${file}`;
+          addChannel({
+            sourceId: `repo-${file}-${Date.now()}`,
+            name: file.replace('.md', '').replace(/^\d+-/, ''),
+            path: filePath,
+            category: 'knowledge' as any,
+            knowledgeType: 'ground-truth',
+            depth: 1,
+            baseTokens: Math.round((json.data.totalTokens || 5000) / Math.max(json.data.files.length, 1)),
+          });
+        }
+        setRepoPrompt(false);
+        setRepoPath('');
+        // Auto-scan the newly added files
+        await useTreeIndexStore.getState().indexFiles(
+          json.data.files.map(f => `${json.data!.outputDir}/${f}`)
+        );
+      }
+    } catch { /* user sees no change */ }
+    setRepoScanning(false);
+  }, [repoPath, repoScanning, addChannel]);
 
   const DEPTH_LABELS = ['Full', 'High', 'Ref', 'Skim', 'Mention'] as const;
   const DEPTH_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e67e22', '#999'];
@@ -377,7 +419,7 @@ function KnowledgeSection() {
       {/* Add buttons */}
       <div className="flex gap-2 mt-3">
         <button type="button" onClick={() => setShowFilePicker(true)}
-          className="flex items-center justify-center gap-1.5 flex-1 px-3 py-2 rounded text-[11px] tracking-wide uppercase cursor-pointer"
+          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[10px] tracking-wide uppercase cursor-pointer"
           style={{
             background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
             fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms',
@@ -385,10 +427,10 @@ function KnowledgeSection() {
           onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
-          <Plus size={11} /> Files
+          <Plus size={10} /> Files
         </button>
         <button type="button" onClick={() => setShowConnectorPicker(true)}
-          className="flex items-center justify-center gap-1.5 flex-1 px-3 py-2 rounded text-[11px] tracking-wide uppercase cursor-pointer"
+          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[10px] tracking-wide uppercase cursor-pointer"
           style={{
             background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
             fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms',
@@ -396,9 +438,43 @@ function KnowledgeSection() {
           onMouseEnter={e => { e.currentTarget.style.borderColor = '#9b59b6'; e.currentTarget.style.color = '#9b59b6'; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
-          <Plug size={11} /> Connectors
+          <Plug size={10} /> Connect
+        </button>
+        <button type="button" onClick={() => setRepoPrompt(!repoPrompt)}
+          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[10px] tracking-wide uppercase cursor-pointer"
+          style={{
+            background: repoPrompt ? '#24292F15' : 'transparent', border: `1px solid ${repoPrompt ? '#24292F' : t.border}`, color: repoPrompt ? '#24292F' : t.textDim,
+            fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms',
+          }}
+          onMouseEnter={e => { if (!repoPrompt) { e.currentTarget.style.borderColor = '#24292F'; e.currentTarget.style.color = '#24292F'; }}}
+          onMouseLeave={e => { if (!repoPrompt) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}}
+        >
+          <FolderGit2 size={10} /> Repo
         </button>
       </div>
+
+      {/* Repo indexer input */}
+      {repoPrompt && (
+        <div className="mt-2 flex gap-1.5">
+          <input
+            type="text"
+            value={repoPath}
+            onChange={e => setRepoPath(e.target.value)}
+            placeholder="/path/to/repo"
+            aria-label="Repository path"
+            className="flex-1 px-2.5 py-1.5 rounded text-[11px] outline-none"
+            style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}
+            onKeyDown={e => { if (e.key === 'Enter') handleRepoIndex(); }}
+          />
+          <button type="button" onClick={handleRepoIndex} disabled={repoScanning || !repoPath.trim()}
+            className="px-3 py-1.5 rounded text-[10px] font-semibold tracking-wider uppercase cursor-pointer border-none"
+            style={{ background: '#24292F', color: '#fff', fontFamily: "'Space Mono', monospace", opacity: repoScanning || !repoPath.trim() ? 0.5 : 1 }}
+            aria-label="Index repository"
+          >
+            {repoScanning ? <Loader2 size={10} className="animate-spin motion-reduce:animate-none" /> : 'Index'}
+          </button>
+        </div>
+      )}
 
       {/* Context allocation mini bar */}
       {channels.length > 0 && (
