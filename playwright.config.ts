@@ -12,4 +12,10 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },
   ],
+  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
+    command: 'npx vite --port 5174',
+    port: 5174,
+    reuseExistingServer: true,
+    timeout: 30_000,
+  },
 });
