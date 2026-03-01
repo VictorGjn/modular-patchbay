@@ -192,6 +192,9 @@ function KnowledgeSection() {
   const removeChannel = useConsoleStore(s => s.removeChannel);
   const addChannel = useConsoleStore(s => s.addChannel);
   const setShowFilePicker = useConsoleStore(s => s.setShowFilePicker);
+  const setShowConnectorPicker = useConsoleStore(s => s.setShowConnectorPicker);
+  const connectors = useConsoleStore(s => s.connectors);
+  const removeConnector = useConsoleStore(s => s.removeConnector);
   const treeIndexes = useTreeIndexStore(s => s.indexes);
   const treeLoading = useTreeIndexStore(s => s.loading);
   const treeErrors = useTreeIndexStore(s => s.errors);
@@ -332,18 +335,70 @@ function KnowledgeSection() {
         })}
       </div>
 
-      {/* Add button */}
-      <button type="button" onClick={() => setShowFilePicker(true)}
-        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2 rounded text-[11px] tracking-wide uppercase cursor-pointer"
-        style={{
-          background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
-          fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-      >
-        <Plus size={11} /> Add Sources
-      </button>
+      {/* Connectors */}
+      {connectors.filter(c => c.enabled && c.direction !== 'write').length > 0 && (
+        <div className="mt-2 pt-2" style={{ borderTop: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
+          <div className="text-[9px] tracking-[0.1em] uppercase mb-1.5" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+            Connectors
+          </div>
+          {connectors.filter(c => c.enabled && c.direction !== 'write').map(conn => {
+            const SERVICE_COLORS: Record<string, string> = {
+              notion: '#000', slack: '#4A154B', hubspot: '#FF7A59',
+              github: '#24292F', granola: '#8B5CF6', 'google-drive': '#4285F4',
+            };
+            const color = SERVICE_COLORS[conn.service] || '#666';
+            return (
+              <div key={conn.id} className="flex items-center gap-2 py-2"
+                style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                <span className="flex-1 truncate text-[12px]" style={{ color: t.textPrimary }}>
+                  {conn.name}
+                </span>
+                <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase"
+                  style={{ fontFamily: "'Space Mono', monospace", color: conn.direction === 'both' ? '#b88ad4' : '#6aafe6', background: conn.direction === 'both' ? '#9b59b610' : '#3498db10' }}>
+                  {conn.direction}
+                </span>
+                {conn.hint && (
+                  <span className="text-[9px] truncate max-w-[80px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}
+                    title={conn.hint}>
+                    {conn.hint}
+                  </span>
+                )}
+                <button type="button" aria-label={`Remove ${conn.name}`} onClick={() => removeConnector(conn.id)}
+                  className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
+                  <X size={10} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add buttons */}
+      <div className="flex gap-2 mt-3">
+        <button type="button" onClick={() => setShowFilePicker(true)}
+          className="flex items-center justify-center gap-1.5 flex-1 px-3 py-2 rounded text-[11px] tracking-wide uppercase cursor-pointer"
+          style={{
+            background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
+            fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+        >
+          <Plus size={11} /> Files
+        </button>
+        <button type="button" onClick={() => setShowConnectorPicker(true)}
+          className="flex items-center justify-center gap-1.5 flex-1 px-3 py-2 rounded text-[11px] tracking-wide uppercase cursor-pointer"
+          style={{
+            background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
+            fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#9b59b6'; e.currentTarget.style.color = '#9b59b6'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+        >
+          <Plug size={11} /> Connectors
+        </button>
+      </div>
 
       {/* Context allocation mini bar */}
       {channels.length > 0 && (
