@@ -13,8 +13,7 @@ import { streamAgentSdk } from '../services/llmService';
 import { assembleContext } from '../services/contextAssembler';
 import { useProviderStore } from '../store/providerStore';
 import { compileWorkflow } from '../nodes/WorkflowNode';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { ResponseRenderer } from './ResponseRenderer';
 
 type Provider = ReturnType<typeof useProviderStore.getState>['providers'][number];
 
@@ -386,18 +385,7 @@ export function ConversationTester() {
                     >
                       {msg.role === 'assistant' ? (
                         msg.content ? (
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              p: ({ children }) => <span>{children}</span>,
-                              code: ({ children }) => <code style={{ background: t.isDark ? '#ffffff15' : '#00000015', padding: '2px 4px', borderRadius: '3px' }}>{children}</code>,
-                              pre: ({ children }) => <pre style={{ background: t.isDark ? '#ffffff15' : '#00000015', padding: '8px', borderRadius: '6px', overflow: 'auto', fontSize: '10px' }}>{children}</pre>,
-                              strong: ({ children }) => <strong style={{ fontWeight: 'bold' }}>{children}</strong>,
-                              em: ({ children }) => <em style={{ fontStyle: 'italic' }}>{children}</em>,
-                            }}
-                          >
-                            {msg.content}
-                          </ReactMarkdown>
+                          <ResponseRenderer content={msg.content} />
                         ) : streaming ? '▍' : ''
                       ) : (
                         msg.content || ''

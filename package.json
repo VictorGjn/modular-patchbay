@@ -11,9 +11,19 @@
   },
   "homepage": "https://github.com/VictorGjn/modular-patchbay#readme",
   "keywords": [
-    "ai", "agent", "agent-builder", "context-engineering", "mcp",
-    "model-context-protocol", "prompt-engineering", "visual-builder",
-    "claude", "llm", "react-flow", "mixing-console", "design-tool"
+    "ai",
+    "agent",
+    "agent-builder",
+    "context-engineering",
+    "mcp",
+    "model-context-protocol",
+    "prompt-engineering",
+    "visual-builder",
+    "claude",
+    "llm",
+    "react-flow",
+    "mixing-console",
+    "design-tool"
   ],
   "bin": {
     "modular-studio": "./dist-server/bin/modular-studio.js"
@@ -46,6 +56,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "lucide-react": "^0.575.0",
+    "mermaid": "^11.12.3",
     "open": "^10.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
