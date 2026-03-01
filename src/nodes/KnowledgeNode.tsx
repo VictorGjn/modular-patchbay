@@ -100,7 +100,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
   return (
     <div
       className="rounded-lg overflow-visible"
-      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: 320 }}
+      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: 480 }}
     >
     <Handle type="target" position={Position.Left} id="knowledge-feedback-in" style={{ ...HANDLE, background: '#95a5a6', top: '50%', left: -4 }} />
     <Handle type="source" position={Position.Right} id="knowledge-out" style={{ ...HANDLE, background: '#3498db', top: '50%', right: -4 }} />

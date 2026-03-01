@@ -137,7 +137,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
         boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`,
-        width: 320,
+        width: 480,
       }}
     >
       <Handle type="target" position={Position.Left} id="workflow-in" style={{ ...HANDLE, background: '#e67e22', top: '50%', left: -4 }} />

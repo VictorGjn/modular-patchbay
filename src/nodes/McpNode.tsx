@@ -249,7 +249,7 @@ export const McpNode = memo(function McpNode() {
     <>
     <div
       className="rounded-xl h-full overflow-visible"
-      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: 320 }}
+      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: 480 }}
     >
     <Handle type="source" position={Position.Right} id="mcp-out" style={{ ...HANDLE, background: '#2ecc71', top: '50%', right: -4 }} />
     <div className="flex flex-col min-w-0 overflow-hidden rounded-xl h-full">

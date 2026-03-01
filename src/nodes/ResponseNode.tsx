@@ -106,7 +106,7 @@ export const ResponseNode = memo(function ResponseNode() {
     <>
       <div
         className="rounded-lg overflow-visible"
-        style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)'}`, width: 320 }}
+        style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)'}`, width: 480 }}
       >
         <Handle type="target" position={Position.Left} id="response-in" style={{ ...HANDLE, background: '#FE5000', top: '50%', left: -4 }} />
         <div className="flex flex-col">
