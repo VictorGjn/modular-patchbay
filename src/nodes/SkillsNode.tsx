@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { ResizeHandle } from '../components/ResizeHandle';
+
 import { useConsoleStore } from '../store/consoleStore';
 import { useSkillsStore } from '../store/skillsStore';
 import { Tile } from '../components/Tile';
@@ -60,8 +60,6 @@ export const SkillsNode = memo(function SkillsNode() {
   useEffect(() => { try { localStorage.setItem('skills-node-view', viewMode); } catch {} }, [viewMode]);
 
   return (
-    <>
-    <ResizeHandle minWidth={240} minHeight={120} />
     <div
       className="rounded-lg overflow-visible"
       style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: 320 }}
@@ -165,7 +163,6 @@ export const SkillsNode = memo(function SkillsNode() {
       onToggle={toggleSkill}
       kind="skills"
     />
-    </>
   );
 });
 

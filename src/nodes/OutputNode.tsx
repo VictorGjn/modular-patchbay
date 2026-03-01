@@ -1,6 +1,6 @@
 import { memo, useState, useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { ResizeHandle } from '../components/ResizeHandle';
+
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS, type OutputFormat } from '../store/knowledgeBase';
 import { Tooltip } from '../components/ds/Tooltip';
@@ -472,8 +472,6 @@ export const OutputNode = memo(function OutputNode() {
   const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
   return (
-    <>
-    <ResizeHandle minWidth={220} minHeight={100} />
     <div
       className="rounded-lg overflow-visible"
       style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 2px 12px rgba(0,0,0,0.25)', width: 320, minWidth: 220 }}
@@ -528,7 +526,7 @@ export const OutputNode = memo(function OutputNode() {
 
       {nodeCollapsed ? null : <>
       {/* Format checkboxes */}
-      <div className="p-3 overflow-y-auto nowheel flex-1 min-h-0">
+      <div className="px-5 py-3 overflow-y-auto nowheel flex-1 min-h-0">
         {viewMode === 'list' ? (
           <div className="flex flex-col gap-0.5">
             {OUTPUT_FORMATS.map((fmt) => {
@@ -661,6 +659,5 @@ export const OutputNode = memo(function OutputNode() {
       </>}
       </div>
     </div>
-    </>
   );
 });

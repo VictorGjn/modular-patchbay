@@ -1,6 +1,6 @@
 import { memo, useState, useCallback, useEffect, type DragEvent } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { ResizeHandle } from '../components/ResizeHandle';
+
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
 import { KNOWLEDGE_TYPES, type KnowledgeType, type ChannelConfig } from '../store/knowledgeBase';
 import { ConnectorTile } from '../components/ConnectorTile';
@@ -98,8 +98,6 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
   }));
 
   return (
-    <>
-    <ResizeHandle minWidth={260} minHeight={120} />
     <div
       className="rounded-lg overflow-visible"
       style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: 320 }}
@@ -316,7 +314,6 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
       </>}
     </div>
     </div>
-    </>
   );
 });
 
