@@ -4,6 +4,8 @@ import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { OutputIcon } from '../components/icons/SectionIcons';
+import { TextArea } from '../components/ds/TextArea';
+import { Select as DsSelect } from '../components/ds/Select';
 import { Tooltip } from '../components/ds/Tooltip';
 import { useTheme } from '../theme';
 import { Play, Download, Settings } from 'lucide-react';
@@ -144,21 +146,16 @@ export const PromptNode = memo(function PromptNode() {
 
       {/* Textarea */}
       <div className="p-3 relative flex-1 overflow-y-auto nowheel">
-        <textarea
+        <TextArea
           ref={textareaRef}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Describe what you need — analysis, slides, email, code..."
           aria-label="Prompt input"
-          className="w-full resize-none outline-none text-sm nodrag nowheel"
           rows={3}
           style={{
-            background: t.inputBg,
             border: `1px solid ${focused ? 'rgba(254,80,0,0.3)' : t.border}`,
-            borderRadius: 6,
-            color: t.textPrimary,
-            fontFamily: "'Inter', sans-serif",
             padding: '10px 12px',
             paddingBottom: 24,
             lineHeight: 1.6,
@@ -223,46 +220,20 @@ export const PromptNode = memo(function PromptNode() {
         >
           <div className="px-5 pb-3 flex flex-col gap-2">
             {/* Model dropdown */}
-            <div className="flex flex-col gap-1">
-              <label
-                className="text-[10px] font-semibold tracking-wide"
-                style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
-              >
-                Model
-              </label>
-              <select
-                value={`${selectedProviderId}::${agentConfig.model}`}
-                onChange={(e) => {
-                  const [pid, ...rest] = e.target.value.split('::');
-                  selectProvider(pid);
-                  setAgentModel(rest.join('::'));
-                }}
-                aria-label="Select model"
-                className="w-full text-[11px] rounded-md outline-none nodrag nowheel"
-                style={{
-                  background: t.inputBg,
-                  border: `1px solid ${t.border}`,
-                  color: t.textPrimary,
-                  fontFamily: "'Space Mono', monospace",
-                  padding: '4px 6px',
-                  cursor: 'pointer',
-                }}
-              >
-                {connectedModels.length > 0 ? (
-                  connectedModels.map((m) => (
-                    <option key={`${m.providerId}-${m.id}`} value={`${m.providerId}::${m.id}`}>
-                      {m.providerName} — {m.label}
-                    </option>
-                  ))
-                ) : (
-                  allModels.map((m) => (
-                    <option key={`${m.providerId}-${m.id}`} value={`${m.providerId}::${m.id}`}>
-                      {m.providerName} — {m.label}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
+            <DsSelect
+              label="Model"
+              options={(connectedModels.length > 0 ? connectedModels : allModels).map((m) => ({
+                value: `${m.providerId}::${m.id}`,
+                label: `${m.providerName} — ${m.label}`,
+              }))}
+              value={`${selectedProviderId}::${agentConfig.model}`}
+              onChange={(v) => {
+                const [pid, ...rest] = v.split('::');
+                selectProvider(pid);
+                setAgentModel(rest.join('::'));
+              }}
+              size="sm"
+            />
 
             {/* Thinking depth — only for models that support it */}
             <div className="flex flex-col gap-1" style={{ opacity: thinkingSupported ? 1 : 0.4 }}>

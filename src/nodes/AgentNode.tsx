@@ -98,7 +98,7 @@ function GenerateBtn({ loading, onClick }: { loading: boolean; onClick: () => vo
     <button type="button" onClick={onClick} disabled={loading}
       className="flex items-center gap-1 text-[9px] px-2 py-1 rounded cursor-pointer border-none nodrag"
       style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Space Mono', monospace", opacity: loading ? 0.5 : 1 }}>
-      {loading ? <Loader2 size={9} className="animate-spin" /> : <Sparkles size={9} />}
+      {loading ? <Loader2 size={9} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={9} />}
       Generate
     </button>
   );

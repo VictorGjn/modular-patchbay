@@ -64,7 +64,7 @@ function ServerRow({
       >
         {/* Status dot / spinner */}
         {server.status === 'connecting' ? (
-          <Loader2 size={10} className="animate-spin flex-shrink-0" style={{ color: t.statusWarning }} />
+          <Loader2 size={10} className="animate-spin motion-reduce:animate-none flex-shrink-0" style={{ color: t.statusWarning }} />
         ) : server.status === 'error' ? (
           <span title={server.lastError || 'Error'}>
             <AlertCircle size={10} className="flex-shrink-0" style={{ color: t.statusError }} />
