@@ -47,12 +47,14 @@ Any Source → Connector → Tree Index → Agent Navigator → Per-Branch Depth
 | Sourcebot/Greptile | Runtime Q&A | None | No |
 | **Modular** | **Feature** | **Per-branch, agent-driven** | **Yes** |
 
-### 4. RTK — Rust Token Killer 🔴 BUILD NEXT
-**The problem:** Agent navigator selects the right branches, but content within those branches still has noise. RTK compresses selected content for maximum signal density.
+### 4. Context Compressor ✅ BUILT
+**The problem:** Agent navigator selects the right branches, but content within those branches still has noise. The compressor reduces selected content for maximum signal density.
 
-**Where RTK fits (post-navigator):**
+Inspired by [RTK (Rust Token Killer)](https://github.com/rtk-ai/rtk) by rtk-ai, which compresses CLI command outputs (60-90% savings). Our compressor applies similar principles to knowledge documents.
+
+**Where it fits (post-navigator):**
 ```
-Agent Navigator picks branches → RTK compresses each branch → Assembled context is dense signal
+Agent Navigator picks branches → Compressor reduces each branch → Assembled context is dense signal
 ```
 
 **Techniques:**
@@ -61,10 +63,7 @@ Agent Navigator picks branches → RTK compresses each branch → Assembled cont
 - Code block compression (strip comments, collapse obvious patterns)
 - Budget-aware packing (compress low-priority branches more aggressively)
 
-**Implementation plan:**
-- Phase 1: JS prototype with basic dedup + filler removal (ship fast)
-- Phase 2: Rust WASM for 10-100x speed (if JS is bottleneck)
-- Phase 3: Standalone `@modular-studio/rtk` npm package
+**Future:** Integrate rtk-ai/rtk CLI or WASM for production-grade compression of tool outputs alongside knowledge compression.
 
 ### 5. Fact Insights + Self-Improving Loop ✅ BUILT
 **Built:** LLM analyzes facts → suggests promotions → one-click apply → version bump.
@@ -105,8 +104,8 @@ After tree indexer works for markdown/code, extend to PDFs via PageIndex API.
                     └────────┬────────┘
                              │
                     ┌────────▼────────┐
-                    │      RTK        │  ← compress selected branches (dedup, filler, code)
-                    │  (JS → Rust)    │
+                    │   Compressor    │  ← compress selected branches (dedup, filler, code)
+                    │                 │
                     └────────┬────────┘
                              │
                     ┌────────▼────────┐
@@ -137,7 +136,7 @@ After tree indexer works for markdown/code, extend to PDFs via PageIndex API.
 | 4 | Source-agnostic connectors (4 types) | ✅ | `e59ffac` |
 | 5 | Repository indexer | ✅ | `cc85862` |
 | 6 | Agent-driven tree navigator | ✅ | `25d29f1` |
-| 7 | **RTK prototype (JS dedup + compression)** | 🔴 **NEXT** | — |
+| 7 | **Context compressor (JS dedup + compression)** | ✅ | — |
 | 8 | Wire trace capture into LLM service | 🟡 | — |
 | 9 | `npm publish` v0.1.0 | 🟡 | — |
 | 10 | Backend health routes | 🟡 | — |
@@ -148,7 +147,8 @@ After tree indexer works for markdown/code, extend to PDFs via PageIndex API.
 - PageIndex PDF integration
 - Output target hinting
 - Eval harness / A/B testing
-- RTK Rust WASM rewrite (only if JS is bottleneck)
+- Integrate rtk-ai/rtk for tool output compression (CLI proxy)
+- Rust WASM compressor rewrite (only if JS is bottleneck)
 - Connector UIs (Notion, HubSpot, Slack, Granola pickers)
 
 ## What We're NOT Building
@@ -164,9 +164,9 @@ After tree indexer works for markdown/code, extend to PDFs via PageIndex API.
 |-------|---------|----------------|-----------------|
 | Route Optimizer | Voyage Prep TCE | Weather MCP, AIS MCP, regulatory md | Tree navigator on EU ETS docs |
 | Fleet Monitor | Vessel performance | Live data MCP, performance md | Shared facts with Route Optimizer |
-| Report Generator | Weekly fleet reports | Both agents' facts + templates | RTK compression of multi-source |
+| Report Generator | Weekly fleet reports | Both agents' facts + templates | Compressor on multi-source |
 | Competitor Intel | StormGeo/ZeroNorth | Web scraper MCP, product docs | Repo indexer on competitor code |
 
 ---
 
-*"Connectors → Tree Index → Agent Navigator → RTK → Context Assembly. That's the pipeline. Everything else is UI."*
+*"Connectors → Tree Index → Agent Navigator → Compress → Context Assembly. That's the pipeline. Everything else is UI."*

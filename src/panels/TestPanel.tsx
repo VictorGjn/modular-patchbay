@@ -3,15 +3,50 @@ import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useConversationStore } from '../store/conversationStore';
 import { useProviderStore } from '../store/providerStore';
-// agentExport available for future format-specific exports
 import { exportAgentYaml } from '../utils/agentExportYaml';
-import { assembleContext } from '../services/contextAssembler';
-import { streamCompletion, streamAgentSdk } from '../services/llmService';
+import { runPipelineChat } from '../services/pipelineChat';
 import {
   Send, Download, Check,
-  FileText, FileCode,
+  FileText, FileCode, Zap,
 } from 'lucide-react';
 import { TraceViewer } from './TraceViewer';
+
+/* ── Pipeline Stats Bar ── */
+function PipelineStatsBar() {
+  const t = useTheme();
+  const stats = useConversationStore(s => s.lastPipelineStats);
+  if (!stats) return null;
+
+  const p = stats.pipeline;
+  const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
+
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-1.5 text-[9px]"
+      style={{ borderTop: `1px solid ${t.border}`, fontFamily: "'Space Mono', monospace", color: t.textDim }}
+      role="status"
+      aria-label="Pipeline statistics"
+    >
+      <Zap size={9} style={{ color: '#FE5000', flexShrink: 0 }} />
+      <span>ctx: {fmtTokens(stats.totalContextTokens)}</span>
+      <span>sys: {fmtTokens(stats.systemTokens)}</span>
+      {p && (
+        <>
+          <span style={{ color: p.compression.ratio < 0.8 ? '#2ecc71' : t.textDim }}>
+            compress: {Math.round((1 - p.compression.ratio) * 100)}%
+          </span>
+          <span>
+            {p.compression.removals.duplicates > 0 && `${p.compression.removals.duplicates} dedup `}
+            {p.compression.removals.filler > 0 && `${p.compression.removals.filler} filler `}
+            {p.compression.removals.codeComments > 0 && `${p.compression.removals.codeComments} comments`}
+          </span>
+          <span>{p.sources.length} sources</span>
+          <span>{p.timing.totalMs}ms</span>
+        </>
+      )}
+    </div>
+  );
+}
 
 /* ── Chat Section ── */
 function ChatSection() {
@@ -23,13 +58,10 @@ function ChatSection() {
   const addMessage = useConversationStore(s => s.addMessage);
   const setStreaming = useConversationStore(s => s.setStreaming);
   const updateLastAssistant = useConversationStore(s => s.updateLastAssistant);
+  const setLastPipelineStats = useConversationStore(s => s.setLastPipelineStats);
 
   const agentConfig = useConsoleStore(s => s.agentConfig);
   const channels = useConsoleStore(s => s.channels);
-  const mcpServers = useConsoleStore(s => s.mcpServers);
-  const skills = useConsoleStore(s => s.skills);
-  const instructionState = useConsoleStore(s => s.instructionState);
-  const workflowSteps = useConsoleStore(s => s.workflowSteps);
   const agentMeta = useConsoleStore(s => s.agentMeta);
   const selectedProviderId = useProviderStore(s => s.selectedProviderId);
 
@@ -44,54 +76,28 @@ function ChatSection() {
     const userMsg = inputText.trim();
     setInputText('');
     addMessage({ role: 'user', content: userMsg });
-
-    const assembled = assembleContext(
-      channels,
-      userMsg,
-      { name: agentMeta.name, description: agentMeta.description },
-    );
-
-    const msgs = [
-      ...assembled,
-      ...messages.map(m => ({ role: m.role as 'system' | 'user', content: m.content })),
-    ];
-
     addMessage({ role: 'assistant', content: '' });
     setStreaming(true);
     let accum = '';
 
     try {
-      const provider = selectedProviderId || 'anthropic';
-      if (provider === 'claude-agent-sdk') {
-        const systemMsg = msgs.find(m => m.role === 'system');
-        await new Promise<void>((resolve, reject) => {
-          streamAgentSdk({
-            prompt: userMsg,
-            model: agentConfig.model,
-            systemPrompt: systemMsg?.content,
-            onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
-            onDone: () => resolve(),
-            onError: (err: Error) => reject(err),
-          });
-        });
-      } else {
-        await new Promise<void>((resolve, reject) => {
-          streamCompletion({
-            providerId: provider,
-            model: agentConfig.model,
-            messages: msgs,
-            onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
-            onDone: () => resolve(),
-            onError: (err: Error) => reject(err),
-          });
-        });
-      }
+      await runPipelineChat({
+        userMessage: userMsg,
+        channels,
+        history: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
+        agentMeta: { name: agentMeta.name, description: agentMeta.description, avatar: agentMeta.avatar, tags: agentMeta.tags },
+        providerId: selectedProviderId || 'anthropic',
+        model: agentConfig.model,
+        onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
+        onDone: (stats) => { setLastPipelineStats(stats); },
+        onError: (err: Error) => { updateLastAssistant(accum + `\n\n_Error: ${err.message}_`); },
+      });
     } catch (err) {
       updateLastAssistant(accum + `\n\n_Error: ${err instanceof Error ? err.message : 'Unknown error'}_`);
     } finally {
       setStreaming(false);
     }
-  }, [inputText, streaming, messages, agentConfig, channels, mcpServers, skills, instructionState, workflowSteps, agentMeta, selectedProviderId, setInputText, addMessage, setStreaming, updateLastAssistant]);
+  }, [inputText, streaming, messages, agentConfig, channels, agentMeta, selectedProviderId, setInputText, addMessage, setStreaming, updateLastAssistant, setLastPipelineStats]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -125,6 +131,9 @@ function ChatSection() {
         ))}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Pipeline Stats */}
+      <PipelineStatsBar />
 
       {/* Input */}
       <div className="px-4 py-3 flex gap-2" style={{ borderTop: `1px solid ${t.border}` }}>

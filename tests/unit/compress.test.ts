@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compress, compressWithPriority } from '../../src/services/rtk';
+import { compress, compressWithPriority } from '../../src/services/compress';
 
 describe('compress', () => {
   it('removes duplicate paragraphs', () => {

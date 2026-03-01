@@ -2,7 +2,7 @@
  * Context Engineering Pipeline — End-to-End
  *
  * Single entry point that chains the full pipeline:
- * Source → Connector → Tree Index → Agent Navigator → RTK → Context Assembly
+ * Source → Connector → Tree Index → Agent Navigator → Compress → Context Assembly
  *
  * Usage:
  *   const result = await runPipeline({
@@ -30,7 +30,7 @@ import {
   type NavigationPlan,
   type BranchSelection,
 } from './treeNavigator';
-import { compress } from './rtk';
+import { compress } from './compress';
 import { estimateTokens } from './treeIndexer';
 
 // ── Types ──
@@ -50,7 +50,7 @@ export interface PipelineOptions {
   tokenBudget: number;
   /** If provided, skip the navigation LLM call and use these selections */
   manualSelections?: BranchSelection[];
-  /** RTK compression settings */
+  /** Compression settings */
   compression?: {
     enabled?: boolean;
     aggressiveness?: number;
@@ -76,7 +76,7 @@ export interface PipelineResult {
     selections: BranchSelection[];
     prompt?: string;
   };
-  /** RTK compression stats */
+  /** Compression stats */
   compression: {
     originalTokens: number;
     compressedTokens: number;
@@ -172,7 +172,7 @@ export function completePipeline(
 
   const assembled = assembleFromPlan(indexes, plan);
 
-  // 5. RTK compression
+  // 5. Context compression
   const compressionStart = Date.now();
   let finalContent: string;
   let compressionStats = { originalTokens: 0, compressedTokens: 0, ratio: 1, removals: { duplicates: 0, filler: 0, codeComments: 0 } };

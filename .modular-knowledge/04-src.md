@@ -139,8 +139,8 @@ Internal import relationships:
 - `src/services/contextAssembler.ts` → `../store/knowledgeBase`, `../store/mcpStore`, `../store/consoleStore`, `../nodes/WorkflowNode`, `../store/treeIndexStore`, `../utils/depthFilter`
 - `src/services/healthService.ts` → `../store/healthStore`, `../config`
 - `src/services/llmService.ts` → `../config`
-- `src/services/pipeline.ts` → `./treeIndexer`, `./treeNavigator`, `./rtk`, `./treeIndexer`
-- `src/services/rtk.ts` → `./treeIndexer`
+- `src/services/pipeline.ts` → `./treeIndexer`, `./treeNavigator`, `./compress`, `./treeIndexer`
+- `src/services/compress.ts` → `./treeIndexer`
 - `src/services/tracedLlm.ts` → `./llmService`, `../store/traceStore`, `./treeIndexer`
 - `src/services/treeNavigator.ts` → `./treeIndexer`
 - `src/store/consoleStore.ts` → `./knowledgeBase`, `./registry`, `../services/llmService`, `../services/contextAssembler`, `./providerStore`, `./demoPreset`, `./demoPresets`, `./mcp-registry`
