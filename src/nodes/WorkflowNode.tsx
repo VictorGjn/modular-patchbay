@@ -1,7 +1,9 @@
 import { memo, useState, useCallback, useMemo } from 'react';
-// Position used by JackGutter internally
+import { Handle, Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
-import { JackGutter, type JackDef } from '../components/JackGutter';
+import { Input } from '../components/ds/Input';
+import { TextArea } from '../components/ds/TextArea';
+import { Select, type SelectOption } from '../components/ds/Select';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore } from '../store/mcpStore';
 import { useTheme } from '../theme';
@@ -126,22 +128,26 @@ export const WorkflowNode = memo(function WorkflowNode() {
     fontSize: 11,
   };
 
+  const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
+
   return (
     <div
-      className="flex rounded-lg overflow-visible"
+      className="rounded-lg overflow-visible"
       style={{
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
         boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`,
+        width: 320,
       }}
     >
-      <JackGutter jacks={[{ id: 'workflow-in', type: 'target', label: 'IN', color: '#e67e22' }] as JackDef[]} side="left" />
-      <div className="flex flex-col flex-1 overflow-hidden rounded-lg" style={{ width: 280, minWidth: 280 }}>
+      <Handle type="target" position={Position.Left} id="workflow-in" style={{ ...HANDLE, background: '#e67e22', top: '50%', left: -4 }} />
+      <Handle type="source" position={Position.Right} id="workflow-out" style={{ ...HANDLE, background: '#9b59b6', top: '50%', right: -4 }} />
+      <div className="flex flex-col overflow-hidden rounded-lg">
       {/* Header */}
       <div
         className="flex items-center gap-2 px-3 shrink-0 select-none"
         style={{
-          height: 36,
+          height: 40,
           background: t.surfaceElevated,
           borderBottom: `1px solid ${t.border}`,
         }}
@@ -286,63 +292,63 @@ export const WorkflowNode = memo(function WorkflowNode() {
                   {/* Expanded editing form */}
                   {isEditing && (
                     <div className="flex flex-col gap-1.5 px-2.5 py-2 nodrag">
-                      <input
-                        type="text" value={step.label}
+                      <Input
+                        value={step.label}
                         onChange={(e) => updateStep(idx, { label: e.target.value })}
                         placeholder={`Step ${idx + 1} label`}
-                        className="w-full text-[11px] font-semibold px-2 py-1 rounded outline-none nodrag"
-                        style={{ ...inputStyle, fontWeight: 600 }}
                       />
-                      <textarea
+                      <TextArea
                         value={step.action}
                         onChange={(e) => updateStep(idx, { action: e.target.value })}
                         placeholder="What the agent does in this step..."
-                        className="w-full text-[11px] px-2 py-1 rounded outline-none resize-y nowheel nodrag"
-                        style={{ ...inputStyle, minHeight: 40 }}
+                        style={{ minHeight: 40 }}
                       />
                       <div className="flex gap-1.5">
-                        <select
-                          value={step.tool}
-                          onChange={(e) => updateStep(idx, { tool: e.target.value })}
-                          className="flex-1 text-[10px] px-2 py-1 rounded outline-none cursor-pointer nodrag"
-                          style={{ ...inputStyle, appearance: 'none' as const }}
-                        >
-                          {toolOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                        </select>
-                        <select
-                          value={step.condition}
-                          onChange={(e) => updateStep(idx, { condition: e.target.value as 'always' | 'if' | 'unless' })}
-                          className="text-[10px] px-2 py-1 rounded outline-none cursor-pointer nodrag"
-                          style={{ ...inputStyle, width: 72, appearance: 'none' as const }}
-                        >
-                          <option value="always">Always</option>
-                          <option value="if">If...</option>
-                          <option value="unless">Unless...</option>
-                        </select>
+                        <div className="flex-1">
+                          <Select
+                            options={toolOptions}
+                            value={step.tool}
+                            onChange={(v) => updateStep(idx, { tool: v })}
+                            size="sm"
+                          />
+                        </div>
+                        <div style={{ width: 90 }}>
+                          <Select
+                            options={[
+                              { value: 'always', label: 'Always' },
+                              { value: 'if', label: 'If...' },
+                              { value: 'unless', label: 'Unless...' },
+                            ]}
+                            value={step.condition}
+                            onChange={(v) => updateStep(idx, { condition: v as 'always' | 'if' | 'unless' })}
+                            size="sm"
+                          />
+                        </div>
                       </div>
                       {step.condition !== 'always' && (
-                        <input
-                          type="text" value={step.conditionText}
+                        <Input
+                          value={step.conditionText}
                           onChange={(e) => updateStep(idx, { conditionText: e.target.value })}
                           placeholder={`${step.condition === 'if' ? 'If' : 'Unless'} condition...`}
-                          className="w-full text-[10px] px-2 py-1 rounded outline-none nodrag"
-                          style={inputStyle}
                         />
                       )}
                       {workflowSteps.length > 1 && (
                         <div className="flex items-center gap-1.5">
                           <RotateCw size={9} style={{ color: t.textDim }} />
-                          <select
-                            value={step.loopTarget}
-                            onChange={(e) => updateStep(idx, { loopTarget: e.target.value })}
-                            className="text-[10px] px-1.5 py-0.5 rounded outline-none cursor-pointer nodrag"
-                            style={{ ...inputStyle, width: 'auto', appearance: 'none' as const }}
-                          >
-                            <option value="">No loop</option>
-                            {workflowSteps.map((s, j) => j !== idx && (
-                              <option key={s.id} value={s.id}>Step {j + 1}{s.label ? `: ${s.label}` : ''}</option>
-                            ))}
-                          </select>
+                          <div className="flex-1">
+                            <Select
+                              options={[
+                                { value: '', label: 'No loop' },
+                                ...workflowSteps.filter((_, j) => j !== idx).map((s, _, arr) => ({
+                                  value: s.id,
+                                  label: `Step ${workflowSteps.indexOf(s) + 1}${s.label ? `: ${s.label}` : ''}`,
+                                })),
+                              ]}
+                              value={step.loopTarget || ''}
+                              onChange={(v) => updateStep(idx, { loopTarget: v })}
+                              size="sm"
+                            />
+                          </div>
                           {step.loopTarget && (
                             <span className="text-[9px]" style={{ color: t.textDim }}>
                               max <input type="number" min={1} max={10} value={step.loopMax}
@@ -429,7 +435,6 @@ export const WorkflowNode = memo(function WorkflowNode() {
 
       <ResizeHandle />
       </div>
-      <JackGutter jacks={[{ id: 'workflow-out', type: 'source', label: 'OUT', color: '#9b59b6' }] as JackDef[]} side="right" />
     </div>
   );
 });

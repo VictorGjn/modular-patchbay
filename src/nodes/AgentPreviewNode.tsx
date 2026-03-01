@@ -1,6 +1,5 @@
 import { memo, useState, useMemo } from 'react';
-// Position used by JackGutter internally
-import { JackGutter, type JackDef } from '../components/JackGutter';
+import { Handle, Position } from '@xyflow/react';
 import { Tooltip } from '../components/ds/Tooltip';
 import { Avatar } from '../components/ds/Avatar';
 import { Badge } from '../components/ds/Badge';
@@ -13,6 +12,8 @@ import { useVersionStore } from '../store/versionStore';
 import { useTheme } from '../theme';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/knowledgeBase';
 import { BarChart3, Cpu, Layers, ChevronDown, ChevronRight } from 'lucide-react';
+
+const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
 type VizMode = 'card' | 'circuit' | 'layers';
 
@@ -124,22 +125,18 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
 
   const completenessColor = completeness >= 80 ? '#2ecc71' : completeness >= 50 ? '#f1c40f' : '#e74c3c';
 
-  const leftJacks: JackDef[] = [
-    { id: 'agent-preview-in', type: 'target', label: 'AGENT IN', color: '#FE5000' },
-  ];
-
   return (
     <div
-      className="rounded-xl nowheel flex overflow-visible"
+      className="rounded-lg nowheel overflow-visible"
       style={{
-        width: 480,
+        width: 320,
         background: t.surfaceOpaque,
         border: `2px solid #FE500040`,
         boxShadow: `0 0 30px #FE500008, 0 8px 32px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.1)'}`,
       }}
     >
-      <JackGutter jacks={leftJacks} side="left" />
-      <div className="flex-1 min-w-0">
+      <Handle type="target" position={Position.Left} id="agent-preview-in" style={{ ...HANDLE, background: '#FE5000', top: '50%', left: -4 }} />
+      <div>
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3" style={{ background: `linear-gradient(135deg, #FE500010 0%, transparent 100%)`, borderBottom: `1px solid ${t.borderSubtle}` }}>

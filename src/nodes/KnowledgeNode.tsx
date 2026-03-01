@@ -1,10 +1,9 @@
 import { memo, useState, useCallback, useEffect, type DragEvent } from 'react';
-// Position used by JackGutter internally
+import { Handle, Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore, getEffectiveTokens } from '../store/consoleStore';
 import { KNOWLEDGE_TYPES, type KnowledgeType, type ChannelConfig } from '../store/knowledgeBase';
 import { ConnectorTile } from '../components/ConnectorTile';
-import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { useTheme } from '../theme';
 import { useKnowledgeStore, type FileNode } from '../store/knowledgeStore';
@@ -15,6 +14,8 @@ import {
 } from 'lucide-react';
 import { Tile } from '../components/Tile';
 import { useAutoListMode } from '../hooks/useAutoListMode';
+
+const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
 const KNOWLEDGE_TYPE_ORDER: KnowledgeType[] = [
   'ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact',
@@ -95,21 +96,18 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
     items: channels.filter((ch) => ch.knowledgeType === type),
   }));
 
-  const rightJacks: JackDef[] = [
-    { id: 'knowledge-out', type: 'source', label: 'OUTPUT', color: '#3498db' },
-    { id: 'knowledge-feedback-in', type: 'target', label: 'FEEDBACK', color: '#00d4ff' },
-  ];
-
   return (
     <>
     <ResizeHandle minWidth={260} minHeight={120} />
     <div
-      className="rounded-xl h-full flex overflow-visible"
-      style={{ background: t.surface, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 260 }}
+      className="rounded-lg overflow-visible"
+      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`, width: 320 }}
     >
-    <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-xl">
+    <Handle type="target" position={Position.Left} id="knowledge-feedback-in" style={{ ...HANDLE, background: '#95a5a6', top: '50%', left: -4 }} />
+    <Handle type="source" position={Position.Right} id="knowledge-out" style={{ ...HANDLE, background: '#3498db', top: '50%', right: -4 }} />
+    <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-lg">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.borderSubtle}` }}>
+      <div className="flex items-center gap-2 px-3" style={{ height: 40, background: t.surfaceElevated, borderBottom: nodeCollapsed ? 'none' : `1px solid ${t.border}` }}>
         <button
           type="button"
           onClick={() => setNodeCollapsed(!nodeCollapsed)}
@@ -119,11 +117,11 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         >
           {nodeCollapsed ? <ChevronRightIcon size={14} /> : <ChevronDown size={14} />}
         </button>
-        <BookOpen size={14} style={{ color: t.textSecondary }} />
+        <BookOpen size={14} style={{ color: '#3498db' }} />
         <Tooltip content="Add files, docs, and context sources for your agent's knowledge base">
           <span
-            className="text-xs font-medium tracking-wide uppercase flex-1"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 12 }}
+            className="font-bold uppercase flex-1"
+            style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary, fontSize: 10, letterSpacing: '0.15em' }}
           >
             Knowledge
           </span>
@@ -316,7 +314,6 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
 
       </>}
     </div>
-    <JackGutter jacks={rightJacks} side="right" />
     </div>
     </>
   );

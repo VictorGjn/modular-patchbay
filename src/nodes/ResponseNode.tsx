@@ -1,13 +1,14 @@
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
-// Position used by JackGutter internally
+import { Handle, Position } from '@xyflow/react';
 import { ResizeHandle } from '../components/ResizeHandle';
 import { useConsoleStore } from '../store/consoleStore';
 import { OUTPUT_FORMATS, KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { Copy, Check, Maximize2, X } from 'lucide-react';
 import { OutputIcon } from '../components/icons/SectionIcons';
-import { JackGutter, type JackDef } from '../components/JackGutter';
 import { Tooltip } from '../components/ds/Tooltip';
 import { useTheme } from '../theme';
+
+const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
 function renderMarkdown(text: string, t: { textPrimary: string; border: string; statusSuccess: string }): React.ReactNode[] {
   const lines = text.split('\n');
@@ -101,21 +102,17 @@ export const ResponseNode = memo(function ResponseNode() {
     });
   }, [displayedText]);
 
-  const leftJacks: JackDef[] = [
-    { id: 'response-in', type: 'target', label: 'INPUT', color: '#FE5000' },
-  ];
-
   return (
     <>
       <ResizeHandle minWidth={300} minHeight={120} />
       <div
-        className="rounded-xl h-full flex overflow-visible"
-        style={{ background: t.responseBg, backdropFilter: 'blur(8px)', border: `1px solid ${t.border}`, minWidth: 300, minHeight: 100 }}
+        className="rounded-lg overflow-visible"
+        style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)'}`, width: 320 }}
       >
-        <JackGutter jacks={leftJacks} side="left" />
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-xl">
+        <Handle type="target" position={Position.Left} id="response-in" style={{ ...HANDLE, background: '#FE5000', top: '50%', left: -4 }} />
+        <div className="flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-2 px-4 py-2.5 shrink-0" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+        <div className="flex items-center gap-2 px-4 shrink-0" style={{ height: 40, background: t.surfaceElevated, borderBottom: `1px solid ${t.border}` }}>
           <div
             className="w-1.5 h-1.5 rounded-full"
             style={{

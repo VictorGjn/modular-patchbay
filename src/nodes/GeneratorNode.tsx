@@ -1,11 +1,14 @@
 import { memo, useState, useCallback } from 'react';
-import { JackGutter, type JackDef } from '../components/JackGutter';
+import { Handle, Position } from '@xyflow/react';
 import { Tooltip } from '../components/ds/Tooltip';
+import { TextArea } from '../components/ds/TextArea';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMemoryStore } from '../store/memoryStore';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
 import { useTheme } from '../theme';
 import { Sparkles, Loader2, Wand2, RotateCcw } from 'lucide-react';
+
+const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
 export const GeneratorNode = memo(function GeneratorNode() {
   const t = useTheme();
@@ -53,10 +56,6 @@ export const GeneratorNode = memo(function GeneratorNode() {
     setError('');
   }, []);
 
-  const rightJacks: JackDef[] = [
-    { id: 'generator-out', type: 'source', label: 'AGENT', color: '#FE5000' },
-  ];
-
   const stats = lastConfig ? {
     mcp: lastConfig.mcpServerIds?.length || 0,
     skills: lastConfig.skillIds?.length || 0,
@@ -66,23 +65,23 @@ export const GeneratorNode = memo(function GeneratorNode() {
 
   return (
     <div
-      className="rounded-xl flex overflow-visible"
+      className="rounded-xl overflow-visible"
       style={{
-        background: t.surface,
-        backdropFilter: 'blur(8px)',
+        background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
-        width: 280,
+        boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)'}`,
+        width: 260,
       }}
     >
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden rounded-xl">
+      <Handle type="source" position={Position.Right} id="generator-out" style={{ ...HANDLE, background: '#FE5000', top: '50%', right: -4 }} />
         {/* Header */}
-        <div className="flex items-center justify-center px-3 py-2" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+        <div className="flex items-center justify-center px-3" style={{ height: 40, background: t.surfaceElevated, borderBottom: `1px solid ${t.border}`, borderRadius: '12px 12px 0 0' }}>
           <Tooltip content="Describe your agent — AI generates the full configuration for every node on the canvas">
             <div className="flex items-center gap-2">
               <Wand2 size={13} style={{ color: '#FE5000' }} />
               <span
-                className="text-xs font-bold tracking-[3px] uppercase"
-                style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, fontSize: 11 }}
+                className="font-bold uppercase"
+                style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.15em' }}
               >
                 GENERATOR
               </span>
@@ -91,22 +90,12 @@ export const GeneratorNode = memo(function GeneratorNode() {
         </div>
 
         {/* Brain dump input */}
-        <div className="p-3">
-          <textarea
+        <div className="px-4 py-3">
+          <TextArea
             value={brainDump}
             onChange={e => setBrainDump(e.target.value)}
             placeholder="Describe your agent in plain language...&#10;&#10;e.g. &quot;A PM agent that tracks competitors, uses GitHub and Notion, searches the web, and outputs weekly reports to Slack&quot;"
-            className="w-full resize-none outline-none text-xs nodrag nowheel"
             rows={5}
-            style={{
-              background: t.inputBg,
-              border: `1px solid ${t.border}`,
-              borderRadius: 6,
-              color: t.textPrimary,
-              fontFamily: "'Inter', sans-serif",
-              padding: '8px 10px',
-              lineHeight: 1.5,
-            }}
           />
 
           {error && (
@@ -175,9 +164,6 @@ export const GeneratorNode = memo(function GeneratorNode() {
             </button>
           )}
         </div>
-      </div>
-
-      <JackGutter jacks={rightJacks} side="right" />
     </div>
   );
 });
