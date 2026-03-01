@@ -8,7 +8,7 @@
  * This module handles the knowledge section through the pipeline, then merges both.
  */
 
-import type { ChannelConfig } from '../store/knowledgeBase';
+import type { ChannelConfig, Connector } from '../store/knowledgeBase';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore, type McpTool } from '../store/mcpStore';
@@ -22,7 +22,7 @@ import {
 import { useTraceStore } from '../store/traceStore';
 import { useVersionStore } from '../store/versionStore';
 import { useTreeIndexStore } from '../store/treeIndexStore';
-import { estimateTokens } from './treeIndexer';
+import { estimateTokens, type TreeNode } from './treeIndexer';
 import { renderFilteredMarkdown, applyDepthFilter } from '../utils/depthFilter';
 import { streamCompletion, streamAgentSdk } from './llmService';
 
@@ -31,6 +31,7 @@ import { streamCompletion, streamAgentSdk } from './llmService';
 export interface PipelineChatOptions {
   userMessage: string;
   channels: ChannelConfig[];
+  connectors?: Connector[];
   history: { role: 'user' | 'assistant' | 'system'; content: string }[];
   agentMeta: { name: string; description: string; avatar?: string; tags?: string[] };
   providerId: string;
@@ -40,10 +41,22 @@ export interface PipelineChatOptions {
   onError: (err: Error) => void;
 }
 
+export interface SourceHeatmapEntry {
+  name: string;
+  path: string;
+  nodeCount: number;
+  totalTokens: number;
+  filteredTokens: number;
+  depth: number;
+  knowledgeType: string;
+  headings: { nodeId: string; title: string; depth: number; tokens: number }[];
+}
+
 export interface PipelineChatStats {
   pipeline: PipelineResult | null;
   systemTokens: number;
   totalContextTokens: number;
+  heatmap: SourceHeatmapEntry[];
 }
 
 // ── Build non-knowledge system prompt (identity, instructions, constraints, workflow, tools) ──
@@ -269,6 +282,17 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       }
     }
 
+    // 2d. Append connector references (services like Notion, Slack, HubSpot)
+    const activeConnectors = (options.connectors || []).filter(c => c.enabled && c.direction !== 'write');
+    if (activeConnectors.length > 0) {
+      const connectorLines = activeConnectors.map(c => {
+        const scope = c.hint ? ` (scope: ${c.hint})` : '';
+        return `- ${c.name} [${c.service}] — ${c.direction}${scope}`;
+      });
+      const connectorBlock = `<connectors>\nAvailable data connectors (use via MCP tools):\n${connectorLines.join('\n')}\n</connectors>`;
+      knowledgeBlock = knowledgeBlock ? `${knowledgeBlock}\n\n${connectorBlock}` : connectorBlock;
+    }
+
     // 3. Assemble final system prompt
     const systemParts = [systemFrame];
     if (knowledgeBlock) systemParts.push(knowledgeBlock);
@@ -329,12 +353,42 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     // 7. End trace
     traceStore.endTrace(traceId);
 
-    // 8. Report stats
+    // 8. Build heatmap from tree indexes
+    const heatmap: SourceHeatmapEntry[] = [];
+    const heatmapStore = useTreeIndexStore.getState();
+    for (const ch of activeChannels) {
+      const treeIdx = heatmapStore.getIndex(ch.path);
+      if (!treeIdx) continue;
+
+      const headings: SourceHeatmapEntry['headings'] = [];
+      function walkHeadings(node: TreeNode) {
+        if (node.depth > 0 && node.depth <= 2) {
+          headings.push({ nodeId: node.nodeId, title: node.title, depth: node.depth, tokens: node.totalTokens });
+        }
+        for (const child of node.children) walkHeadings(child);
+      }
+      walkHeadings(treeIdx.root);
+
+      const filtered = applyDepthFilter(treeIdx, ch.depth);
+      heatmap.push({
+        name: ch.name,
+        path: ch.path,
+        nodeCount: treeIdx.nodeCount,
+        totalTokens: treeIdx.totalTokens,
+        filteredTokens: filtered.totalTokens,
+        depth: ch.depth,
+        knowledgeType: ch.knowledgeType,
+        headings,
+      });
+    }
+
+    // 9. Report stats
     const totalContextTokens = systemTokens + history.reduce((s, m) => s + estimateTokens(m.content), 0) + estimateTokens(userMessage);
     onDone({
       pipeline: pipelineResult,
       systemTokens,
       totalContextTokens,
+      heatmap,
     });
 
   } catch (err) {

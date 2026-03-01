@@ -15,34 +15,86 @@ import { TraceViewer } from './TraceViewer';
 function PipelineStatsBar() {
   const t = useTheme();
   const stats = useConversationStore(s => s.lastPipelineStats);
+  const [expanded, setExpanded] = useState(false);
   if (!stats) return null;
 
   const p = stats.pipeline;
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
 
+  const DEPTH_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e67e22', '#999'];
+  const DEPTH_LABELS = ['Full', 'Detail', 'Summary', 'Headlines', 'Mention'];
+
   return (
-    <div
-      className="flex items-center gap-3 px-4 py-1.5 text-[9px]"
-      style={{ borderTop: `1px solid ${t.border}`, fontFamily: "'Space Mono', monospace", color: t.textDim }}
-      role="status"
-      aria-label="Pipeline statistics"
-    >
-      <Zap size={9} style={{ color: '#FE5000', flexShrink: 0 }} />
-      <span>ctx: {fmtTokens(stats.totalContextTokens)}</span>
-      <span>sys: {fmtTokens(stats.systemTokens)}</span>
-      {p && (
-        <>
-          <span style={{ color: p.compression.ratio < 0.8 ? '#2ecc71' : t.textDim }}>
-            compress: {Math.round((1 - p.compression.ratio) * 100)}%
-          </span>
-          <span>
-            {p.compression.removals.duplicates > 0 && `${p.compression.removals.duplicates} dedup `}
-            {p.compression.removals.filler > 0 && `${p.compression.removals.filler} filler `}
-            {p.compression.removals.codeComments > 0 && `${p.compression.removals.codeComments} comments`}
-          </span>
-          <span>{p.sources.length} sources</span>
-          <span>{p.timing.totalMs}ms</span>
-        </>
+    <div style={{ borderTop: `1px solid ${t.border}` }}>
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-3 px-4 py-1.5 text-[9px] w-full border-none cursor-pointer"
+        style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: 'transparent' }}
+        aria-label="Pipeline statistics"
+        aria-expanded={expanded}
+      >
+        <Zap size={9} style={{ color: '#FE5000', flexShrink: 0 }} />
+        <span>ctx: {fmtTokens(stats.totalContextTokens)}</span>
+        <span>sys: {fmtTokens(stats.systemTokens)}</span>
+        {p && (
+          <>
+            <span style={{ color: p.compression.ratio < 0.8 ? '#2ecc71' : t.textDim }}>
+              compress: {Math.round((1 - p.compression.ratio) * 100)}%
+            </span>
+            <span>{p.sources.length} src</span>
+            <span>{p.timing.totalMs}ms</span>
+          </>
+        )}
+        <span className="ml-auto">{expanded ? '▾' : '▸'}</span>
+      </button>
+
+      {/* Depth Heatmap */}
+      {expanded && stats.heatmap.length > 0 && (
+        <div className="px-4 pb-2 flex flex-col gap-2">
+          {stats.heatmap.map(src => (
+            <div key={src.path}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-medium" style={{ color: t.textPrimary }}>{src.name}</span>
+                <span className="text-[8px] px-1.5 py-0.5 rounded"
+                  style={{ fontFamily: "'Space Mono', monospace", background: DEPTH_COLORS[src.depth] + '18', color: DEPTH_COLORS[src.depth] }}>
+                  {DEPTH_LABELS[src.depth]}
+                </span>
+                <span className="text-[8px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+                  {fmtTokens(src.filteredTokens)}/{fmtTokens(src.totalTokens)}
+                </span>
+              </div>
+              {/* Heading-level heatmap bars */}
+              {src.headings.length > 0 && (
+                <div className="flex flex-col gap-0.5 pl-2">
+                  {src.headings.slice(0, 8).map(h => {
+                    const maxTokens = Math.max(...src.headings.map(x => x.tokens), 1);
+                    const pct = Math.max(5, (h.tokens / maxTokens) * 100);
+                    const barColor = DEPTH_COLORS[Math.min(h.depth, 4)];
+                    return (
+                      <div key={h.nodeId} className="flex items-center gap-1.5">
+                        <span className="text-[8px] truncate w-24 text-right" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+                          {h.title}
+                        </span>
+                        <div style={{ flex: 1, height: 4, background: `${barColor}18`, borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 2 }} />
+                        </div>
+                        <span className="text-[7px] w-6 text-right" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+                          {fmtTokens(h.tokens)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {src.headings.length > 8 && (
+                    <span className="text-[8px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+                      +{src.headings.length - 8} more
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -62,6 +114,7 @@ function ChatSection() {
 
   const agentConfig = useConsoleStore(s => s.agentConfig);
   const channels = useConsoleStore(s => s.channels);
+  const connectors = useConsoleStore(s => s.connectors);
   const agentMeta = useConsoleStore(s => s.agentMeta);
   const selectedProviderId = useProviderStore(s => s.selectedProviderId);
 
@@ -84,6 +137,7 @@ function ChatSection() {
       await runPipelineChat({
         userMessage: userMsg,
         channels,
+        connectors,
         history: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
         agentMeta: { name: agentMeta.name, description: agentMeta.description, avatar: agentMeta.avatar, tags: agentMeta.tags },
         providerId: selectedProviderId || 'anthropic',
@@ -97,7 +151,7 @@ function ChatSection() {
     } finally {
       setStreaming(false);
     }
-  }, [inputText, streaming, messages, agentConfig, channels, agentMeta, selectedProviderId, setInputText, addMessage, setStreaming, updateLastAssistant, setLastPipelineStats]);
+  }, [inputText, streaming, messages, agentConfig, channels, connectors, agentMeta, selectedProviderId, setInputText, addMessage, setStreaming, updateLastAssistant, setLastPipelineStats]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
