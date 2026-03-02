@@ -251,6 +251,7 @@ export interface ConsoleState {
   toggleSkill: (id: string) => void;
   addSkill: (id: string) => void;
   removeSkill: (id: string) => void;
+  upsertSkill: (skill: { id: string; name: string; description?: string }) => void;
   loadAgent: (id: string) => void;
   toggleConnector: (id: string) => void;
   addConnector: (connector: Connector) => void;
@@ -639,6 +640,29 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   toggleSkill: (id: string) => { set({ skills: toggleItemById(get().skills, id) }); },
   addSkill: (id: string) => { set({ skills: addItemById(get().skills, id) }); },
   removeSkill: (id: string) => { set({ skills: removeItemById(get().skills, id) }); },
+  upsertSkill: (skill) => {
+    const existing = get().skills.find((s) => s.id === skill.id);
+    if (existing) {
+      set({
+        skills: get().skills.map((s) =>
+          s.id === skill.id ? { ...s, name: skill.name, description: skill.description ?? s.description, added: true, enabled: true } : s,
+        ),
+      });
+      return;
+    }
+
+    set({
+      skills: [...get().skills, {
+        id: skill.id,
+        name: skill.name,
+        icon: 'zap',
+        enabled: true,
+        added: true,
+        description: skill.description ?? 'Installed from skills.sh',
+        category: 'development',
+      }],
+    });
+  },
 
   loadAgent: (id: string) => {
     const agent = get().agents.find((a) => a.id === id);
