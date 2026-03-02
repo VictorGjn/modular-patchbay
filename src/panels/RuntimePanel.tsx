@@ -6,7 +6,7 @@ import { useProviderStore } from '../store/providerStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { runTeam, extractContracts } from '../services/runtimeService';
 import { TextArea, Button, Card, EmptyState, Spinner, StatusDot } from '../components/ds';
-import { Play, FileSearch, Users, GitBranch, Globe } from 'lucide-react';
+import { Play, FileSearch, Users, GitBranch } from 'lucide-react';
 
 /* ── Epistemic Colors ── */
 
@@ -224,7 +224,11 @@ export function RuntimePanel() {
                 type="text"
                 placeholder="https://github.com/owner/repo"
                 value={repoUrls[a.id] || ''}
-                onChange={(e) => setRepoUrls((prev) => ({ ...prev, [a.id]: e.target.value }))}
+                onChange={(e) => {
+                  const url = e.target.value;
+                  setRepoUrls((prev) => ({ ...prev, [a.id]: url }));
+                  updateAgent(a.id, { repoUrl: url || undefined });
+                }}
                 className="flex-1 text-[10px] px-2 rounded"
                 style={{
                   background: t.surfaceOpaque,
