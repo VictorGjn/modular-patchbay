@@ -276,7 +276,7 @@ export function AgentBuilder() {
                   <button type="button" aria-label="Remove criterion" onClick={() => {
                     const updated = objectives.successCriteria.filter((_, j) => j !== i);
                     updateInstruction({ objectives: { ...objectives, successCriteria: updated } });
-                  }} className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}><X size={11} /></button>
+                  }} className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-[#ff000010]" style={{ color: t.textFaint }}><X size={11} /></button>
                 </div>
               ))}
               <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, successCriteria: [...objectives.successCriteria, ''] } })}
@@ -325,7 +325,7 @@ export function AgentBuilder() {
                   {step.action || 'action'}
                 </span>
                 <button type="button" aria-label={`Remove step ${i + 1}`} onClick={() => removeWorkflowStep(step.id)}
-                  className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}><X size={11} /></button>
+                  className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-[#ff000010]" style={{ color: t.textFaint }}><X size={11} /></button>
               </div>
               {i < workflowSteps.length - 1 && (
                 <div style={{ width: 2, height: 12, background: '#e67e2220', marginLeft: 11 }} />

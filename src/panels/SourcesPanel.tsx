@@ -401,14 +401,14 @@ function KnowledgeSection() {
               {/* Depth bar */}
               <div className="flex items-center gap-1">
                 <button type="button" aria-label="Decrease depth" onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
-                  className="border-none bg-transparent cursor-pointer p-1 rounded" style={{ color: depth <= 0 ? t.textFaint : t.textDim }}>
+                  className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: depth <= 0 ? t.textFaint : t.textDim }}>
                   <Minus size={10} />
                 </button>
                 <div style={{ width: 36, height: 6, background: `${barColor}18`, borderRadius: 3, overflow: 'hidden' }}>
                   <div style={{ width: `${barPct}%`, height: '100%', background: barColor, borderRadius: 3, transition: 'width 200ms' }} />
                 </div>
                 <button type="button" aria-label="Increase depth" onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
-                  className="border-none bg-transparent cursor-pointer p-1 rounded" style={{ color: depth >= 4 ? t.textFaint : t.textDim }}>
+                  className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: depth >= 4 ? t.textFaint : t.textDim }}>
                   <Plus size={10} />
                 </button>
                 <span className="text-[8px] w-8 text-right" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
@@ -422,7 +422,7 @@ function KnowledgeSection() {
               </span>
               {/* Remove */}
               <button type="button" aria-label={`Remove ${ch.name}`} onClick={() => removeChannel(ch.sourceId)}
-                className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
+                className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
                 <X size={10} />
               </button>
             </div>
@@ -463,12 +463,12 @@ function KnowledgeSection() {
                   </span>
                   <button type="button" aria-label={`Configure ${conn.name} credentials`}
                     onClick={() => { setAuthExpanded(isAuthOpen ? null : conn.service); setAuthKey(''); }}
-                    className="border-none bg-transparent cursor-pointer p-1 rounded"
+                    className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center"
                     style={{ color: isConnected ? '#00ff88' : t.textDim }}>
                     <KeyRound size={10} />
                   </button>
                   <button type="button" aria-label={`Remove ${conn.name}`} onClick={() => removeConnector(conn.id)}
-                    className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
+                    className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
                     <X size={10} />
                   </button>
                 </div>
@@ -510,28 +510,34 @@ function KnowledgeSection() {
           }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+          onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+          onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
           <Plus size={10} /> Files
         </button>
-        <button type="button" onClick={() => setShowConnectorPicker(true)}
-          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[10px] tracking-wide uppercase cursor-pointer"
+        <button type="button" aria-label="Add connector" onClick={() => setShowConnectorPicker(true)}
+          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[10px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
           style={{
             background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
             fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms',
           }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = '#9b59b6'; e.currentTarget.style.color = '#9b59b6'; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+          onFocus={e => { e.currentTarget.style.borderColor = '#9b59b6'; e.currentTarget.style.color = '#9b59b6'; }}
+          onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
           <Plug size={10} /> Connect
         </button>
-        <button type="button" onClick={() => setRepoPrompt(!repoPrompt)}
-          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[10px] tracking-wide uppercase cursor-pointer"
+        <button type="button" aria-label="Index repository" onClick={() => setRepoPrompt(!repoPrompt)}
+          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[10px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
           style={{
             background: repoPrompt ? '#24292F15' : 'transparent', border: `1px solid ${repoPrompt ? '#24292F' : t.border}`, color: repoPrompt ? '#24292F' : t.textDim,
             fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms',
           }}
           onMouseEnter={e => { if (!repoPrompt) { e.currentTarget.style.borderColor = '#24292F'; e.currentTarget.style.color = '#24292F'; }}}
           onMouseLeave={e => { if (!repoPrompt) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}}
+          onFocus={e => { if (!repoPrompt) { e.currentTarget.style.borderColor = '#24292F'; e.currentTarget.style.color = '#24292F'; }}}
+          onBlur={e => { if (!repoPrompt) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}}
         >
           <FolderGit2 size={10} /> Repo
         </button>
@@ -687,11 +693,13 @@ function McpSection() {
           );
         })}
       </div>
-      <button type="button" onClick={() => setShowMarketplace(true)}
-        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2 rounded text-[11px] tracking-wide uppercase cursor-pointer"
+      <button type="button" aria-label="Open MCP Library" onClick={() => setShowMarketplace(true)}
+        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
         style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+        onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+        onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
       >
         <Library size={11} /> MCP Library
       </button>
