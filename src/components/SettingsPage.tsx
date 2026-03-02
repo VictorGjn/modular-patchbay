@@ -172,7 +172,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   ))}
                 </div>
               </div>
-              {/* Check Status button */}
+              {/* Check Status / Refresh Models */}
               <div className="flex items-center gap-2 mt-1">
                 <button
                   type="button"
@@ -183,6 +183,15 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                 >
                   {testing ? <Loader2 size={12} className="animate-spin" /> : <PlugZap size={12} />}
                   Check Status
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTest}
+                  disabled={testing}
+                  className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
+                  style={{ color: t.textSecondary, background: t.badgeBg, opacity: testing ? 0.6 : 1 }}
+                >
+                  Refresh Models
                 </button>
               </div>
             </>
@@ -251,6 +260,16 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                 >
                   {testing ? <Loader2 size={12} className="animate-spin" /> : <Plug size={12} />}
                   Test Connection
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleTest}
+                  disabled={testing}
+                  className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
+                  style={{ color: t.textSecondary, background: t.badgeBg, opacity: testing ? 0.6 : 1 }}
+                >
+                  Refresh Models
                 </button>
 
                 {provider.keyPageUrl && !isCodexOAuth && (
