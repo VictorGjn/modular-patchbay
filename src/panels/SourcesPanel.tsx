@@ -24,7 +24,7 @@ import {
   Wand2, Sparkles, Loader2, RotateCcw,
   ChevronDown, ChevronRight,
   Database, Plug, Zap, Brain,
-  Plus, X, Minus,
+  Plus, X, Minus, Library,
   Lightbulb, ArrowUpRight, Check, AlertCircle, Bot, FolderGit2, KeyRound,
 } from 'lucide-react';
 
@@ -600,7 +600,7 @@ function McpSection() {
   const mcpServers = useConsoleStore(s => s.mcpServers);
   // const toggleMcp = useConsoleStore(s => s.toggleMcp);
   const removeMcp = useConsoleStore(s => s.removeMcp);
-  const addMcp = useConsoleStore(s => s.addMcp);
+  const setShowSettings = useConsoleStore(s => s.setShowSettings);
   const mcpState = useMcpStore(s => s.servers);
   const mcpHealth = useHealthStore(s => s.mcpHealth);
   const [collapsed, setCollapsed] = useState(false);
@@ -696,24 +696,16 @@ function McpSection() {
           );
         })}
       </div>
-      {/* Add from installed MCP servers */}
-      {(() => {
-        const allMcp = useConsoleStore.getState().mcpServers;
-        const available = allMcp.filter(m => !m.added);
-        if (available.length === 0) return null;
-        return (
-          <select
-            aria-label="Add MCP server to agent"
-            onChange={(e) => { if (e.target.value) { addMcp(e.target.value); e.target.value = ''; } }}
-            defaultValue=""
-            className="w-full mt-2 px-2 py-1.5 rounded text-[10px] cursor-pointer"
-            style={{ background: t.surfaceOpaque, border: `1px dashed ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", minHeight: 32 }}
-          >
-            <option value="" disabled>+ Add installed MCP server…</option>
-            {available.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
-        );
-      })()}
+      <button type="button" aria-label="Open MCP Library" onClick={() => setShowSettings(true, 'mcp')}
+        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
+        style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+        onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+        onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+      >
+        <Library size={11} /> MCP Library
+      </button>
     </Section>
   );
 }
@@ -723,7 +715,7 @@ function SkillsSection() {
   const t = useTheme();
   const skills = useConsoleStore(s => s.skills);
   const removeSkill = useConsoleStore(s => s.removeSkill);
-  const addSkill = useConsoleStore(s => s.addSkill);
+  const setShowSettings = useConsoleStore(s => s.setShowSettings);
   const [collapsed, setCollapsed] = useState(false);
 
   const activeCount = skills.filter(s => s.enabled !== false).length;
@@ -753,24 +745,16 @@ function SkillsSection() {
           </div>
         ))}
       </div>
-      {/* Add from installed skills */}
-      {(() => {
-        const allSkills = useConsoleStore.getState().skills;
-        const available = allSkills.filter(s => !s.added);
-        if (available.length === 0) return null;
-        return (
-          <select
-            aria-label="Add skill to agent"
-            onChange={(e) => { if (e.target.value) { addSkill(e.target.value); e.target.value = ''; } }}
-            defaultValue=""
-            className="w-full mt-2 px-2 py-1.5 rounded text-[10px] cursor-pointer"
-            style={{ background: t.surfaceOpaque, border: `1px dashed ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", minHeight: 32 }}
-          >
-            <option value="" disabled>+ Add installed skill…</option>
-            {available.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        );
-      })()}
+      <button type="button" aria-label="Open Skill Library" onClick={() => setShowSettings(true, 'skills')}
+        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
+        style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+        onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+        onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+      >
+        <Library size={11} /> Skill Library
+      </button>
     </Section>
   );
 }
