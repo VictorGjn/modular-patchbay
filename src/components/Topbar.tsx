@@ -1,7 +1,7 @@
 import { useConsoleStore } from '../store/consoleStore';
 import { useThemeStore } from '../store/themeStore';
 import { useTheme } from '../theme';
-import { PRESETS, OUTPUT_FORMATS } from '../store/knowledgeBase';
+import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 import { useMemo } from 'react';
 import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings, ShoppingBag, Pencil, FlaskConical } from 'lucide-react';
@@ -71,8 +71,6 @@ function ModeToggle({ t }: { t: ReturnType<typeof useTheme> }) {
 export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () => void; onSettingsClick?: () => void }) {
   const selectedModel = useConsoleStore((s) => s.selectedModel);
   const setModel = useConsoleStore((s) => s.setModel);
-  const selectedPreset = useConsoleStore((s) => s.selectedPreset);
-  const loadPreset = useConsoleStore((s) => s.loadPreset);
   const outputFormat = useConsoleStore((s) => s.outputFormat);
   const setOutputFormat = useConsoleStore((s) => s.setOutputFormat);
   const running = useConsoleStore((s) => s.running);
@@ -150,13 +148,6 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
       {/* Version indicator */}
       <VersionIndicator />
 
-      {/* Preset selector */}
-      <TopbarSelect value={selectedPreset} onChange={loadPreset} t={t} ariaLabel="Select preset">
-        <option value="">-- Preset --</option>
-        {PRESETS.map((p) => (
-          <option key={p.id} value={p.id}>{p.name}</option>
-        ))}
-      </TopbarSelect>
 
       {/* Output format selector */}
       <TopbarSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)} t={t} ariaLabel="Select output format">
