@@ -28,7 +28,7 @@ test.describe('Pipeline Flow', () => {
     await expect(tracesTab).toBeVisible();
     await tracesTab.click();
     // Should switch to traces view
-    await expect(page.getByText('Execution Traces')).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Traces', selected: true })).toBeVisible();
   });
 
   test('chat tab shows conversation tester', async ({ page }) => {
@@ -36,7 +36,7 @@ test.describe('Pipeline Flow', () => {
     const chatTab = page.getByRole('tab', { name: 'Chat' });
     await expect(chatTab).toBeVisible();
     await chatTab.click();
-    await expect(page.getByText('Conversation Tester')).toBeVisible();
+    await expect(page.getByLabel('Test message')).toBeVisible();
   });
 
   test('Add Sources button is present in knowledge section', async ({ page }) => {
@@ -52,11 +52,11 @@ test.describe('Pipeline Flow', () => {
 
     // Start on chat
     await page.getByRole('tab', { name: 'Chat' }).click();
-    await expect(page.getByText('Conversation Tester')).toBeVisible();
+    await expect(page.getByLabel('Test message')).toBeVisible();
 
     // Switch to traces
     await page.getByRole('tab', { name: 'Traces' }).click();
-    await expect(page.getByText('Execution Traces')).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Traces', selected: true })).toBeVisible();
 
     // Switch to export
     await page.getByRole('tab', { name: 'Export' }).click();

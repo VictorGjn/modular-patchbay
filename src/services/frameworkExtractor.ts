@@ -321,7 +321,7 @@ export function extractFramework(markdown: string, sourceName: string): Extracte
         case 'naming':
           result.namingPatterns.push(...extractNamingFromSection(section));
           break;
-        case 'output':
+        case 'output': {
           // Extract output formatting rules — bullet points and template blocks
           for (const line of section.content.split('\n')) {
             const bullet = line.match(/^[-*]\s+(.+)/);
@@ -333,6 +333,7 @@ export function extractFramework(markdown: string, sourceName: string): Extracte
             for (const block of templateBlocks) result.outputRules.push(block);
           }
           break;
+        }
       }
       break; // first matching rule wins
     }
