@@ -610,16 +610,20 @@ function McpSection() {
   const activeCount = selectedMcpServers.length;
   const errorCount = selectedMcpServers.filter(m => mcpHealth[m.id]?.status === 'error').length;
 
-  const getStatus = (id: string) => {
+  const resolveStoreServer = (serverId: string, serverName: string) => {
+    return mcpState.find(s => s.id === serverId) ?? mcpState.find(s => s.name === serverName);
+  };
+
+  const getStatus = (serverId: string, serverName: string) => {
     // Health probe takes priority over mcpStore status
-    const health = mcpHealth[id];
+    const health = mcpHealth[serverId];
     if (health) {
       if (health.status === 'healthy') return 'ok';
       if (health.status === 'degraded') return 'warn';
       if (health.status === 'error') return 'err';
       if (health.status === 'checking') return 'warn';
     }
-    const state = mcpState.find(s => s.id === id);
+    const state = resolveStoreServer(serverId, serverName);
     if (!state) return 'off';
     if (state.status === 'connected') return 'ok';
     if (state.status === 'error') return 'err';
@@ -629,10 +633,51 @@ function McpSection() {
 
   const handleProbeAll = useCallback(async () => {
     setProbing(true);
-    const { probeAllMcp } = await import('../services/healthService');
-    await probeAllMcp(selectedMcpServers.map(m => m.id));
+    const { setMcpHealth, setMcpChecking } = useHealthStore.getState();
+
+    await Promise.allSettled(selectedMcpServers.map(async (server) => {
+      const target = resolveStoreServer(server.id, server.name);
+      if (!target) {
+        setMcpHealth(server.id, {
+          status: 'error',
+          latencyMs: 0,
+          toolCount: 0,
+          tools: [],
+          errorMessage: `Not found: ${server.id}`,
+          checkedAt: Date.now(),
+        });
+        return;
+      }
+
+      setMcpChecking(server.id);
+      const start = performance.now();
+      try {
+        const res = await fetch(`${API_BASE}/health/mcp/${target.id}`, { signal: AbortSignal.timeout(15000) });
+        const latencyMs = Math.round(performance.now() - start);
+        const json = await res.json();
+        const probe = json.data ?? json;
+        setMcpHealth(server.id, {
+          status: (probe.status ?? 'error') as 'healthy' | 'degraded' | 'error' | 'checking' | 'unknown',
+          latencyMs,
+          toolCount: probe.toolCount ?? probe.tools?.length ?? 0,
+          tools: probe.tools ?? [],
+          errorMessage: probe.errorMessage ?? probe.error ?? null,
+          checkedAt: Date.now(),
+        });
+      } catch (err) {
+        setMcpHealth(server.id, {
+          status: 'error',
+          latencyMs: Math.round(performance.now() - start),
+          toolCount: 0,
+          tools: [],
+          errorMessage: err instanceof Error ? err.message : 'Probe failed',
+          checkedAt: Date.now(),
+        });
+      }
+    }));
+
     setProbing(false);
-  }, [selectedMcpServers]);
+  }, [selectedMcpServers, mcpState]);
 
   const STATUS_COLORS: Record<string, { bg: string; glow: string }> = {
     ok: { bg: '#00ff88', glow: '0 0 6px rgba(0,255,136,0.4)' },
@@ -655,9 +700,9 @@ function McpSection() {
       )}
       <div className="flex flex-col">
         {selectedMcpServers.map(server => {
-          const status = getStatus(server.id);
+          const status = getStatus(server.id, server.name);
           const sc = STATUS_COLORS[status];
-          const state = mcpState.find(s => s.id === server.id);
+          const state = resolveStoreServer(server.id, server.name);
           const health = mcpHealth[server.id];
           const toolCount = health?.toolCount ?? state?.tools?.length ?? 0;
           return (

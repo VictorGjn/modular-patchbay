@@ -33,7 +33,7 @@ interface McpStore {
   error?: string;
 
   loadServers: () => Promise<void>;
-  addServer: (config: { name: string; type?: 'stdio' | 'sse' | 'http'; command: string; args: string[]; env: Record<string, string>; url?: string; headers?: Record<string, string> }) => Promise<McpServerState | null>;
+  addServer: (config: { id?: string; name: string; type?: 'stdio' | 'sse' | 'http'; command: string; args: string[]; env: Record<string, string>; url?: string; headers?: Record<string, string> }) => Promise<McpServerState | null>;
   updateServer: (id: string, patch: Partial<Pick<McpServerState, 'name' | 'command' | 'args' | 'env' | 'url' | 'headers' | 'type'>>) => Promise<McpServerState | null>;
   connectServer: (id: string) => Promise<void>;
   disconnectServer: (id: string) => Promise<void>;
