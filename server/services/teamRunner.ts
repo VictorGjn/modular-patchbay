@@ -106,8 +106,10 @@ export async function runTeam(config: TeamRunConfig, onProgress?: ProgressCallba
     }
 
     // Step 2: Index repos for agents that have repoUrl
+    // Persist clones when using Claude SDK so agents can edit files
+    const useSdk = config.providerId === 'claude-agent-sdk';
     const agentsWithRepos = config.agents.filter((a) => a.repoUrl);
-    const repoIndexes = new Map<string, string>();
+    const repoIndexes = new Map<string, { markdown: string; clonePath?: string }>();
 
     if (agentsWithRepos.length > 0) {
       const indexResults = await Promise.allSettled(
@@ -115,23 +117,28 @@ export async function runTeam(config: TeamRunConfig, onProgress?: ProgressCallba
           const result = await indexGitHubRepo({
             url: agent.repoUrl!,
             ref: agent.repoRef,
+            persist: useSdk, // keep clone on disk for SDK agents to edit
           });
-          return { url: agent.repoUrl!, markdown: result.fullMarkdown };
+          return { url: agent.repoUrl!, markdown: result.fullMarkdown, clonePath: result.clonePath };
         }),
       );
       for (const r of indexResults) {
         if (r.status === 'fulfilled') {
-          repoIndexes.set(r.value.url, r.value.markdown);
+          repoIndexes.set(r.value.url, { markdown: r.value.markdown, clonePath: r.value.clonePath });
         }
       }
     }
 
     // Step 3: Run all agents in parallel, injecting contract facts + repo knowledge
-    const agentConfigs = config.agents.map((agent) => ({
-      ...agent,
-      teamFacts: [...(agent.teamFacts ?? []), ...contractFacts],
-      repoKnowledge: agent.repoUrl ? repoIndexes.get(agent.repoUrl) : undefined,
-    }));
+    const agentConfigs = config.agents.map((agent) => {
+      const repoData = agent.repoUrl ? repoIndexes.get(agent.repoUrl) : undefined;
+      return {
+        ...agent,
+        teamFacts: [...(agent.teamFacts ?? []), ...contractFacts],
+        repoKnowledge: repoData?.markdown,
+        repoClonePath: repoData?.clonePath,
+      };
+    });
 
     const results = await Promise.allSettled(
       agentConfigs.map((agent) => runAgent(agent, onProgress)),
