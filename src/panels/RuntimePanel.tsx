@@ -6,7 +6,7 @@ import { useProviderStore } from '../store/providerStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { runTeam, extractContracts } from '../services/runtimeService';
 import { TextArea, Button, Card, EmptyState, Spinner, StatusDot } from '../components/ds';
-import { Play, FileSearch, Users } from 'lucide-react';
+import { Play, FileSearch, Users, GitBranch, Globe } from 'lucide-react';
 
 /* ── Epistemic Colors ── */
 
@@ -112,6 +112,15 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
 export function RuntimePanel() {
   const t = useTheme();
   const [featureSpec, setFeatureSpec] = useState('');
+  const updateAgent = useTeamStore((s) => s.updateAgent);
+  const [repoUrls, setRepoUrls] = useState<Record<string, string>>(() => {
+    // Initialize from teamStore
+    const urls: Record<string, string> = {};
+    for (const a of useTeamStore.getState().agents) {
+      if (a.repoUrl) urls[a.id] = a.repoUrl;
+    }
+    return urls;
+  });
   const abortRef = useRef<AbortController | null>(null);
 
   const status = useRuntimeStore((s) => s.status);
@@ -144,6 +153,7 @@ export function RuntimePanel() {
         agentId: a.id,
         name: a.name,
         systemPrompt: a.description,
+        repoUrl: repoUrls[a.id] || undefined,
       })),
       featureSpec,
       contractFacts: useRuntimeStore.getState().contractFacts,
@@ -197,6 +207,38 @@ export function RuntimePanel() {
           onChange={(e) => setFeatureSpec(e.target.value)}
           aria-label="Feature specification"
         />
+        {/* Repo URL per agent */}
+        <div className="mt-3 mb-1">
+          <div
+            className="text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5 flex items-center gap-1.5"
+            style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+          >
+            <GitBranch size={10} /> Agent Repositories
+          </div>
+          {teamAgents.map((a) => (
+            <div key={a.id} className="flex items-center gap-2 mb-1.5">
+              <span className="text-[10px] w-24 truncate shrink-0" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+                {a.name}
+              </span>
+              <input
+                type="text"
+                placeholder="https://github.com/owner/repo"
+                value={repoUrls[a.id] || ''}
+                onChange={(e) => setRepoUrls((prev) => ({ ...prev, [a.id]: e.target.value }))}
+                className="flex-1 text-[10px] px-2 rounded"
+                style={{
+                  background: t.surfaceOpaque,
+                  border: `1px solid ${t.border}`,
+                  color: t.textPrimary,
+                  height: 32,
+                  fontFamily: "'Space Mono', monospace",
+                }}
+                aria-label={`GitHub repo URL for ${a.name}`}
+              />
+            </div>
+          ))}
+        </div>
+
         <div className="flex gap-2 mt-2">
           <Button
             variant="secondary"
