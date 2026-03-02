@@ -80,8 +80,9 @@ function loadSavedServers() {
 export function startServer(port: number = 4800) {
   loadSavedServers();
   const app = createApp();
-  const server = app.listen(port, '0.0.0.0', () => {
-    console.log(`Modular Studio running at http://localhost:${port}`);
+  const server = app.listen(port, () => {
+    const addr = server.address();
+    console.log(`Modular Studio running at http://localhost:${port}`, addr);
   });
   server.on('error', (err: NodeJS.ErrnoException) => {
     console.error(`Failed to start server on port ${port}:`, err.message);
@@ -102,10 +103,13 @@ process.on('unhandledRejection', (err) => {
 });
 
 // Start when run directly via `npm run server` or `tsx server/index.ts`
-const isMainModule = import.meta.url.includes('server/index');
+// Check URL (Unix) or backslash-encoded URL (Windows) or argv for direct invocation
+const selfUrl = import.meta.url || '';
+const isMainModule = selfUrl.includes('server/index') || selfUrl.includes('server%5Cindex') || selfUrl.includes('server\\index');
 if (isMainModule) {
   const server = startServer();
-  // Prevent Node from exiting — keep a reference to the server
-  process.on('SIGINT', () => { server.close(); process.exit(0); });
-  process.on('SIGTERM', () => { server.close(); process.exit(0); });
+  // Prevent Node from exiting — keep-alive interval + signal handlers
+  const keepAlive = setInterval(() => {}, 1 << 30); // ~12 days
+  process.on('SIGINT', () => { clearInterval(keepAlive); server.close(); process.exit(0); });
+  process.on('SIGTERM', () => { clearInterval(keepAlive); server.close(); process.exit(0); });
 }
