@@ -4,7 +4,7 @@ import { useVersionStore } from '../store/versionStore';
 import { useTheme } from '../theme';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/knowledgeBase';
 
-const TYPE_ORDER: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+const TYPE_ORDER: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
 const DEPTH_BAR_PCT = [100, 75, 50, 25, 10];
 
 export function AgentVizCircuit() {

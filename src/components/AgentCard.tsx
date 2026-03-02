@@ -110,7 +110,7 @@ function MiniWorkflow({ steps }: { steps: { label: string; hasLoop: boolean }[] 
 
 // ─── Knowledge Bars ─────────────────────────────────────────────────
 
-const TYPE_ORDER: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+const TYPE_ORDER: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
 const DEPTH_BAR_PCT = [100, 75, 50, 25, 10];
 
 function KnowledgeBars({ channels }: { channels: { name: string; knowledgeType: KnowledgeType; depth: number; baseTokens: number; enabled: boolean }[] }) {

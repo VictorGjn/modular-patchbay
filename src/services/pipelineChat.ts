@@ -63,11 +63,22 @@ export interface SourceHeatmapEntry {
   headings: { nodeId: string; title: string; depth: number; tokens: number }[];
 }
 
+export interface FrameworkSummary {
+  constraints: number;
+  workflowSteps: number;
+  personaHints: number;
+  toolHints: number;
+  outputRules: number;
+  namingPatterns: number;
+  sources: string[];
+}
+
 export interface PipelineChatStats {
   pipeline: PipelineResult | null;
   systemTokens: number;
   totalContextTokens: number;
   heatmap: SourceHeatmapEntry[];
+  frameworkSummary?: FrameworkSummary;
 }
 
 // ── Build non-knowledge system prompt (identity, instructions, constraints, workflow, tools) ──
@@ -186,7 +197,7 @@ function buildKnowledgeFallback(channels: ChannelConfig[]): string {
   if (active.length === 0) return '';
 
   const grouped: Record<string, ChannelConfig[]> = {};
-  const typeOrder = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+  const typeOrder = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
   for (const ch of active) {
     if (!grouped[ch.knowledgeType]) grouped[ch.knowledgeType] = [];
     grouped[ch.knowledgeType].push(ch);
@@ -228,10 +239,12 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
 
     // 2. Separate framework sources from regular knowledge
     const activeChannels = channels.filter(ch => ch.enabled);
-    const frameworkChannels = activeChannels.filter(ch => ch.knowledgeType === 'framework');
-    const regularChannels = activeChannels.filter(ch => ch.knowledgeType !== 'framework');
+    const extractableTypes = new Set(['framework', 'guideline']);
+    const frameworkChannels = activeChannels.filter(ch => extractableTypes.has(ch.knowledgeType));
+    const regularChannels = activeChannels.filter(ch => !extractableTypes.has(ch.knowledgeType));
     let knowledgeBlock = '';
     let frameworkBlock = '';
+    let frameworkSummary: FrameworkSummary | undefined;
 
     if (activeChannels.length > 0) {
       const treeStore = useTreeIndexStore.getState();
@@ -270,8 +283,20 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
             compiled.workflowBlock,
             compiled.personaBlock,
             compiled.toolHintsBlock,
+            compiled.outputBlock,
           ].filter(Boolean);
           frameworkBlock = blocks.join('\n\n');
+
+          // Build summary for UI visibility
+          frameworkSummary = {
+            constraints: frameworks.reduce((s, f) => s + f.constraints.length, 0),
+            workflowSteps: frameworks.reduce((s, f) => s + f.workflowSteps.length, 0),
+            personaHints: frameworks.reduce((s, f) => s + f.personaHints.length, 0),
+            toolHints: frameworks.reduce((s, f) => s + f.toolHints.length, 0),
+            outputRules: frameworks.reduce((s, f) => s + f.outputRules.length, 0),
+            namingPatterns: frameworks.reduce((s, f) => s + f.namingPatterns.length, 0),
+            sources: frameworks.map((f) => f.source),
+          };
 
           // Residual content (sections that didn't match extraction rules) goes to knowledge
           if (compiled.residualKnowledge.trim()) {
@@ -504,6 +529,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       systemTokens,
       totalContextTokens,
       heatmap,
+      frameworkSummary,
     });
 
   } catch (err) {

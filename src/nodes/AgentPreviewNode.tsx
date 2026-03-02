@@ -17,7 +17,7 @@ const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borde
 
 type VizMode = 'card' | 'circuit' | 'layers';
 
-const TYPE_ORDER: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+const TYPE_ORDER: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
 const DEPTH_BAR_PCT = [100, 75, 50, 25, 10];
 
 const PATTERN_LABELS: Record<AgentPattern, { label: string; icon: string; color: string }> = {

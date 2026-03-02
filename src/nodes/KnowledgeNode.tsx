@@ -19,7 +19,7 @@ import { useAutoListMode } from '../hooks/useAutoListMode';
 const HANDLE: React.CSSProperties = { width: 8, height: 8, border: 'none', borderRadius: '50%' };
 
 const KNOWLEDGE_TYPE_ORDER: KnowledgeType[] = [
-  'ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact',
+  'ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline',
 ];
 
 // Matches DEPTH_LEVELS: 0=Full (most), 4=Mention (least)

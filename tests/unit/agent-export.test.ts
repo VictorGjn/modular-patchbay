@@ -11,7 +11,7 @@ function makeConfig(overrides?: Partial<ExportConfig>): ExportConfig {
     channels: [
       { sourceId: 'ch1', name: 'Docs', path: 'docs/', category: 'knowledge', knowledgeType: 'ground-truth', enabled: true, depth: 0, baseTokens: 5000 },
       { sourceId: 'ch2', name: 'Signals', path: 'signals/', category: 'intel', knowledgeType: 'signal', enabled: true, depth: 1, baseTokens: 3000 },
-      { sourceId: 'ch3', name: 'Disabled', path: 'old/', category: 'knowledge', knowledgeType: 'artifact', enabled: false, depth: 2, baseTokens: 1000 },
+      { sourceId: 'ch3', name: 'Disabled', path: 'old/', category: 'knowledge', knowledgeType: 'guideline', enabled: false, depth: 2, baseTokens: 1000 },
     ],
     selectedModel: 'claude-opus-4',
     outputFormat: 'markdown',

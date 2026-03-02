@@ -420,7 +420,7 @@ function stripQuotes(s: string): string {
 }
 
 function isValidKnowledgeType(type: string): boolean {
-  return ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'].includes(type);
+  return ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'].includes(type);
 }
 
 function findSourceByPath(_path: string, _tree: KnowledgeSource[] = []): KnowledgeSource | undefined {

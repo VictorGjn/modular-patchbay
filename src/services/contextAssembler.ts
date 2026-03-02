@@ -121,7 +121,7 @@ export function assembleContext(
   // Knowledge Sources — tree-indexed content with depth filtering
   if (activeChannels.length > 0) {
     const grouped: Record<string, ChannelConfig[]> = {};
-    const typeOrder = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+    const typeOrder = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
 
     for (const ch of activeChannels) {
       if (!grouped[ch.knowledgeType]) grouped[ch.knowledgeType] = [];

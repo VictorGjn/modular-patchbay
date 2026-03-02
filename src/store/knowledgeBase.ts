@@ -9,7 +9,7 @@ export const CATEGORY_COLORS: Record<Category, string> = {
 };
 
 // Knowledge Type System — epistemic weight classification
-export type KnowledgeType = 'ground-truth' | 'signal' | 'evidence' | 'framework' | 'hypothesis' | 'artifact';
+export type KnowledgeType = 'ground-truth' | 'signal' | 'evidence' | 'framework' | 'hypothesis' | 'guideline';
 
 export const KNOWLEDGE_TYPES: Record<KnowledgeType, { label: string; color: string; icon: string; instruction: string }> = {
   'ground-truth': { label: 'Ground Truth', color: '#e74c3c', icon: '🔴', instruction: 'Do not contradict this.' },
@@ -17,7 +17,7 @@ export const KNOWLEDGE_TYPES: Record<KnowledgeType, { label: string; color: stri
   'evidence':     { label: 'Evidence',     color: '#3498db', icon: '🔵', instruction: 'Cite and weigh against other evidence.' },
   'framework':    { label: 'Framework',    color: '#2ecc71', icon: '🟢', instruction: 'Use to structure thinking, but not as immutable.' },
   'hypothesis':   { label: 'Hypothesis',   color: '#9b59b6', icon: '🟣', instruction: 'Help validate or invalidate with evidence and signals.' },
-  'artifact':     { label: 'Artifact',     color: '#95a5a6', icon: '⚪', instruction: 'May be outdated. Cross-reference with current ground truth.' },
+  'guideline':    { label: 'Guideline',    color: '#FE5000', icon: '📏', instruction: 'Extract and enforce as constraints, workflow rules, and output formatting.' },
 };
 
 // Classification rules — ordered by priority (first match wins)
@@ -26,8 +26,9 @@ const PATH_RULES: [string[], KnowledgeType, string[]?][] = [
   [['discovery', '_temp_'], 'hypothesis'],
   [['roadmap', 'plans/', 'plan/'], 'framework'],
   [['intel', 'competitors', 'competitive', 'research', 'savings-analysis'], 'evidence'],
-  [['cmo-handoff', 'release', 'demo', 'newsletter'], 'artifact'],
-  [['sales prep', 'event prep', 'executive profiler'], 'artifact'],
+  [['cmo-handoff', 'release', 'demo', 'newsletter'], 'evidence'],
+  [['sales prep', 'event prep', 'executive profiler'], 'framework'],
+  [['guidelines', 'contributing', 'code-style', 'coding-standards', 'engineering-rules'], 'guideline'],
   [['products'], 'ground-truth', ['feedback']],
   [['clients/'], 'ground-truth', ['feedback']],
   [['companies'], 'evidence'],
@@ -53,8 +54,8 @@ const CONTENT_RULES: { patterns: RegExp[]; type: KnowledgeType; weight: number; 
   // Hypothesis — proposals, ideas, explorations, RFC, what-if
   { patterns: [/\b(hypothesis|proposal|rfc|suggest(ion)?|idea|explore|what if|could we|might|experiment|assumption|validate)\b/gi, /\b(pro(s)?|con(s)?|trade-?off|risk|upside|downside)\b/gi, /\b(option [a-c]|alternative|approach \d)\b/gi], type: 'hypothesis', weight: 5, minMatches: 2 },
 
-  // Artifact — generated outputs, exports, changelogs, release notes, meeting notes
-  { patterns: [/\b(generated|exported|changelog|release note|meeting note|transcript|minutes|summary|recap|output)\b/gi, /\b(v\d+\.\d+\.\d+|sprint \d|week of|date:)/gi, /\b(action item|todo|follow.?up|decision)\b/gi], type: 'artifact', weight: 3, minMatches: 2 },
+  // Guideline — rules, conventions, style guides, contributing docs, engineering standards
+  { patterns: [/\b(MUST|SHALL|NEVER|ALWAYS|REQUIRED|FORBIDDEN|DO NOT)\b/g, /\b(convention|standard|guideline|rule|policy|style guide|best practice|coding standard)\b/gi, /\b(naming|branch|commit|pr|pull request)\s*(convention|format|rule|pattern)/gi, /\b(linting|formatting|eslint|prettier|editorconfig)\b/gi], type: 'guideline', weight: 8, minMatches: 2 },
 ];
 
 // Depth suggestion based on category + content size
@@ -75,7 +76,7 @@ const DEPTH_RULES: { test: (content: string, type: KnowledgeType) => boolean; de
   { test: (c, t) => t === 'framework' && c.length > 8000, depth: 2 },
   { test: (_, t) => t === 'framework', depth: 1 },
   // Artifacts → headlines (may be outdated, just reference)
-  { test: (_, t) => t === 'artifact', depth: 3 },
+  { test: (_, t) => t === 'guideline', depth: 0 },  // Full depth — guidelines must be fully extracted
 ];
 
 export interface ClassificationResult {
@@ -146,8 +147,8 @@ export function classifyKnowledge(path: string, content?: string): Classificatio
       json: 'ground-truth', yaml: 'ground-truth', yml: 'ground-truth', toml: 'ground-truth',
       sql: 'ground-truth', graphql: 'ground-truth', proto: 'ground-truth',
       csv: 'evidence', tsv: 'evidence', xlsx: 'evidence',
-      py: 'artifact', ts: 'artifact', js: 'artifact', tsx: 'artifact', jsx: 'artifact',
-      log: 'artifact', txt: 'evidence',
+      py: 'guideline', ts: 'guideline', js: 'guideline', tsx: 'guideline', jsx: 'guideline',
+      log: 'guideline', txt: 'evidence',
     };
     if (extMap[ext]) {
       const depth = suggestDepth(content || '', extMap[ext]);

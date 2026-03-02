@@ -433,7 +433,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   },
 
   cycleKnowledgeType: (sourceId: string) => {
-    const types: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+    const types: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
     set({
       channels: get().channels.map((ch) => {
         if (ch.sourceId !== sourceId) return ch;
@@ -486,7 +486,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setAgentMeta: (meta: Partial<AgentMeta>) => set({ agentMeta: { ...get().agentMeta, ...meta } }),
 
   setChannelKnowledgeType: (sourceId: string, typeIndex: number) => {
-    const types: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+    const types: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
     const newType = types[Math.max(0, Math.min(types.length - 1, typeIndex))];
     set({
       channels: get().channels.map((ch) =>
@@ -942,7 +942,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     set({ skills });
 
     // Hydrate knowledge suggestions as channels
-    const knowledgeTypes: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+    const knowledgeTypes: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
     const channels: ChannelConfig[] = (config.knowledgeSuggestions || []).map((k, i) => {
       const ktIndex = knowledgeTypes.indexOf(k.type as KnowledgeType);
       const knowledgeType = ktIndex >= 0 ? knowledgeTypes[ktIndex] : 'evidence';

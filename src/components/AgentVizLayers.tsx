@@ -5,7 +5,7 @@ import { useTheme } from '../theme';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/knowledgeBase';
 import { ChevronRight } from 'lucide-react';
 
-const TYPE_ORDER: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+const TYPE_ORDER: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
 const DEPTH_SHORT: Record<number, string> = { 0: 'Full', 1: 'Det', 2: 'Sum', 3: 'Hdl', 4: 'Mnt' };
 
 interface LayerProps {

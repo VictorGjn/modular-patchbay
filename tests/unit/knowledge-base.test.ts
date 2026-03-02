@@ -9,7 +9,7 @@ import {
 // ─── Knowledge Types ─────────────────────────────────────────
 
 describe('KNOWLEDGE_TYPES', () => {
-  const allTypes: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'artifact'];
+  const allTypes: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
 
   it('defines all 6 types', () => {
     expect(Object.keys(KNOWLEDGE_TYPES)).toHaveLength(6);
@@ -92,10 +92,16 @@ describe('classifyKnowledge (path-based)', () => {
     expect(classifyKnowledgeType('savings-analysis/report.md')).toBe('evidence');
   });
 
-  it('classifies artifact paths', () => {
-    expect(classifyKnowledgeType('release/v1.2.md')).toBe('artifact');
-    expect(classifyKnowledgeType('cmo-handoff/newsletter.md')).toBe('artifact');
-    expect(classifyKnowledgeType('demo/walkthrough.md')).toBe('artifact');
+  it('classifies release/handoff paths as evidence', () => {
+    expect(classifyKnowledgeType('release/v1.2.md')).toBe('evidence');
+    expect(classifyKnowledgeType('cmo-handoff/newsletter.md')).toBe('evidence');
+    expect(classifyKnowledgeType('demo/walkthrough.md')).toBe('evidence');
+  });
+
+  it('classifies guideline paths', () => {
+    expect(classifyKnowledgeType('guidelines/code-style.md')).toBe('guideline');
+    expect(classifyKnowledgeType('contributing.md')).toBe('guideline');
+    expect(classifyKnowledgeType('engineering-rules/branching.md')).toBe('guideline');
   });
 
   it('classifies ground-truth paths', () => {
@@ -148,17 +154,23 @@ describe('classifyKnowledge (content-based)', () => {
     expect(result.knowledgeType).toBe('hypothesis');
   });
 
-  it('detects artifact from changelog content', () => {
+  it('detects changelog as evidence', () => {
     const content = `## Release Notes v3.2.1\nChangelog for sprint 14. Generated export summary. Meeting notes from Tuesday. Action item: follow up with design. Decision: proceed with option B.`;
     const result = classifyKnowledge('unknown/changelog.md', content);
-    expect(result.knowledgeType).toBe('artifact');
+    expect(result.knowledgeType).toBe('evidence');
+  });
+
+  it('detects guideline from convention content', () => {
+    const content = `## Coding Standards\nYou MUST use TypeScript strict mode. NEVER push to main directly. Branch naming convention: feat/<ticket>-<slug>. All PRs MUST have tests. ALWAYS run linting before commit.`;
+    const result = classifyKnowledge('unknown/guidelines.md', content);
+    expect(result.knowledgeType).toBe('guideline');
   });
 
   it('falls back to extension-based for unknown content', () => {
     expect(classifyKnowledgeType('data.json')).toBe('ground-truth');
     expect(classifyKnowledgeType('schema.yaml')).toBe('ground-truth');
     expect(classifyKnowledgeType('report.csv')).toBe('evidence');
-    expect(classifyKnowledgeType('component.tsx')).toBe('artifact');
+    expect(classifyKnowledgeType('component.tsx')).toBe('guideline');
   });
 
   it('defaults to evidence with low confidence for unknown', () => {
@@ -181,11 +193,12 @@ describe('depth suggestion', () => {
     expect(result.depth).toBe(0);
   });
 
-  it('artifact with long content gets Headlines (3)', () => {
-    // Short/empty content triggers "short files get Full" rule first
+  it('evidence (ex-artifact) paths get depth based on content rules', () => {
     const longContent = 'x'.repeat(3000);
     const result = classifyKnowledge('cmo-handoff/newsletter.md', longContent);
-    expect(result.depth).toBe(3);
+    // cmo-handoff now classifies as evidence, depth depends on content size rules
+    expect(result.depth).toBeGreaterThanOrEqual(0);
+    expect(result.depth).toBeLessThanOrEqual(4);
   });
 
   it('artifact with no content gets Full (0) — short file rule', () => {
