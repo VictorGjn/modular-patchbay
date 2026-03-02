@@ -600,14 +600,15 @@ function McpSection() {
   const mcpServers = useConsoleStore(s => s.mcpServers);
   // const toggleMcp = useConsoleStore(s => s.toggleMcp);
   const removeMcp = useConsoleStore(s => s.removeMcp);
-  const setShowSettings = useConsoleStore(s => s.setShowSettings);
+  const setShowMcpPicker = useConsoleStore(s => s.setShowMcpPicker);
   const mcpState = useMcpStore(s => s.servers);
   const mcpHealth = useHealthStore(s => s.mcpHealth);
   const [collapsed, setCollapsed] = useState(false);
   const [probing, setProbing] = useState(false);
 
-  const activeCount = mcpServers.filter(m => m.enabled !== false).length;
-  const errorCount = Object.values(mcpHealth).filter(h => h.status === 'error').length;
+  const selectedMcpServers = mcpServers.filter(m => m.added);
+  const activeCount = selectedMcpServers.length;
+  const errorCount = selectedMcpServers.filter(m => mcpHealth[m.id]?.status === 'error').length;
 
   const getStatus = (id: string) => {
     // Health probe takes priority over mcpStore status
@@ -629,9 +630,9 @@ function McpSection() {
   const handleProbeAll = useCallback(async () => {
     setProbing(true);
     const { probeAllMcp } = await import('../services/healthService');
-    await probeAllMcp(mcpServers.filter(m => m.enabled !== false).map(m => m.id));
+    await probeAllMcp(selectedMcpServers.map(m => m.id));
     setProbing(false);
-  }, [mcpServers]);
+  }, [selectedMcpServers]);
 
   const STATUS_COLORS: Record<string, { bg: string; glow: string }> = {
     ok: { bg: '#00ff88', glow: '0 0 6px rgba(0,255,136,0.4)' },
@@ -653,7 +654,7 @@ function McpSection() {
         </div>
       )}
       <div className="flex flex-col">
-        {mcpServers.map(server => {
+        {selectedMcpServers.map(server => {
           const status = getStatus(server.id);
           const sc = STATUS_COLORS[status];
           const state = mcpState.find(s => s.id === server.id);
@@ -696,7 +697,7 @@ function McpSection() {
           );
         })}
       </div>
-      <button type="button" aria-label="Open MCP Library" onClick={() => setShowSettings(true, 'mcp')}
+      <button type="button" aria-label="Open MCP Library" onClick={() => setShowMcpPicker(true)}
         className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
         style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
