@@ -158,6 +158,7 @@ export interface ConsoleState {
   outputFormat: OutputFormat;
   outputFormats: OutputFormat[];
   tokenBudget: number;
+  navigationMode: 'manual' | 'agent-driven';
   running: boolean;
   showFilePicker: boolean;
   showMcpPicker: boolean;
@@ -219,6 +220,7 @@ export interface ConsoleState {
   setPrompt: (prompt: string) => void;
   setModel: (model: string) => void;
   setTokenBudget: (budget: number) => void;
+  setNavigationMode: (mode: 'manual' | 'agent-driven') => void;
   setShowFilePicker: (show: boolean) => void;
   setShowMcpPicker: (show: boolean) => void;
   setShowSkillPicker: (show: boolean) => void;
@@ -317,6 +319,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   outputFormat: 'markdown' as OutputFormat,
   outputFormats: ['markdown'] as OutputFormat[],
   tokenBudget: 200000,
+  navigationMode: 'manual' as 'manual' | 'agent-driven',
   running: false,
   showFilePicker: false,
   showMcpPicker: false,
@@ -472,6 +475,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   },
   setModel: (model: string) => set({ selectedModel: model }),
   setTokenBudget: (budget: number) => set({ tokenBudget: budget }),
+  setNavigationMode: (mode: 'manual' | 'agent-driven') => set({ navigationMode: mode }),
   setShowFilePicker: (show: boolean) => set({ showFilePicker: show }),
   setShowMcpPicker: (show: boolean) => set({ showMcpPicker: show }),
   setShowSkillPicker: (show: boolean) => set({ showSkillPicker: show }),
