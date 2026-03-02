@@ -140,6 +140,47 @@ describe('runPipelineSync', () => {
     expect(result.context).toBe('');
   });
 
+  it('reports compression stats in result', () => {
+    const { indexes } = startPipeline({ task: 'test', sources: DOCS, tokenBudget: 2000 });
+    const archNode = indexes[0].root.children[0].children[0];
+
+    const result = runPipelineSync({
+      task: 'test',
+      sources: DOCS,
+      tokenBudget: 80,
+      manualSelections: [{ nodeId: archNode.nodeId, depth: 0, priority: 0 }],
+      compression: { aggressiveness: 0.8 },
+    });
+
+    expect(result.compression).toBeDefined();
+    expect(result.compression.ratio).toBeLessThanOrEqual(1);
+    expect(result.timing).toBeDefined();
+    expect(result.timing.totalMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it('handles mixed markdown and structured sources', () => {
+    const mixedSources: PipelineSource[] = [
+      ...DOCS,
+      {
+        name: 'Deal #789',
+        type: 'structured',
+        sourceType: 'hubspot',
+        fields: [
+          { key: 'name', label: 'Deal', value: 'BigCo', group: 'deal' },
+        ],
+      },
+    ];
+
+    const { indexes, headlines } = startPipeline({
+      task: 'Review deal and order system',
+      sources: mixedSources,
+      tokenBudget: 3000,
+    });
+
+    expect(indexes.length).toBeGreaterThanOrEqual(2);
+    expect(headlines.length).toBeGreaterThanOrEqual(2);
+  });
+
   it('handles structured sources', () => {
     const result = runPipelineSync({
       task: 'Check deal status',
