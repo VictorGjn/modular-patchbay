@@ -26,6 +26,8 @@ export interface AgentRunConfig {
   repoRef?: string;
   /** Pre-built repo knowledge markdown (injected by teamRunner after indexing) */
   repoKnowledge?: string;
+  /** Path to cloned repo on disk (for Claude SDK agents to work in) */
+  repoClonePath?: string;
 }
 
 export interface AgentRunResult {
@@ -169,6 +171,80 @@ async function callLlm(
   }
 }
 
+/**
+ * Run agent via Claude Agent SDK (Claude Code) — gives built-in file editing, bash, glob, grep.
+ * Ideal for coding agents working on cloned repos.
+ */
+async function runAgentWithSdk(
+  config: AgentRunConfig,
+  systemContent: string,
+  onProgress?: ProgressCallback,
+): Promise<AgentRunResult> {
+  const start = Date.now();
+  const allTexts: string[] = [];
+  let turns = 0;
+
+  try {
+    const { query } = await import('@anthropic-ai/claude-agent-sdk');
+
+    for await (const message of query({
+      prompt: config.task,
+      options: {
+        model: config.model || undefined,
+        allowedTools: ['Read', 'Edit', 'Bash', 'Glob', 'Grep', 'WebSearch', 'WebFetch'],
+        permissionMode: 'acceptEdits',
+        maxTurns: Math.min(config.maxTurns || 10, 25),
+        systemPrompt: systemContent,
+        ...(config.repoClonePath ? { cwd: config.repoClonePath } : {}),
+      },
+    })) {
+      if (message.type === 'assistant' && message.message?.content) {
+        turns++;
+        for (const block of message.message.content) {
+          if ('text' in block) {
+            const text = (block as { text: string }).text;
+            allTexts.push(text);
+            onProgress?.({ type: 'turn', agentId: config.agentId, turn: turns, message: text });
+          } else if ('name' in block) {
+            const toolBlock = block as { name: string; input: unknown };
+            onProgress?.({
+              type: 'tool_call',
+              agentId: config.agentId,
+              tool: toolBlock.name,
+              args: toolBlock.input,
+            });
+          }
+        }
+      }
+    }
+
+    const fullOutput = allTexts.join('\n');
+    const facts = extractFacts(fullOutput, config.agentId);
+    facts.forEach((fact) => onProgress?.({ type: 'fact', agentId: config.agentId, fact }));
+
+    return {
+      agentId: config.agentId,
+      output: fullOutput,
+      facts,
+      turns,
+      tokens: { input: 0, output: 0 }, // SDK doesn't expose token counts
+      durationMs: Date.now() - start,
+      status: 'completed',
+    };
+  } catch (err) {
+    return {
+      agentId: config.agentId,
+      output: allTexts.join('\n'),
+      facts: [],
+      turns,
+      tokens: { input: 0, output: 0 },
+      durationMs: Date.now() - start,
+      status: 'error',
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 export async function runAgent(config: AgentRunConfig, onProgress?: ProgressCallback): Promise<AgentRunResult> {
   const start = Date.now();
   const maxTurns = config.maxTurns ?? 10;
@@ -176,13 +252,18 @@ export async function runAgent(config: AgentRunConfig, onProgress?: ProgressCall
   let totalOutputTokens = 0;
   const allAssistantTexts: string[] = [];
 
-  const providerConfig = readConfig().providers.find((p) => p.id === config.providerId);
-  const providerType = providerConfig?.type ?? 'openai';
-
   const repoBlock = config.repoKnowledge
     ? `\n<repository name="${config.name}" url="${config.repoUrl ?? 'local'}">\n${config.repoKnowledge}\n</repository>\n`
     : '';
   const systemContent = config.systemPrompt + repoBlock + buildTeamFactsBlock(config.teamFacts);
+
+  // Route to Claude Agent SDK if selected — gives file editing, bash, etc.
+  if (config.providerId === 'claude-agent-sdk') {
+    return runAgentWithSdk(config, systemContent, onProgress);
+  }
+
+  const providerConfig = readConfig().providers.find((p) => p.id === config.providerId);
+  const providerType = providerConfig?.type ?? 'openai';
 
   const messages: LlmMessage[] = [
     { role: 'system', content: systemContent },
