@@ -411,17 +411,17 @@ function KnowledgeSection() {
               </div>
               {/* Row 2: Depth bar (compact) */}
               <div className="flex items-center gap-1 mt-0.5 pl-4">
-                <button type="button" aria-label="Decrease depth" onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
+                <button type="button" aria-label="Less content" onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
                   className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
-                  style={{ color: depth <= 0 ? t.textFaint : t.textDim, width: 20, height: 20, padding: 0 }}>
+                  style={{ color: depth >= 4 ? t.textFaint : t.textDim, width: 20, height: 20, padding: 0 }}>
                   <Minus size={9} />
                 </button>
                 <div className="flex-1" style={{ height: 4, background: `${barColor}18`, borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{ width: `${barPct}%`, height: '100%', background: barColor, borderRadius: 2, transition: 'width 200ms' }} />
                 </div>
-                <button type="button" aria-label="Increase depth" onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
+                <button type="button" aria-label="More content" onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
                   className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
-                  style={{ color: depth >= 4 ? t.textFaint : t.textDim, width: 20, height: 20, padding: 0 }}>
+                  style={{ color: depth <= 0 ? t.textFaint : t.textDim, width: 20, height: 20, padding: 0 }}>
                   <Plus size={9} />
                 </button>
                 <span className="text-[8px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, width: 24, textAlign: 'right' }}>
