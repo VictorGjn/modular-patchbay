@@ -141,6 +141,14 @@ function normalizeConnectionError(err: unknown): string {
     : message;
 }
 
+function normalizeProviderBaseUrl(id: string, baseUrl: string): string {
+  const trimmed = (baseUrl || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return trimmed;
+  const isOpenAi = id === 'openai' || trimmed.includes('api.openai.com');
+  if (isOpenAi && !trimmed.endsWith('/v1')) return `${trimmed}/v1`;
+  return trimmed;
+}
+
 
 // Check if backend is available with TTL cache
 let backendAvailable: boolean | null = null;
@@ -278,8 +286,9 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
 
   setProviderBaseUrl: (id, baseUrl) => {
     set((state) => {
+      const normalized = normalizeProviderBaseUrl(id, baseUrl);
       const providers = state.providers.map((p) =>
-        p.id === id ? { ...p, baseUrl } : p
+        p.id === id ? { ...p, baseUrl: normalized } : p
       );
       persistProviders(providers);
       return { providers };

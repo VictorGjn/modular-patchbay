@@ -4,6 +4,14 @@ import type { ProviderConfig, ApiResponse } from '../types.js';
 
 const router = Router();
 
+function normalizeBaseUrl(providerId: string, baseUrl: string): string {
+  const trimmed = (baseUrl || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return trimmed;
+  const isOpenAi = providerId.includes('openai') || trimmed.includes('api.openai.com');
+  if (isOpenAi && !/\/v1$/i.test(trimmed)) return `${trimmed}/v1`;
+  return trimmed;
+}
+
 function maskApiKey(key: string): string {
   if (!key || key.length <= 4) return '****';
   return '****' + key.slice(-4);
@@ -78,13 +86,13 @@ router.post('/:id/test', async (req, res) => {
 
   // Determine provider type from id or type field
   const providerType = provider.type || req.params.id;
-  const baseUrl = provider.baseUrl || (
+  const baseUrl = normalizeBaseUrl(providerType, provider.baseUrl || (
     providerType.includes('anthropic') ? 'https://api.anthropic.com/v1' :
     providerType.includes('openai') ? 'https://api.openai.com/v1' :
     providerType.includes('google') ? 'https://generativelanguage.googleapis.com/v1beta' :
     providerType.includes('openrouter') ? 'https://openrouter.ai/api/v1' :
     ''
-  );
+  ));
 
   if (!baseUrl) {
     const resp: ApiResponse = { status: 'error', error: 'No base URL configured for this provider' };
