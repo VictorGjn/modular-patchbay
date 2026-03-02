@@ -24,7 +24,7 @@ import {
   Wand2, Sparkles, Loader2, RotateCcw,
   ChevronDown, ChevronRight,
   Database, Plug, Zap, Brain,
-  Plus, X, Minus, Library,
+  Plus, X, Minus,
   Lightbulb, ArrowUpRight, Check, AlertCircle, Bot, FolderGit2, KeyRound,
 } from 'lucide-react';
 
@@ -696,15 +696,15 @@ function McpSection() {
           );
         })}
       </div>
-      <button type="button" aria-label="Open MCP Library" onClick={() => setShowMarketplace(true)}
-        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
-        style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-        onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-        onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+      <button type="button" aria-label="Browse MCP registry" onClick={() => setShowMarketplace(true)}
+        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2 rounded text-[10px] tracking-wide cursor-pointer min-h-[36px] motion-reduce:transition-none"
+        style={{ background: 'transparent', border: `1px dashed ${t.border}`, color: t.textFaint, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = '#2ecc71'; e.currentTarget.style.color = '#2ecc71'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textFaint; }}
+        onFocus={e => { e.currentTarget.style.borderColor = '#2ecc71'; e.currentTarget.style.color = '#2ecc71'; }}
+        onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textFaint; }}
       >
-        <Library size={11} /> MCP Library
+        <Plus size={10} /> Add from Registry
       </button>
     </Section>
   );
@@ -714,10 +714,8 @@ function McpSection() {
 function SkillsSection() {
   const t = useTheme();
   const skills = useConsoleStore(s => s.skills);
-  // const toggleSkill = useConsoleStore(s => s.toggleSkill);
   const removeSkill = useConsoleStore(s => s.removeSkill);
   const setShowMarketplace = useConsoleStore(s => s.setShowMarketplace);
-  // const installedSkills = useSkillsStore(s => s.skills);
   const [collapsed, setCollapsed] = useState(false);
 
   const activeCount = skills.filter(s => s.enabled !== false).length;
@@ -728,27 +726,34 @@ function SkillsSection() {
       badge={`${activeCount} active`}
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
+      {skills.length === 0 && (
+        <div className="text-[10px] py-2" style={{ color: t.textFaint }}>
+          No skills configured for this agent.
+        </div>
+      )}
       <div className="flex flex-col">
         {skills.map(skill => (
-          <div key={skill.id} className="flex items-center gap-2.5 py-2.5"
+          <div key={skill.id} className="flex items-center gap-2 py-1.5"
             style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px rgba(0,255,136,0.4)', flexShrink: 0 }} />
-            <span className="flex-1 text-[12px]" style={{ color: t.textPrimary }}>{skill.name}</span>
-            <button type="button" aria-label={`Remove ${skill.name}`} onClick={() => removeSkill(skill.id)} className="border-none bg-transparent cursor-pointer p-2 rounded hover:bg-[#ff000010] min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: t.textFaint }}>
-              <X size={10} />
+            <span className="flex-1 text-[11px] truncate" style={{ color: t.textPrimary }}>{skill.name}</span>
+            <button type="button" aria-label={`Remove ${skill.name}`} onClick={() => removeSkill(skill.id)}
+              className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
+              style={{ color: t.textFaint, width: 20, height: 20, padding: 0 }}>
+              <X size={9} />
             </button>
           </div>
         ))}
       </div>
-      <button type="button" aria-label="Open Skill Library" onClick={() => setShowMarketplace(true)}
-        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
-        style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-        onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-        onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+      <button type="button" aria-label="Browse skill registry" onClick={() => setShowMarketplace(true)}
+        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2 rounded text-[10px] tracking-wide cursor-pointer min-h-[36px] motion-reduce:transition-none"
+        style={{ background: 'transparent', border: `1px dashed ${t.border}`, color: t.textFaint, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = '#f1c40f'; e.currentTarget.style.color = '#f1c40f'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textFaint; }}
+        onFocus={e => { e.currentTarget.style.borderColor = '#f1c40f'; e.currentTarget.style.color = '#f1c40f'; }}
+        onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textFaint; }}
       >
-        <Library size={11} /> Skill Library
+        <Plus size={10} /> Add from Registry
       </button>
     </Section>
   );
