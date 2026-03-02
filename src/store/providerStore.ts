@@ -134,6 +134,13 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
 const STORAGE_KEY = 'modular-providers';
 import { API_BASE } from '../config';
 
+function normalizeConnectionError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  return /failed to fetch|networkerror|load failed/i.test(message)
+    ? 'Cannot reach backend API. Start server with `npm run server` (port 4800).'
+    : message;
+}
+
 
 // Check if backend is available with TTL cache
 let backendAvailable: boolean | null = null;
@@ -356,7 +363,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
             ? { ok: true, models: provider.models.map((m) => m.id) }
             : { ok: false, error: data?.data?.error || 'Not authenticated — run `claude` in your terminal first' };
         } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : 'Backend not available';
+          const errorMsg = normalizeConnectionError(err);
           set((state) => ({
             testing: { ...state.testing, [id]: false },
             providers: state.providers.map((p) =>
@@ -422,7 +429,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         return { ok: false, error: 'No API key configured' };
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Connection failed';
+      const errorMsg = normalizeConnectionError(err);
       set((state) => ({
         testing: { ...state.testing, [id]: false },
         providers: state.providers.map((p) =>

@@ -35,10 +35,19 @@ router.get('/', (_req, res) => {
 router.post('/', (req, res) => {
   const config = readConfig();
   const serverConfig = req.body as McpServerConfig;
-  if (!serverConfig.id || !serverConfig.name || !serverConfig.command) {
-    const resp: ApiResponse = { status: 'error', error: 'Missing required fields: id, name, command' };
+
+  if (!serverConfig.name || !serverConfig.command) {
+    const resp: ApiResponse = { status: 'error', error: 'Missing required fields: name, command' };
     res.status(400).json(resp);
     return;
+  }
+
+  if (!serverConfig.id) {
+    serverConfig.id = serverConfig.name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
   }
   serverConfig.args = serverConfig.args ?? [];
   serverConfig.env = serverConfig.env ?? {};

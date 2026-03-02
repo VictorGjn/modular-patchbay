@@ -30,6 +30,7 @@ interface McpStore {
   servers: McpServerState[];
   loaded: boolean;
   loading: boolean;
+  error?: string;
 
   loadServers: () => Promise<void>;
   addServer: (config: { name: string; type?: 'stdio' | 'sse' | 'http'; command: string; args: string[]; env: Record<string, string>; url?: string; headers?: Record<string, string> }) => Promise<McpServerState | null>;
@@ -63,26 +64,40 @@ export const useMcpStore = create<McpStore>((set, get) => ({
   servers: [],
   loaded: false,
   loading: false,
+  error: undefined,
 
   loadServers: async () => {
     if (get().loading) return;
-    set({ loading: true });
+    set({ loading: true, error: undefined });
 
     // Load from modular-studio config
-    const modularServers = await apiFetch<McpServerState[]>(API_BASE) ?? [];
+    const modularServers = await apiFetch<McpServerState[]>(API_BASE);
 
     // Also load from Claude Code config (~/.claude.json mcpServers)
     const claudeServers = await apiFetch<Array<{
       id: string; name: string; type: string; command?: string;
       args?: string[]; url?: string; env?: Record<string, string>;
       headers?: Record<string, string>; status: 'enabled' | 'deferred' | 'disabled';
-    }>>(`${BASE}/claude-config/mcp`) ?? [];
+    }>>(`${BASE}/claude-config/mcp`);
+
+    if (!modularServers && !claudeServers) {
+      set({
+        servers: [],
+        loaded: true,
+        loading: false,
+        error: 'Backend unavailable. Start the server with `npm run server` on port 4800.',
+      });
+      return;
+    }
+
+    const safeModularServers = modularServers ?? [];
+    const safeClaudeServers = claudeServers ?? [];
 
     // Merge: Claude servers that aren't already in modular config
-    const existingIds = new Set(modularServers.map((s) => s.id));
+    const existingIds = new Set(safeModularServers.map((s) => s.id));
     const merged: McpServerState[] = [
-      ...modularServers,
-      ...claudeServers
+      ...safeModularServers,
+      ...safeClaudeServers
         .filter((s) => !existingIds.has(s.id))
         .map((s) => ({
           id: s.id,
