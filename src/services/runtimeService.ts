@@ -29,7 +29,7 @@ async function parseSSEStream(
 
 export interface RunTeamConfig {
   teamId: string;
-  agents: { agentId: string; name: string; systemPrompt: string }[];
+  agents: { agentId: string; name: string; systemPrompt: string; repoUrl?: string; repoRef?: string }[];
   featureSpec: string;
   contractFacts: ExtractedFact[];
   providerId: string;

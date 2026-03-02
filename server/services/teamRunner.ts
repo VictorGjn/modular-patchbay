@@ -3,6 +3,7 @@ import { extractFacts } from './factExtractor.js';
 import { runAgent } from './agentRunner.js';
 import type { AgentRunConfig, AgentRunResult, ProgressCallback } from './agentRunner.js';
 import type { ExtractedFact } from './factExtractor.js';
+import { indexGitHubRepo } from './githubIndexer.js';
 
 export interface TeamRunConfig {
   teamId: string;
@@ -104,10 +105,32 @@ export async function runTeam(config: TeamRunConfig, onProgress?: ProgressCallba
       contractFacts = await extractContractsFromSpec(config.featureSpec, config.providerId, config.model);
     }
 
-    // Step 2: Run all agents in parallel, injecting contract facts
+    // Step 2: Index repos for agents that have repoUrl
+    const agentsWithRepos = config.agents.filter((a) => a.repoUrl);
+    const repoIndexes = new Map<string, string>();
+
+    if (agentsWithRepos.length > 0) {
+      const indexResults = await Promise.allSettled(
+        agentsWithRepos.map(async (agent) => {
+          const result = await indexGitHubRepo({
+            url: agent.repoUrl!,
+            ref: agent.repoRef,
+          });
+          return { url: agent.repoUrl!, markdown: result.fullMarkdown };
+        }),
+      );
+      for (const r of indexResults) {
+        if (r.status === 'fulfilled') {
+          repoIndexes.set(r.value.url, r.value.markdown);
+        }
+      }
+    }
+
+    // Step 3: Run all agents in parallel, injecting contract facts + repo knowledge
     const agentConfigs = config.agents.map((agent) => ({
       ...agent,
       teamFacts: [...(agent.teamFacts ?? []), ...contractFacts],
+      repoKnowledge: agent.repoUrl ? repoIndexes.get(agent.repoUrl) : undefined,
     }));
 
     const results = await Promise.allSettled(

@@ -14,6 +14,8 @@ export interface TeamAgent {
   knowledgeSourceIds: string[];
   mcpServerIds: string[];
   skillIds: string[];
+  repoUrl?: string;          // GitHub repo URL for tree indexing
+  repoRef?: string;          // branch/tag/commit
 }
 
 export interface SharedFact {

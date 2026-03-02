@@ -20,6 +20,12 @@ export interface AgentRunConfig {
   teamFacts: ExtractedFact[];
   maxTurns?: number;
   tools?: ToolDef[];
+  /** GitHub repo URL — if set, gets tree-indexed and injected into context */
+  repoUrl?: string;
+  /** Branch/tag/commit to index (default: HEAD) */
+  repoRef?: string;
+  /** Pre-built repo knowledge markdown (injected by teamRunner after indexing) */
+  repoKnowledge?: string;
 }
 
 export interface AgentRunResult {
@@ -173,7 +179,10 @@ export async function runAgent(config: AgentRunConfig, onProgress?: ProgressCall
   const providerConfig = readConfig().providers.find((p) => p.id === config.providerId);
   const providerType = providerConfig?.type ?? 'openai';
 
-  const systemContent = config.systemPrompt + buildTeamFactsBlock(config.teamFacts);
+  const repoBlock = config.repoKnowledge
+    ? `\n<repository name="${config.name}" url="${config.repoUrl ?? 'local'}">\n${config.repoKnowledge}\n</repository>\n`
+    : '';
+  const systemContent = config.systemPrompt + repoBlock + buildTeamFactsBlock(config.teamFacts);
 
   const messages: LlmMessage[] = [
     { role: 'system', content: systemContent },
