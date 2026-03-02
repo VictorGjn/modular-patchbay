@@ -88,10 +88,11 @@ test.describe('Dashboard Layout', () => {
     await expect(page.getByText('Instructions', { exact: false })).toBeVisible();
   });
 
-  test('knowledge section shows Add Sources button', async ({ page }) => {
+  test('knowledge section shows source actions', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Add Sources')).toBeVisible();
-    // Context allocation bar only shows when channels exist — skip checking it empty
+    await expect(page.getByRole('button', { name: /files/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /connect/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /repo/i })).toBeVisible();
   });
 
   test('export tab shows export targets', async ({ page }) => {
