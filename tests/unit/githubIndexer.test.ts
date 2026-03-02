@@ -1,22 +1,23 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock child_process, fs, and repoIndexer before imports
-vi.mock('node:child_process', () => ({
-  execSync: vi.fn(),
-}));
+vi.mock('node:child_process', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:child_process')>();
+  return { ...actual, execSync: vi.fn() };
+});
 
-vi.mock('node:fs', () => ({
-  mkdtempSync: vi.fn(() => '/tmp/modular-gh-test-abc123'),
-  rmSync: vi.fn(),
-  existsSync: vi.fn(() => true),
-  readFileSync: vi.fn(() => '{}'),
-  readdirSync: vi.fn(() => []),
-  statSync: vi.fn(() => ({ size: 100 })),
-  mkdirSync: vi.fn(),
-  writeFileSync: vi.fn(),
-}));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    mkdtempSync: vi.fn(() => '/tmp/modular-gh-test-abc123'),
+    rmSync: vi.fn(),
+    existsSync: vi.fn(() => true),
+  };
+});
 
-vi.mock('../../server/services/repoIndexer', () => ({
+vi.mock('../../server/services/repoIndexer.js', () => ({
   scanRepository: vi.fn(() => ({
     root: '/tmp/modular-gh-test-abc123',
     name: 'test-repo',
