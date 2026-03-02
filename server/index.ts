@@ -13,6 +13,8 @@ import knowledgeRoutes from './routes/knowledge.js';
 import claudeConfigRoutes from './routes/claude-config.js';
 import skillsSearchRoutes from './routes/skills-search.js';
 import repoIndexRoutes from './routes/repo-index.js';
+import healthRoutes from './routes/health.js';
+import connectorRoutes from './routes/connectors.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -40,6 +42,8 @@ export function createApp() {
   app.use('/api/claude-config', claudeConfigRoutes);
   app.use('/api/skills', skillsSearchRoutes);
   app.use('/api/repo', repoIndexRoutes);
+  app.use('/api/health', healthRoutes);
+  app.use('/api/connectors', connectorRoutes);
 
   // Global error handler — prevent server crashes
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

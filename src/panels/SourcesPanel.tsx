@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMemoryStore } from '../store/memoryStore';
@@ -18,13 +18,14 @@ import { useHealthStore } from '../store/healthStore';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 import { API_BASE } from '../config';
+import { setApiKey, type ConnectorAuthStatus } from '../services/connectorAuth';
 // import { formatTokens } from '../utils/formatTokens';
 import {
   Wand2, Sparkles, Loader2, RotateCcw,
   ChevronDown, ChevronRight,
   Database, Plug, Zap, Brain,
   Plus, X, Minus, Library,
-  Lightbulb, ArrowUpRight, Check, AlertCircle, Bot, FolderGit2,
+  Lightbulb, ArrowUpRight, Check, AlertCircle, Bot, FolderGit2, KeyRound,
 } from 'lucide-react';
 
 /* ── Shared Generate Button ── */
@@ -205,6 +206,10 @@ function KnowledgeSection() {
   const [repoScanning, setRepoScanning] = useState(false);
   const [repoPath, setRepoPath] = useState('');
   const [repoPrompt, setRepoPrompt] = useState(false);
+  const [authExpanded, setAuthExpanded] = useState<string | null>(null);
+  const [authKey, setAuthKey] = useState('');
+  const [authTesting, setAuthTesting] = useState(false);
+  const [authStatuses, setAuthStatuses] = useState<Record<string, ConnectorAuthStatus>>({});
 
   // Compute real tokens from tree indexes where available
   const getChannelTokens = (ch: typeof channels[number]) => {
@@ -270,6 +275,35 @@ function KnowledgeSection() {
 
   const DEPTH_LABELS = ['Full', 'High', 'Ref', 'Skim', 'Mention'] as const;
   const DEPTH_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e67e22', '#999'];
+
+  // Load connector auth statuses on mount
+  useEffect(() => {
+    fetch(`${API_BASE}/connectors/auth`).then(r => r.json()).then((json: any) => {
+      if (json.data) setAuthStatuses(json.data);
+    }).catch(() => {});
+  }, []);
+
+  const handleSetApiKey = useCallback(async (service: string) => {
+    if (!authKey.trim() || authTesting) return;
+    setAuthTesting(true);
+    try {
+      const result = await setApiKey(service, authKey.trim());
+      setAuthStatuses(prev => ({
+        ...prev,
+        [service]: {
+          service,
+          method: 'api-key',
+          status: result.connectorStatus as any,
+          hasApiKey: true,
+          hasOAuth: false,
+          lastChecked: Date.now(),
+        },
+      }));
+      setAuthKey('');
+      setAuthExpanded(null);
+    } catch { /* user sees no change */ }
+    setAuthTesting(false);
+  }, [authKey, authTesting]);
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
@@ -389,27 +423,58 @@ function KnowledgeSection() {
               github: '#24292F', granola: '#8B5CF6', 'google-drive': '#4285F4',
             };
             const color = SERVICE_COLORS[conn.service] || '#666';
+            const auth = authStatuses[conn.service];
+            const isConnected = auth?.status === 'connected';
+            const isAuthOpen = authExpanded === conn.service;
             return (
-              <div key={conn.id} className="flex items-center gap-2 py-2"
-                style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                <span className="flex-1 truncate text-[12px]" style={{ color: t.textPrimary }}>
-                  {conn.name}
-                </span>
-                <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase"
-                  style={{ fontFamily: "'Space Mono', monospace", color: conn.direction === 'both' ? '#b88ad4' : '#6aafe6', background: conn.direction === 'both' ? '#9b59b610' : '#3498db10' }}>
-                  {conn.direction}
-                </span>
-                {conn.hint && (
-                  <span className="text-[9px] truncate max-w-[80px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}
-                    title={conn.hint}>
-                    {conn.hint}
+              <div key={conn.id}>
+                <div className="flex items-center gap-2 py-2"
+                  style={{ borderBottom: isAuthOpen ? 'none' : `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+                    <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%',
+                      background: isConnected ? '#00ff88' : auth?.hasApiKey ? '#ffaa00' : '#666' }} />
+                  </div>
+                  <span className="flex-1 truncate text-[12px]" style={{ color: t.textPrimary }}>
+                    {conn.name}
                   </span>
+                  <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase"
+                    style={{ fontFamily: "'Space Mono', monospace", color: conn.direction === 'both' ? '#b88ad4' : '#6aafe6', background: conn.direction === 'both' ? '#9b59b610' : '#3498db10' }}>
+                    {conn.direction}
+                  </span>
+                  <button type="button" aria-label={`Configure ${conn.name} credentials`}
+                    onClick={() => { setAuthExpanded(isAuthOpen ? null : conn.service); setAuthKey(''); }}
+                    className="border-none bg-transparent cursor-pointer p-1 rounded"
+                    style={{ color: isConnected ? '#00ff88' : t.textDim }}>
+                    <KeyRound size={10} />
+                  </button>
+                  <button type="button" aria-label={`Remove ${conn.name}`} onClick={() => removeConnector(conn.id)}
+                    className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
+                    <X size={10} />
+                  </button>
+                </div>
+                {/* Inline API key input */}
+                {isAuthOpen && (
+                  <div className="flex gap-1.5 pb-2 pl-4"
+                    style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
+                    <input
+                      type="password"
+                      value={authKey}
+                      onChange={e => setAuthKey(e.target.value)}
+                      placeholder={`${conn.name} API key`}
+                      aria-label={`${conn.name} API key`}
+                      className="flex-1 px-2 py-1 rounded text-[10px] outline-none"
+                      style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSetApiKey(conn.service); }}
+                    />
+                    <button type="button" onClick={() => handleSetApiKey(conn.service)}
+                      disabled={authTesting || !authKey.trim()}
+                      className="px-2 py-1 rounded text-[9px] uppercase cursor-pointer border-none"
+                      style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace", opacity: authTesting || !authKey.trim() ? 0.5 : 1 }}>
+                      {authTesting ? '...' : isConnected ? 'Update' : 'Save'}
+                    </button>
+                  </div>
                 )}
-                <button type="button" aria-label={`Remove ${conn.name}`} onClick={() => removeConnector(conn.id)}
-                  className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
-                  <X size={10} />
-                </button>
               </div>
             );
           })}
