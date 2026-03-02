@@ -7,7 +7,7 @@ import { exportAgentYaml } from '../utils/agentExportYaml';
 import { runPipelineChat } from '../services/pipelineChat';
 import {
   Send, Download, Check,
-  FileText, FileCode, Zap,
+  FileText, FileCode, Zap, ChevronDown,
 } from 'lucide-react';
 import { TraceViewer } from './TraceViewer';
 
@@ -46,7 +46,7 @@ function PipelineStatsBar() {
             <span>{p.timing.totalMs}ms</span>
           </>
         )}
-        <span className="ml-auto">{expanded ? '▾' : '▸'}</span>
+        <ChevronDown size={8} className="ml-auto" style={{ transform: expanded ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms' }} />
       </button>
 
       {/* Depth Heatmap */}
@@ -116,12 +116,14 @@ function ChatSection() {
   const channels = useConsoleStore(s => s.channels);
   const connectors = useConsoleStore(s => s.connectors);
   const agentMeta = useConsoleStore(s => s.agentMeta);
+  const navigationMode = useConsoleStore(s => s.navigationMode);
   const selectedProviderId = useProviderStore(s => s.selectedProviderId);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    messagesEndRef.current?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
   }, [messages]);
 
   const handleSend = useCallback(async () => {
@@ -142,6 +144,7 @@ function ChatSection() {
         agentMeta: { name: agentMeta.name, description: agentMeta.description, avatar: agentMeta.avatar, tags: agentMeta.tags },
         providerId: selectedProviderId || 'anthropic',
         model: agentConfig.model,
+        navigationMode,
         onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
         onDone: (stats) => { setLastPipelineStats(stats); },
         onError: (err: Error) => { updateLastAssistant(accum + `\n\n_Error: ${err.message}_`); },
@@ -151,7 +154,7 @@ function ChatSection() {
     } finally {
       setStreaming(false);
     }
-  }, [inputText, streaming, messages, agentConfig, channels, connectors, agentMeta, selectedProviderId, setInputText, addMessage, setStreaming, updateLastAssistant, setLastPipelineStats]);
+  }, [inputText, streaming, messages, agentConfig, channels, connectors, agentMeta, navigationMode, selectedProviderId, setInputText, addMessage, setStreaming, updateLastAssistant, setLastPipelineStats]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -163,7 +166,7 @@ function ChatSection() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
+      <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3" aria-live="polite" aria-relevant="additions">
         {messages.length === 0 && (
           <div className="flex-1 flex items-center justify-center text-[11px]" style={{ color: t.textFaint }}>
             Test your agent with a message
@@ -205,7 +208,7 @@ function ChatSection() {
           }}
         />
         <button type="button" aria-label="Send message" onClick={handleSend} disabled={streaming || !inputText.trim()}
-          className="px-4 rounded-lg cursor-pointer border-none text-[10px] font-semibold tracking-wider uppercase"
+          className="px-4 rounded-lg cursor-pointer border-none text-[10px] font-semibold tracking-wider uppercase min-h-[44px] min-w-[44px]"
           style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace", opacity: streaming || !inputText.trim() ? 0.5 : 1 }}>
           <Send size={12} />
         </button>
@@ -247,11 +250,13 @@ function ExportSection() {
         {targets.map(target => {
           const Icon = target.icon;
           return (
-            <button key={target.id} type="button" onClick={() => handleExport(target.id)}
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer w-full text-left"
+            <button key={target.id} type="button" aria-label={`Export as ${target.fmt}`} onClick={() => handleExport(target.id)}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer w-full text-left min-h-[44px] motion-reduce:transition-none"
               style={{ background: t.isDark ? '#1c1c20' : '#f0f0f5', border: `1px solid ${t.border}`, transition: 'border-color 150ms' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE500040'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; }}>
+              onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#FE500040'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = t.border; }}>
               <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: t.surfaceElevated }}>
                 {copied === target.id ? <Check size={12} style={{ color: '#00ff88' }} /> : <Icon size={12} style={{ color: t.textDim }} />}
               </div>
@@ -279,32 +284,32 @@ export function TestPanel() {
           {activeTab === 'chat' ? 'Conversation Tester' : activeTab === 'traces' ? 'Execution Traces' : 'Export'}
         </span>
         <div className="flex gap-0.5 rounded-md overflow-hidden" role="tablist" style={{ border: `1px solid ${t.border}` }}>
-          <button type="button" role="tab" aria-selected={activeTab === 'chat'} onClick={() => setActiveTab('chat')}
-            className="text-[9px] px-2.5 py-1.5 cursor-pointer border-none"
+          <button type="button" role="tab" id="tab-chat" aria-selected={activeTab === 'chat'} aria-controls="tabpanel-chat" onClick={() => setActiveTab('chat')}
+            className="text-[9px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
             style={{ background: activeTab === 'chat' ? '#FE5000' : 'transparent', color: activeTab === 'chat' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}>
             Chat
           </button>
-          <button type="button" role="tab" aria-selected={activeTab === 'traces'} onClick={() => setActiveTab('traces')}
-            className="text-[9px] px-2.5 py-1.5 cursor-pointer border-none"
+          <button type="button" role="tab" id="tab-traces" aria-selected={activeTab === 'traces'} aria-controls="tabpanel-traces" onClick={() => setActiveTab('traces')}
+            className="text-[9px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
             style={{ background: activeTab === 'traces' ? '#FE5000' : 'transparent', color: activeTab === 'traces' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}>
             Traces
           </button>
-          <button type="button" role="tab" aria-selected={activeTab === 'export'} onClick={() => setActiveTab('export')}
-            className="text-[9px] px-2.5 py-1.5 cursor-pointer border-none"
+          <button type="button" role="tab" id="tab-export" aria-selected={activeTab === 'export'} aria-controls="tabpanel-export" onClick={() => setActiveTab('export')}
+            className="text-[9px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
             style={{ background: activeTab === 'export' ? '#FE5000' : 'transparent', color: activeTab === 'export' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}>
             Export
           </button>
         </div>
       </div>
 
-      {activeTab === 'chat' && <ChatSection />}
+      {activeTab === 'chat' && <div role="tabpanel" id="tabpanel-chat" aria-labelledby="tab-chat" className="flex flex-col flex-1 min-h-0"><ChatSection /></div>}
       {activeTab === 'traces' && (
-        <div className="flex-1 overflow-y-auto">
+        <div role="tabpanel" id="tabpanel-traces" aria-labelledby="tab-traces" className="flex-1 overflow-y-auto">
           <TraceViewer />
         </div>
       )}
       {activeTab === 'export' && (
-        <div className="flex-1 overflow-y-auto">
+        <div role="tabpanel" id="tabpanel-export" aria-labelledby="tab-export" className="flex-1 overflow-y-auto">
           <ExportSection />
         </div>
       )}
