@@ -349,6 +349,8 @@ function McpServerRow({ server }: { server: McpServerState }) {
   const [localEnv, setLocalEnv] = useState(
     Object.entries(server.env).map(([k, v]) => `${k}=${v}`).join('\n')
   );
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const connectServer = useMcpStore((s) => s.connectServer);
   const disconnectServer = useMcpStore((s) => s.disconnectServer);
@@ -373,6 +375,9 @@ function McpServerRow({ server }: { server: McpServerState }) {
   }, [server.id, server.status, connectServer, disconnectServer]);
 
   const handleSave = useCallback(async () => {
+    setSaving(true);
+    setSaved(false);
+
     const args = localArgs.split('\n').map((s) => s.trim()).filter(Boolean);
     const env: Record<string, string> = {};
     for (const line of localEnv.split('\n')) {
@@ -381,6 +386,8 @@ function McpServerRow({ server }: { server: McpServerState }) {
         env[key.trim()] = valueParts.join('=').trim();
       }
     }
+
+    const wasConnected = server.status === 'connected';
 
     const updated = await updateServer(server.id, {
       name: localName.trim(),
@@ -396,8 +403,17 @@ function McpServerRow({ server }: { server: McpServerState }) {
         description: updated.command,
         connected: updated.status === 'connected',
       });
+
+      if (wasConnected) {
+        await connectServer(server.id);
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
     }
-  }, [localArgs, localCommand, localEnv, localName, server.id, updateServer, upsertMcpServer]);
+
+    setSaving(false);
+  }, [localArgs, localCommand, localEnv, localName, server.id, server.status, updateServer, upsertMcpServer, connectServer]);
 
   const inputStyle = {
     background: t.inputBg,
@@ -558,10 +574,11 @@ function McpServerRow({ server }: { server: McpServerState }) {
             <button
               type="button"
               onClick={handleSave}
+              disabled={saving}
               className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
-              style={{ color: '#fff', background: '#FE5000' }}
+              style={{ color: '#fff', background: '#FE5000', opacity: saving ? 0.7 : 1 }}
             >
-              Save
+              {saving ? 'Saving...' : saved ? 'Saved' : 'Save'}
             </button>
             <button
               type="button"
