@@ -600,7 +600,7 @@ function McpSection() {
   const mcpServers = useConsoleStore(s => s.mcpServers);
   // const toggleMcp = useConsoleStore(s => s.toggleMcp);
   const removeMcp = useConsoleStore(s => s.removeMcp);
-  const setShowMarketplace = useConsoleStore(s => s.setShowMarketplace);
+  const addMcp = useConsoleStore(s => s.addMcp);
   const mcpState = useMcpStore(s => s.servers);
   const mcpHealth = useHealthStore(s => s.mcpHealth);
   const [collapsed, setCollapsed] = useState(false);
@@ -696,16 +696,24 @@ function McpSection() {
           );
         })}
       </div>
-      <button type="button" aria-label="Browse MCP registry" onClick={() => setShowMarketplace(true)}
-        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2 rounded text-[10px] tracking-wide cursor-pointer min-h-[36px] motion-reduce:transition-none"
-        style={{ background: 'transparent', border: `1px dashed ${t.border}`, color: t.textFaint, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#2ecc71'; e.currentTarget.style.color = '#2ecc71'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textFaint; }}
-        onFocus={e => { e.currentTarget.style.borderColor = '#2ecc71'; e.currentTarget.style.color = '#2ecc71'; }}
-        onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textFaint; }}
-      >
-        <Plus size={10} /> Add from Registry
-      </button>
+      {/* Add from installed MCP servers */}
+      {(() => {
+        const allMcp = useConsoleStore.getState().mcpServers;
+        const available = allMcp.filter(m => !m.added);
+        if (available.length === 0) return null;
+        return (
+          <select
+            aria-label="Add MCP server to agent"
+            onChange={(e) => { if (e.target.value) { addMcp(e.target.value); e.target.value = ''; } }}
+            defaultValue=""
+            className="w-full mt-2 px-2 py-1.5 rounded text-[10px] cursor-pointer"
+            style={{ background: t.surfaceOpaque, border: `1px dashed ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", minHeight: 32 }}
+          >
+            <option value="" disabled>+ Add installed MCP server…</option>
+            {available.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        );
+      })()}
     </Section>
   );
 }
@@ -715,7 +723,7 @@ function SkillsSection() {
   const t = useTheme();
   const skills = useConsoleStore(s => s.skills);
   const removeSkill = useConsoleStore(s => s.removeSkill);
-  const setShowMarketplace = useConsoleStore(s => s.setShowMarketplace);
+  const addSkill = useConsoleStore(s => s.addSkill);
   const [collapsed, setCollapsed] = useState(false);
 
   const activeCount = skills.filter(s => s.enabled !== false).length;
@@ -745,16 +753,24 @@ function SkillsSection() {
           </div>
         ))}
       </div>
-      <button type="button" aria-label="Browse skill registry" onClick={() => setShowMarketplace(true)}
-        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2 rounded text-[10px] tracking-wide cursor-pointer min-h-[36px] motion-reduce:transition-none"
-        style={{ background: 'transparent', border: `1px dashed ${t.border}`, color: t.textFaint, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#f1c40f'; e.currentTarget.style.color = '#f1c40f'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textFaint; }}
-        onFocus={e => { e.currentTarget.style.borderColor = '#f1c40f'; e.currentTarget.style.color = '#f1c40f'; }}
-        onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textFaint; }}
-      >
-        <Plus size={10} /> Add from Registry
-      </button>
+      {/* Add from installed skills */}
+      {(() => {
+        const allSkills = useConsoleStore.getState().skills;
+        const available = allSkills.filter(s => !s.added);
+        if (available.length === 0) return null;
+        return (
+          <select
+            aria-label="Add skill to agent"
+            onChange={(e) => { if (e.target.value) { addSkill(e.target.value); e.target.value = ''; } }}
+            defaultValue=""
+            className="w-full mt-2 px-2 py-1.5 rounded text-[10px] cursor-pointer"
+            style={{ background: t.surfaceOpaque, border: `1px dashed ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", minHeight: 32 }}
+          >
+            <option value="" disabled>+ Add installed skill…</option>
+            {available.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        );
+      })()}
     </Section>
   );
 }
