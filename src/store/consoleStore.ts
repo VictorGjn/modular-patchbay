@@ -246,6 +246,8 @@ export interface ConsoleState {
   toggleMcp: (id: string) => void;
   addMcp: (id: string) => void;
   removeMcp: (id: string) => void;
+  upsertMcpServer: (mcp: { id: string; name: string; description?: string; connected?: boolean }) => void;
+  removeMcpServer: (id: string) => void;
   toggleSkill: (id: string) => void;
   addSkill: (id: string) => void;
   removeSkill: (id: string) => void;
@@ -604,6 +606,36 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   toggleMcp: (id: string) => { set({ mcpServers: toggleItemById(get().mcpServers, id) }); },
   addMcp: (id: string) => { set({ mcpServers: addItemById(get().mcpServers, id) }); },
   removeMcp: (id: string) => { set({ mcpServers: removeItemById(get().mcpServers, id) }); },
+  upsertMcpServer: (mcp) => {
+    const existing = get().mcpServers.find((s) => s.id === mcp.id);
+    if (existing) {
+      set({
+        mcpServers: get().mcpServers.map((s) =>
+          s.id === mcp.id
+            ? { ...s, name: mcp.name, description: mcp.description ?? s.description, connected: mcp.connected ?? s.connected }
+            : s,
+        ),
+      });
+      return;
+    }
+
+    set({
+      mcpServers: [...get().mcpServers, {
+        id: mcp.id,
+        name: mcp.name,
+        icon: 'plug',
+        connected: mcp.connected ?? false,
+        enabled: false,
+        added: false,
+        capabilities: ['input', 'output'],
+        category: 'data',
+        description: mcp.description ?? 'Custom MCP server',
+      }],
+    });
+  },
+  removeMcpServer: (id: string) => {
+    set({ mcpServers: get().mcpServers.filter((s) => s.id !== id) });
+  },
   toggleSkill: (id: string) => { set({ skills: toggleItemById(get().skills, id) }); },
   addSkill: (id: string) => { set({ skills: addItemById(get().skills, id) }); },
   removeSkill: (id: string) => { set({ skills: removeItemById(get().skills, id) }); },

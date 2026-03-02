@@ -34,6 +34,7 @@ interface McpStore {
 
   loadServers: () => Promise<void>;
   addServer: (config: { name: string; type?: 'stdio' | 'sse' | 'http'; command: string; args: string[]; env: Record<string, string>; url?: string; headers?: Record<string, string> }) => Promise<McpServerState | null>;
+  updateServer: (id: string, patch: Partial<Pick<McpServerState, 'name' | 'command' | 'args' | 'env' | 'url' | 'headers' | 'type'>>) => Promise<McpServerState | null>;
   connectServer: (id: string) => Promise<void>;
   disconnectServer: (id: string) => Promise<void>;
   removeServer: (id: string) => Promise<void>;
@@ -128,6 +129,17 @@ export const useMcpStore = create<McpStore>((set, get) => ({
     });
     if (data) {
       set({ servers: [...get().servers, data] });
+    }
+    return data;
+  },
+
+  updateServer: async (id, patch) => {
+    const data = await apiFetch<McpServerState>(`${API_BASE}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(patch),
+    });
+    if (data) {
+      set({ servers: get().servers.map((s) => (s.id === id ? { ...s, ...data } : s)) });
     }
     return data;
   },

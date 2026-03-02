@@ -67,6 +67,45 @@ router.post('/', (req, res) => {
   res.status(201).json(resp);
 });
 
+router.put('/:id', (req, res) => {
+  const config = readConfig();
+  const idx = config.mcpServers.findIndex((s) => s.id === req.params.id);
+  if (idx < 0) {
+    const resp: ApiResponse = { status: 'error', error: `MCP server "${req.params.id}" not found` };
+    res.status(404).json(resp);
+    return;
+  }
+
+  const current = config.mcpServers[idx];
+  const patch = req.body as Partial<McpServerConfig>;
+  const next: McpServerConfig = {
+    ...current,
+    ...patch,
+    id: current.id,
+    args: patch.args ?? current.args ?? [],
+    env: patch.env ?? current.env ?? {},
+  };
+
+  if (!next.name || !next.command) {
+    const resp: ApiResponse = { status: 'error', error: 'Missing required fields: name, command' };
+    res.status(400).json(resp);
+    return;
+  }
+
+  config.mcpServers[idx] = next;
+  writeConfig(config);
+  mcpManager.addServer(next);
+
+  const conn = mcpManager.getServer(next.id);
+  const data = {
+    ...next,
+    status: conn?.status ?? 'disconnected',
+    tools: conn?.tools ?? [],
+  };
+  const resp: ApiResponse = { status: 'ok', data };
+  res.json(resp);
+});
+
 router.post('/:id/connect', async (req, res) => {
   try {
     // If server not in manager, try to auto-register from Claude config
