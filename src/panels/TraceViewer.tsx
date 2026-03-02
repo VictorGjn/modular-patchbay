@@ -178,7 +178,7 @@ export function TraceViewer() {
             </select>
           )}
           <button type="button" aria-label="Clear traces" onClick={clearTraces}
-            className="p-1 border-none bg-transparent cursor-pointer rounded" style={{ color: t.textFaint }}>
+            className="p-2.5 border-none bg-transparent cursor-pointer rounded min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: t.textFaint }}>
             <X size={10} />
           </button>
         </div>
