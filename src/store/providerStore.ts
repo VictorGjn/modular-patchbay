@@ -335,6 +335,30 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
       const provider = get().providers.find((p) => p.id === id);
 
       if (provider?.authMethod === 'oauth') {
+        const backend = await isBackendAvailable();
+        if (backend) {
+          const res = await fetch(`${API_BASE}/providers/${id}/test`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ baseUrl: provider.baseUrl }),
+          });
+          const data = await res.json();
+          if (data.status === 'ok') {
+            const modelIds: string[] = data.data?.models ?? [];
+            const models = modelIds.map((m: string) => ({ id: m, label: m }));
+            set((state) => ({
+              testing: { ...state.testing, [id]: false },
+              providers: state.providers.map((p) =>
+                p.id === id
+                  ? { ...p, status: 'connected' as ProviderStatus, models: models.length ? models : p.models, lastError: 'Authenticated via Codex OAuth' }
+                  : p
+              ),
+            }));
+            persistProviders(get().providers);
+            return { ok: true, models: modelIds.length ? modelIds : provider.models.map((m) => m.id) };
+          }
+        }
+
         set((state) => ({
           testing: { ...state.testing, [id]: false },
           providers: state.providers.map((p) =>
@@ -393,7 +417,8 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         });
         const data = await res.json();
         if (data.status === 'ok') {
-          const models = (data.models || []).map((m: string) => ({ id: m, label: m }));
+          const modelIds: string[] = data.data?.models ?? data.models ?? [];
+          const models = modelIds.map((m: string) => ({ id: m, label: m }));
           set((state) => ({
             testing: { ...state.testing, [id]: false },
             providers: state.providers.map((p) =>
@@ -401,7 +426,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
             ),
           }));
           persistProviders(get().providers);
-          return { ok: true, models: data.models };
+          return { ok: true, models: modelIds };
         } else {
           set((state) => ({
             testing: { ...state.testing, [id]: false },
@@ -493,8 +518,9 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
     try {
       const res = await fetch(`${API_BASE}/providers`);
       if (!res.ok) return;
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      const json = await res.json();
+      const data = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+      if (data.length > 0) {
         // Merge backend data with defaults
         const merged = DEFAULT_PROVIDERS.map((def) => {
           const remote = data.find((d: ProviderConfig) => d.id === def.id);
