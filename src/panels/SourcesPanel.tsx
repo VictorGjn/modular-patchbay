@@ -686,6 +686,15 @@ function McpSection() {
     off: { bg: '#333', glow: 'none' },
   };
 
+  const getLatencyBars = (latencyMs?: number | null) => {
+    if (latencyMs == null) return { active: 0, color: t.textFaint };
+    if (latencyMs <= 10) return { active: 5, color: '#00ff88' };
+    if (latencyMs <= 30) return { active: 4, color: '#7DFF5A' };
+    if (latencyMs <= 80) return { active: 3, color: '#FFD84D' };
+    if (latencyMs <= 200) return { active: 2, color: '#FF9F43' };
+    return { active: 1, color: '#FF4D4D' };
+  };
+
   return (
     <Section
       icon={Plug} label="MCP Servers" color="#2ecc71"
@@ -726,7 +735,24 @@ function McpSection() {
               {health && health.status !== 'unknown' && (
                 <div className="flex items-center gap-2 pb-1.5 pl-5 text-[9px]" style={{ fontFamily: "'Space Mono', monospace" }}>
                   {health.latencyMs != null && (
-                    <span style={{ color: health.latencyMs > 2000 ? '#e74c3c' : t.textFaint }}>{health.latencyMs}ms</span>
+                    <span className="flex items-end gap-[2px]" title={`${health.latencyMs}ms`}>
+                      {Array.from({ length: 5 }).map((_, i) => {
+                        const bars = getLatencyBars(health.latencyMs);
+                        return (
+                          <span
+                            key={`lat-${server.id}-${i}`}
+                            style={{
+                              width: 3,
+                              height: 4 + i * 2,
+                              borderRadius: 1,
+                              background: i < bars.active ? bars.color : t.borderSubtle,
+                              opacity: i < bars.active ? 1 : 0.5,
+                            }}
+                          />
+                        );
+                      })}
+                      <span style={{ color: t.textFaint, marginLeft: 4 }}>{health.latencyMs}ms</span>
+                    </span>
                   )}
                   {health.tools && health.tools.length > 0 && (
                     <span className="truncate" style={{ color: t.textFaint, maxWidth: 180 }} title={health.tools.join(', ')}>
