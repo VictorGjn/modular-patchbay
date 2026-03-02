@@ -41,6 +41,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
   const [testResult, setTestResult] = useState<{ ok: boolean; models?: string[]; error?: string } | null>(null);
 
   const setProviderKey = useProviderStore((s) => s.setProviderKey);
+  const setProviderAuthMethod = useProviderStore((s) => s.setProviderAuthMethod);
   const setProviderBaseUrl = useProviderStore((s) => s.setProviderBaseUrl);
   const testConnection = useProviderStore((s) => s.testConnection);
   const testing = useProviderStore((s) => s.testing[provider.id]);
@@ -48,6 +49,8 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
   const saveProvider = useProviderStore((s) => s.saveProvider);
 
   const isCustom = provider.id.startsWith('custom-');
+  const isOpenAiProvider = provider.id === 'openai';
+  const isCodexOAuth = isOpenAiProvider && provider.authMethod === 'oauth';
 
   useEffect(() => {
     setLocalKey(provider.apiKey || '');
@@ -105,6 +108,23 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
       {/* Expanded config */}
       {expanded && (
         <div className="px-4 pb-4 flex flex-col gap-3">
+          {isOpenAiProvider && (
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                Auth Mode
+              </label>
+              <select
+                value={provider.authMethod}
+                onChange={(e) => setProviderAuthMethod(provider.id, e.target.value as 'api-key' | 'oauth')}
+                className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+                style={inputStyle}
+              >
+                <option value="api-key">API Key</option>
+                <option value="oauth">Codex OAuth</option>
+              </select>
+            </div>
+          )}
+
           {/* Agent SDK: no API key or URL needed */}
           {provider.authMethod === 'claude-agent-sdk' ? (
             <>
@@ -168,31 +188,42 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
             </>
           ) : (
             <>
-              {/* API Key */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
-                  API Key
-                </label>
-                <div className="relative">
-                  <input
-                    type={showKey ? 'text' : 'password'}
-                    value={localKey}
-                    onChange={(e) => setLocalKey(e.target.value)}
-                    onBlur={handleSave}
-                    placeholder="sk-..."
-                    className="nodrag nowheel w-full text-xs px-3 py-2 pr-9 rounded-lg outline-none"
-                    style={inputStyle}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowKey(!showKey)}
-                    className="nodrag nowheel absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent p-0.5"
-                    style={{ color: t.textDim }}
-                  >
-                    {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
+              {isCodexOAuth ? (
+                <div
+                  className="flex items-center gap-2 text-xs px-3 py-2.5 rounded-lg"
+                  style={{ background: t.badgeBg, border: `1px solid ${t.borderSubtle}` }}
+                >
+                  <Terminal size={14} style={{ color: provider.color }} />
+                  <span style={{ color: t.textSecondary }}>
+                    Uses Codex OAuth session (no API key required in this form).
+                  </span>
                 </div>
-              </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                    API Key
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showKey ? 'text' : 'password'}
+                      value={localKey}
+                      onChange={(e) => setLocalKey(e.target.value)}
+                      onBlur={handleSave}
+                      placeholder="sk-..."
+                      className="nodrag nowheel w-full text-xs px-3 py-2 pr-9 rounded-lg outline-none"
+                      style={inputStyle}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowKey(!showKey)}
+                      className="nodrag nowheel absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent p-0.5"
+                      style={{ color: t.textDim }}
+                    >
+                      {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Base URL */}
               <div className="flex flex-col gap-1">
@@ -222,7 +253,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   Test Connection
                 </button>
 
-                {provider.keyPageUrl && (
+                {provider.keyPageUrl && !isCodexOAuth && (
                   <a
                     href={provider.keyPageUrl}
                     target="_blank"

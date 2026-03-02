@@ -165,21 +165,29 @@ function loadProviders(): ProviderConfig[] {
     return DEFAULT_PROVIDERS.map((def) => {
       const s = saved.find((p) => p.id === def.id);
       if (!s) return def;
+      const authMethod = (s.authMethod ?? def.authMethod) as AuthMethod;
+      const hasApiKey = Boolean((s.apiKey ?? def.apiKey)?.trim());
       return {
         ...def,
+        authMethod,
         apiKey: s.apiKey ?? def.apiKey,
         baseUrl: s.baseUrl ?? def.baseUrl,
-        status: (s.apiKey ? 'configured' : 'disconnected') as ProviderStatus,
+        status: authMethod === 'oauth' ? ((s.status ?? 'configured') as ProviderStatus) : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus),
       };
     }).concat(
-      saved.filter((s) => !DEFAULT_PROVIDERS.some((d) => d.id === s.id)).map((s) => ({
-        ...DEFAULT_PROVIDERS[DEFAULT_PROVIDERS.length - 1],
-        ...s,
-        id: s.id ?? 'custom-' + Date.now(),
-        name: s.name ?? 'Custom',
-        status: (s.apiKey ? 'configured' : 'disconnected') as ProviderStatus,
-        models: s.models ?? [{ id: 'custom-model', label: 'Custom Model' }],
-      } as ProviderConfig))
+      saved.filter((s) => !DEFAULT_PROVIDERS.some((d) => d.id === s.id)).map((s) => {
+        const authMethod = (s.authMethod ?? 'api-key') as AuthMethod;
+        const hasApiKey = Boolean(s.apiKey?.trim());
+        return {
+          ...DEFAULT_PROVIDERS[DEFAULT_PROVIDERS.length - 1],
+          ...s,
+          authMethod,
+          id: s.id ?? 'custom-' + Date.now(),
+          name: s.name ?? 'Custom',
+          status: authMethod === 'oauth' ? ((s.status ?? 'configured') as ProviderStatus) : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus),
+          models: s.models ?? [{ id: 'custom-model', label: 'Custom Model' }],
+        } as ProviderConfig;
+      })
     );
   } catch {
     return DEFAULT_PROVIDERS;
@@ -197,6 +205,7 @@ function persistProviders(providers: ProviderConfig[]) {
       apiKey: p.apiKey,
       baseUrl: p.baseUrl,
       status: p.status,
+      authMethod: p.authMethod,
       models: isDefault ? undefined : p.models,
       authHeader: isDefault ? undefined : p.authHeader,
       icon: isDefault ? undefined : p.icon,
@@ -214,6 +223,7 @@ interface ProviderStore {
   selectedProviderId: string;
   testing: Record<string, boolean>;
   setProviderKey: (id: string, apiKey: string) => void;
+  setProviderAuthMethod: (id: string, authMethod: AuthMethod) => void;
   setProviderBaseUrl: (id: string, baseUrl: string) => void;
   setProviderStatus: (id: string, status: ProviderStatus) => void;
   setProviderModels: (id: string, models: { id: string; label: string }[]) => void;
@@ -235,9 +245,25 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
 
   setProviderKey: (id, apiKey) => {
     set((state) => {
-      const providers = state.providers.map((p) =>
-        p.id === id ? { ...p, apiKey, status: (apiKey ? 'configured' : 'disconnected') as ProviderStatus } : p
-      );
+      const providers = state.providers.map((p) => {
+        if (p.id !== id) return p;
+        const hasApiKey = Boolean(apiKey.trim());
+        const status = p.authMethod === 'oauth' ? p.status : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus);
+        return { ...p, apiKey, status };
+      });
+      persistProviders(providers);
+      return { providers };
+    });
+  },
+
+  setProviderAuthMethod: (id, authMethod) => {
+    set((state) => {
+      const providers = state.providers.map((p) => {
+        if (p.id !== id) return p;
+        const hasApiKey = Boolean(p.apiKey?.trim());
+        const status = authMethod === 'oauth' ? 'configured' : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus);
+        return { ...p, authMethod, status, lastError: undefined };
+      });
       persistProviders(providers);
       return { providers };
     });
@@ -300,6 +326,18 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
     try {
       // Special handling for Claude Agent SDK
       const provider = get().providers.find((p) => p.id === id);
+
+      if (provider?.authMethod === 'oauth') {
+        set((state) => ({
+          testing: { ...state.testing, [id]: false },
+          providers: state.providers.map((p) =>
+            p.id === id ? { ...p, status: 'connected' as ProviderStatus, lastError: 'Authenticated via Codex OAuth' } : p
+          ),
+        }));
+        persistProviders(get().providers);
+        return { ok: true, models: provider.models.map((m) => m.id) };
+      }
+
       if (provider?.authMethod === 'claude-agent-sdk') {
         try {
           const res = await fetch(`${API_BASE}/agent-sdk/status`);
