@@ -8,11 +8,13 @@ export function DashboardLayout() {
 
   return (
     <div
+      role="main"
       className="flex-1 flex overflow-hidden"
       style={{ background: t.bg }}
     >
       {/* Left — Sources */}
-      <div
+      <nav
+        aria-label="Agent sources"
         className="flex flex-col overflow-y-auto"
         style={{
           width: 340,
@@ -22,18 +24,20 @@ export function DashboardLayout() {
         }}
       >
         <SourcesPanel />
-      </div>
+      </nav>
 
       {/* Center — Agent Builder */}
-      <div
+      <section
+        aria-label="Agent builder"
         className="flex-1 overflow-y-auto"
         style={{ padding: '24px 32px' }}
       >
         <AgentBuilder />
-      </div>
+      </section>
 
       {/* Right — Test & Export */}
-      <div
+      <aside
+        aria-label="Test and export"
         className="flex flex-col overflow-hidden"
         style={{
           width: 380,
@@ -43,7 +47,7 @@ export function DashboardLayout() {
         }}
       >
         <TestPanel />
-      </div>
+      </aside>
     </div>
   );
 }
