@@ -15,6 +15,7 @@ import skillsSearchRoutes from './routes/skills-search.js';
 import repoIndexRoutes from './routes/repo-index.js';
 import healthRoutes from './routes/health.js';
 import connectorRoutes from './routes/connectors.js';
+import runtimeRoutes from './routes/runtime.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -44,6 +45,7 @@ export function createApp() {
   app.use('/api/repo', repoIndexRoutes);
   app.use('/api/health', healthRoutes);
   app.use('/api/connectors', connectorRoutes);
+  app.use('/api/runtime', runtimeRoutes);
 
   // Global error handler — prevent server crashes
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
