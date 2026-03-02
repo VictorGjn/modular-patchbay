@@ -25,6 +25,12 @@ import { useTreeIndexStore } from '../store/treeIndexStore';
 import { estimateTokens, type TreeNode } from './treeIndexer';
 import { renderFilteredMarkdown, applyDepthFilter } from '../utils/depthFilter';
 import { streamCompletion, streamAgentSdk } from './llmService';
+import { API_BASE } from '../config';
+import {
+  extractHeadlines,
+  buildNavigationPrompt,
+  parseNavigationResponse,
+} from './treeNavigator';
 
 // ── Types ──
 
@@ -36,6 +42,7 @@ export interface PipelineChatOptions {
   agentMeta: { name: string; description: string; avatar?: string; tags?: string[] };
   providerId: string;
   model: string;
+  navigationMode?: 'manual' | 'agent-driven';
   onChunk: (chunk: string) => void;
   onDone: (stats: PipelineChatStats) => void;
   onError: (err: Error) => void;
@@ -133,6 +140,41 @@ function buildSystemFrame(): string {
   return parts.join('\n\n');
 }
 
+// ── Non-streaming LLM call for navigation ──
+
+async function callLlmForNavigation(prompt: string, providerId: string, model: string): Promise<string> {
+  const resp = await fetch(`${API_BASE}/llm/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      providerId, model,
+      messages: [
+        { role: 'system', content: 'You are a context navigation agent. Respond with ONLY a JSON array, no markdown, no explanation.' },
+        { role: 'user', content: prompt },
+      ],
+    }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!resp.ok) throw new Error(`Navigation LLM call failed: ${resp.status}`);
+
+  // Backend always streams SSE — collect chunks
+  const text = await resp.text();
+  const chunks = text.split('\n')
+    .filter(line => line.startsWith('data: '))
+    .map(line => line.slice(6))
+    .filter(data => data !== '[DONE]');
+
+  let content = '';
+  for (const chunk of chunks) {
+    try {
+      const parsed = JSON.parse(chunk);
+      const delta = parsed.choices?.[0]?.delta?.content;
+      if (delta) content += delta;
+    } catch { /* skip */ }
+  }
+  return content;
+}
+
 // ── Fallback: build knowledge section without pipeline (same as old assembleContext) ──
 
 function buildKnowledgeFallback(channels: ChannelConfig[]): string {
@@ -224,6 +266,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       // 2c. Run pipeline if we have indexed content
       if (sourcesWithContent.length > 0) {
         const totalBudget = activeChannels.reduce((sum, ch) => sum + ch.baseTokens, 0);
+        const useAgentNav = options.navigationMode === 'agent-driven';
 
         const pipelineStart = startPipeline({
           task: userMessage,
@@ -239,8 +282,8 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
           durationMs: pipelineStart.indexMs,
         });
 
-        // Manual depth-based selections (channel depths act as user overrides)
-        const manualSelections = activeChannels
+        let navigationResponse = '';
+        let manualSelections = activeChannels
           .filter(ch => treeStore.getIndex(ch.path) != null)
           .map(ch => ({
             nodeId: ch.name,
@@ -248,14 +291,39 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
             priority: ch.knowledgeType === 'ground-truth' ? 0 : ch.knowledgeType === 'signal' ? 1 : 2,
           }));
 
+        // Agent-driven navigation: LLM decides which branches at which depth
+        if (useAgentNav && pipelineStart.indexes.length > 0) {
+          const navStart = Date.now();
+          try {
+            const headlines = pipelineStart.indexes.map(extractHeadlines);
+            const navPrompt = buildNavigationPrompt(headlines, { task: userMessage, tokenBudget: totalBudget });
+            navigationResponse = await callLlmForNavigation(navPrompt, providerId, model);
+            const agentSelections = parseNavigationResponse(navigationResponse);
+            if (agentSelections.length > 0) manualSelections = agentSelections;
+
+            traceStore.addEvent(traceId, {
+              kind: 'llm_call',
+              model,
+              durationMs: Date.now() - navStart,
+              toolResult: `Agent selected ${agentSelections.length} branches`,
+            });
+          } catch (navErr) {
+            traceStore.addEvent(traceId, {
+              kind: 'error',
+              errorMessage: `Navigation failed: ${navErr instanceof Error ? navErr.message : 'Unknown'} — using manual depths`,
+              durationMs: Date.now() - navStart,
+            });
+          }
+        }
+
         pipelineResult = completePipeline(
           pipelineStart.indexes,
-          '',
+          navigationResponse,
           {
             task: userMessage,
             sources: sourcesWithContent,
             tokenBudget: totalBudget,
-            manualSelections,
+            manualSelections: navigationResponse ? undefined : manualSelections,
             compression: { enabled: true, aggressiveness: 0.5 },
           },
           pipelineStart.indexMs,

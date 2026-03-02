@@ -349,6 +349,23 @@ function KnowledgeSection() {
         </div>
       </div>
 
+      {/* Navigation mode toggle */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[9px] tracking-[0.1em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+          Depth selection
+        </span>
+        <div className="flex gap-0.5 rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
+          <button type="button" onClick={() => setNavigationMode('manual')}
+            className="text-[8px] px-2 py-1 cursor-pointer border-none"
+            style={{ background: navigationMode === 'manual' ? '#FE5000' : 'transparent', color: navigationMode === 'manual' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}
+            aria-label="Manual depth selection">Manual</button>
+          <button type="button" onClick={() => setNavigationMode('agent-driven')}
+            className="text-[8px] px-2 py-1 cursor-pointer border-none"
+            style={{ background: navigationMode === 'agent-driven' ? '#FE5000' : 'transparent', color: navigationMode === 'agent-driven' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}
+            aria-label="Agent-driven depth selection">Agent</button>
+        </div>
+      </div>
+
       {/* Channel list */}
       <div className="flex flex-col">
         {channels.map(ch => {
