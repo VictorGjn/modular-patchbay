@@ -147,7 +147,7 @@ function GeneratorSection() {
           style={{ minHeight: 80 }}
         />
         {error && (
-          <div className="text-[10px] px-2 py-1 rounded" style={{ background: '#ff000015', color: '#ff4444', border: '1px solid #ff000020' }}>
+          <div role="alert" className="text-[10px] px-2 py-1 rounded" style={{ background: '#ff000015', color: '#ff4444', border: '1px solid #ff000020' }}>
             {error}
           </div>
         )}
@@ -195,6 +195,8 @@ function KnowledgeSection() {
   const addChannel = useConsoleStore(s => s.addChannel);
   const setShowFilePicker = useConsoleStore(s => s.setShowFilePicker);
   const setShowConnectorPicker = useConsoleStore(s => s.setShowConnectorPicker);
+  const navigationMode = useConsoleStore(s => s.navigationMode);
+  const setNavigationMode = useConsoleStore(s => s.setNavigationMode);
   const connectors = useConsoleStore(s => s.connectors);
   const removeConnector = useConsoleStore(s => s.removeConnector);
   const treeIndexes = useTreeIndexStore(s => s.indexes);
@@ -909,11 +911,13 @@ function MemorySection() {
       </div>
 
       {/* ── Advanced toggle ── */}
-      <button type="button" onClick={() => setShowAdvanced(!showAdvanced)}
-        className="flex items-center gap-1 mt-3 text-[9px] tracking-wider uppercase cursor-pointer border-none bg-transparent w-full"
-        style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, padding: 0, transition: 'color 150ms' }}
+      <button type="button" aria-expanded={showAdvanced} onClick={() => setShowAdvanced(!showAdvanced)}
+        className="flex items-center gap-1 mt-3 text-[9px] tracking-wider uppercase cursor-pointer border-none bg-transparent w-full min-h-[44px] motion-reduce:transition-none"
+        style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, padding: '0 8px', transition: 'color 150ms' }}
         onMouseEnter={e => { e.currentTarget.style.color = '#FE5000'; }}
         onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}
+        onFocus={e => { e.currentTarget.style.color = '#FE5000'; }}
+        onBlur={e => { e.currentTarget.style.color = t.textDim; }}
       >
         {showAdvanced ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
         Advanced memory config
@@ -969,9 +973,9 @@ function MemorySection() {
                 {EXTRACT_TYPES.map(et => {
                   const active = longTerm.write.extractTypes.includes(et.value as any);
                   return (
-                    <button key={et.value} type="button" aria-label={`Toggle ${et.label}`}
+                    <button key={et.value} type="button" aria-label={`Toggle ${et.label}`} aria-pressed={longTerm.write.extractTypes.includes(et.value as any)}
                       onClick={() => toggleExtractType(et.value as any)}
-                      className="text-[9px] px-2 py-1 rounded-full cursor-pointer border-none"
+                      className="text-[9px] px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
                       style={{
                         fontFamily: "'Space Mono', monospace",
                         background: active ? `${et.color}20` : t.isDark ? '#1c1c20' : '#f0f0f5',
@@ -1155,7 +1159,7 @@ function FactInsightsSection() {
       )}
 
       {error && (
-        <div className="text-[10px] px-2 py-1.5 rounded mt-1" style={{ background: '#ff000012', color: '#ff4444', border: '1px solid #ff000020' }}>
+        <div role="alert" className="text-[10px] px-2 py-1.5 rounded mt-1" style={{ background: '#ff000012', color: '#ff4444', border: '1px solid #ff000020' }}>
           {error}
         </div>
       )}

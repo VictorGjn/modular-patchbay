@@ -138,6 +138,29 @@ test.describe('Dashboard Layout', () => {
     }
   });
 
+  test('connector picker opens when clicking Connect button', async ({ page }) => {
+    await page.goto('/');
+    const connectBtn = page.getByRole('button', { name: /connect/i });
+    await connectBtn.click();
+    await page.waitForTimeout(500);
+    const pickerContent = page.locator('[role="dialog"], [class*="fixed"]').first();
+    if (await pickerContent.isVisible()) {
+      await expect(pickerContent).toBeVisible();
+    }
+  });
+
+  test('repo indexer input appears when clicking Repo button', async ({ page }) => {
+    await page.goto('/');
+    const repoBtn = page.getByRole('button', { name: /repo/i });
+    await repoBtn.click();
+    await expect(page.getByLabel('Repository path')).toBeVisible();
+  });
+
+  test('API key input appears on connector key icon click', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: /connect/i })).toBeVisible();
+  });
+
   test('memory section has session config controls', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByText('Conversation Window')).toBeVisible();

@@ -152,6 +152,33 @@ describe('assembleFromPlan', () => {
     expect(result.breakdown[1].nodeId).toBe('n1-1');
   });
 
+  it('handles budget overflow by truncating content', () => {
+    const idx = buildIndex();
+    const allNodes = idx.root.children[0].children;
+    const result = assembleFromPlan([idx], {
+      source: 'order-management.md',
+      selections: allNodes.map(n => ({ nodeId: n.nodeId, depth: 0, priority: 0 })),
+      totalTokens: 20,
+      taskRelevance: 'test',
+    });
+    expect(result.tokens).toBeGreaterThan(0);
+  });
+
+  it('handles empty tree (no children)', () => {
+    const emptyIdx = indexMarkdown('empty.md', '');
+    const headlines = extractHeadlines(emptyIdx);
+    expect(typeof headlines).toBe('string');
+  });
+
+  it('handles single-node tree', () => {
+    const singleIdx = indexMarkdown('single.md', '# Just One Heading\n\nSome body text here.');
+    const headlines = extractHeadlines(singleIdx);
+    expect(headlines).toContain('Just One Heading');
+
+    const prompt = buildNavigationPrompt([headlines], { task: 'test', tokenBudget: 500 });
+    expect(prompt).toContain('Just One Heading');
+  });
+
   it('skips nodes not found', () => {
     const idx = buildIndex();
     const result = assembleFromPlan([idx], {
