@@ -787,10 +787,11 @@ function SkillsSection() {
   const t = useTheme();
   const skills = useConsoleStore(s => s.skills);
   const removeSkill = useConsoleStore(s => s.removeSkill);
-  const setShowSettings = useConsoleStore(s => s.setShowSettings);
+  const setShowSkillPicker = useConsoleStore(s => s.setShowSkillPicker);
   const [collapsed, setCollapsed] = useState(false);
 
-  const activeCount = skills.filter(s => s.enabled !== false).length;
+  const selectedSkills = skills.filter(s => s.added);
+  const activeCount = selectedSkills.length;
 
   return (
     <Section
@@ -798,13 +799,13 @@ function SkillsSection() {
       badge={`${activeCount} active`}
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
-      {skills.length === 0 && (
+      {selectedSkills.length === 0 && (
         <div className="text-[10px] py-2" style={{ color: t.textFaint }}>
-          No skills configured for this agent.
+          No skills selected for this agent.
         </div>
       )}
       <div className="flex flex-col">
-        {skills.map(skill => (
+        {selectedSkills.map(skill => (
           <div key={skill.id} className="flex items-center gap-2 py-1.5"
             style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px rgba(0,255,136,0.4)', flexShrink: 0 }} />
@@ -817,7 +818,7 @@ function SkillsSection() {
           </div>
         ))}
       </div>
-      <button type="button" aria-label="Open Skill Library" onClick={() => setShowSettings(true, 'skills')}
+      <button type="button" aria-label="Open Skill Library" onClick={() => setShowSkillPicker(true)}
         className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
         style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
