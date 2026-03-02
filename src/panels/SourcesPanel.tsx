@@ -644,7 +644,7 @@ function McpSection() {
                 {toolCount > 0 && (
                   <span className="text-[10px]" style={{ color: t.textDim }}>{toolCount} tools</span>
                 )}
-                <button type="button" aria-label={`Remove ${server.name}`} onClick={() => removeMcp(server.id)} className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
+                <button type="button" aria-label={`Remove ${server.name}`} onClick={() => removeMcp(server.id)} className="border-none bg-transparent cursor-pointer p-2 rounded hover:bg-[#ff000010] min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: t.textFaint }}>
                   <X size={10} />
                 </button>
               </div>
@@ -704,17 +704,19 @@ function SkillsSection() {
             style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px rgba(0,255,136,0.4)', flexShrink: 0 }} />
             <span className="flex-1 text-[12px]" style={{ color: t.textPrimary }}>{skill.name}</span>
-            <button type="button" aria-label={`Remove ${skill.name}`} onClick={() => removeSkill(skill.id)} className="border-none bg-transparent cursor-pointer p-1 rounded hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
+            <button type="button" aria-label={`Remove ${skill.name}`} onClick={() => removeSkill(skill.id)} className="border-none bg-transparent cursor-pointer p-2 rounded hover:bg-[#ff000010] min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: t.textFaint }}>
               <X size={10} />
             </button>
           </div>
         ))}
       </div>
-      <button type="button" onClick={() => setShowMarketplace(true)}
-        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2 rounded text-[11px] tracking-wide uppercase cursor-pointer"
+      <button type="button" aria-label="Open Skill Library" onClick={() => setShowMarketplace(true)}
+        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
         style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+        onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+        onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
       >
         <Library size={11} /> Skill Library
       </button>
@@ -883,7 +885,7 @@ function MemorySection() {
               </span>
             ))}
             <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)}
-              className="border-none bg-transparent cursor-pointer p-1 rounded shrink-0 hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
+              className="border-none bg-transparent cursor-pointer p-2 rounded shrink-0 hover:bg-[#ff000010] min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: t.textFaint }}>
               <X size={9} />
             </button>
           </div>
@@ -900,7 +902,7 @@ function MemorySection() {
           placeholder="Add a seed fact..." />
         <button type="button" aria-label="Add fact"
           onClick={() => { if (newFactText.trim()) { addFact(newFactText.trim()); setNewFactText(''); } }}
-          className="px-2 border-none rounded cursor-pointer shrink-0"
+          className="px-2 border-none rounded cursor-pointer shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
           style={{ background: t.surfaceElevated, color: t.textDim }}>
           <Plus size={12} />
         </button>
