@@ -10,8 +10,8 @@ export async function probeMcpServer(serverId: string): Promise<HealthProbeResul
   const start = performance.now();
 
   try {
-    // Step 1: Check if server exists and is connectable
-    const healthRes = await fetch(`${API_BASE}/mcp/${serverId}/health`, { signal: AbortSignal.timeout(10_000) });
+    // Active probe: connects if needed, lists tools, measures latency
+    const healthRes = await fetch(`${API_BASE}/health/mcp/${serverId}`, { signal: AbortSignal.timeout(15_000) });
     const latencyMs = Math.round(performance.now() - start);
 
     if (!healthRes.ok) {
@@ -66,32 +66,42 @@ export async function probeSkill(skillId: string): Promise<HealthProbeResult> {
   const store = useHealthStore.getState();
   store.setSkillChecking(skillId);
 
-  // Skills are local files — we check if the backend can resolve them
   const start = performance.now();
 
   try {
-    const res = await fetch(`${API_BASE}/skills/health/${encodeURIComponent(skillId)}`, { signal: AbortSignal.timeout(5_000) });
+    const res = await fetch(`${API_BASE}/health/skills/${encodeURIComponent(skillId)}`, { signal: AbortSignal.timeout(10_000) });
     const latencyMs = Math.round(performance.now() - start);
 
     if (!res.ok) {
-      // Backend might not have this route yet — degrade gracefully
       const result: HealthProbeResult = {
-        status: res.status === 404 ? 'unknown' : 'error',
+        status: res.status === 404 ? 'error' : 'unknown',
         latencyMs,
         toolCount: null,
-        errorMessage: res.status === 404 ? 'Health check not available' : `HTTP ${res.status}`,
+        errorMessage: res.status === 404 ? 'Skill not found' : `HTTP ${res.status}`,
         checkedAt: Date.now(),
       };
       store.setSkillHealth(skillId, result);
       return result;
     }
 
-    const data = await res.json();
+    const json = await res.json() as { data?: { status: string; securityIssues: string[]; version: string | null; dependencies: number } };
+    const audit = json.data;
+
+    let status: HealthStatus = 'healthy';
+    let errorMessage: string | null = null;
+    if (audit?.status === 'error') {
+      status = 'error';
+      errorMessage = `Security: ${audit.securityIssues.slice(0, 2).join('; ')}`;
+    } else if (audit?.status === 'warning') {
+      status = 'degraded';
+      errorMessage = `Warning: ${audit.securityIssues[0]}`;
+    }
+
     const result: HealthProbeResult = {
-      status: data.exists ? 'healthy' : 'error',
+      status,
       latencyMs,
-      toolCount: null,
-      errorMessage: data.exists ? null : 'Skill file not found',
+      toolCount: audit?.dependencies ?? null,
+      errorMessage,
       checkedAt: Date.now(),
     };
     store.setSkillHealth(skillId, result);
@@ -102,7 +112,7 @@ export async function probeSkill(skillId: string): Promise<HealthProbeResult> {
       status: 'unknown',
       latencyMs,
       toolCount: null,
-      errorMessage: 'Backend unavailable',
+      errorMessage: err instanceof Error ? err.message : 'Audit failed',
       checkedAt: Date.now(),
     };
     store.setSkillHealth(skillId, result);
@@ -113,6 +123,32 @@ export async function probeSkill(skillId: string): Promise<HealthProbeResult> {
 /* ── Batch Probes ── */
 
 export async function probeAllMcp(serverIds: string[]): Promise<void> {
+  // Use batch endpoint for efficiency
+  try {
+    const res = await fetch(`${API_BASE}/health/mcp/probe-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: serverIds }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (res.ok) {
+      const json = await res.json() as { data?: Array<{ id: string; status: string; latencyMs: number; toolCount: number; tools: string[]; errorMessage: string | null; checkedAt: number }> };
+      const store = useHealthStore.getState();
+      for (const probe of json.data || []) {
+        store.setMcpHealth(probe.id, {
+          status: probe.status as HealthStatus,
+          latencyMs: probe.latencyMs,
+          toolCount: probe.toolCount,
+          tools: probe.tools,
+          errorMessage: probe.errorMessage,
+          checkedAt: probe.checkedAt,
+        });
+      }
+      return;
+    }
+  } catch { /* fall back to individual probes */ }
+
+  // Fallback: individual probes
   await Promise.allSettled(serverIds.map(id => probeMcpServer(id)));
 }
 
