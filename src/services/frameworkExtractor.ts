@@ -22,6 +22,7 @@ export interface ExtractedFramework {
   workflowSteps: string[];
   personaHints: string[];
   toolHints: string[];
+  outputRules: string[];
   namingPatterns: NamingPattern[];
   /** Raw sections that didn't match any extraction rule — kept as passive knowledge */
   residual: string;
@@ -42,7 +43,7 @@ interface ExtractionRule {
   /** Content patterns within the section */
   contentPatterns: RegExp[];
   /** What to extract as */
-  target: 'constraint' | 'workflow' | 'persona' | 'tool' | 'naming';
+  target: 'constraint' | 'workflow' | 'persona' | 'tool' | 'naming' | 'output';
 }
 
 // Heading patterns match against the heading TEXT (after # stripping)
@@ -113,6 +114,20 @@ const RULES: ExtractionRule[] = [
       /\b(npm|yarn|pnpm|pip|cargo|go)\s+(run|install|test|build)\b/i,
     ],
     target: 'tool',
+  },
+  // Output rules — formatting, templates, response structure
+  {
+    headingPatterns: [
+      /^(output|response|format|template|formatting|structure)/i,
+      /^(how to|writing|documentation)\s*(format|style|write|structure)/i,
+      /^(pr|pull\s*request|commit|changelog|report)\s*(template|format|description)/i,
+    ],
+    contentPatterns: [
+      /\b(format|template|structure|layout|output|response)\b.*\b(must|should|always)/i,
+      /\b(markdown|json|yaml|table|list|bullet|heading|section)\b/i,
+      /```[\s\S]*?```/, // code blocks as templates
+    ],
+    target: 'output',
   },
 ];
 
@@ -268,6 +283,7 @@ export function extractFramework(markdown: string, sourceName: string): Extracte
     workflowSteps: [],
     personaHints: [],
     toolHints: [],
+    outputRules: [],
     namingPatterns: [],
     residual: '',
     source: sourceName,
@@ -305,6 +321,18 @@ export function extractFramework(markdown: string, sourceName: string): Extracte
         case 'naming':
           result.namingPatterns.push(...extractNamingFromSection(section));
           break;
+        case 'output':
+          // Extract output formatting rules — bullet points and template blocks
+          for (const line of section.content.split('\n')) {
+            const bullet = line.match(/^[-*]\s+(.+)/);
+            if (bullet && bullet[1].length > 10) result.outputRules.push(bullet[1].trim());
+          }
+          // Also capture code blocks as templates
+          const templateBlocks = section.content.match(/```[\s\S]*?```/g);
+          if (templateBlocks) {
+            for (const block of templateBlocks) result.outputRules.push(block);
+          }
+          break;
       }
       break; // first matching rule wins
     }
@@ -324,11 +352,20 @@ export function extractFramework(markdown: string, sourceName: string): Extracte
  * Compile extracted framework into injectable system prompt blocks.
  * Returns an object with sections ready to merge into buildSystemFrame().
  */
+/** Check if two constraint strings share a meaningful subject (3+ char word overlap) */
+function sharedSubject(a: string, b: string): boolean {
+  const wordsA = a.replace(/\b(must|never|always|should|do not|avoid|use|prefer)\b/gi, '').split(/\s+/).filter((w) => w.length >= 3);
+  const wordsB = new Set(b.replace(/\b(must|never|always|should|do not|avoid|use|prefer)\b/gi, '').split(/\s+/).filter((w) => w.length >= 3));
+  return wordsA.some((w) => wordsB.has(w));
+}
+
 export function compileFrameworkBlocks(frameworks: ExtractedFramework[]): {
   constraintsBlock: string;
   workflowBlock: string;
   personaBlock: string;
   toolHintsBlock: string;
+  outputBlock: string;
+  conflicts: string[];
   residualKnowledge: string;
 } {
   const allConstraints = frameworks.flatMap((f) => f.constraints);
@@ -337,8 +374,26 @@ export function compileFrameworkBlocks(frameworks: ExtractedFramework[]): {
   const allToolHints = frameworks.flatMap((f) => f.toolHints);
   const allResidual = frameworks.map((f) => f.residual).filter(Boolean);
 
-  // Deduplicate constraints
+  // Deduplicate constraints and detect conflicts
   const uniqueConstraints = [...new Set(allConstraints)];
+
+  // Conflict detection: find contradictory constraints (MUST X vs NEVER X, use Y vs avoid Y)
+  const conflicts: string[] = [];
+  for (let i = 0; i < uniqueConstraints.length; i++) {
+    for (let j = i + 1; j < uniqueConstraints.length; j++) {
+      const a = uniqueConstraints[i].toLowerCase();
+      const b = uniqueConstraints[j].toLowerCase();
+      // Check for direct contradictions
+      if (
+        (a.includes('must') && b.includes('never') && sharedSubject(a, b)) ||
+        (a.includes('never') && b.includes('must') && sharedSubject(a, b)) ||
+        (a.includes('use ') && b.includes('avoid ') && sharedSubject(a, b)) ||
+        (a.includes('avoid ') && b.includes('use ') && sharedSubject(a, b))
+      ) {
+        conflicts.push(`⚠️ Conflict: "${uniqueConstraints[i]}" vs "${uniqueConstraints[j]}"`);
+      }
+    }
+  }
 
   // Format naming patterns as constraints
   const namingConstraints = frameworks
@@ -351,8 +406,9 @@ export function compileFrameworkBlocks(frameworks: ExtractedFramework[]): {
   const mergedConstraints = [...uniqueConstraints, ...namingConstraints];
 
   return {
+    conflicts,
     constraintsBlock: mergedConstraints.length > 0
-      ? `<framework_constraints source="guidelines">\n${mergedConstraints.map((c) => `- ${c}`).join('\n')}\n</framework_constraints>`
+      ? `<framework_constraints source="guidelines">\n${mergedConstraints.map((c) => `- ${c}`).join('\n')}${conflicts.length > 0 ? '\n\nConflicts detected:\n' + conflicts.join('\n') : ''}\n</framework_constraints>`
       : '',
     workflowBlock: allWorkflow.length > 0
       ? `<framework_workflow>\n${allWorkflow.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n</framework_workflow>`
@@ -362,6 +418,9 @@ export function compileFrameworkBlocks(frameworks: ExtractedFramework[]): {
       : '',
     toolHintsBlock: allToolHints.length > 0
       ? `<tool_hints>\n${allToolHints.map((h) => `- ${h}`).join('\n')}\n</tool_hints>`
+      : '',
+    outputBlock: frameworks.flatMap((f) => f.outputRules).length > 0
+      ? `<output_format>\nFormat your responses according to these rules:\n${frameworks.flatMap((f) => f.outputRules).map((r) => r.startsWith('```') ? r : `- ${r}`).join('\n')}\n</output_format>`
       : '',
     residualKnowledge: allResidual.length > 0
       ? allResidual.join('\n\n---\n\n')
