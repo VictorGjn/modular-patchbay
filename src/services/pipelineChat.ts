@@ -31,6 +31,10 @@ import {
   buildNavigationPrompt,
   parseNavigationResponse,
 } from './treeNavigator';
+import {
+  extractFramework,
+  compileFrameworkBlocks,
+} from './frameworkExtractor';
 
 // ── Types ──
 
@@ -222,9 +226,12 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     // 1. Build the non-knowledge system frame
     const systemFrame = buildSystemFrame();
 
-    // 2. Run pipeline on knowledge channels (if any enabled)
+    // 2. Separate framework sources from regular knowledge
     const activeChannels = channels.filter(ch => ch.enabled);
+    const frameworkChannels = activeChannels.filter(ch => ch.knowledgeType === 'framework');
+    const regularChannels = activeChannels.filter(ch => ch.knowledgeType !== 'framework');
     let knowledgeBlock = '';
+    let frameworkBlock = '';
 
     if (activeChannels.length > 0) {
       const treeStore = useTreeIndexStore.getState();
@@ -244,9 +251,47 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         });
       }
 
-      // 2b. Build pipeline sources from indexed content
+      // 2b. Extract framework sources → active agent shaping (constraints, workflow, persona)
+      if (frameworkChannels.length > 0) {
+        const frameworks = frameworkChannels
+          .map(ch => {
+            const treeIndex = treeStore.getIndex(ch.path);
+            if (!treeIndex) return null;
+            const filtered = applyDepthFilter(treeIndex, 0); // Full depth for framework extraction
+            const content = renderFilteredMarkdown(filtered.filtered);
+            return content.trim() ? extractFramework(content, ch.name) : null;
+          })
+          .filter((f): f is NonNullable<typeof f> => f !== null);
+
+        if (frameworks.length > 0) {
+          const compiled = compileFrameworkBlocks(frameworks);
+          const blocks = [
+            compiled.constraintsBlock,
+            compiled.workflowBlock,
+            compiled.personaBlock,
+            compiled.toolHintsBlock,
+          ].filter(Boolean);
+          frameworkBlock = blocks.join('\n\n');
+
+          // Residual content (sections that didn't match extraction rules) goes to knowledge
+          if (compiled.residualKnowledge.trim()) {
+            // Will be added to knowledgeBlock later
+            knowledgeBlock = `<knowledge type="framework-residual">\n${compiled.residualKnowledge}\n</knowledge>`;
+          }
+
+          traceStore.addEvent(traceId, {
+            kind: 'retrieval',
+            sourceName: 'pipeline:framework',
+            query: `${frameworks.length} framework sources`,
+            resultCount: frameworks.reduce((s, f) => s + f.constraints.length + f.workflowSteps.length, 0),
+            durationMs: 0,
+          });
+        }
+      }
+
+      // 2c. Build pipeline sources from indexed content (regular channels only)
       const sourcesWithContent: PipelineSource[] = [];
-      for (const ch of activeChannels) {
+      for (const ch of regularChannels) {
         const treeIndex = treeStore.getIndex(ch.path);
         if (treeIndex) {
           // Use depth-filtered content from the tree index
@@ -263,7 +308,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         }
       }
 
-      // 2c. Run pipeline if we have indexed content
+      // 2d. Run pipeline if we have indexed content
       if (sourcesWithContent.length > 0) {
         const totalBudget = activeChannels.reduce((sum, ch) => sum + ch.baseTokens, 0);
         const useAgentNav = options.navigationMode === 'agent-driven';
@@ -350,7 +395,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       }
     }
 
-    // 2d. Append connector references (services like Notion, Slack, HubSpot)
+    // 2e. Append connector references (services like Notion, Slack, HubSpot)
     const activeConnectors = (options.connectors || []).filter(c => c.enabled && c.direction !== 'write');
     if (activeConnectors.length > 0) {
       const connectorLines = activeConnectors.map(c => {
@@ -362,7 +407,9 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     }
 
     // 3. Assemble final system prompt
+    //    Order: identity/instructions → framework rules → knowledge → connectors
     const systemParts = [systemFrame];
+    if (frameworkBlock) systemParts.push(frameworkBlock);
     if (knowledgeBlock) systemParts.push(knowledgeBlock);
     const systemPrompt = systemParts.filter(Boolean).join('\n\n');
     const systemTokens = estimateTokens(systemPrompt);
