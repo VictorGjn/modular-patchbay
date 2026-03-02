@@ -89,6 +89,54 @@ The API layer uses fetch with error handling.`;
     expect(result.content).toContain('Single unique');
   });
 
+  it('handles very large content without crashing', () => {
+    const content = Array(500).fill('Unique paragraph number ' + Math.random() + ' with meaningful content about system architecture.').join('\n\n');
+    const result = compress(content, { tokenBudget: 200 });
+    expect(result.compressedTokens).toBeLessThanOrEqual(210);
+    expect(result.ratio).toBeLessThan(1);
+  });
+
+  it('handles unicode content correctly', () => {
+    const content = `日本語のテキスト。The system uses Zustand.
+
+中文内容也要正确处理。Error handling is important.
+
+Ñoño con acentos y más caracteres especiales: café, naïve, über.`;
+
+    const result = compress(content, { removeFiller: false, compressCode: false });
+    expect(result.content).toContain('日本語');
+    expect(result.content).toContain('中文');
+    expect(result.content).toContain('café');
+    expect(result.compressedTokens).toBeGreaterThan(0);
+  });
+
+  it('handles empty code blocks gracefully', () => {
+    const content = `Some text.
+
+\`\`\`typescript
+\`\`\`
+
+More text.
+
+\`\`\`python
+\`\`\``;
+
+    const result = compress(content, { dedup: false, removeFiller: false });
+    expect(result.content).toContain('Some text');
+    expect(result.content).toContain('More text');
+  });
+
+  it('handles code blocks with only comments', () => {
+    const content = `\`\`\`typescript
+// comment one
+// comment two
+// comment three
+\`\`\``;
+
+    const result = compress(content, { dedup: false, removeFiller: false });
+    expect(result.removals.codeComments).toBeGreaterThanOrEqual(2);
+  });
+
   it('aggressiveness controls filler threshold', () => {
     const content = `Generally speaking, the system is well-designed. The API handles authentication via JWT tokens. In this section, we explore the database schema. Users table has id, email, and role columns.`;
 
