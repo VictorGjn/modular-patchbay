@@ -352,7 +352,10 @@ function McpServerRow({ server }: { server: McpServerState }) {
 
   const connectServer = useMcpStore((s) => s.connectServer);
   const disconnectServer = useMcpStore((s) => s.disconnectServer);
+  const updateServer = useMcpStore((s) => s.updateServer);
   const removeServer = useMcpStore((s) => s.removeServer);
+  const upsertMcpServer = useConsoleStore((s) => s.upsertMcpServer);
+  const removeMcpServer = useConsoleStore((s) => s.removeMcpServer);
 
   useEffect(() => {
     setLocalName(server.name);
@@ -368,6 +371,33 @@ function McpServerRow({ server }: { server: McpServerState }) {
       connectServer(server.id);
     }
   }, [server.id, server.status, connectServer, disconnectServer]);
+
+  const handleSave = useCallback(async () => {
+    const args = localArgs.split('\n').map((s) => s.trim()).filter(Boolean);
+    const env: Record<string, string> = {};
+    for (const line of localEnv.split('\n')) {
+      const [key, ...valueParts] = line.split('=');
+      if (key?.trim() && valueParts.length > 0) {
+        env[key.trim()] = valueParts.join('=').trim();
+      }
+    }
+
+    const updated = await updateServer(server.id, {
+      name: localName.trim(),
+      command: localCommand.trim(),
+      args,
+      env,
+    });
+
+    if (updated) {
+      upsertMcpServer({
+        id: updated.id,
+        name: updated.name,
+        description: updated.command,
+        connected: updated.status === 'connected',
+      });
+    }
+  }, [localArgs, localCommand, localEnv, localName, server.id, updateServer, upsertMcpServer]);
 
   const inputStyle = {
     background: t.inputBg,
@@ -527,7 +557,18 @@ function McpServerRow({ server }: { server: McpServerState }) {
           <div className="flex items-center gap-2 mt-1">
             <button
               type="button"
-              onClick={() => removeServer(server.id)}
+              onClick={handleSave}
+              className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
+              style={{ color: '#fff', background: '#FE5000' }}
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                removeServer(server.id);
+                removeMcpServer(server.id);
+              }}
               className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
               style={{ color: t.statusError, background: t.statusErrorBg }}
             >
@@ -549,6 +590,7 @@ function McpServersTab() {
   const loadServers = useMcpStore((s) => s.loadServers);
   const addServer = useMcpStore((s) => s.addServer);
   const error = useMcpStore((s) => s.error);
+  const upsertMcpServer = useConsoleStore((s) => s.upsertMcpServer);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
@@ -562,6 +604,17 @@ function McpServersTab() {
       loadServers();
     }
   }, [loaded, loading, loadServers]);
+
+  useEffect(() => {
+    for (const server of servers) {
+      upsertMcpServer({
+        id: server.id,
+        name: server.name,
+        description: server.command,
+        connected: server.status === 'connected',
+      });
+    }
+  }, [servers, upsertMcpServer]);
 
   const handleAddServer = useCallback(async () => {
     if (!newName.trim() || !newCommand.trim()) return;
@@ -577,12 +630,21 @@ function McpServersTab() {
         }
       });
 
-      await addServer({
+      const added = await addServer({
         name: newName.trim(),
         command: newCommand.trim(),
         args,
         env,
       });
+
+      if (added) {
+        upsertMcpServer({
+          id: added.id,
+          name: added.name,
+          description: added.command,
+          connected: added.status === 'connected',
+        });
+      }
 
       // Reset form
       setNewName('');
@@ -593,7 +655,7 @@ function McpServersTab() {
     } finally {
       setAdding(false);
     }
-  }, [newName, newCommand, newArgs, newEnv, addServer]);
+  }, [newName, newCommand, newArgs, newEnv, addServer, upsertMcpServer]);
 
   const inputStyle = {
     background: t.inputBg,
