@@ -379,52 +379,55 @@ function KnowledgeSection() {
           const realTokens = getChannelTokens(ch);
 
           return (
-            <div key={ch.sourceId} className="flex items-center gap-2 py-2"
+            <div key={ch.sourceId} className="py-1.5"
               style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
-              {/* Type dot + index status */}
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <div style={{ width: 8, height: 8, borderRadius: 2, background: kt.color }} />
-                {isIndexed && (
-                  <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#00ff88' }} />
-                )}
-                {isLoading && (
-                  <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ffaa00' }} />
-                )}
-                {hasError && (
-                  <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ff3344' }} />
-                )}
-              </div>
-              {/* Name */}
-              <span className="flex-1 truncate text-[12px]" style={{ color: ch.enabled ? t.textPrimary : t.textDim }}>
-                {ch.name}
-              </span>
-              {/* Depth bar */}
-              <div className="flex items-center gap-1">
-                <button type="button" aria-label="Decrease depth" onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
-                  className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: depth <= 0 ? t.textFaint : t.textDim }}>
-                  <Minus size={10} />
+              {/* Row 1: Type dot + Name + Token count + Remove */}
+              <div className="flex items-center gap-1.5">
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 2, background: kt.color }} />
+                  {isIndexed && (
+                    <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#00ff88' }} />
+                  )}
+                  {isLoading && (
+                    <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ffaa00' }} />
+                  )}
+                  {hasError && (
+                    <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ff3344' }} />
+                  )}
+                </div>
+                <span className="flex-1 truncate text-[11px]" title={ch.name}
+                  style={{ color: ch.enabled ? t.textPrimary : t.textDim, lineHeight: 1.2 }}>
+                  {ch.name}
+                </span>
+                <span className="text-[9px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: isIndexed ? t.textPrimary : t.textDim }}
+                  title={isIndexed ? `Indexed: ${treeIndexes[ch.path].index.nodeCount} nodes` : 'Estimated'}>
+                  {fmtTokens(realTokens)}
+                </span>
+                <button type="button" aria-label={`Remove ${ch.name}`} onClick={() => removeChannel(ch.sourceId)}
+                  className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
+                  style={{ color: t.textFaint, width: 20, height: 20, padding: 0 }}>
+                  <X size={9} />
                 </button>
-                <div style={{ width: 36, height: 6, background: `${barColor}18`, borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ width: `${barPct}%`, height: '100%', background: barColor, borderRadius: 3, transition: 'width 200ms' }} />
+              </div>
+              {/* Row 2: Depth bar (compact) */}
+              <div className="flex items-center gap-1 mt-0.5 pl-4">
+                <button type="button" aria-label="Decrease depth" onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
+                  className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
+                  style={{ color: depth <= 0 ? t.textFaint : t.textDim, width: 20, height: 20, padding: 0 }}>
+                  <Minus size={9} />
+                </button>
+                <div className="flex-1" style={{ height: 4, background: `${barColor}18`, borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ width: `${barPct}%`, height: '100%', background: barColor, borderRadius: 2, transition: 'width 200ms' }} />
                 </div>
                 <button type="button" aria-label="Increase depth" onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
-                  className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: depth >= 4 ? t.textFaint : t.textDim }}>
-                  <Plus size={10} />
+                  className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
+                  style={{ color: depth >= 4 ? t.textFaint : t.textDim, width: 20, height: 20, padding: 0 }}>
+                  <Plus size={9} />
                 </button>
-                <span className="text-[8px] w-8 text-right" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+                <span className="text-[8px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, width: 24, textAlign: 'right' }}>
                   {DEPTH_LABELS[depth]}
                 </span>
               </div>
-              {/* Token count (real if indexed, estimated if not) */}
-              <span className="text-[9px] w-8 text-right" style={{ fontFamily: "'Space Mono', monospace", color: isIndexed ? t.textPrimary : t.textDim }}
-                title={isIndexed ? `Indexed: ${treeIndexes[ch.path].index.nodeCount} nodes` : 'Estimated (not yet indexed)'}>
-                {fmtTokens(realTokens)}
-              </span>
-              {/* Remove */}
-              <button type="button" aria-label={`Remove ${ch.name}`} onClick={() => removeChannel(ch.sourceId)}
-                className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
-                <X size={10} />
-              </button>
             </div>
           );
         })}
