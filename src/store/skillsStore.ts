@@ -14,6 +14,7 @@ interface SkillsStore {
   skills: InstalledSkill[];
   loaded: boolean;
   loading: boolean;
+  error?: string;
   loadSkills: () => Promise<void>;
   toggleSkill: (id: string) => void;
 }
@@ -22,14 +23,15 @@ export const useSkillsStore = create<SkillsStore>((set, get) => ({
   skills: [],
   loaded: false,
   loading: false,
+  error: undefined,
 
   loadSkills: async () => {
     if (get().loading) return;
-    set({ loading: true });
+    set({ loading: true, error: undefined });
     try {
-          const res = await fetch(`${API_BASE}/claude-config/skills`);
+      const res = await fetch(`${API_BASE}/claude-config/skills`);
       if (!res.ok) {
-        set({ loaded: true, loading: false });
+        set({ loaded: true, loading: false, error: `Failed to load skills (${res.status})` });
         return;
       }
       const json = await res.json();
@@ -43,7 +45,7 @@ export const useSkillsStore = create<SkillsStore>((set, get) => ({
         loading: false,
       });
     } catch {
-      set({ loaded: true, loading: false });
+      set({ loaded: true, loading: false, error: 'Backend unavailable. Start the server with `npm run server` on port 4800.' });
     }
   },
 

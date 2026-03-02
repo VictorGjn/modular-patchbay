@@ -548,6 +548,7 @@ function McpServersTab() {
   const loading = useMcpStore((s) => s.loading);
   const loadServers = useMcpStore((s) => s.loadServers);
   const addServer = useMcpStore((s) => s.addServer);
+  const error = useMcpStore((s) => s.error);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
@@ -607,6 +608,12 @@ function McpServersTab() {
         <div className="px-4 py-8 text-center text-xs" style={{ color: t.textMuted }}>
           <Loader2 size={16} className="animate-spin mx-auto mb-2" />
           Loading MCP servers...
+        </div>
+      )}
+
+      {error && (
+        <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-xs" style={{ background: t.statusErrorBg, color: t.statusError, border: `1px solid ${t.statusError}30` }}>
+          {error}
         </div>
       )}
 
@@ -744,6 +751,7 @@ function SkillsTab() {
   const loading = useSkillsStore((s) => s.loading);
   const loadSkills = useSkillsStore((s) => s.loadSkills);
   const toggleSkill = useSkillsStore((s) => s.toggleSkill);
+  const error = useSkillsStore((s) => s.error);
 
   useEffect(() => {
     if (!loaded && !loading) {
@@ -757,6 +765,12 @@ function SkillsTab() {
         <div className="px-4 py-8 text-center text-xs" style={{ color: t.textMuted }}>
           <Loader2 size={16} className="animate-spin mx-auto mb-2" />
           Loading skills...
+        </div>
+      )}
+
+      {error && (
+        <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-xs" style={{ background: t.statusErrorBg, color: t.statusError, border: `1px solid ${t.statusError}30` }}>
+          {error}
         </div>
       )}
 
