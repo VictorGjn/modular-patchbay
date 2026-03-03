@@ -6,7 +6,7 @@ import { useProviderStore } from '../store/providerStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { runTeam, extractContracts } from '../services/runtimeService';
 import { TextArea, Button, Card, EmptyState, Spinner, StatusDot } from '../components/ds';
-import { Play, FileSearch, Users, GitBranch, Plus } from 'lucide-react';
+import { Play, FileSearch, Users, GitBranch, UserPlus, X } from 'lucide-react';
 
 /* ── Epistemic Colors ── */
 
@@ -156,6 +156,7 @@ export function RuntimePanel() {
   const [featureSpec, setFeatureSpec] = useState('');
   const [globalInstruction, setGlobalInstruction] = useState('');
   const [agentInstructions, setAgentInstructions] = useState<Record<string, string>>({});
+  const [selectedLibraryId, setSelectedLibraryId] = useState('');
   const updateAgent = useTeamStore((s) => s.updateAgent);
   const [repoUrls, setRepoUrls] = useState<Record<string, string>>(() => {
     // Initialize from teamStore
@@ -174,8 +175,10 @@ export function RuntimePanel() {
   const error = useRuntimeStore((s) => s.error);
 
   const teamAgents = useTeamStore((s) => s.agents);
+  const agentLibrary = useTeamStore((s) => s.agentLibrary);
   const addSharedFact = useTeamStore((s) => s.addSharedFact);
-  const addAgent = useTeamStore((s) => s.addAgent);
+  const addAgentFromLibrary = useTeamStore((s) => s.addAgentFromLibrary);
+  const removeAgent = useTeamStore((s) => s.removeAgent);
 
   const selectedProviderId = useProviderStore((s) => s.selectedProviderId);
   const agentConfig = useConsoleStore((s) => s.agentConfig);
@@ -248,33 +251,34 @@ export function RuntimePanel() {
       <div className="p-4">
         <EmptyState
           icon={<Users size={32} />}
-          title="No team agents"
-          subtitle="Create agents here in one click, or define them in Builder."
+          title="No agents on runtime canvas"
+          subtitle="Save agents from Builder, then add them here from the agent list."
         />
         <div className="mt-3 flex items-center justify-center gap-2">
+          <select
+            value={selectedLibraryId}
+            onChange={(e) => setSelectedLibraryId(e.target.value)}
+            className="nodrag nowheel text-xs px-3 py-2 rounded-lg outline-none min-w-[260px]"
+            style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, minHeight: 44 }}
+            aria-label="Select saved agent"
+          >
+            <option value="">Select a saved agent…</option>
+            {agentLibrary.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
           <Button
             variant="primary"
-            icon={<Plus size={12} />}
+            icon={<UserPlus size={12} />}
             onClick={() => {
-              addAgent({
-                id: `backend-${Date.now()}`,
-                name: 'Backend Agent',
-                description: 'Owns API contracts, data shape, and backend implementation decisions.',
-                avatar: 'bot',
-                version: '1.0.0',
-              });
-              addAgent({
-                id: `frontend-${Date.now()}`,
-                name: 'Frontend Agent',
-                description: 'Owns UI states, integration with API contracts, and UX fallback behavior.',
-                avatar: 'palette',
-                version: '1.0.0',
-              });
+              if (!selectedLibraryId) return;
+              addAgentFromLibrary(selectedLibraryId);
             }}
-            aria-label="Create default backend and frontend agents"
+            disabled={!selectedLibraryId}
+            aria-label="Add selected agent to runtime canvas"
             style={{ minHeight: 44 }}
           >
-            Create Backend + Frontend Agents
+            Add to Canvas
           </Button>
         </div>
       </div>
@@ -289,6 +293,64 @@ export function RuntimePanel() {
         agentCount={agents.length}
         sharedCount={sharedFacts.length}
       />
+
+      <Card>
+        <div className="flex items-center gap-2 mb-2">
+          <Users size={12} style={{ color: '#FE5000' }} />
+          <span className="text-[10px] font-bold tracking-[0.12em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
+            Runtime Canvas
+          </span>
+          <div className="flex-1" />
+          <select
+            value={selectedLibraryId}
+            onChange={(e) => setSelectedLibraryId(e.target.value)}
+            className="nodrag nowheel text-xs px-2 py-1.5 rounded-lg outline-none min-w-[220px]"
+            style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, minHeight: 36 }}
+            aria-label="Select saved agent for runtime canvas"
+          >
+            <option value="">Add saved agent…</option>
+            {agentLibrary.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
+          <Button
+            variant="secondary"
+            icon={<UserPlus size={11} />}
+            onClick={() => {
+              if (!selectedLibraryId) return;
+              addAgentFromLibrary(selectedLibraryId);
+            }}
+            disabled={!selectedLibraryId}
+            aria-label="Add selected saved agent"
+            style={{ minHeight: 36 }}
+          >
+            Add
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {teamAgents.map((agent) => (
+            <div key={agent.id} className="px-3 py-2 rounded-lg" style={{ border: `1px solid ${t.border}` }}>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold" style={{ color: t.textPrimary }}>{agent.name}</span>
+                <div className="flex-1" />
+                <button
+                  type="button"
+                  onClick={() => removeAgent(agent.id)}
+                  aria-label={`Remove ${agent.name} from runtime canvas`}
+                  className="border-none bg-transparent p-1 rounded cursor-pointer"
+                  style={{ color: t.textDim, minHeight: 28, minWidth: 28 }}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+              <div className="text-[10px] mt-1" style={{ color: t.textDim }}>
+                {agent.description || 'No description'}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       {/* Feature Spec */}
       <div className="space-y-3">
