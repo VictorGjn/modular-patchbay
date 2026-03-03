@@ -4,11 +4,11 @@ import { useTheme } from '../theme';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 import { useMemo } from 'react';
-import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings, ShoppingBag, Pencil, FlaskConical } from 'lucide-react';
+import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings, ShoppingBag } from 'lucide-react';
 import { OutputIcon } from './icons/SectionIcons';
 import { useProviderStore } from '../store/providerStore';
 import { VersionIndicator } from './VersionIndicator';
-import { useModeStore, type AppMode } from '../store/modeStore';
+
 
 function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: string; onChange: (v: string) => void; children: React.ReactNode; t: ReturnType<typeof useTheme>; ariaLabel?: string }) {
   return (
@@ -32,41 +32,6 @@ function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: stri
   );
 }
 
-function ModeToggle({ t }: { t: ReturnType<typeof useTheme> }) {
-  const mode = useModeStore((s) => s.mode);
-  const setMode = useModeStore((s) => s.setMode);
-
-  const modes: { id: AppMode; icon: typeof Pencil; label: string }[] = [
-    { id: 'design', icon: Pencil, label: 'Design' },
-    { id: 'test', icon: FlaskConical, label: 'Test' },
-  ];
-
-  return (
-    <div className="flex items-center rounded-lg overflow-hidden mr-2" style={{ border: `1px solid ${t.border}` }}>
-      {modes.map((m) => {
-        const Icon = m.icon;
-        const active = mode === m.id;
-        return (
-          <button
-            key={m.id}
-            type="button"
-            onClick={() => setMode(m.id)}
-            className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold tracking-wider uppercase cursor-pointer border-none"
-            style={{
-              fontFamily: "'Space Mono', monospace",
-              background: active ? '#FE5000' : 'transparent',
-              color: active ? '#fff' : t.textDim,
-              transition: 'background 0.15s, color 0.15s',
-            }}
-          >
-            <Icon size={12} />
-            {m.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () => void; onSettingsClick?: () => void }) {
   const selectedModel = useConsoleStore((s) => s.selectedModel);
@@ -123,8 +88,6 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
         </span>
       </div>
 
-      {/* Design / Test mode toggle */}
-      <ModeToggle t={t} />
 
       {/* Model selector */}
       <TopbarSelect
