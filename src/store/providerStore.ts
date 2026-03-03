@@ -338,52 +338,15 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
       const provider = get().providers.find((p) => p.id === id);
 
       if (provider?.authMethod === 'oauth') {
-        const oauthToken = provider.accessToken?.trim() || provider.apiKey?.trim();
-        if (!oauthToken) {
-          set((state) => ({
-            testing: { ...state.testing, [id]: false },
-            providers: state.providers.map((p) =>
-              p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: 'OAuth token missing. Paste access token in provider settings.' } : p
-            ),
-          }));
-          return { ok: false, error: 'OAuth token missing' };
-        }
-
-        const backend = await isBackendAvailable();
-        if (!backend) {
-          set((state) => ({ testing: { ...state.testing, [id]: false } }));
-          return { ok: false, error: 'Backend unavailable' };
-        }
-
-        const res = await fetch(`${API_BASE}/providers/${id}/test`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ baseUrl: provider.baseUrl, accessToken: oauthToken }),
-        });
-        const data = await res.json();
-        if (data.status === 'ok') {
-          const modelIds: string[] = data.data?.models ?? [];
-          const models = modelIds.map((m: string) => ({ id: m, label: m }));
-          set((state) => ({
-            testing: { ...state.testing, [id]: false },
-            providers: state.providers.map((p) =>
-              p.id === id
-                ? { ...p, status: 'connected' as ProviderStatus, models: models.length ? models : p.models, lastError: undefined }
-                : p
-            ),
-          }));
-          persistProviders(get().providers);
-          return { ok: true, models: modelIds };
-        }
-
+        const message = 'OpenAI OAuth login flow is not wired yet. Use API Key mode for now.';
         set((state) => ({
           testing: { ...state.testing, [id]: false },
           providers: state.providers.map((p) =>
-            p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: data.error || 'OAuth model fetch failed' } : p
+            p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: message } : p
           ),
         }));
         persistProviders(get().providers);
-        return { ok: false, error: data.error || 'OAuth model fetch failed' };
+        return { ok: false, error: message };
       }
 
       if (provider?.authMethod === 'claude-agent-sdk') {
