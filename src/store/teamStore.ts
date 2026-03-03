@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+const LIBRARY_STORAGE_KEY = 'modular-agent-library-v1';
+
 /* ── Types ── */
 
 export type FactScope = 'per_agent' | 'per_team' | 'global';
@@ -41,17 +43,33 @@ export interface AgentEdge {
   label?: string;
 }
 
+export interface AgentLibraryItem {
+  id: string;
+  name: string;
+  description: string;
+  avatar: string;
+  version: string;
+  mcpServerIds: string[];
+  skillIds: string[];
+}
+
 export interface TeamState {
   agents: TeamAgent[];
+  agentLibrary: AgentLibraryItem[];
   sharedFacts: SharedFact[];
   edges: AgentEdge[];
   activeAgentId: string | null;  // currently editing
 
   // Agent CRUD
   addAgent: (agent: Omit<TeamAgent, 'factIds' | 'knowledgeSourceIds' | 'mcpServerIds' | 'skillIds'>) => void;
+  addAgentFromLibrary: (libraryId: string) => void;
   removeAgent: (id: string) => void;
   updateAgent: (id: string, patch: Partial<TeamAgent>) => void;
   setActiveAgent: (id: string | null) => void;
+
+  // Agent library
+  upsertLibraryAgent: (agent: AgentLibraryItem) => void;
+  removeLibraryAgent: (id: string) => void;
 
   // Shared facts
   addSharedFact: (content: string, scope: FactScope, originAgentId: string, tags?: string[]) => string;
@@ -72,8 +90,28 @@ function genId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function loadLibrary(): AgentLibraryItem[] {
+  try {
+    const raw = localStorage.getItem(LIBRARY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistLibrary(items: AgentLibraryItem[]) {
+  try {
+    localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(items));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export const useTeamStore = create<TeamState>((set, get) => ({
   agents: [],
+  agentLibrary: loadLibrary(),
   sharedFacts: [],
   edges: [],
   activeAgentId: null,
@@ -81,6 +119,38 @@ export const useTeamStore = create<TeamState>((set, get) => ({
   addAgent: (agent) => set(s => ({
     agents: [...s.agents, { ...agent, factIds: [], knowledgeSourceIds: [], mcpServerIds: [], skillIds: [] }],
   })),
+
+  addAgentFromLibrary: (libraryId) => {
+    const item = get().agentLibrary.find((a) => a.id === libraryId);
+    if (!item) return;
+    get().addAgent({
+      id: `${item.id}-${Date.now()}`,
+      name: item.name,
+      description: item.description,
+      avatar: item.avatar,
+      version: item.version,
+    });
+    const newId = get().agents[get().agents.length - 1]?.id;
+    if (!newId) return;
+    get().updateAgent(newId, {
+      mcpServerIds: item.mcpServerIds,
+      skillIds: item.skillIds,
+    });
+  },
+
+  upsertLibraryAgent: (agent) => set((s) => {
+    const next = s.agentLibrary.some((a) => a.id === agent.id)
+      ? s.agentLibrary.map((a) => (a.id === agent.id ? agent : a))
+      : [...s.agentLibrary, agent];
+    persistLibrary(next);
+    return { agentLibrary: next };
+  }),
+
+  removeLibraryAgent: (id) => set((s) => {
+    const next = s.agentLibrary.filter((a) => a.id !== id);
+    persistLibrary(next);
+    return { agentLibrary: next };
+  }),
 
   removeAgent: (id) => set(s => ({
     agents: s.agents.filter(a => a.id !== id),

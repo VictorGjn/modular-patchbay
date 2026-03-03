@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useConsoleStore, type ExportTarget } from '../store/consoleStore';
+import { useTeamStore } from '../store/teamStore';
 import { useTheme } from '../theme';
 import {
   X, Brain, Code, Search, BarChart3, PenTool, FileText, Globe, Layers,
@@ -70,6 +71,7 @@ export function SaveAgentModal() {
   const setExportTarget = useConsoleStore((s) => s.setExportTarget);
   const agentConfig = useConsoleStore((s) => s.agentConfig);
   const connectors = useConsoleStore((s) => s.connectors);
+  const upsertLibraryAgent = useTeamStore((s) => s.upsertLibraryAgent);
 
   const [copied, setCopied] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -139,6 +141,17 @@ export function SaveAgentModal() {
   const handleSave = () => {
     const name = agentMeta.name || 'modular-agent';
     const safeName = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+    upsertLibraryAgent({
+      id: safeName,
+      name,
+      description: agentMeta.description || 'Saved from builder',
+      avatar: agentMeta.avatar || 'bot',
+      version: '1.0.0',
+      mcpServerIds: mcpServers.filter((m) => m.added).map((m) => m.id),
+      skillIds: skills.filter((s) => s.added).map((s) => s.id),
+    });
+
     const meta = TARGET_META[exportTarget];
     downloadAgentFile(preview, safeName, meta.ext);
   };
