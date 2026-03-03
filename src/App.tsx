@@ -1,7 +1,4 @@
 import { useCallback, useEffect, useRef } from 'react';
-// ReactFlow canvas moved to TestMode component
-import '@xyflow/react/dist/style.css';
-
 import { Topbar } from './components/Topbar';
 import { TokenBudget } from './components/TokenBudget';
 import { FilePicker } from './components/FilePicker';
@@ -18,12 +15,7 @@ import { useConsoleStore } from './store/consoleStore';
 import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
 
-// Canvas nodes/edges moved to TestMode component
-import { TestMode } from './components/TestMode';
-import { useModeStore } from './store/modeStore';
 import { DashboardLayout } from './layouts/DashboardLayout';
-
-// Canvas node/edge types and initial layout moved to TestMode component
 
 export default function App() {
   const t = useTheme();
@@ -37,7 +29,6 @@ export default function App() {
   const run = useConsoleStore((s) => s.run);
   const running = useConsoleStore((s) => s.running);
 
-  const mode = useModeStore((s) => s.mode);
   const showSettings = useConsoleStore((s) => s.showSettings);
   const setShowSettings = useConsoleStore((s) => s.setShowSettings);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -62,9 +53,6 @@ export default function App() {
     e.target.value = '';
   }, []);
 
-  // Canvas interaction callbacks — kept for test mode (TestMode component handles its own)
-  // onConnect, onReconnect, isValidConnection moved to TestMode
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setShowFilePicker(!showFilePicker); }
@@ -75,19 +63,12 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, setShowConnectorPicker, setShowMarketplace, run, running]);
 
-  // minimapStyle moved to TestMode
-
   return (
     <div className="w-full h-full flex flex-col" data-theme={t.isDark ? 'dark' : 'light'} style={{ background: t.bg }}>
       <input ref={importInputRef} type="file" accept=".md,.yaml,.yml,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
       <Topbar onImportClick={handleImportClick} onSettingsClick={() => setShowSettings(true, 'providers')} />
 
-      {/* Design mode: Dashboard layout | Test mode: ReactFlow test canvas */}
-      {mode === 'test' ? (
-        <TestMode />
-      ) : (
-        <DashboardLayout />
-      )}
+      <DashboardLayout />
 
       {/* Accessibility: aria-live region for canvas state announcements */}
       <div aria-live="polite" className="sr-only" id="canvas-announcements" />

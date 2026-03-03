@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { useTheme } from '../theme';
 import { useRuntimeStore, type ExtractedFact } from '../store/runtimeStore';
 import { useTeamStore } from '../store/teamStore';
@@ -112,6 +112,8 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
 export function RuntimePanel() {
   const t = useTheme();
   const [featureSpec, setFeatureSpec] = useState('');
+  const [globalInstruction, setGlobalInstruction] = useState('');
+  const [agentInstructions, setAgentInstructions] = useState<Record<string, string>>({});
   const updateAgent = useTeamStore((s) => s.updateAgent);
   const [repoUrls, setRepoUrls] = useState<Record<string, string>>(() => {
     // Initialize from teamStore
@@ -137,6 +139,19 @@ export function RuntimePanel() {
 
   const isRunning = status === 'running' || status === 'extracting_contracts';
 
+  const composedInstructions = useMemo(() => {
+    const result: Record<string, string> = {};
+    for (const agent of teamAgents) {
+      const blocks = [
+        agent.description?.trim(),
+        globalInstruction.trim() ? `Global instruction:\n${globalInstruction.trim()}` : '',
+        agentInstructions[agent.id]?.trim() ? `Agent-specific instruction:\n${agentInstructions[agent.id].trim()}` : '',
+      ].filter(Boolean);
+      result[agent.id] = blocks.join('\n\n');
+    }
+    return result;
+  }, [teamAgents, globalInstruction, agentInstructions]);
+
   const handleExtractContracts = useCallback(async () => {
     if (!featureSpec.trim()) return;
     try {
@@ -152,7 +167,7 @@ export function RuntimePanel() {
       agents: teamAgents.map((a) => ({
         agentId: a.id,
         name: a.name,
-        systemPrompt: a.description,
+        systemPrompt: composedInstructions[a.id] || a.description,
         repoUrl: repoUrls[a.id] || undefined,
       })),
       featureSpec,
@@ -183,7 +198,7 @@ export function RuntimePanel() {
         }
       }
     });
-  }, [featureSpec, teamAgents, selectedProviderId, agentConfig.model, addSharedFact]);
+  }, [featureSpec, teamAgents, selectedProviderId, agentConfig.model, addSharedFact, composedInstructions]);
 
   if (teamAgents.length === 0) {
     return (
@@ -207,6 +222,31 @@ export function RuntimePanel() {
           onChange={(e) => setFeatureSpec(e.target.value)}
           aria-label="Feature specification"
         />
+
+        <div className="mt-3">
+          <TextArea
+            label="Global Instruction (all agents)"
+            placeholder="Shared mission for all agents (e.g. hurricane crisis workflow, reliability constraints, delivery rules)…"
+            rows={3}
+            value={globalInstruction}
+            onChange={(e) => setGlobalInstruction(e.target.value)}
+            aria-label="Global instruction"
+          />
+          <div className="mt-2 flex flex-col gap-2">
+            {teamAgents.map((agent) => (
+              <TextArea
+                key={agent.id}
+                label={`${agent.name} — Specific Instruction`}
+                placeholder={`Specific execution instruction for ${agent.name}...`}
+                rows={2}
+                value={agentInstructions[agent.id] || ''}
+                onChange={(e) => setAgentInstructions((prev) => ({ ...prev, [agent.id]: e.target.value }))}
+                aria-label={`Instruction for ${agent.name}`}
+              />
+            ))}
+          </div>
+        </div>
+
         {/* Repo URL per agent */}
         <div className="mt-3 mb-1">
           <div
