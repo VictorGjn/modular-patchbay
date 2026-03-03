@@ -74,12 +74,20 @@ router.delete('/:id', (req, res) => {
 router.post('/:id/test', async (req, res) => {
   const config = readConfig();
   let provider = config.providers.find((p) => p.id === req.params.id);
+  const bodyApiKey = req.body?.apiKey as string | undefined;
+  const bodyAccessToken = req.body?.accessToken as string | undefined;
   // Allow testing with inline credentials from request body
-  if (!provider && req.body?.apiKey) {
-    provider = { id: req.params.id, name: req.params.id, type: 'custom' as const, apiKey: req.body.apiKey as string, baseUrl: (req.body.baseUrl as string) || '' };
+  if (!provider && (bodyApiKey || bodyAccessToken)) {
+    provider = {
+      id: req.params.id,
+      name: req.params.id,
+      type: 'custom' as const,
+      apiKey: (bodyApiKey || bodyAccessToken || '') as string,
+      baseUrl: (req.body.baseUrl as string) || '',
+    };
   }
   if (!provider) {
-    const resp: ApiResponse = { status: 'error', error: 'Provider not found and no apiKey provided' };
+    const resp: ApiResponse = { status: 'error', error: 'Provider not found and no credentials provided' };
     res.status(404).json(resp);
     return;
   }
@@ -101,11 +109,12 @@ router.post('/:id/test', async (req, res) => {
   }
 
   try {
+    const authToken = bodyAccessToken || provider.apiKey;
     if (providerType.includes('anthropic')) {
       const response = await fetch(`${baseUrl}/messages`, {
         method: 'POST',
         headers: {
-          'x-api-key': provider.apiKey,
+          'x-api-key': authToken,
           'anthropic-version': '2023-06-01',
           'content-type': 'application/json',
         },
@@ -124,11 +133,11 @@ router.post('/:id/test', async (req, res) => {
       // OpenAI, OpenRouter, Google, Custom — hit /models
       const isGoogle = providerType.includes('google');
       const url = isGoogle
-        ? `${baseUrl}/models?key=${provider.apiKey}`
+        ? `${baseUrl}/models?key=${authToken}`
         : `${baseUrl}/models`;
       const headers: Record<string, string> = {};
       if (!isGoogle) {
-        headers['Authorization'] = `Bearer ${provider.apiKey}`;
+        headers['Authorization'] = `Bearer ${authToken}`;
       }
       const response = await fetch(url, { headers });
       if (!response.ok) {
