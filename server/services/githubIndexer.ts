@@ -16,6 +16,12 @@ import { scanRepository, generateKnowledgeBase, generateOverviewDoc, type RepoSc
 
 // ── Types ──
 
+export interface LocalRepoIndexRequest {
+  path: string;
+  name?: string;
+  subdir?: string;
+}
+
 export interface GitHubIndexRequest {
   /** GitHub URL (https://github.com/owner/repo) or any git clone URL */
   url: string;
@@ -69,6 +75,41 @@ function normalizeGitUrl(url: string): string {
   // Ensure it ends with .git for clone
   if (!url.endsWith('.git')) return `${url}.git`;
   return url;
+}
+
+export async function indexLocalRepo(request: LocalRepoIndexRequest): Promise<GitHubIndexResult> {
+  const t0 = Date.now();
+  const { path, subdir } = request;
+  const scanRoot = subdir ? join(path, subdir) : path;
+  if (!existsSync(scanRoot)) {
+    throw new Error(`Subdirectory "${subdir}" not found in repository path`);
+  }
+
+  const scanStart = Date.now();
+  const scan = scanRepository(scanRoot);
+  if (request.name) scan.name = request.name;
+  const scanMs = Date.now() - scanStart;
+
+  const genStart = Date.now();
+  const knowledgeDocs = generateKnowledgeBase(scan);
+  const overviewMarkdown = generateOverviewDoc(scan);
+  const sortedKeys = [...knowledgeDocs.keys()].sort();
+  const fullMarkdown = sortedKeys.map((k) => knowledgeDocs.get(k)!).join('\n\n---\n\n');
+  const generateMs = Date.now() - genStart;
+
+  return {
+    name: scan.name,
+    scan,
+    knowledgeDocs,
+    overviewMarkdown,
+    fullMarkdown,
+    timing: {
+      cloneMs: 0,
+      scanMs,
+      generateMs,
+      totalMs: Date.now() - t0,
+    },
+  };
 }
 
 // ── Main ──
