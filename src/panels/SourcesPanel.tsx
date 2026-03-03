@@ -226,6 +226,10 @@ function KnowledgeSection() {
   const enabledCount = channels.filter(c => c.enabled).length;
   const indexedCount = channels.filter(c => c.enabled && treeIndexes[c.path]).length;
   const totalTokens = channels.filter(c => c.enabled).reduce((sum, c) => sum + getChannelTokens(c), 0);
+  const githubCompressedChannels = channels.filter(c => c.enabled && /\.compressed\.md$/i.test(c.path || ''));
+  const githubRawTokens = githubCompressedChannels.reduce((sum, c) => sum + (c.baseTokens || 0), 0);
+  const githubEffectiveTokens = githubCompressedChannels.reduce((sum, c) => sum + getChannelTokens(c), 0);
+  const githubSavingsPct = githubRawTokens > 0 ? Math.max(0, ((githubRawTokens - githubEffectiveTokens) / githubRawTokens) * 100) : 0;
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
 
   const handleScanSources = useCallback(async () => {
@@ -585,6 +589,23 @@ function KnowledgeSection() {
           >
             {repoScanning ? <Loader2 size={10} className="animate-spin motion-reduce:animate-none" /> : 'Index'}
           </button>
+        </div>
+      )}
+
+      {/* GitHub compression impact card */}
+      {githubCompressedChannels.length > 0 && (
+        <div className="mt-3 px-2.5 py-2 rounded-lg" style={{ border: `1px solid #24292F30`, background: '#24292F08' }}>
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] tracking-[0.1em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: '#24292F' }}>
+              GitHub Context Compression
+            </span>
+            <span className="text-[10px] font-semibold" style={{ color: '#00A86B' }}>
+              -{githubSavingsPct.toFixed(1)}%
+            </span>
+          </div>
+          <div className="mt-1 text-[10px]" style={{ color: t.textDim }}>
+            Raw {fmtTokens(githubRawTokens)} → Effective {fmtTokens(githubEffectiveTokens)} tokens ({githubCompressedChannels.length} channels)
+          </div>
         </div>
       )}
 
