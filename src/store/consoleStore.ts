@@ -344,8 +344,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     id: s.id,
     name: s.name,
     icon: s.icon,
-    enabled: true,
-    added: true,
+    enabled: false,
+    added: false,
     description: s.description,
     category: mapSkillCategory(s.category),
   })),
@@ -645,7 +645,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     if (existing) {
       set({
         skills: get().skills.map((s) =>
-          s.id === skill.id ? { ...s, name: skill.name, description: skill.description ?? s.description, added: true, enabled: true } : s,
+          s.id === skill.id ? { ...s, name: skill.name, description: skill.description ?? s.description } : s,
         ),
       });
       return;
@@ -656,8 +656,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         id: skill.id,
         name: skill.name,
         icon: 'zap',
-        enabled: true,
-        added: true,
+        enabled: false,
+        added: false,
         description: skill.description ?? 'Installed from skills.sh',
         category: 'development',
       }],
