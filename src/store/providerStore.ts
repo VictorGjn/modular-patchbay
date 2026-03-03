@@ -15,7 +15,7 @@ export interface ProviderConfig {
   accessToken?: string;
   refreshToken?: string;
   tokenExpiry?: number;
-  // API Key fields
+  // API Key field
   apiKey?: string;
   baseUrl: string;
   // Provider info
@@ -164,6 +164,7 @@ function loadProviders(): ProviderConfig[] {
         ...def,
         authMethod,
         apiKey: s.apiKey ?? def.apiKey,
+        accessToken: s.accessToken ?? def.accessToken,
         baseUrl: s.baseUrl ?? def.baseUrl,
         status: authMethod === 'oauth' ? ((s.status ?? 'configured') as ProviderStatus) : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus),
       };
@@ -175,6 +176,7 @@ function loadProviders(): ProviderConfig[] {
           ...DEFAULT_PROVIDERS[DEFAULT_PROVIDERS.length - 1],
           ...s,
           authMethod,
+          accessToken: s.accessToken,
           id: s.id ?? 'custom-' + Date.now(),
           name: s.name ?? 'Custom',
           status: authMethod === 'oauth' ? ((s.status ?? 'configured') as ProviderStatus) : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus),
@@ -196,6 +198,7 @@ function persistProviders(providers: ProviderConfig[]) {
       id: p.id,
       name: p.name,
       apiKey: p.apiKey,
+      accessToken: p.accessToken,
       baseUrl: p.baseUrl,
       status: p.status,
       authMethod: p.authMethod,
@@ -216,6 +219,7 @@ interface ProviderStore {
   selectedProviderId: string;
   testing: Record<string, boolean>;
   setProviderKey: (id: string, apiKey: string) => void;
+  setProviderAccessToken: (id: string, accessToken: string) => void;
   setProviderAuthMethod: (id: string, authMethod: AuthMethod) => void;
   setProviderBaseUrl: (id: string, baseUrl: string) => void;
   setProviderStatus: (id: string, status: ProviderStatus) => void;
@@ -244,6 +248,16 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         const status = p.authMethod === 'oauth' ? p.status : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus);
         return { ...p, apiKey, status };
       });
+      persistProviders(providers);
+      return { providers };
+    });
+  },
+
+  setProviderAccessToken: (id, accessToken) => {
+    set((state) => {
+      const providers = state.providers.map((p) =>
+        p.id === id ? { ...p, accessToken, status: accessToken.trim() ? 'configured' as ProviderStatus : p.status } : p
+      );
       persistProviders(providers);
       return { providers };
     });
@@ -302,7 +316,9 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
   },
 
   getAllModels: () => {
-    return get().providers.flatMap((p) =>
+    return get().providers
+      .filter((p) => p.models.length > 0 && (p.status === 'connected' || p.status === 'configured'))
+      .flatMap((p) =>
       p.models.map((m) => ({
         id: m.id,
         label: m.label,
@@ -322,38 +338,52 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
       const provider = get().providers.find((p) => p.id === id);
 
       if (provider?.authMethod === 'oauth') {
+        const oauthToken = provider.accessToken?.trim() || provider.apiKey?.trim();
+        if (!oauthToken) {
+          set((state) => ({
+            testing: { ...state.testing, [id]: false },
+            providers: state.providers.map((p) =>
+              p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: 'OAuth token missing. Paste access token in provider settings.' } : p
+            ),
+          }));
+          return { ok: false, error: 'OAuth token missing' };
+        }
+
         const backend = await isBackendAvailable();
-        if (backend) {
-          const res = await fetch(`${API_BASE}/providers/${id}/test`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ baseUrl: provider.baseUrl }),
-          });
-          const data = await res.json();
-          if (data.status === 'ok') {
-            const modelIds: string[] = data.data?.models ?? [];
-            const models = modelIds.map((m: string) => ({ id: m, label: m }));
-            set((state) => ({
-              testing: { ...state.testing, [id]: false },
-              providers: state.providers.map((p) =>
-                p.id === id
-                  ? { ...p, status: 'connected' as ProviderStatus, models: models.length ? models : p.models, lastError: 'Authenticated via Codex OAuth' }
-                  : p
-              ),
-            }));
-            persistProviders(get().providers);
-            return { ok: true, models: modelIds.length ? modelIds : provider.models.map((m) => m.id) };
-          }
+        if (!backend) {
+          set((state) => ({ testing: { ...state.testing, [id]: false } }));
+          return { ok: false, error: 'Backend unavailable' };
+        }
+
+        const res = await fetch(`${API_BASE}/providers/${id}/test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ baseUrl: provider.baseUrl, accessToken: oauthToken }),
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          const modelIds: string[] = data.data?.models ?? [];
+          const models = modelIds.map((m: string) => ({ id: m, label: m }));
+          set((state) => ({
+            testing: { ...state.testing, [id]: false },
+            providers: state.providers.map((p) =>
+              p.id === id
+                ? { ...p, status: 'connected' as ProviderStatus, models: models.length ? models : p.models, lastError: undefined }
+                : p
+            ),
+          }));
+          persistProviders(get().providers);
+          return { ok: true, models: modelIds };
         }
 
         set((state) => ({
           testing: { ...state.testing, [id]: false },
           providers: state.providers.map((p) =>
-            p.id === id ? { ...p, status: 'connected' as ProviderStatus, lastError: 'Authenticated via Codex OAuth' } : p
+            p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: data.error || 'OAuth model fetch failed' } : p
           ),
         }));
         persistProviders(get().providers);
-        return { ok: true, models: provider.models.map((m) => m.id) };
+        return { ok: false, error: data.error || 'OAuth model fetch failed' };
       }
 
       if (provider?.authMethod === 'claude-agent-sdk') {
@@ -462,7 +492,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
       await fetch(`${API_BASE}/providers/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: provider.apiKey, baseUrl: provider.baseUrl }),
+        body: JSON.stringify({ apiKey: provider.apiKey, accessToken: provider.accessToken, baseUrl: provider.baseUrl }),
       }).catch(() => { /* backend save failed, localStorage still has it */ });
     }
   },

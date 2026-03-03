@@ -37,10 +37,12 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
   const [expanded, setExpanded] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [localKey, setLocalKey] = useState(provider.apiKey || '');
+  const [localToken, setLocalToken] = useState(provider.accessToken || '');
   const [localUrl, setLocalUrl] = useState(provider.baseUrl);
   const [testResult, setTestResult] = useState<{ ok: boolean; models?: string[]; error?: string } | null>(null);
 
   const setProviderKey = useProviderStore((s) => s.setProviderKey);
+  const setProviderAccessToken = useProviderStore((s) => s.setProviderAccessToken);
   const setProviderAuthMethod = useProviderStore((s) => s.setProviderAuthMethod);
   const setProviderBaseUrl = useProviderStore((s) => s.setProviderBaseUrl);
   const testConnection = useProviderStore((s) => s.testConnection);
@@ -54,14 +56,16 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
 
   useEffect(() => {
     setLocalKey(provider.apiKey || '');
+    setLocalToken(provider.accessToken || '');
     setLocalUrl(provider.baseUrl);
-  }, [provider.apiKey, provider.baseUrl]);
+  }, [provider.apiKey, provider.accessToken, provider.baseUrl]);
 
   const handleSave = useCallback(() => {
     setProviderKey(provider.id, localKey);
+    setProviderAccessToken(provider.id, localToken);
     setProviderBaseUrl(provider.id, localUrl);
     saveProvider(provider.id);
-  }, [provider.id, localKey, localUrl, setProviderKey, setProviderBaseUrl, saveProvider]);
+  }, [provider.id, localKey, localToken, localUrl, setProviderKey, setProviderAccessToken, setProviderBaseUrl, saveProvider]);
 
   const handleTest = useCallback(async () => {
     handleSave();
@@ -198,13 +202,21 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
           ) : (
             <>
               {isCodexOAuth ? (
-                <div
-                  className="flex items-center gap-2 text-xs px-3 py-2.5 rounded-lg"
-                  style={{ background: t.badgeBg, border: `1px solid ${t.borderSubtle}` }}
-                >
-                  <Terminal size={14} style={{ color: provider.color }} />
-                  <span style={{ color: t.textSecondary }}>
-                    Uses Codex OAuth session (no API key required in this form).
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                    OAuth Access Token
+                  </label>
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    value={localToken}
+                    onChange={(e) => setLocalToken(e.target.value)}
+                    onBlur={handleSave}
+                    placeholder="Paste OAuth bearer token"
+                    className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+                    style={inputStyle}
+                  />
+                  <span className="text-[10px]" style={{ color: t.textDim }}>
+                    Used to fetch real models via provider test endpoint.
                   </span>
                 </div>
               ) : (
