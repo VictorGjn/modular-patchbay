@@ -1,9 +1,34 @@
 import { Router } from 'express';
 import { resolve, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import type { ApiResponse } from '../types.js';
 
 const router = Router();
+
+function compressKnowledgeMarkdown(content: string): string {
+  const lines = content.split('\n');
+  const out: string[] = [];
+  let previous = '';
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (line.trim() === '' && previous.trim() === '') continue;
+    if (line === previous) continue;
+    out.push(line);
+    previous = line;
+  }
+
+  // Keep the beginning and key headings when large
+  const joined = out.join('\n');
+  if (joined.length <= 100_000) return joined;
+
+  const headingLines = out.filter((l) => l.startsWith('#'));
+  const head = joined.slice(0, 70_000);
+  const headingBlock = headingLines.slice(0, 400).join('\n');
+  return `${head}\n\n# COMPRESSED-HEADINGS\n${headingBlock}`;
+}
+
 
 /**
  * POST /api/repo/scan
@@ -131,17 +156,33 @@ router.post('/index-github', async (req, res) => {
     const mod = await import('../services/githubIndexer.js');
     const result = await mod.indexGitHubRepo({ url, ref, subdir, persist });
 
-    // Convert Map to plain object for JSON serialization
+    const safeName = result.name.toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+    const outDir = join(tmpdir(), 'modular-gh-knowledge', `${safeName}-${Date.now()}`);
+    mkdirSync(outDir, { recursive: true });
+
+    // Materialize compressed knowledge docs to filesystem so Knowledge node can index them
+    const written: string[] = [];
     const docsObj: Record<string, string> = {};
     for (const [k, v] of result.knowledgeDocs) {
       docsObj[k] = v;
+      const compressed = compressKnowledgeMarkdown(v);
+      const filename = k.replace(/\.md$/i, '.compressed.md');
+      writeFileSync(join(outDir, filename), compressed, 'utf8');
+      written.push(filename);
     }
+
+    const overviewCompressed = compressKnowledgeMarkdown(result.overviewMarkdown);
+    const overviewFile = '00-overview.compressed.md';
+    writeFileSync(join(outDir, overviewFile), overviewCompressed, 'utf8');
+    if (!written.includes(overviewFile)) written.unshift(overviewFile);
 
     res.json({
       status: 'ok',
       data: {
         name: result.name,
         clonePath: result.clonePath,
+        outputDir: outDir,
+        files: written,
         overviewMarkdown: result.overviewMarkdown,
         fullMarkdown: result.fullMarkdown,
         knowledgeDocs: docsObj,
