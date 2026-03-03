@@ -6,7 +6,7 @@ import { useProviderStore } from '../store/providerStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { runTeam, extractContracts } from '../services/runtimeService';
 import { TextArea, Button, Card, EmptyState, Spinner, StatusDot } from '../components/ds';
-import { Play, FileSearch, Users, GitBranch } from 'lucide-react';
+import { Play, FileSearch, Users, GitBranch, Plus } from 'lucide-react';
 
 /* ── Epistemic Colors ── */
 
@@ -175,6 +175,7 @@ export function RuntimePanel() {
 
   const teamAgents = useTeamStore((s) => s.agents);
   const addSharedFact = useTeamStore((s) => s.addSharedFact);
+  const addAgent = useTeamStore((s) => s.addAgent);
 
   const selectedProviderId = useProviderStore((s) => s.selectedProviderId);
   const agentConfig = useConsoleStore((s) => s.agentConfig);
@@ -244,11 +245,39 @@ export function RuntimePanel() {
 
   if (teamAgents.length === 0) {
     return (
-      <EmptyState
-        icon={<Users size={32} />}
-        title="No team agents"
-        subtitle="Add agents in Agent Builder to run a team"
-      />
+      <div className="p-4">
+        <EmptyState
+          icon={<Users size={32} />}
+          title="No team agents"
+          subtitle="Create agents here in one click, or define them in Builder."
+        />
+        <div className="mt-3 flex items-center justify-center gap-2">
+          <Button
+            variant="primary"
+            icon={<Plus size={12} />}
+            onClick={() => {
+              addAgent({
+                id: `backend-${Date.now()}`,
+                name: 'Backend Agent',
+                description: 'Owns API contracts, data shape, and backend implementation decisions.',
+                avatar: 'bot',
+                version: '1.0.0',
+              });
+              addAgent({
+                id: `frontend-${Date.now()}`,
+                name: 'Frontend Agent',
+                description: 'Owns UI states, integration with API contracts, and UX fallback behavior.',
+                avatar: 'palette',
+                version: '1.0.0',
+              });
+            }}
+            aria-label="Create default backend and frontend agents"
+            style={{ minHeight: 44 }}
+          >
+            Create Backend + Frontend Agents
+          </Button>
+        </div>
+      </div>
     );
   }
 
@@ -404,21 +433,25 @@ export function RuntimePanel() {
       )}
 
       {/* Shared Facts */}
-      {sharedFacts.length > 0 && (
-        <div>
-          <div
-            className="text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
-          >
-            Shared Facts (team scope)
-          </div>
-          <Card>
-            {sharedFacts.map((f, i) => (
-              <FactRow key={i} fact={f} />
-            ))}
-          </Card>
+      <div>
+        <div
+          className="text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5"
+          style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+        >
+          Shared Facts (team scope)
         </div>
-      )}
+        <Card>
+          {sharedFacts.length > 0 ? (
+            sharedFacts.map((f, i) => (
+              <FactRow key={i} fact={f} />
+            ))
+          ) : (
+            <div className="text-[11px] py-2" style={{ color: t.textDim }}>
+              No shared facts yet. Run team execution to see memory exchange between agents.
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }
