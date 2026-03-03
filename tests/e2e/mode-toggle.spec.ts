@@ -69,7 +69,7 @@ test.describe('Source Sections Collapse/Expand', () => {
 
   test('memory section collapses', async ({ page }) => {
     const section = page.getByRole('region', { name: 'Memory' });
-    const toggle = section.locator('button[aria-expanded]');
+    const toggle = section.getByRole('button', { name: /memory long-term/i });
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });

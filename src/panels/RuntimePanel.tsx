@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { useTheme } from '../theme';
 import { useRuntimeStore, type ExtractedFact } from '../store/runtimeStore';
 import { useTeamStore } from '../store/teamStore';
@@ -6,7 +6,7 @@ import { useProviderStore } from '../store/providerStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { runTeam, extractContracts } from '../services/runtimeService';
 import { TextArea, Button, Card, EmptyState, Spinner, StatusDot } from '../components/ds';
-import { Play, FileSearch, Users, GitBranch } from 'lucide-react';
+import { Play, FileSearch, Users, GitBranch, UserPlus, X } from 'lucide-react';
 
 /* ── Epistemic Colors ── */
 
@@ -19,11 +19,11 @@ const EPISTEMIC_COLORS: Record<ExtractedFact['epistemicType'], string> = {
 };
 
 const EPISTEMIC_ICONS: Record<ExtractedFact['epistemicType'], string> = {
-  observation: '🔵',
-  inference: '🟡',
-  decision: '🟢',
-  hypothesis: '🟣',
-  contract: '📋',
+  observation: '●',
+  inference: '◆',
+  decision: '■',
+  hypothesis: '▲',
+  contract: '▣',
 };
 
 /* ── Fact Row ── */
@@ -109,9 +109,54 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
 
 /* ── Runtime Panel ── */
 
+function RuntimeStages({
+  status,
+  contractCount,
+  agentCount,
+  sharedCount,
+}: {
+  status: 'idle' | 'extracting_contracts' | 'running' | 'completed' | 'error';
+  contractCount: number;
+  agentCount: number;
+  sharedCount: number;
+}) {
+  const t = useTheme();
+
+  const stages = [
+    { id: 'contracts', label: 'Contracts', done: contractCount > 0 || status === 'running' || status === 'completed' },
+    { id: 'agents', label: 'Agents', done: agentCount > 0 && (status === 'running' || status === 'completed') },
+    { id: 'shared', label: 'Shared Facts', done: sharedCount > 0 || status === 'completed' },
+  ];
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {stages.map((stage) => {
+        const active = status !== 'idle' && !stage.done;
+        return (
+          <div
+            key={stage.id}
+            className="px-3 py-2 rounded-lg"
+            style={{
+              border: `1px solid ${stage.done ? '#FE500050' : t.border}`,
+              background: stage.done ? '#FE500010' : active ? t.surfaceHover : t.surfaceOpaque,
+            }}
+          >
+            <div className="text-[9px] font-bold tracking-[0.12em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: stage.done ? '#FE5000' : t.textDim }}>
+              {stage.label}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function RuntimePanel() {
   const t = useTheme();
   const [featureSpec, setFeatureSpec] = useState('');
+  const [globalInstruction, setGlobalInstruction] = useState('');
+  const [agentInstructions, setAgentInstructions] = useState<Record<string, string>>({});
+  const [selectedLibraryId, setSelectedLibraryId] = useState('');
   const updateAgent = useTeamStore((s) => s.updateAgent);
   const [repoUrls, setRepoUrls] = useState<Record<string, string>>(() => {
     // Initialize from teamStore
@@ -130,12 +175,28 @@ export function RuntimePanel() {
   const error = useRuntimeStore((s) => s.error);
 
   const teamAgents = useTeamStore((s) => s.agents);
+  const agentLibrary = useTeamStore((s) => s.agentLibrary);
   const addSharedFact = useTeamStore((s) => s.addSharedFact);
+  const addAgentFromLibrary = useTeamStore((s) => s.addAgentFromLibrary);
+  const removeAgent = useTeamStore((s) => s.removeAgent);
 
   const selectedProviderId = useProviderStore((s) => s.selectedProviderId);
   const agentConfig = useConsoleStore((s) => s.agentConfig);
 
   const isRunning = status === 'running' || status === 'extracting_contracts';
+
+  const composedInstructions = useMemo(() => {
+    const result: Record<string, string> = {};
+    for (const agent of teamAgents) {
+      const blocks = [
+        agent.description?.trim(),
+        globalInstruction.trim() ? `Global instruction:\n${globalInstruction.trim()}` : '',
+        agentInstructions[agent.id]?.trim() ? `Agent-specific instruction:\n${agentInstructions[agent.id].trim()}` : '',
+      ].filter(Boolean);
+      result[agent.id] = blocks.join('\n\n');
+    }
+    return result;
+  }, [teamAgents, globalInstruction, agentInstructions]);
 
   const handleExtractContracts = useCallback(async () => {
     if (!featureSpec.trim()) return;
@@ -152,7 +213,7 @@ export function RuntimePanel() {
       agents: teamAgents.map((a) => ({
         agentId: a.id,
         name: a.name,
-        systemPrompt: a.description,
+        systemPrompt: composedInstructions[a.id] || a.description,
         repoUrl: repoUrls[a.id] || undefined,
       })),
       featureSpec,
@@ -183,22 +244,116 @@ export function RuntimePanel() {
         }
       }
     });
-  }, [featureSpec, teamAgents, selectedProviderId, agentConfig.model, addSharedFact]);
+  }, [featureSpec, teamAgents, selectedProviderId, agentConfig.model, addSharedFact, composedInstructions]);
 
   if (teamAgents.length === 0) {
     return (
-      <EmptyState
-        icon={<Users size={32} />}
-        title="No team agents"
-        subtitle="Add agents in Agent Builder to run a team"
-      />
+      <div className="p-4">
+        <EmptyState
+          icon={<Users size={32} />}
+          title="No agents on runtime canvas"
+          subtitle="Save agents from Builder, then add them here from the agent list."
+        />
+        <div className="mt-3 flex items-center justify-center gap-2">
+          <select
+            value={selectedLibraryId}
+            onChange={(e) => setSelectedLibraryId(e.target.value)}
+            className="nodrag nowheel text-xs px-3 py-2 rounded-lg outline-none min-w-[260px]"
+            style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, minHeight: 44 }}
+            aria-label="Select saved agent"
+          >
+            <option value="">Select a saved agent…</option>
+            {agentLibrary.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
+          <Button
+            variant="primary"
+            icon={<UserPlus size={12} />}
+            onClick={() => {
+              if (!selectedLibraryId) return;
+              addAgentFromLibrary(selectedLibraryId);
+            }}
+            disabled={!selectedLibraryId}
+            aria-label="Add selected agent to runtime canvas"
+            style={{ minHeight: 44 }}
+          >
+            Add to Canvas
+          </Button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3 p-4 overflow-y-auto flex-1">
+    <div className="flex flex-col gap-4 p-4 overflow-y-auto flex-1">
+      <RuntimeStages
+        status={status}
+        contractCount={contractFacts.length}
+        agentCount={agents.length}
+        sharedCount={sharedFacts.length}
+      />
+
+      <Card>
+        <div className="flex items-center gap-2 mb-2">
+          <Users size={12} style={{ color: '#FE5000' }} />
+          <span className="text-[10px] font-bold tracking-[0.12em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
+            Runtime Canvas
+          </span>
+          <div className="flex-1" />
+          <select
+            value={selectedLibraryId}
+            onChange={(e) => setSelectedLibraryId(e.target.value)}
+            className="nodrag nowheel text-xs px-2 py-1.5 rounded-lg outline-none min-w-[220px]"
+            style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, minHeight: 36 }}
+            aria-label="Select saved agent for runtime canvas"
+          >
+            <option value="">Add saved agent…</option>
+            {agentLibrary.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
+          <Button
+            variant="secondary"
+            icon={<UserPlus size={11} />}
+            onClick={() => {
+              if (!selectedLibraryId) return;
+              addAgentFromLibrary(selectedLibraryId);
+            }}
+            disabled={!selectedLibraryId}
+            aria-label="Add selected saved agent"
+            style={{ minHeight: 36 }}
+          >
+            Add
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {teamAgents.map((agent) => (
+            <div key={agent.id} className="px-3 py-2 rounded-lg" style={{ border: `1px solid ${t.border}` }}>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold" style={{ color: t.textPrimary }}>{agent.name}</span>
+                <div className="flex-1" />
+                <button
+                  type="button"
+                  onClick={() => removeAgent(agent.id)}
+                  aria-label={`Remove ${agent.name} from runtime canvas`}
+                  className="border-none bg-transparent p-1 rounded cursor-pointer"
+                  style={{ color: t.textDim, minHeight: 28, minWidth: 28 }}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+              <div className="text-[10px] mt-1" style={{ color: t.textDim }}>
+                {agent.description || 'No description'}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       {/* Feature Spec */}
-      <div>
+      <div className="space-y-3">
         <TextArea
           label="Feature Spec"
           placeholder="Describe the feature to build…"
@@ -207,6 +362,31 @@ export function RuntimePanel() {
           onChange={(e) => setFeatureSpec(e.target.value)}
           aria-label="Feature specification"
         />
+
+        <div className="mt-3">
+          <TextArea
+            label="Global Instruction (all agents)"
+            placeholder="Shared mission for all agents (e.g. hurricane crisis workflow, reliability constraints, delivery rules)…"
+            rows={3}
+            value={globalInstruction}
+            onChange={(e) => setGlobalInstruction(e.target.value)}
+            aria-label="Global instruction"
+          />
+          <div className="mt-2 flex flex-col gap-2">
+            {teamAgents.map((agent) => (
+              <TextArea
+                key={agent.id}
+                label={`${agent.name} — Specific Instruction`}
+                placeholder={`Specific execution instruction for ${agent.name}...`}
+                rows={2}
+                value={agentInstructions[agent.id] || ''}
+                onChange={(e) => setAgentInstructions((prev) => ({ ...prev, [agent.id]: e.target.value }))}
+                aria-label={`Instruction for ${agent.name}`}
+              />
+            ))}
+          </div>
+        </div>
+
         {/* Repo URL per agent */}
         <div className="mt-3 mb-1">
           <div
@@ -315,21 +495,25 @@ export function RuntimePanel() {
       )}
 
       {/* Shared Facts */}
-      {sharedFacts.length > 0 && (
-        <div>
-          <div
-            className="text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
-          >
-            Shared Facts (team scope)
-          </div>
-          <Card>
-            {sharedFacts.map((f, i) => (
-              <FactRow key={i} fact={f} />
-            ))}
-          </Card>
+      <div>
+        <div
+          className="text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5"
+          style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+        >
+          Shared Facts (team scope)
         </div>
-      )}
+        <Card>
+          {sharedFacts.length > 0 ? (
+            sharedFacts.map((f, i) => (
+              <FactRow key={i} fact={f} />
+            ))
+          ) : (
+            <div className="text-[11px] py-2" style={{ color: t.textDim }}>
+              No shared facts yet. Run team execution to see memory exchange between agents.
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

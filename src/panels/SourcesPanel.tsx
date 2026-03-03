@@ -600,25 +600,30 @@ function McpSection() {
   const mcpServers = useConsoleStore(s => s.mcpServers);
   // const toggleMcp = useConsoleStore(s => s.toggleMcp);
   const removeMcp = useConsoleStore(s => s.removeMcp);
-  const setShowSettings = useConsoleStore(s => s.setShowSettings);
+  const setShowMcpPicker = useConsoleStore(s => s.setShowMcpPicker);
   const mcpState = useMcpStore(s => s.servers);
   const mcpHealth = useHealthStore(s => s.mcpHealth);
   const [collapsed, setCollapsed] = useState(false);
   const [probing, setProbing] = useState(false);
 
-  const activeCount = mcpServers.filter(m => m.enabled !== false).length;
-  const errorCount = Object.values(mcpHealth).filter(h => h.status === 'error').length;
+  const selectedMcpServers = mcpServers.filter(m => m.added);
+  const activeCount = selectedMcpServers.length;
+  const errorCount = selectedMcpServers.filter(m => mcpHealth[m.id]?.status === 'error').length;
 
-  const getStatus = (id: string) => {
+  const resolveStoreServer = (serverId: string, serverName: string) => {
+    return mcpState.find(s => s.id === serverId) ?? mcpState.find(s => s.name === serverName);
+  };
+
+  const getStatus = (serverId: string, serverName: string) => {
     // Health probe takes priority over mcpStore status
-    const health = mcpHealth[id];
+    const health = mcpHealth[serverId];
     if (health) {
       if (health.status === 'healthy') return 'ok';
       if (health.status === 'degraded') return 'warn';
       if (health.status === 'error') return 'err';
       if (health.status === 'checking') return 'warn';
     }
-    const state = mcpState.find(s => s.id === id);
+    const state = resolveStoreServer(serverId, serverName);
     if (!state) return 'off';
     if (state.status === 'connected') return 'ok';
     if (state.status === 'error') return 'err';
@@ -628,16 +633,66 @@ function McpSection() {
 
   const handleProbeAll = useCallback(async () => {
     setProbing(true);
-    const { probeAllMcp } = await import('../services/healthService');
-    await probeAllMcp(mcpServers.filter(m => m.enabled !== false).map(m => m.id));
+    const { setMcpHealth, setMcpChecking } = useHealthStore.getState();
+
+    await Promise.allSettled(selectedMcpServers.map(async (server) => {
+      const target = resolveStoreServer(server.id, server.name);
+      if (!target) {
+        setMcpHealth(server.id, {
+          status: 'error',
+          latencyMs: 0,
+          toolCount: 0,
+          tools: [],
+          errorMessage: `Not found: ${server.id}`,
+          checkedAt: Date.now(),
+        });
+        return;
+      }
+
+      setMcpChecking(server.id);
+      const start = performance.now();
+      try {
+        const res = await fetch(`${API_BASE}/health/mcp/${target.id}`, { signal: AbortSignal.timeout(15000) });
+        const latencyMs = Math.round(performance.now() - start);
+        const json = await res.json();
+        const probe = json.data ?? json;
+        setMcpHealth(server.id, {
+          status: (probe.status ?? 'error') as 'healthy' | 'degraded' | 'error' | 'checking' | 'unknown',
+          latencyMs,
+          toolCount: probe.toolCount ?? probe.tools?.length ?? 0,
+          tools: probe.tools ?? [],
+          errorMessage: probe.errorMessage ?? probe.error ?? null,
+          checkedAt: Date.now(),
+        });
+      } catch (err) {
+        setMcpHealth(server.id, {
+          status: 'error',
+          latencyMs: Math.round(performance.now() - start),
+          toolCount: 0,
+          tools: [],
+          errorMessage: err instanceof Error ? err.message : 'Probe failed',
+          checkedAt: Date.now(),
+        });
+      }
+    }));
+
     setProbing(false);
-  }, [mcpServers]);
+  }, [selectedMcpServers, mcpState]);
 
   const STATUS_COLORS: Record<string, { bg: string; glow: string }> = {
     ok: { bg: '#00ff88', glow: '0 0 6px rgba(0,255,136,0.4)' },
     warn: { bg: '#ffaa00', glow: '0 0 6px rgba(255,170,0,0.4)' },
     err: { bg: '#ff3344', glow: '0 0 6px rgba(255,51,68,0.4)' },
     off: { bg: '#333', glow: 'none' },
+  };
+
+  const getLatencyBars = (latencyMs?: number | null) => {
+    if (latencyMs == null) return { active: 0, color: t.textFaint };
+    if (latencyMs <= 10) return { active: 5, color: '#00ff88' };
+    if (latencyMs <= 30) return { active: 4, color: '#7DFF5A' };
+    if (latencyMs <= 80) return { active: 3, color: '#FFD84D' };
+    if (latencyMs <= 200) return { active: 2, color: '#FF9F43' };
+    return { active: 1, color: '#FF4D4D' };
   };
 
   return (
@@ -653,10 +708,10 @@ function McpSection() {
         </div>
       )}
       <div className="flex flex-col">
-        {mcpServers.map(server => {
-          const status = getStatus(server.id);
+        {selectedMcpServers.map(server => {
+          const status = getStatus(server.id, server.name);
           const sc = STATUS_COLORS[status];
-          const state = mcpState.find(s => s.id === server.id);
+          const state = resolveStoreServer(server.id, server.name);
           const health = mcpHealth[server.id];
           const toolCount = health?.toolCount ?? state?.tools?.length ?? 0;
           return (
@@ -680,7 +735,24 @@ function McpSection() {
               {health && health.status !== 'unknown' && (
                 <div className="flex items-center gap-2 pb-1.5 pl-5 text-[9px]" style={{ fontFamily: "'Space Mono', monospace" }}>
                   {health.latencyMs != null && (
-                    <span style={{ color: health.latencyMs > 2000 ? '#e74c3c' : t.textFaint }}>{health.latencyMs}ms</span>
+                    <span className="flex items-end gap-[2px]" title={`${health.latencyMs}ms`}>
+                      {Array.from({ length: 5 }).map((_, i) => {
+                        const bars = getLatencyBars(health.latencyMs);
+                        return (
+                          <span
+                            key={`lat-${server.id}-${i}`}
+                            style={{
+                              width: 3,
+                              height: 4 + i * 2,
+                              borderRadius: 1,
+                              background: i < bars.active ? bars.color : t.borderSubtle,
+                              opacity: i < bars.active ? 1 : 0.5,
+                            }}
+                          />
+                        );
+                      })}
+                      <span style={{ color: t.textFaint, marginLeft: 4 }}>{health.latencyMs}ms</span>
+                    </span>
                   )}
                   {health.tools && health.tools.length > 0 && (
                     <span className="truncate" style={{ color: t.textFaint, maxWidth: 180 }} title={health.tools.join(', ')}>
@@ -696,7 +768,7 @@ function McpSection() {
           );
         })}
       </div>
-      <button type="button" aria-label="Open MCP Library" onClick={() => setShowSettings(true, 'mcp')}
+      <button type="button" aria-label="Open MCP Library" onClick={() => setShowMcpPicker(true)}
         className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
         style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
@@ -715,10 +787,11 @@ function SkillsSection() {
   const t = useTheme();
   const skills = useConsoleStore(s => s.skills);
   const removeSkill = useConsoleStore(s => s.removeSkill);
-  const setShowSettings = useConsoleStore(s => s.setShowSettings);
+  const setShowSkillPicker = useConsoleStore(s => s.setShowSkillPicker);
   const [collapsed, setCollapsed] = useState(false);
 
-  const activeCount = skills.filter(s => s.enabled !== false).length;
+  const selectedSkills = skills.filter(s => s.added);
+  const activeCount = selectedSkills.length;
 
   return (
     <Section
@@ -726,13 +799,13 @@ function SkillsSection() {
       badge={`${activeCount} active`}
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
-      {skills.length === 0 && (
+      {selectedSkills.length === 0 && (
         <div className="text-[10px] py-2" style={{ color: t.textFaint }}>
-          No skills configured for this agent.
+          No skills selected for this agent.
         </div>
       )}
       <div className="flex flex-col">
-        {skills.map(skill => (
+        {selectedSkills.map(skill => (
           <div key={skill.id} className="flex items-center gap-2 py-1.5"
             style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px rgba(0,255,136,0.4)', flexShrink: 0 }} />
@@ -745,7 +818,7 @@ function SkillsSection() {
           </div>
         ))}
       </div>
-      <button type="button" aria-label="Open Skill Library" onClick={() => setShowSettings(true, 'skills')}
+      <button type="button" aria-label="Open Skill Library" onClick={() => setShowSkillPicker(true)}
         className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
         style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Space Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}

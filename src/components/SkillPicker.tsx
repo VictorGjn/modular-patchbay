@@ -1,5 +1,7 @@
+import { useEffect, useMemo } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
 import { type SkillCategory } from '../store/knowledgeBase';
+import { useSkillsStore } from '../store/skillsStore';
 import { SkillIcon } from './icons/SectionIcons';
 import { useTheme } from '../theme';
 import { Plus, Check } from 'lucide-react';
@@ -14,12 +16,59 @@ const CATEGORY_LABELS: Record<SkillCategory, string> = {
 
 const CATEGORY_ORDER: SkillCategory[] = ['content', 'analysis', 'development', 'domain'];
 
+function inferCategory(name: string, description: string): SkillCategory {
+  const text = `${name} ${description}`.toLowerCase();
+  if (/analysis|insight|research|intel|feedback/.test(text)) return 'analysis';
+  if (/code|dev|api|build|test|automation|github/.test(text)) return 'development';
+  if (/content|write|presentation|slides|copy/.test(text)) return 'content';
+  return 'domain';
+}
+
 export function SkillPicker() {
   const showSkillPicker = useConsoleStore((s) => s.showSkillPicker);
   const setShowSkillPicker = useConsoleStore((s) => s.setShowSkillPicker);
-  const skills = useConsoleStore((s) => s.skills);
+  const consoleSkills = useConsoleStore((s) => s.skills);
   const addSkill = useConsoleStore((s) => s.addSkill);
+  const upsertSkill = useConsoleStore((s) => s.upsertSkill);
+  const installedSkills = useSkillsStore((s) => s.skills);
+  const loaded = useSkillsStore((s) => s.loaded);
+  const loading = useSkillsStore((s) => s.loading);
+  const loadSkills = useSkillsStore((s) => s.loadSkills);
   const t = useTheme();
+
+  useEffect(() => {
+    if (showSkillPicker && !loaded && !loading) {
+      void loadSkills();
+    }
+  }, [showSkillPicker, loaded, loading, loadSkills]);
+
+  useEffect(() => {
+    if (installedSkills.length === 0) return;
+    for (const skill of installedSkills) {
+      upsertSkill({ id: skill.id, name: skill.name, description: skill.description || 'Installed skill' });
+    }
+  }, [installedSkills, upsertSkill]);
+
+  const skills = useMemo(() => {
+    const addedSet = new Set(consoleSkills.filter((s) => s.added).map((s) => s.id));
+    const byId = new Map(consoleSkills.map((s) => [s.id, s]));
+
+    for (const s of installedSkills) {
+      if (!byId.has(s.id)) {
+        byId.set(s.id, {
+          id: s.id,
+          name: s.name,
+          icon: 'zap',
+          enabled: s.enabled,
+          added: addedSet.has(s.id),
+          description: s.description || 'Installed skill',
+          category: inferCategory(s.name, s.description || ''),
+        });
+      }
+    }
+
+    return Array.from(byId.values());
+  }, [consoleSkills, installedSkills]);
 
   return (
     <PickerModal

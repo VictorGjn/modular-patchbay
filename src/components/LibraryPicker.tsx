@@ -5,6 +5,7 @@ import { PickerModal } from './PickerModal';
 import { Tabs } from './ds/Tabs';
 import { Spinner } from './ds/Spinner';
 import { API_BASE } from '../config';
+import { useConsoleStore } from '../store/consoleStore';
 
 export interface LibraryItem {
   id: string;
@@ -43,6 +44,7 @@ function getStatusColor(status: string | undefined, t: ReturnType<typeof useThem
 }
 
 function useMarketplaceSearch(open: boolean) {
+  const upsertSkill = useConsoleStore((s) => s.upsertSkill);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<MarketplaceResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -88,7 +90,7 @@ function useMarketplaceSearch(open: boolean) {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [query]);
 
-  const installSkill = useCallback(async (skillId: string) => {
+  const installSkill = useCallback(async (skillId: string, skillName?: string, repo?: string) => {
     setInstalling((prev) => new Set(prev).add(skillId));
     try {
       const res = await fetch(`${API_BASE}/skills/install`, {
@@ -98,12 +100,17 @@ function useMarketplaceSearch(open: boolean) {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setInstalled((prev) => new Set(prev).add(skillId));
+      upsertSkill({
+        id: skillId,
+        name: skillName || skillId,
+        description: repo ? `Installed from skills.sh (${repo})` : 'Installed from skills.sh',
+      });
     } catch {
       // silent — button stays available for retry
     } finally {
       setInstalling((prev) => { const next = new Set(prev); next.delete(skillId); return next; });
     }
-  }, []);
+  }, [upsertSkill]);
 
   return { query, setQuery, results, loading, error, installing, installed, installSkill };
 }
@@ -202,7 +209,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
               ) : (
                 <button
                   type="button"
-                  onClick={() => installSkill(skill.id)}
+                  onClick={() => installSkill(skill.id, skill.name, skill.repo)}
                   className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer border-none shrink-0"
                   style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", background: '#FE500020', color: '#FE5000' }}
                   aria-label={`Install ${skill.name}`}

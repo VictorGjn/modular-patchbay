@@ -13,6 +13,14 @@ interface ChatRequest {
 const router = Router();
 const MAX_TOKENS_LIMIT = 32768; // Server-side cap to prevent cost attacks
 
+function normalizeBaseUrl(providerId: string, baseUrl: string): string {
+  const trimmed = (baseUrl || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return trimmed;
+  const isOpenAi = providerId.includes('openai') || trimmed.includes('api.openai.com');
+  if (isOpenAi && !/\/v1$/i.test(trimmed)) return `${trimmed}/v1`;
+  return trimmed;
+}
+
 router.post('/chat', async (req, res) => {
   const { provider: providerId, model, messages, temperature, maxTokens: rawMaxTokens } = req.body as ChatRequest;
   const maxTokens = rawMaxTokens ? Math.min(rawMaxTokens, MAX_TOKENS_LIMIT) : undefined;
@@ -31,8 +39,10 @@ router.post('/chat', async (req, res) => {
     return;
   }
 
+  const baseUrl = normalizeBaseUrl(providerId, provider.baseUrl);
+
   // Guard against empty baseUrl
-  if (!provider.baseUrl) {
+  if (!baseUrl) {
     const resp: ApiResponse = { status: 'error', error: `Provider "${providerId}" has no baseUrl configured` };
     res.status(400).json(resp);
     return;
@@ -46,7 +56,7 @@ router.post('/chat', async (req, res) => {
     const modelId = typeof model === 'object' ? (model as { id: string }).id : model;
 
     if (provider.type === 'anthropic') {
-      url = `${provider.baseUrl}/messages`;
+      url = `${baseUrl}/messages`;
       headers = {
         'x-api-key': provider.apiKey,
         'anthropic-version': '2023-06-01',
@@ -61,7 +71,7 @@ router.post('/chat', async (req, res) => {
       });
     } else {
       // OpenAI-compatible (OpenAI, OpenRouter, custom)
-      url = `${provider.baseUrl}/chat/completions`;
+      url = `${baseUrl}/chat/completions`;
       headers = {
         'Authorization': `Bearer ${provider.apiKey}`,
         'Content-Type': 'application/json',

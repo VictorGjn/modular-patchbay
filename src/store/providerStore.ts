@@ -15,7 +15,7 @@ export interface ProviderConfig {
   accessToken?: string;
   refreshToken?: string;
   tokenExpiry?: number;
-  // API Key fields
+  // API Key field
   apiKey?: string;
   baseUrl: string;
   // Provider info
@@ -39,11 +39,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     authMethod: 'api-key',
     status: 'disconnected',
     baseUrl: 'https://api.anthropic.com/v1',
-    models: [
-      { id: 'claude-opus-4', label: 'Claude Opus 4' },
-      { id: 'claude-sonnet-4', label: 'Claude Sonnet 4' },
-      { id: 'claude-haiku-3.5', label: 'Claude Haiku 3.5' },
-    ],
+    models: [],
     docsUrl: 'https://docs.anthropic.com/en/api',
     keyPageUrl: 'https://console.anthropic.com/settings/keys',
     pricingUrl: 'https://www.anthropic.com/pricing',
@@ -58,15 +54,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     authMethod: 'api-key',
     status: 'disconnected',
     baseUrl: 'https://api.openai.com/v1',
-    models: [
-      { id: 'gpt-4.1', label: 'GPT-4.1' },
-      { id: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
-      { id: 'gpt-4.1-nano', label: 'GPT-4.1 Nano' },
-      { id: 'o3', label: 'o3' },
-      { id: 'o4-mini', label: 'o4-mini' },
-      { id: 'gpt-4o', label: 'GPT-4o' },
-      { id: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-    ],
+    models: [],
     docsUrl: 'https://platform.openai.com/docs',
     keyPageUrl: 'https://platform.openai.com/api-keys',
     pricingUrl: 'https://openai.com/pricing',
@@ -80,11 +68,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     authMethod: 'api-key',
     status: 'disconnected',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    models: [
-      { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-      { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-      { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-    ],
+    models: [],
     docsUrl: 'https://ai.google.dev/docs',
     keyPageUrl: 'https://aistudio.google.com/app/apikey',
     pricingUrl: 'https://ai.google.dev/pricing',
@@ -100,11 +84,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     status: 'disconnected',
     baseUrl: '',
     apiKey: '',
-    models: [
-      { id: 'sonnet', label: 'Claude Sonnet 4' },
-      { id: 'opus', label: 'Claude Opus 4' },
-      { id: 'haiku', label: 'Claude Haiku 3.5' },
-    ],
+    models: [],
     docsUrl: 'https://docs.anthropic.com/en/docs/claude-code/sdk',
     keyPageUrl: '',
     icon: 'Terminal',
@@ -118,9 +98,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
     authMethod: 'api-key',
     status: 'disconnected',
     baseUrl: 'https://openrouter.ai/api/v1',
-    models: [
-      { id: 'openrouter/auto', label: 'Auto (best available)' },
-    ],
+    models: [],
     docsUrl: 'https://openrouter.ai/docs',
     keyPageUrl: 'https://openrouter.ai/keys',
     pricingUrl: 'https://openrouter.ai/models',
@@ -133,6 +111,21 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
 
 const STORAGE_KEY = 'modular-providers';
 import { API_BASE } from '../config';
+
+function normalizeConnectionError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  return /failed to fetch|networkerror|load failed/i.test(message)
+    ? 'Cannot reach backend API. Start server with `npm run server` (port 4800).'
+    : message;
+}
+
+function normalizeProviderBaseUrl(id: string, baseUrl: string): string {
+  const trimmed = (baseUrl || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return trimmed;
+  const isOpenAi = id === 'openai' || trimmed.includes('api.openai.com');
+  if (isOpenAi && !trimmed.endsWith('/v1')) return `${trimmed}/v1`;
+  return trimmed;
+}
 
 
 // Check if backend is available with TTL cache
@@ -165,21 +158,31 @@ function loadProviders(): ProviderConfig[] {
     return DEFAULT_PROVIDERS.map((def) => {
       const s = saved.find((p) => p.id === def.id);
       if (!s) return def;
+      const authMethod = (s.authMethod ?? def.authMethod) as AuthMethod;
+      const hasApiKey = Boolean((s.apiKey ?? def.apiKey)?.trim());
       return {
         ...def,
+        authMethod,
         apiKey: s.apiKey ?? def.apiKey,
+        accessToken: s.accessToken ?? def.accessToken,
         baseUrl: s.baseUrl ?? def.baseUrl,
-        status: (s.apiKey ? 'configured' : 'disconnected') as ProviderStatus,
+        status: authMethod === 'oauth' ? ((s.status ?? 'configured') as ProviderStatus) : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus),
       };
     }).concat(
-      saved.filter((s) => !DEFAULT_PROVIDERS.some((d) => d.id === s.id)).map((s) => ({
-        ...DEFAULT_PROVIDERS[DEFAULT_PROVIDERS.length - 1],
-        ...s,
-        id: s.id ?? 'custom-' + Date.now(),
-        name: s.name ?? 'Custom',
-        status: (s.apiKey ? 'configured' : 'disconnected') as ProviderStatus,
-        models: s.models ?? [{ id: 'custom-model', label: 'Custom Model' }],
-      } as ProviderConfig))
+      saved.filter((s) => !DEFAULT_PROVIDERS.some((d) => d.id === s.id)).map((s) => {
+        const authMethod = (s.authMethod ?? 'api-key') as AuthMethod;
+        const hasApiKey = Boolean(s.apiKey?.trim());
+        return {
+          ...DEFAULT_PROVIDERS[DEFAULT_PROVIDERS.length - 1],
+          ...s,
+          authMethod,
+          accessToken: s.accessToken,
+          id: s.id ?? 'custom-' + Date.now(),
+          name: s.name ?? 'Custom',
+          status: authMethod === 'oauth' ? ((s.status ?? 'configured') as ProviderStatus) : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus),
+          models: s.models ?? [{ id: 'custom-model', label: 'Custom Model' }],
+        } as ProviderConfig;
+      })
     );
   } catch {
     return DEFAULT_PROVIDERS;
@@ -195,8 +198,10 @@ function persistProviders(providers: ProviderConfig[]) {
       id: p.id,
       name: p.name,
       apiKey: p.apiKey,
+      accessToken: p.accessToken,
       baseUrl: p.baseUrl,
       status: p.status,
+      authMethod: p.authMethod,
       models: isDefault ? undefined : p.models,
       authHeader: isDefault ? undefined : p.authHeader,
       icon: isDefault ? undefined : p.icon,
@@ -214,6 +219,8 @@ interface ProviderStore {
   selectedProviderId: string;
   testing: Record<string, boolean>;
   setProviderKey: (id: string, apiKey: string) => void;
+  setProviderAccessToken: (id: string, accessToken: string) => void;
+  setProviderAuthMethod: (id: string, authMethod: AuthMethod) => void;
   setProviderBaseUrl: (id: string, baseUrl: string) => void;
   setProviderStatus: (id: string, status: ProviderStatus) => void;
   setProviderModels: (id: string, models: { id: string; label: string }[]) => void;
@@ -235,9 +242,35 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
 
   setProviderKey: (id, apiKey) => {
     set((state) => {
+      const providers = state.providers.map((p) => {
+        if (p.id !== id) return p;
+        const hasApiKey = Boolean(apiKey.trim());
+        const status = p.authMethod === 'oauth' ? p.status : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus);
+        return { ...p, apiKey, status };
+      });
+      persistProviders(providers);
+      return { providers };
+    });
+  },
+
+  setProviderAccessToken: (id, accessToken) => {
+    set((state) => {
       const providers = state.providers.map((p) =>
-        p.id === id ? { ...p, apiKey, status: (apiKey ? 'configured' : 'disconnected') as ProviderStatus } : p
+        p.id === id ? { ...p, accessToken, status: accessToken.trim() ? 'configured' as ProviderStatus : p.status } : p
       );
+      persistProviders(providers);
+      return { providers };
+    });
+  },
+
+  setProviderAuthMethod: (id, authMethod) => {
+    set((state) => {
+      const providers = state.providers.map((p) => {
+        if (p.id !== id) return p;
+        const hasApiKey = Boolean(p.apiKey?.trim());
+        const status = authMethod === 'oauth' ? 'configured' : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus);
+        return { ...p, authMethod, status, lastError: undefined };
+      });
       persistProviders(providers);
       return { providers };
     });
@@ -245,8 +278,9 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
 
   setProviderBaseUrl: (id, baseUrl) => {
     set((state) => {
+      const normalized = normalizeProviderBaseUrl(id, baseUrl);
       const providers = state.providers.map((p) =>
-        p.id === id ? { ...p, baseUrl } : p
+        p.id === id ? { ...p, baseUrl: normalized } : p
       );
       persistProviders(providers);
       return { providers };
@@ -282,7 +316,9 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
   },
 
   getAllModels: () => {
-    return get().providers.flatMap((p) =>
+    return get().providers
+      .filter((p) => p.models.length > 0 && (p.status === 'connected' || p.status === 'configured'))
+      .flatMap((p) =>
       p.models.map((m) => ({
         id: m.id,
         label: m.label,
@@ -300,6 +336,56 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
     try {
       // Special handling for Claude Agent SDK
       const provider = get().providers.find((p) => p.id === id);
+
+      if (provider?.authMethod === 'oauth') {
+        const oauthToken = provider.accessToken?.trim() || provider.apiKey?.trim();
+        if (!oauthToken) {
+          set((state) => ({
+            testing: { ...state.testing, [id]: false },
+            providers: state.providers.map((p) =>
+              p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: 'OAuth token missing. Paste access token in provider settings.' } : p
+            ),
+          }));
+          return { ok: false, error: 'OAuth token missing' };
+        }
+
+        const backend = await isBackendAvailable();
+        if (!backend) {
+          set((state) => ({ testing: { ...state.testing, [id]: false } }));
+          return { ok: false, error: 'Backend unavailable' };
+        }
+
+        const res = await fetch(`${API_BASE}/providers/${id}/test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ baseUrl: provider.baseUrl, accessToken: oauthToken }),
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          const modelIds: string[] = data.data?.models ?? [];
+          const models = modelIds.map((m: string) => ({ id: m, label: m }));
+          set((state) => ({
+            testing: { ...state.testing, [id]: false },
+            providers: state.providers.map((p) =>
+              p.id === id
+                ? { ...p, status: 'connected' as ProviderStatus, models: models.length ? models : p.models, lastError: undefined }
+                : p
+            ),
+          }));
+          persistProviders(get().providers);
+          return { ok: true, models: modelIds };
+        }
+
+        set((state) => ({
+          testing: { ...state.testing, [id]: false },
+          providers: state.providers.map((p) =>
+            p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: data.error || 'OAuth model fetch failed' } : p
+          ),
+        }));
+        persistProviders(get().providers);
+        return { ok: false, error: data.error || 'OAuth model fetch failed' };
+      }
+
       if (provider?.authMethod === 'claude-agent-sdk') {
         try {
           const res = await fetch(`${API_BASE}/agent-sdk/status`);
@@ -318,7 +404,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
             ? { ok: true, models: provider.models.map((m) => m.id) }
             : { ok: false, error: data?.data?.error || 'Not authenticated — run `claude` in your terminal first' };
         } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : 'Backend not available';
+          const errorMsg = normalizeConnectionError(err);
           set((state) => ({
             testing: { ...state.testing, [id]: false },
             providers: state.providers.map((p) =>
@@ -348,7 +434,8 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         });
         const data = await res.json();
         if (data.status === 'ok') {
-          const models = (data.models || []).map((m: string) => ({ id: m, label: m }));
+          const modelIds: string[] = data.data?.models ?? data.models ?? [];
+          const models = modelIds.map((m: string) => ({ id: m, label: m }));
           set((state) => ({
             testing: { ...state.testing, [id]: false },
             providers: state.providers.map((p) =>
@@ -356,7 +443,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
             ),
           }));
           persistProviders(get().providers);
-          return { ok: true, models: data.models };
+          return { ok: true, models: modelIds };
         } else {
           set((state) => ({
             testing: { ...state.testing, [id]: false },
@@ -384,7 +471,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         return { ok: false, error: 'No API key configured' };
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Connection failed';
+      const errorMsg = normalizeConnectionError(err);
       set((state) => ({
         testing: { ...state.testing, [id]: false },
         providers: state.providers.map((p) =>
@@ -405,7 +492,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
       await fetch(`${API_BASE}/providers/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: provider.apiKey, baseUrl: provider.baseUrl }),
+        body: JSON.stringify({ apiKey: provider.apiKey, accessToken: provider.accessToken, baseUrl: provider.baseUrl }),
       }).catch(() => { /* backend save failed, localStorage still has it */ });
     }
   },
@@ -448,8 +535,9 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
     try {
       const res = await fetch(`${API_BASE}/providers`);
       if (!res.ok) return;
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      const json = await res.json();
+      const data = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+      if (data.length > 0) {
         // Merge backend data with defaults
         const merged = DEFAULT_PROVIDERS.map((def) => {
           const remote = data.find((d: ProviderConfig) => d.id === def.id);
