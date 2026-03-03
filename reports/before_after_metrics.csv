@@ -1,0 +1,13 @@
+repo,query_id,query,baseline_coverage,after_coverage,baseline_precision,after_precision,baseline_ctx_chars,after_ctx_chars,ctx_reduction_pct,uncertainty,adaptive_budget
+52north-wrt,1,How is weather data transformed into route cost penalties?,0.0,0.0,0.0,0.0,11916,21222,-78.1,0.6667,14
+52north-wrt,2,Where are vessel constraints integrated during path search?,0.0,1.0,0.0,0.1333,55668,70177,-26.06,0.7778,20
+52north-wrt,3,What modules are required to run end-to-end route optimization?,0.0,1.0,0.0,0.125,44024,71798,-63.09,1.0,20
+opencpn-core,1,How does route calculation flow from UI interaction to navigation state updates?,0.0,0.0,0.0,0.0,50554,82391,-62.98,0.9146,20
+opencpn-core,2,Which components persist and validate route waypoint data?,0.0,0.0149,0.0,0.1,48075,71798,-49.35,0.8571,20
+opencpn-core,3,What dependencies are involved when recalculating route geometry?,0.0,0.0,0.0,0.0,49331,62795,-27.29,0.8571,20
+slocum,1,How are GRIB forecast fields converted into sailing performance decisions?,0.1667,0.5833,0.1667,0.3889,49735,68079,-36.88,0.8037,20
+slocum,2,Which modules compose the route search and scoring loop?,0.0,0.0,0.0,0.0,0,0,100.0,1.0,20
+slocum,3,What code paths connect command entrypoint to final route output artifacts?,0.1667,0.4167,0.1667,0.3125,42705,54265,-27.07,0.8189,20
+windmar,1,How does the project compute optimized voyage recommendations?,0.0,1.0,0.0,0.1176,47215,66507,-40.86,0.7907,20
+windmar,2,"Which modules aggregate weather, vessel, and route constraints?",0.0,0.0,0.0,0.0,43370,36249,16.42,0.7273,20
+windmar,3,What are the deepest dependency chains in optimization execution?,0.0,0.5,0.0,0.2,10717,13184,-23.02,1.0,20

@@ -1,0 +1,30 @@
+[
+  {
+    "repo": "52north-wrt",
+    "url": "https://github.com/52North/WeatherRoutingTool.git",
+    "domain": "weather-routing",
+    "feature_focus": "route optimization pipeline with weather ingestion",
+    "local_path": "C:\\Users\\victo\\AppData\\Local\\Temp\\modular-patchbay\\reports\\benchmark_workspace\\repos\\52north-wrt"
+  },
+  {
+    "repo": "opencpn-core",
+    "url": "https://github.com/OpenCPN/OpenCPN.git",
+    "domain": "voyage-operations",
+    "feature_focus": "route manager and plugin-driven navigation planning",
+    "local_path": "C:\\Users\\victo\\AppData\\Local\\Temp\\modular-patchbay\\reports\\benchmark_workspace\\repos\\opencpn-core"
+  },
+  {
+    "repo": "slocum",
+    "url": "https://github.com/akleeman/slocum.git",
+    "domain": "weather-routing",
+    "feature_focus": "grib-driven sailing route optimization",
+    "local_path": "C:\\Users\\victo\\AppData\\Local\\Temp\\modular-patchbay\\reports\\benchmark_workspace\\repos\\slocum"
+  },
+  {
+    "repo": "windmar",
+    "url": "https://github.com/windmar-nav/windmar.git",
+    "domain": "maritime-ops-optimization",
+    "feature_focus": "voyage planning and optimization stack",
+    "local_path": "C:\\Users\\victo\\AppData\\Local\\Temp\\modular-patchbay\\reports\\benchmark_workspace\\repos\\windmar"
+  }
+]

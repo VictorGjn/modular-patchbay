@@ -1,0 +1,23 @@
+{
+  "proxies": [
+    {
+      "name": "BM25-raw-topk (baseline)",
+      "description": "Classic lexical retrieval over raw chunks with fixed budget=12",
+      "avg_coverage": 0.0278,
+      "avg_precision": 0.0278,
+      "avg_ctx_chars": 37775
+    },
+    {
+      "name": "Compressed+GraphRAG+AdaptiveBudget (after)",
+      "description": "Compressed chunk summaries, dependency expansion, uncertainty-driven budget",
+      "avg_coverage": 0.3762,
+      "avg_precision": 0.1148,
+      "avg_ctx_chars": 51538
+    },
+    {
+      "name": "FixedBudget-GraphRAG proxy",
+      "description": "Ablation proxy approximated by using after metrics but median adaptive budget",
+      "note": "Direct competitor frameworks not executed in this host; proxy supports relative framing."
+    }
+  ]
+}
