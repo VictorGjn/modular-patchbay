@@ -19,11 +19,11 @@ const EPISTEMIC_COLORS: Record<ExtractedFact['epistemicType'], string> = {
 };
 
 const EPISTEMIC_ICONS: Record<ExtractedFact['epistemicType'], string> = {
-  observation: '🔵',
-  inference: '🟡',
-  decision: '🟢',
-  hypothesis: '🟣',
-  contract: '📋',
+  observation: '●',
+  inference: '◆',
+  decision: '■',
+  hypothesis: '▲',
+  contract: '▣',
 };
 
 /* ── Fact Row ── */
