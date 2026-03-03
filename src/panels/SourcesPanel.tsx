@@ -241,37 +241,48 @@ function KnowledgeSection() {
     if (!repoPath.trim() || repoScanning) return;
     setRepoScanning(true);
     try {
-      const resp = await fetch(`${API_BASE}/repo/index`, {
+      const target = repoPath.trim();
+      const isGitHub = /github\.com\//i.test(target) || target.endsWith('.git');
+      const endpoint = isGitHub ? `${API_BASE}/repo/index-github` : `${API_BASE}/repo/index`;
+      const payload = isGitHub ? { url: target, persist: true } : { path: target };
+
+      const resp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: repoPath.trim() }),
+        body: JSON.stringify(payload),
       });
       const json = await resp.json() as {
         status: string;
-        data?: { outputDir: string; files: string[]; stack: string[]; features: number; totalTokens: number };
+        data?: { outputDir: string; files: string[]; scan?: { totalTokens?: number }; totalTokens?: number };
         error?: string;
       };
+
       if (json.status === 'ok' && json.data) {
+        const totalTokens = json.data.totalTokens ?? json.data.scan?.totalTokens ?? 5000;
         for (const file of json.data.files) {
           const filePath = `${json.data.outputDir}/${file}`;
           addChannel({
             sourceId: `repo-${file}-${Date.now()}`,
-            name: file.replace('.md', '').replace(/^\d+-/, ''),
+            name: file.replace('.compressed.md', '').replace('.md', '').replace(/^\d+-/, ''),
             path: filePath,
             category: 'knowledge' as any,
             knowledgeType: 'ground-truth',
-            depth: 1,
-            baseTokens: Math.round((json.data.totalTokens || 5000) / Math.max(json.data.files.length, 1)),
+            depth: isGitHub ? 2 : 1,
+            baseTokens: Math.round(totalTokens / Math.max(json.data.files.length, 1)),
           });
         }
+
         setRepoPrompt(false);
         setRepoPath('');
-        // Auto-scan the newly added files
+
+        // Auto-scan newly materialized files for tree-index usage
         await useTreeIndexStore.getState().indexFiles(
-          json.data.files.map(f => `${json.data!.outputDir}/${f}`)
+          json.data.files.map(f => `${json.data!.outputDir}/${f}`),
         );
       }
-    } catch { /* user sees no change */ }
+    } catch {
+      // user sees no change
+    }
     setRepoScanning(false);
   }, [repoPath, repoScanning, addChannel]);
 
@@ -553,7 +564,7 @@ function KnowledgeSection() {
             type="text"
             value={repoPath}
             onChange={e => setRepoPath(e.target.value)}
-            placeholder="/path/to/repo"
+            placeholder="/path/to/repo or https://github.com/org/repo"
             aria-label="Repository path"
             className="flex-1 px-2.5 py-1.5 rounded text-[11px] outline-none"
             style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}
