@@ -1,6 +1,6 @@
 # Shared Memory Feature Efficiency Benchmark
 
-Date: 2026-03-03T21:57:14.248Z
+Date: 2026-03-03T22:06:21.597Z
 Repo: C:\Users\victo\AppData\Local\Temp\modular-patchbay
 
 ## Objective
@@ -14,7 +14,7 @@ Compare two agent contexts for discovering the **shared memory feature**:
 - Compression: tokenBudget=20000, aggressiveness=0.45, dedup+filler+code compression
 
 ## Context Stats
-- Bare corpus tokens: **526 986**
+- Bare corpus tokens: **527 293**
 - Tree-indexed knowledge tokens (global docs): **7 135**
 - Feature-focused indexed corpus tokens (before compression): **39 087**
 - Feature-focused indexed compressed tokens: **19 936**
@@ -23,7 +23,7 @@ Compare two agent contexts for discovering the **shared memory feature**:
 
 ## Agent Results
 ### Agent 1 — Bare repo
-- Context tokens: 526 986
+- Context tokens: 527 293
 - Total term hits: 206
 - Matched terms: sharedFacts, addSharedFact, teamFacts, teamStore, runtimeStore, shared memory, memory exchange
 - Confidence (required signals): 100%
