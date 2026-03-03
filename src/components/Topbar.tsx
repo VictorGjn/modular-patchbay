@@ -56,6 +56,7 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
   const getAllModels = useProviderStore((s) => s.getAllModels);
   const providers = useProviderStore((s) => s.providers);
   const allModels = useMemo(() => getAllModels(), [getAllModels, providers]);
+  const hasModels = allModels.length > 0;
 
   const handleExport = () => {
     const content = exportAsAgent({ channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta });
@@ -120,8 +121,9 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
 
       {/* Model selector */}
       <TopbarSelect
-        value={`${useProviderStore.getState().selectedProviderId}::${selectedModel}`}
+        value={hasModels ? `${useProviderStore.getState().selectedProviderId}::${selectedModel}` : '__no_models__'}
         onChange={(val) => {
+          if (val === '__no_models__') return;
           const [providerId, ...rest] = val.split('::');
           const modelId = rest.join('::');
           useProviderStore.getState().selectProvider(providerId);
@@ -130,6 +132,9 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
         t={t}
         ariaLabel="Select AI model"
       >
+        {!hasModels && (
+          <option value="__no_models__">Authenticate a provider to load models</option>
+        )}
         {allModels.map((m) => (
           <option key={`${m.providerId}-${m.id}`} value={`${m.providerId}::${m.id}`}>
             {m.providerName} — {m.label}
