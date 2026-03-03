@@ -4,7 +4,7 @@ import { useTheme } from '../theme';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 import { useMemo } from 'react';
-import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings, ShoppingBag } from 'lucide-react';
+import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings, ShoppingBag, Target } from 'lucide-react';
 import { OutputIcon } from './icons/SectionIcons';
 import { useProviderStore } from '../store/providerStore';
 import { VersionIndicator } from './VersionIndicator';
@@ -175,7 +175,8 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
         onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
         aria-label="Load Demo Preset"
       >
-        🎯 Load Demo
+        <Target size={13} />
+        Load Demo
       </button>
 
       {/* Marketplace */}
