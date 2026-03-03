@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Topbar } from './components/Topbar';
 import { TokenBudget } from './components/TokenBudget';
 import { FilePicker } from './components/FilePicker';
@@ -9,13 +9,13 @@ import { ConnectorPicker } from './components/ConnectorPicker';
 // AgentViz moved to canvas node (AgentPreviewNode)
 import { SettingsPage } from './components/SettingsPage';
 import { SaveAgentModal } from './components/SaveAgentModal';
-import { ConversationTester } from './components/ConversationTester';
 import './store/versionStore'; // activate version subscription
 import { useConsoleStore } from './store/consoleStore';
 import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
 
 import { DashboardLayout } from './layouts/DashboardLayout';
+import { RuntimeWorkspaceLayout } from './layouts/RuntimeWorkspaceLayout';
 
 export default function App() {
   const t = useTheme();
@@ -31,6 +31,7 @@ export default function App() {
 
   const showSettings = useConsoleStore((s) => s.showSettings);
   const setShowSettings = useConsoleStore((s) => s.setShowSettings);
+  const [workspaceMode, setWorkspaceMode] = useState<'builder' | 'runtime'>('builder');
   const importInputRef = useRef<HTMLInputElement>(null);
   const handleImportClick = useCallback(() => importInputRef.current?.click(), []);
   const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,14 +67,17 @@ export default function App() {
   return (
     <div className="w-full h-full flex flex-col" data-theme={t.isDark ? 'dark' : 'light'} style={{ background: t.bg }}>
       <input ref={importInputRef} type="file" accept=".md,.yaml,.yml,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
-      <Topbar onImportClick={handleImportClick} onSettingsClick={() => setShowSettings(true, 'providers')} />
+      <Topbar
+        onImportClick={handleImportClick}
+        onSettingsClick={() => setShowSettings(true, 'providers')}
+        workspaceMode={workspaceMode}
+        onWorkspaceModeChange={setWorkspaceMode}
+      />
 
-      <DashboardLayout />
+      {workspaceMode === 'builder' ? <DashboardLayout /> : <RuntimeWorkspaceLayout />}
 
       {/* Accessibility: aria-live region for canvas state announcements */}
       <div aria-live="polite" className="sr-only" id="canvas-announcements" />
-      {/* AgentViz is now a canvas node (AgentPreviewNode) — no longer here */}
-      <ConversationTester />
       <TokenBudget />
       <FilePicker />
       <McpPicker />
