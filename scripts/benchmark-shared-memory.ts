@@ -128,6 +128,7 @@ async function main() {
     dedup: true,
     removeFiller: true,
     compressCode: true,
+    preservePatterns: ['sharedFacts', 'addSharedFact', 'teamFacts', 'runtimeStore', 'teamStore'],
   });
 
   console.log('[benchmark] launching 2 agents...');

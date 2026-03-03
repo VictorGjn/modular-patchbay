@@ -33,6 +33,8 @@ export interface CompressOptions {
   compressCode?: boolean;
   /** Aggressiveness: 0 = gentle (keep most), 1 = aggressive (maximize compression) */
   aggressiveness?: number;
+  /** Preserve paragraphs containing these patterns (critical symbols/contracts) */
+  preservePatterns?: string[];
 }
 
 export interface CompressResult {
@@ -68,12 +70,17 @@ function fingerprint(text: string, wordCount = 8): string {
  * Remove near-duplicate paragraphs across the entire content.
  * Keeps the first occurrence, removes subsequent matches.
  */
-function dedup(paragraphs: string[]): { result: string[]; removed: number } {
+function dedup(paragraphs: string[], preserved: Set<number>): { result: string[]; removed: number } {
   const seen = new Set<string>();
   const result: string[] = [];
   let removed = 0;
 
-  for (const p of paragraphs) {
+  for (let i = 0; i < paragraphs.length; i++) {
+    const p = paragraphs[i];
+    if (preserved.has(i)) {
+      result.push(p);
+      continue;
+    }
     const fp = fingerprint(p);
     if (fp.length < 10) {
       // Too short to meaningfully dedup — keep it
@@ -148,11 +155,17 @@ function fillerScore(sentence: string): number {
 /**
  * Remove filler sentences from paragraphs.
  */
-function removeFiller(paragraphs: string[], threshold = 0.5): { result: string[]; removed: number } {
+function removeFiller(paragraphs: string[], threshold = 0.5, preserved: Set<number>): { result: string[]; removed: number } {
   let removed = 0;
   const result: string[] = [];
 
-  for (const p of paragraphs) {
+  for (let i = 0; i < paragraphs.length; i++) {
+    const p = paragraphs[i];
+    if (preserved.has(i)) {
+      result.push(p);
+      continue;
+    }
+
     // Split into sentences, filter filler, rejoin
     const sentences = p.split(/(?<=[.!?])\s+/);
     const kept = sentences.filter(s => {
@@ -220,6 +233,7 @@ export function compress(content: string, options: CompressOptions = {}): Compre
     compressCode: doCompressCode = true,
     aggressiveness = 0.5,
     tokenBudget,
+    preservePatterns = [],
   } = options;
 
   const originalTokens = estimateTokens(content);
@@ -237,10 +251,21 @@ export function compress(content: string, options: CompressOptions = {}): Compre
 
   // 2. Split into paragraphs
   let paragraphs = working.split(/\n\s*\n/).filter(p => p.trim());
+  const preserveRegexes = preservePatterns.map((p) => new RegExp(p, 'i'));
+  const getPreserved = (items: string[]): Set<number> => {
+    const set = new Set<number>();
+    if (preserveRegexes.length === 0) return set;
+    for (let i = 0; i < items.length; i++) {
+      if (preserveRegexes.some((rx) => rx.test(items[i]))) {
+        set.add(i);
+      }
+    }
+    return set;
+  };
 
   // 3. Semantic dedup
   if (doDedup) {
-    const dedupResult = dedup(paragraphs);
+    const dedupResult = dedup(paragraphs, getPreserved(paragraphs));
     paragraphs = dedupResult.result;
     dupRemoved = dedupResult.removed;
   }
@@ -248,7 +273,7 @@ export function compress(content: string, options: CompressOptions = {}): Compre
   // 4. Filler removal (threshold varies with aggressiveness)
   if (doRemoveFiller) {
     const threshold = 0.3 + (0.4 * (1 - aggressiveness)); // 0.3 (aggressive) to 0.7 (gentle)
-    const fillerResult = removeFiller(paragraphs, threshold);
+    const fillerResult = removeFiller(paragraphs, threshold, getPreserved(paragraphs));
     paragraphs = fillerResult.result;
     fillerRemoved = fillerResult.removed;
   }
@@ -256,13 +281,24 @@ export function compress(content: string, options: CompressOptions = {}): Compre
   // 5. Reassemble
   working = paragraphs.join('\n\n');
 
-  // 6. Budget enforcement — if still over budget, truncate from end
+  // 6. Budget enforcement — if still over budget, truncate non-protected paragraphs first
   if (tokenBudget) {
     let tokens = estimateTokens(working);
     if (tokens > tokenBudget) {
-      // Progressive truncation: remove paragraphs from end until under budget
+      const preserved = getPreserved(paragraphs);
       while (paragraphs.length > 1 && tokens > tokenBudget) {
-        paragraphs.pop();
+        let removeIndex = -1;
+        for (let i = paragraphs.length - 1; i >= 0; i--) {
+          if (!preserved.has(i)) {
+            removeIndex = i;
+            break;
+          }
+        }
+        if (removeIndex < 0) {
+          // Only protected paragraphs remain; stop to preserve anchors
+          break;
+        }
+        paragraphs.splice(removeIndex, 1);
         working = paragraphs.join('\n\n');
         tokens = estimateTokens(working);
       }
