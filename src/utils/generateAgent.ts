@@ -1,4 +1,5 @@
 import { useProviderStore } from '../store/providerStore';
+import { useConsoleStore } from '../store/consoleStore';
 import { fetchCompletion, fetchAgentSdkCompletion } from '../services/llmService';
 import { MCP_REGISTRY } from '../store/mcp-registry';
 import { REGISTRY_SKILLS } from '../store/registry';
@@ -8,19 +9,17 @@ import { REGISTRY_SKILLS } from '../store/registry';
  * Takes a brain dump → returns structured config to hydrate every node on the canvas.
  */
 
-const AVAILABLE_MCP_IDS = MCP_REGISTRY.map(m => `${m.id}: ${m.description}`).join('\n');
-const AVAILABLE_SKILL_IDS = REGISTRY_SKILLS.map(s => `${s.id}: ${s.description}`).join('\n');
-
-const GENERATOR_METAPROMPT = `You are an expert AI agent architect. Given a user's rough description of an agent they want to build, produce a COMPLETE agent configuration as JSON.
+function buildGeneratorMetaprompt(mcpList: string, skillsList: string): string {
+  return `You are an expert AI agent architect. Given a user's rough description of an agent they want to build, produce a COMPLETE agent configuration as JSON.
 
 You have access to these MCP servers (pick ONLY from this list):
 <mcp_servers>
-${AVAILABLE_MCP_IDS}
+${mcpList}
 </mcp_servers>
 
 You have access to these skills (pick ONLY from this list):
 <skills>
-${AVAILABLE_SKILL_IDS}
+${skillsList}
 </skills>
 
 Produce a JSON response with this EXACT structure:
@@ -87,6 +86,7 @@ Rules:
 7. Output suggestions: pick targets that match the agent's purpose
 
 Output ONLY the JSON object. No markdown fences, no explanation.`;
+}
 
 export interface GeneratedAgentConfig {
   agentMeta: {
@@ -150,18 +150,38 @@ export async function generateFullAgent(brainDump: string): Promise<GeneratedAge
 
   const isAgentSdk = provider.authMethod === 'claude-agent-sdk';
 
+  const consoleState = useConsoleStore.getState();
+  const selectedMcpIds = consoleState.mcpServers.filter((m) => m.added).map((m) => m.id);
+  const selectedSkillIds = consoleState.skills.filter((s) => s.added).map((s) => s.id);
+
+  const availableMcp = selectedMcpIds.length > 0
+    ? MCP_REGISTRY.filter((m) => selectedMcpIds.includes(m.id))
+    : [];
+  const availableSkills = selectedSkillIds.length > 0
+    ? REGISTRY_SKILLS.filter((s) => selectedSkillIds.includes(s.id))
+    : [];
+
+  const mcpList = availableMcp.length > 0
+    ? availableMcp.map((m) => `${m.id}: ${m.description}`).join('\n')
+    : 'none';
+  const skillsList = availableSkills.length > 0
+    ? availableSkills.map((s) => `${s.id}: ${s.description}`).join('\n')
+    : 'none';
+
+  const generatorMetaprompt = buildGeneratorMetaprompt(mcpList, skillsList);
+
   const text = isAgentSdk
     ? await fetchAgentSdkCompletion({
         prompt: brainDump,
         model,
-        systemPrompt: GENERATOR_METAPROMPT,
+        systemPrompt: generatorMetaprompt,
         maxTurns: 1,
       })
     : await fetchCompletion({
         providerId: provider.id,
         model,
         messages: [
-          { role: 'system', content: GENERATOR_METAPROMPT },
+          { role: 'system', content: generatorMetaprompt },
           { role: 'user', content: brainDump },
         ],
         temperature: 0.4,

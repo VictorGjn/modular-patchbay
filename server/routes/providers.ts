@@ -4,6 +4,14 @@ import type { ProviderConfig, ApiResponse } from '../types.js';
 
 const router = Router();
 
+function normalizeBaseUrl(providerId: string, baseUrl: string): string {
+  const trimmed = (baseUrl || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return trimmed;
+  const isOpenAi = providerId.includes('openai') || trimmed.includes('api.openai.com');
+  if (isOpenAi && !/\/v1$/i.test(trimmed)) return `${trimmed}/v1`;
+  return trimmed;
+}
+
 function maskApiKey(key: string): string {
   if (!key || key.length <= 4) return '****';
   return '****' + key.slice(-4);
@@ -66,25 +74,33 @@ router.delete('/:id', (req, res) => {
 router.post('/:id/test', async (req, res) => {
   const config = readConfig();
   let provider = config.providers.find((p) => p.id === req.params.id);
+  const bodyApiKey = req.body?.apiKey as string | undefined;
+  const bodyAccessToken = req.body?.accessToken as string | undefined;
   // Allow testing with inline credentials from request body
-  if (!provider && req.body?.apiKey) {
-    provider = { id: req.params.id, name: req.params.id, type: 'custom' as const, apiKey: req.body.apiKey as string, baseUrl: (req.body.baseUrl as string) || '' };
+  if (!provider && (bodyApiKey || bodyAccessToken)) {
+    provider = {
+      id: req.params.id,
+      name: req.params.id,
+      type: 'custom' as const,
+      apiKey: (bodyApiKey || bodyAccessToken || '') as string,
+      baseUrl: (req.body.baseUrl as string) || '',
+    };
   }
   if (!provider) {
-    const resp: ApiResponse = { status: 'error', error: 'Provider not found and no apiKey provided' };
+    const resp: ApiResponse = { status: 'error', error: 'Provider not found and no credentials provided' };
     res.status(404).json(resp);
     return;
   }
 
   // Determine provider type from id or type field
   const providerType = provider.type || req.params.id;
-  const baseUrl = provider.baseUrl || (
+  const baseUrl = normalizeBaseUrl(providerType, provider.baseUrl || (
     providerType.includes('anthropic') ? 'https://api.anthropic.com/v1' :
     providerType.includes('openai') ? 'https://api.openai.com/v1' :
     providerType.includes('google') ? 'https://generativelanguage.googleapis.com/v1beta' :
     providerType.includes('openrouter') ? 'https://openrouter.ai/api/v1' :
     ''
-  );
+  ));
 
   if (!baseUrl) {
     const resp: ApiResponse = { status: 'error', error: 'No base URL configured for this provider' };
@@ -93,11 +109,12 @@ router.post('/:id/test', async (req, res) => {
   }
 
   try {
+    const authToken = bodyAccessToken || provider.apiKey;
     if (providerType.includes('anthropic')) {
       const response = await fetch(`${baseUrl}/messages`, {
         method: 'POST',
         headers: {
-          'x-api-key': provider.apiKey,
+          'x-api-key': authToken,
           'anthropic-version': '2023-06-01',
           'content-type': 'application/json',
         },
@@ -116,11 +133,11 @@ router.post('/:id/test', async (req, res) => {
       // OpenAI, OpenRouter, Google, Custom — hit /models
       const isGoogle = providerType.includes('google');
       const url = isGoogle
-        ? `${baseUrl}/models?key=${provider.apiKey}`
+        ? `${baseUrl}/models?key=${authToken}`
         : `${baseUrl}/models`;
       const headers: Record<string, string> = {};
       if (!isGoogle) {
-        headers['Authorization'] = `Bearer ${provider.apiKey}`;
+        headers['Authorization'] = `Bearer ${authToken}`;
       }
       const response = await fetch(url, { headers });
       if (!response.ok) {

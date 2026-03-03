@@ -35,10 +35,19 @@ router.get('/', (_req, res) => {
 router.post('/', (req, res) => {
   const config = readConfig();
   const serverConfig = req.body as McpServerConfig;
-  if (!serverConfig.id || !serverConfig.name || !serverConfig.command) {
-    const resp: ApiResponse = { status: 'error', error: 'Missing required fields: id, name, command' };
+
+  if (!serverConfig.name || !serverConfig.command) {
+    const resp: ApiResponse = { status: 'error', error: 'Missing required fields: name, command' };
     res.status(400).json(resp);
     return;
+  }
+
+  if (!serverConfig.id) {
+    serverConfig.id = serverConfig.name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
   }
   serverConfig.args = serverConfig.args ?? [];
   serverConfig.env = serverConfig.env ?? {};
@@ -56,6 +65,45 @@ router.post('/', (req, res) => {
   mcpManager.addServer(serverConfig);
   const resp: ApiResponse<McpServerConfig> = { status: 'ok', data: serverConfig };
   res.status(201).json(resp);
+});
+
+router.put('/:id', (req, res) => {
+  const config = readConfig();
+  const idx = config.mcpServers.findIndex((s) => s.id === req.params.id);
+  if (idx < 0) {
+    const resp: ApiResponse = { status: 'error', error: `MCP server "${req.params.id}" not found` };
+    res.status(404).json(resp);
+    return;
+  }
+
+  const current = config.mcpServers[idx];
+  const patch = req.body as Partial<McpServerConfig>;
+  const next: McpServerConfig = {
+    ...current,
+    ...patch,
+    id: current.id,
+    args: patch.args ?? current.args ?? [],
+    env: patch.env ?? current.env ?? {},
+  };
+
+  if (!next.name || !next.command) {
+    const resp: ApiResponse = { status: 'error', error: 'Missing required fields: name, command' };
+    res.status(400).json(resp);
+    return;
+  }
+
+  config.mcpServers[idx] = next;
+  writeConfig(config);
+  mcpManager.addServer(next);
+
+  const conn = mcpManager.getServer(next.id);
+  const data = {
+    ...next,
+    status: conn?.status ?? 'disconnected',
+    tools: conn?.tools ?? [],
+  };
+  const resp: ApiResponse = { status: 'ok', data };
+  res.json(resp);
 });
 
 router.post('/:id/connect', async (req, res) => {

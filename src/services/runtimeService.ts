@@ -37,6 +37,15 @@ export interface RunTeamConfig {
   maxTurns?: number;
 }
 
+interface ExtractContractsResponse {
+  status: 'ok' | 'error';
+  data?: {
+    text: string;
+    facts: ExtractedFact[];
+  };
+  error?: string;
+}
+
 export interface RunAgentConfig {
   agentId: string;
   name: string;
@@ -58,10 +67,30 @@ export function runTeam(config: RunTeamConfig): AbortController {
     config.featureSpec,
   );
 
+  const payload = {
+    teamId: config.teamId,
+    featureSpec: config.featureSpec,
+    providerId: config.providerId,
+    model: config.model,
+    extractContracts: false,
+    agents: config.agents.map((agent) => ({
+      agentId: agent.agentId,
+      name: agent.name,
+      systemPrompt: agent.systemPrompt,
+      task: config.featureSpec,
+      providerId: config.providerId,
+      model: config.model,
+      teamFacts: config.contractFacts,
+      maxTurns: config.maxTurns,
+      repoUrl: agent.repoUrl,
+      repoRef: agent.repoRef,
+    })),
+  };
+
   fetch(`${API_BASE}/runtime/run-team`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(config),
+    body: JSON.stringify(payload),
     signal: controller.signal,
   })
     .then(async (res) => {
@@ -72,14 +101,25 @@ export function runTeam(config: RunTeamConfig): AbortController {
       const reader = res.body?.getReader();
       if (!reader) throw new Error('No response body');
 
+      let hasError = false;
+
       await parseSSEStream(reader, (data) => {
         try {
-          const event = JSON.parse(data);
+          const event = JSON.parse(data) as RuntimeEvent;
+          if (event.type === 'error') {
+            hasError = true;
+            useRuntimeStore.getState().setStatus('error', event.error || 'Runtime execution failed');
+            return true;
+          }
           handleRuntimeEvent(event);
-        } catch { /* skip malformed */ }
+        } catch {
+          // skip malformed events
+        }
       });
 
-      useRuntimeStore.getState().setStatus('completed');
+      if (!hasError && useRuntimeStore.getState().status !== 'error') {
+        useRuntimeStore.getState().setStatus('completed');
+      }
     })
     .catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -151,11 +191,14 @@ export async function extractContracts(
     throw new Error(`Extract error ${res.status}: ${body || res.statusText}`);
   }
 
-  const facts: ExtractedFact[] = await res.json();
+  const json = await res.json() as ExtractContractsResponse;
+  const facts = json.data?.facts ?? [];
   const store = useRuntimeStore.getState();
+
   for (const fact of facts) {
     store.addFact(fact, 'contract');
   }
+
   store.setStatus('idle');
   return facts;
 }
@@ -163,7 +206,7 @@ export async function extractContracts(
 /* ── Event Handler ── */
 
 interface RuntimeEvent {
-  type: 'turn' | 'fact' | 'tool_call' | 'done';
+  type: 'start' | 'turn' | 'fact' | 'tool_call' | 'done' | 'error';
   agentId?: string;
   turn?: number;
   message?: string;
@@ -171,6 +214,7 @@ interface RuntimeEvent {
   tool?: string;
   args?: string;
   result?: string;
+  error?: string;
 }
 
 function handleRuntimeEvent(event: RuntimeEvent): void {

@@ -37,10 +37,13 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
   const [expanded, setExpanded] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [localKey, setLocalKey] = useState(provider.apiKey || '');
+  const [localToken, setLocalToken] = useState(provider.accessToken || '');
   const [localUrl, setLocalUrl] = useState(provider.baseUrl);
   const [testResult, setTestResult] = useState<{ ok: boolean; models?: string[]; error?: string } | null>(null);
 
   const setProviderKey = useProviderStore((s) => s.setProviderKey);
+  const setProviderAccessToken = useProviderStore((s) => s.setProviderAccessToken);
+  const setProviderAuthMethod = useProviderStore((s) => s.setProviderAuthMethod);
   const setProviderBaseUrl = useProviderStore((s) => s.setProviderBaseUrl);
   const testConnection = useProviderStore((s) => s.testConnection);
   const testing = useProviderStore((s) => s.testing[provider.id]);
@@ -48,17 +51,21 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
   const saveProvider = useProviderStore((s) => s.saveProvider);
 
   const isCustom = provider.id.startsWith('custom-');
+  const isOpenAiProvider = provider.id === 'openai';
+  const isCodexOAuth = isOpenAiProvider && provider.authMethod === 'oauth';
 
   useEffect(() => {
     setLocalKey(provider.apiKey || '');
+    setLocalToken(provider.accessToken || '');
     setLocalUrl(provider.baseUrl);
-  }, [provider.apiKey, provider.baseUrl]);
+  }, [provider.apiKey, provider.accessToken, provider.baseUrl]);
 
   const handleSave = useCallback(() => {
     setProviderKey(provider.id, localKey);
+    setProviderAccessToken(provider.id, localToken);
     setProviderBaseUrl(provider.id, localUrl);
     saveProvider(provider.id);
-  }, [provider.id, localKey, localUrl, setProviderKey, setProviderBaseUrl, saveProvider]);
+  }, [provider.id, localKey, localToken, localUrl, setProviderKey, setProviderAccessToken, setProviderBaseUrl, saveProvider]);
 
   const handleTest = useCallback(async () => {
     handleSave();
@@ -105,6 +112,23 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
       {/* Expanded config */}
       {expanded && (
         <div className="px-4 pb-4 flex flex-col gap-3">
+          {isOpenAiProvider && (
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                Auth Mode
+              </label>
+              <select
+                value={provider.authMethod}
+                onChange={(e) => setProviderAuthMethod(provider.id, e.target.value as 'api-key' | 'oauth')}
+                className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+                style={inputStyle}
+              >
+                <option value="api-key">API Key</option>
+                <option value="oauth">Codex OAuth</option>
+              </select>
+            </div>
+          )}
+
           {/* Agent SDK: no API key or URL needed */}
           {provider.authMethod === 'claude-agent-sdk' ? (
             <>
@@ -152,7 +176,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   ))}
                 </div>
               </div>
-              {/* Check Status button */}
+              {/* Check Status / Refresh Models */}
               <div className="flex items-center gap-2 mt-1">
                 <button
                   type="button"
@@ -164,35 +188,63 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   {testing ? <Loader2 size={12} className="animate-spin" /> : <PlugZap size={12} />}
                   Check Status
                 </button>
+                <button
+                  type="button"
+                  onClick={handleTest}
+                  disabled={testing}
+                  className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
+                  style={{ color: t.textSecondary, background: t.badgeBg, opacity: testing ? 0.6 : 1 }}
+                >
+                  Refresh Models
+                </button>
               </div>
             </>
           ) : (
             <>
-              {/* API Key */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
-                  API Key
-                </label>
-                <div className="relative">
+              {isCodexOAuth ? (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                    OAuth Access Token
+                  </label>
                   <input
                     type={showKey ? 'text' : 'password'}
-                    value={localKey}
-                    onChange={(e) => setLocalKey(e.target.value)}
+                    value={localToken}
+                    onChange={(e) => setLocalToken(e.target.value)}
                     onBlur={handleSave}
-                    placeholder="sk-..."
-                    className="nodrag nowheel w-full text-xs px-3 py-2 pr-9 rounded-lg outline-none"
+                    placeholder="Paste OAuth bearer token"
+                    className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
                     style={inputStyle}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowKey(!showKey)}
-                    className="nodrag nowheel absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent p-0.5"
-                    style={{ color: t.textDim }}
-                  >
-                    {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
+                  <span className="text-[10px]" style={{ color: t.textDim }}>
+                    Used to fetch real models via provider test endpoint.
+                  </span>
                 </div>
-              </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                    API Key
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showKey ? 'text' : 'password'}
+                      value={localKey}
+                      onChange={(e) => setLocalKey(e.target.value)}
+                      onBlur={handleSave}
+                      placeholder="sk-..."
+                      className="nodrag nowheel w-full text-xs px-3 py-2 pr-9 rounded-lg outline-none"
+                      style={inputStyle}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowKey(!showKey)}
+                      className="nodrag nowheel absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent p-0.5"
+                      style={{ color: t.textDim }}
+                    >
+                      {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Base URL */}
               <div className="flex flex-col gap-1">
@@ -222,7 +274,17 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   Test Connection
                 </button>
 
-                {provider.keyPageUrl && (
+                <button
+                  type="button"
+                  onClick={handleTest}
+                  disabled={testing}
+                  className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
+                  style={{ color: t.textSecondary, background: t.badgeBg, opacity: testing ? 0.6 : 1 }}
+                >
+                  Refresh Models
+                </button>
+
+                {provider.keyPageUrl && !isCodexOAuth && (
                   <a
                     href={provider.keyPageUrl}
                     target="_blank"
@@ -318,10 +380,15 @@ function McpServerRow({ server }: { server: McpServerState }) {
   const [localEnv, setLocalEnv] = useState(
     Object.entries(server.env).map(([k, v]) => `${k}=${v}`).join('\n')
   );
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const connectServer = useMcpStore((s) => s.connectServer);
   const disconnectServer = useMcpStore((s) => s.disconnectServer);
+  const updateServer = useMcpStore((s) => s.updateServer);
   const removeServer = useMcpStore((s) => s.removeServer);
+  const upsertMcpServer = useConsoleStore((s) => s.upsertMcpServer);
+  const removeMcpServer = useConsoleStore((s) => s.removeMcpServer);
 
   useEffect(() => {
     setLocalName(server.name);
@@ -337,6 +404,47 @@ function McpServerRow({ server }: { server: McpServerState }) {
       connectServer(server.id);
     }
   }, [server.id, server.status, connectServer, disconnectServer]);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setSaved(false);
+
+    const args = localArgs.split('\n').map((s) => s.trim()).filter(Boolean);
+    const env: Record<string, string> = {};
+    for (const line of localEnv.split('\n')) {
+      const [key, ...valueParts] = line.split('=');
+      if (key?.trim() && valueParts.length > 0) {
+        env[key.trim()] = valueParts.join('=').trim();
+      }
+    }
+
+    const wasConnected = server.status === 'connected';
+
+    const updated = await updateServer(server.id, {
+      name: localName.trim(),
+      command: localCommand.trim(),
+      args,
+      env,
+    });
+
+    if (updated) {
+      upsertMcpServer({
+        id: updated.id,
+        name: updated.name,
+        description: updated.command,
+        connected: updated.status === 'connected',
+      });
+
+      if (wasConnected) {
+        await connectServer(server.id);
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    }
+
+    setSaving(false);
+  }, [localArgs, localCommand, localEnv, localName, server.id, server.status, updateServer, upsertMcpServer, connectServer]);
 
   const inputStyle = {
     background: t.inputBg,
@@ -496,7 +604,19 @@ function McpServerRow({ server }: { server: McpServerState }) {
           <div className="flex items-center gap-2 mt-1">
             <button
               type="button"
-              onClick={() => removeServer(server.id)}
+              onClick={handleSave}
+              disabled={saving}
+              className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
+              style={{ color: '#fff', background: '#FE5000', opacity: saving ? 0.7 : 1 }}
+            >
+              {saving ? 'Saving...' : saved ? 'Saved' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                removeServer(server.id);
+                removeMcpServer(server.id);
+              }}
               className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
               style={{ color: t.statusError, background: t.statusErrorBg }}
             >
@@ -517,6 +637,8 @@ function McpServersTab() {
   const loading = useMcpStore((s) => s.loading);
   const loadServers = useMcpStore((s) => s.loadServers);
   const addServer = useMcpStore((s) => s.addServer);
+  const error = useMcpStore((s) => s.error);
+  const upsertMcpServer = useConsoleStore((s) => s.upsertMcpServer);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
@@ -530,6 +652,17 @@ function McpServersTab() {
       loadServers();
     }
   }, [loaded, loading, loadServers]);
+
+  useEffect(() => {
+    for (const server of servers) {
+      upsertMcpServer({
+        id: server.id,
+        name: server.name,
+        description: server.command,
+        connected: server.status === 'connected',
+      });
+    }
+  }, [servers, upsertMcpServer]);
 
   const handleAddServer = useCallback(async () => {
     if (!newName.trim() || !newCommand.trim()) return;
@@ -545,12 +678,21 @@ function McpServersTab() {
         }
       });
 
-      await addServer({
+      const added = await addServer({
         name: newName.trim(),
         command: newCommand.trim(),
         args,
         env,
       });
+
+      if (added) {
+        upsertMcpServer({
+          id: added.id,
+          name: added.name,
+          description: added.command,
+          connected: added.status === 'connected',
+        });
+      }
 
       // Reset form
       setNewName('');
@@ -561,7 +703,7 @@ function McpServersTab() {
     } finally {
       setAdding(false);
     }
-  }, [newName, newCommand, newArgs, newEnv, addServer]);
+  }, [newName, newCommand, newArgs, newEnv, addServer, upsertMcpServer]);
 
   const inputStyle = {
     background: t.inputBg,
@@ -576,6 +718,12 @@ function McpServersTab() {
         <div className="px-4 py-8 text-center text-xs" style={{ color: t.textMuted }}>
           <Loader2 size={16} className="animate-spin mx-auto mb-2" />
           Loading MCP servers...
+        </div>
+      )}
+
+      {error && (
+        <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-xs" style={{ background: t.statusErrorBg, color: t.statusError, border: `1px solid ${t.statusError}30` }}>
+          {error}
         </div>
       )}
 
@@ -713,6 +861,7 @@ function SkillsTab() {
   const loading = useSkillsStore((s) => s.loading);
   const loadSkills = useSkillsStore((s) => s.loadSkills);
   const toggleSkill = useSkillsStore((s) => s.toggleSkill);
+  const error = useSkillsStore((s) => s.error);
 
   useEffect(() => {
     if (!loaded && !loading) {
@@ -726,6 +875,12 @@ function SkillsTab() {
         <div className="px-4 py-8 text-center text-xs" style={{ color: t.textMuted }}>
           <Loader2 size={16} className="animate-spin mx-auto mb-2" />
           Loading skills...
+        </div>
+      )}
+
+      {error && (
+        <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-xs" style={{ background: t.statusErrorBg, color: t.statusError, border: `1px solid ${t.statusError}30` }}>
+          {error}
         </div>
       )}
 

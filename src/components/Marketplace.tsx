@@ -83,6 +83,7 @@ export function Marketplace() {
 
     // Add server via real MCP store
     const added = await useMcpStore.getState().addServer({
+      id: mcpEntry.id,
       name: mcpEntry.name,
       command: mcpEntry.command,
       args: mcpEntry.defaultArgs,
