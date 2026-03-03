@@ -382,6 +382,7 @@ function KnowledgeSection() {
         {channels.map(ch => {
           const kt = KNOWLEDGE_TYPES[ch.knowledgeType] || KNOWLEDGE_TYPES.evidence;
           const depth = ch.depth ?? 0;
+          const isGithubCompressed = /\.compressed\.md$/i.test(ch.path || '');
           const barPct = ((4 - depth) / 4) * 100;
           const barColor = DEPTH_COLORS[depth] || '#999';
           const isIndexed = !!treeIndexes[ch.path];
@@ -410,6 +411,13 @@ function KnowledgeSection() {
                   style={{ color: ch.enabled ? t.textPrimary : t.textDim, lineHeight: 1.2 }}>
                   {ch.name}
                 </span>
+                {isGithubCompressed && (
+                  <span className="text-[8px] px-1 py-0.5 rounded shrink-0"
+                    style={{ fontFamily: "'Space Mono', monospace", color: '#24292F', background: '#24292F12', border: '1px solid #24292F30' }}
+                    title="GitHub indexed & compressed context">
+                    GH · compressed
+                  </span>
+                )}
                 <span className="text-[9px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: isIndexed ? t.textPrimary : t.textDim }}
                   title={isIndexed ? `Indexed: ${treeIndexes[ch.path].index.nodeCount} nodes` : 'Estimated'}>
                   {fmtTokens(realTokens)}
