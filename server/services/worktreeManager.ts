@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -15,6 +15,16 @@ export interface WorktreeResult {
   worktreePath: string;
   branch: string;
   baseRef: string;
+}
+
+export interface WorktreeStatus {
+  worktreePath: string;
+  branch: string;
+  baseBranch: string;
+  ahead: number;
+  behind: number;
+  headSha: string;
+  headMessage: string;
 }
 
 const ROOT = join(tmpdir(), 'modular-worktrees');
@@ -44,6 +54,10 @@ function ensureDirs(): void {
 
 function run(command: string): void {
   execSync(command, { stdio: 'pipe', timeout: 120_000 });
+}
+
+function runText(command: string): string {
+  return execSync(command, { stdio: 'pipe', timeout: 120_000 }).toString().trim();
 }
 
 function branchExists(gitDir: string, branch: string): boolean {
@@ -83,4 +97,47 @@ export function prepareAgentWorktree(request: WorktreeRequest): WorktreeResult {
   }
 
   return { bareRepoPath, worktreePath, branch, baseRef };
+}
+
+function resolveBaseBranch(worktreePath: string): string {
+  try {
+    const originHead = runText(`git -C "${worktreePath}" symbolic-ref --short refs/remotes/origin/HEAD`);
+    return originHead.replace('origin/', '');
+  } catch {
+    return 'master';
+  }
+}
+
+export function getWorktreeStatus(worktreePath: string, branch: string, baseBranch?: string): WorktreeStatus {
+  const base = baseBranch || resolveBaseBranch(worktreePath);
+  const counts = runText(`git -C "${worktreePath}" rev-list --left-right --count origin/${base}...${branch}`).split(/\s+/);
+  const behind = Number(counts[0] || '0');
+  const ahead = Number(counts[1] || '0');
+  const headSha = runText(`git -C "${worktreePath}" rev-parse --short HEAD`);
+  const headMessage = runText(`git -C "${worktreePath}" log -1 --pretty=%s`);
+  return { worktreePath, branch, baseBranch: base, ahead, behind, headSha, headMessage };
+}
+
+export function rebaseWorktree(worktreePath: string, branch: string, baseBranch?: string): WorktreeStatus {
+  const base = baseBranch || resolveBaseBranch(worktreePath);
+  run(`git -C "${worktreePath}" fetch --all --prune`);
+  run(`git -C "${worktreePath}" checkout "${branch}"`);
+  run(`git -C "${worktreePath}" rebase "origin/${base}"`);
+  return getWorktreeStatus(worktreePath, branch, base);
+}
+
+export function mergeWorktreeIntoBase(worktreePath: string, branch: string, baseBranch?: string): WorktreeStatus {
+  const base = baseBranch || resolveBaseBranch(worktreePath);
+  run(`git -C "${worktreePath}" fetch --all --prune`);
+  run(`git -C "${worktreePath}" checkout "${base}"`);
+  run(`git -C "${worktreePath}" merge --no-ff "${branch}"`);
+  return getWorktreeStatus(worktreePath, branch, base);
+}
+
+export function listTeamWorktrees(teamId: string): string[] {
+  ensureDirs();
+  const teamSlug = safeSlug(teamId);
+  return readdirSync(TREE_ROOT)
+    .filter((name) => name.includes(`--${teamSlug}--`))
+    .map((name) => join(TREE_ROOT, name));
 }
