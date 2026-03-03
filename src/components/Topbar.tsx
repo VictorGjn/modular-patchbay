@@ -33,7 +33,7 @@ function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: stri
 }
 
 
-export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () => void; onSettingsClick?: () => void }) {
+export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorkspaceModeChange }: { onImportClick?: () => void; onSettingsClick?: () => void; workspaceMode: 'builder' | 'runtime'; onWorkspaceModeChange: (mode: 'builder' | 'runtime') => void }) {
   const selectedModel = useConsoleStore((s) => s.selectedModel);
   const setModel = useConsoleStore((s) => s.setModel);
   const outputFormat = useConsoleStore((s) => s.outputFormat);
@@ -88,6 +88,35 @@ export function Topbar({ onImportClick, onSettingsClick }: { onImportClick?: () 
         </span>
       </div>
 
+
+      <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}` }}>
+        <button
+          type="button"
+          onClick={() => onWorkspaceModeChange('builder')}
+          className="px-3 py-1.5 rounded-md border-none text-[10px] font-bold tracking-[0.12em] uppercase cursor-pointer"
+          style={{
+            fontFamily: "'Space Mono', monospace",
+            background: workspaceMode === 'builder' ? '#FE5000' : 'transparent',
+            color: workspaceMode === 'builder' ? '#fff' : t.textDim,
+          }}
+          aria-label="Open builder workspace"
+        >
+          Builder
+        </button>
+        <button
+          type="button"
+          onClick={() => onWorkspaceModeChange('runtime')}
+          className="px-3 py-1.5 rounded-md border-none text-[10px] font-bold tracking-[0.12em] uppercase cursor-pointer"
+          style={{
+            fontFamily: "'Space Mono', monospace",
+            background: workspaceMode === 'runtime' ? '#FE5000' : 'transparent',
+            color: workspaceMode === 'runtime' ? '#fff' : t.textDim,
+          }}
+          aria-label="Open runtime workspace"
+        >
+          Runtime
+        </button>
+      </div>
 
       {/* Model selector */}
       <TopbarSelect
