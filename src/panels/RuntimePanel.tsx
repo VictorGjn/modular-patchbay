@@ -109,6 +109,48 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
 
 /* ── Runtime Panel ── */
 
+function RuntimeStages({
+  status,
+  contractCount,
+  agentCount,
+  sharedCount,
+}: {
+  status: 'idle' | 'extracting_contracts' | 'running' | 'completed' | 'error';
+  contractCount: number;
+  agentCount: number;
+  sharedCount: number;
+}) {
+  const t = useTheme();
+
+  const stages = [
+    { id: 'contracts', label: 'Contracts', done: contractCount > 0 || status === 'running' || status === 'completed' },
+    { id: 'agents', label: 'Agents', done: agentCount > 0 && (status === 'running' || status === 'completed') },
+    { id: 'shared', label: 'Shared Facts', done: sharedCount > 0 || status === 'completed' },
+  ];
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {stages.map((stage) => {
+        const active = status !== 'idle' && !stage.done;
+        return (
+          <div
+            key={stage.id}
+            className="px-3 py-2 rounded-lg"
+            style={{
+              border: `1px solid ${stage.done ? '#FE500050' : t.border}`,
+              background: stage.done ? '#FE500010' : active ? t.surfaceHover : t.surfaceOpaque,
+            }}
+          >
+            <div className="text-[9px] font-bold tracking-[0.12em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: stage.done ? '#FE5000' : t.textDim }}>
+              {stage.label}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function RuntimePanel() {
   const t = useTheme();
   const [featureSpec, setFeatureSpec] = useState('');
@@ -211,9 +253,16 @@ export function RuntimePanel() {
   }
 
   return (
-    <div className="flex flex-col gap-3 p-4 overflow-y-auto flex-1">
+    <div className="flex flex-col gap-4 p-4 overflow-y-auto flex-1">
+      <RuntimeStages
+        status={status}
+        contractCount={contractFacts.length}
+        agentCount={agents.length}
+        sharedCount={sharedFacts.length}
+      />
+
       {/* Feature Spec */}
-      <div>
+      <div className="space-y-3">
         <TextArea
           label="Feature Spec"
           placeholder="Describe the feature to build…"
