@@ -119,9 +119,17 @@ router.post('/:id/test', async (req, res) => {
           messages: [{ role: 'user', content: 'hi' }],
         }),
       });
-      if (!response.ok && response.status === 401) {
-        throw new Error('Invalid API key');
+
+      if (!response.ok) {
+        const bodyText = await response.text().catch(() => '');
+        const resp: ApiResponse = {
+          status: 'error',
+          error: bodyText || `API returned ${response.status}: ${response.statusText}`,
+        };
+        res.status(response.status).json(resp);
+        return;
       }
+
       const resp: ApiResponse<{ models: string[] }> = { status: 'ok', data: { models: ['claude-3-haiku-20240307'] } };
       res.json(resp);
     } else {
@@ -136,7 +144,13 @@ router.post('/:id/test', async (req, res) => {
       }
       const response = await fetch(url, { headers });
       if (!response.ok) {
-        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+        const bodyText = await response.text().catch(() => '');
+        const resp: ApiResponse = {
+          status: 'error',
+          error: bodyText || `API returned ${response.status}: ${response.statusText}`,
+        };
+        res.status(response.status).json(resp);
+        return;
       }
       const body = await response.json() as {
         data?: Array<{ id?: string; model?: string; name?: string }>;
