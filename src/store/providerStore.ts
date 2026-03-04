@@ -130,8 +130,12 @@ function normalizeProviderBaseUrl(id: string, baseUrl: string): string {
 
 // Check if backend is available with TTL cache
 let backendAvailable: boolean | null = null;
-let backendCheckTime: number = 0;
-const BACKEND_CHECK_TTL = 30000; // 30 seconds
+let backendCheckTime = 0;
+const BACKEND_CHECK_TTL = 30000;
+
+const pendingProviderSync = new Set<string>();
+const providerSyncTimers = new Map<string, ReturnType<typeof setTimeout>>();
+let flushingProviderSync = false;
 
 async function isBackendAvailable(): Promise<boolean> {
   const now = Date.now();
@@ -148,6 +152,73 @@ async function isBackendAvailable(): Promise<boolean> {
     backendCheckTime = now;
   }
   return backendAvailable;
+}
+
+async function syncProviderToBackend(provider: ProviderConfig): Promise<void> {
+  const backend = await isBackendAvailable();
+  if (!backend) {
+    pendingProviderSync.add(provider.id);
+    return;
+  }
+
+  await fetch(`${API_BASE}/providers/${provider.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      apiKey: provider.apiKey,
+      accessToken: provider.accessToken,
+      baseUrl: provider.baseUrl,
+      authMethod: provider.authMethod,
+      name: provider.name,
+    }),
+  });
+  pendingProviderSync.delete(provider.id);
+}
+
+function scheduleProviderSync(providers: ProviderConfig[], id: string): void {
+  const existingTimer = providerSyncTimers.get(id);
+  if (existingTimer) clearTimeout(existingTimer);
+
+  const timer = setTimeout(() => {
+    const provider = providers.find((p) => p.id === id);
+    if (!provider) return;
+
+    syncProviderToBackend(provider)
+      .catch(() => {
+        pendingProviderSync.add(id);
+      })
+      .finally(() => {
+        providerSyncTimers.delete(id);
+      });
+  }, 400);
+
+  providerSyncTimers.set(id, timer);
+}
+
+async function flushPendingProviderSync(providers: ProviderConfig[]): Promise<void> {
+  if (flushingProviderSync || pendingProviderSync.size === 0) return;
+  flushingProviderSync = true;
+
+  try {
+    const backend = await isBackendAvailable();
+    if (!backend) return;
+
+    const ids = [...pendingProviderSync];
+    for (const id of ids) {
+      const provider = providers.find((p) => p.id === id);
+      if (!provider) {
+        pendingProviderSync.delete(id);
+        continue;
+      }
+      try {
+        await syncProviderToBackend(provider);
+      } catch {
+        // keep in queue, will retry later
+      }
+    }
+  } finally {
+    flushingProviderSync = false;
+  }
 }
 
 function loadProviders(): ProviderConfig[] {
@@ -248,6 +319,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         return { ...p, apiKey, status };
       });
       persistProviders(providers);
+      scheduleProviderSync(providers, id);
       return { providers };
     });
   },
@@ -258,6 +330,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         p.id === id ? { ...p, accessToken, status: accessToken.trim() ? 'configured' as ProviderStatus : p.status } : p
       );
       persistProviders(providers);
+      scheduleProviderSync(providers, id);
       return { providers };
     });
   },
@@ -271,6 +344,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         return { ...p, authMethod, status, lastError: undefined };
       });
       persistProviders(providers);
+      scheduleProviderSync(providers, id);
       return { providers };
     });
   },
@@ -282,6 +356,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         p.id === id ? { ...p, baseUrl: normalized } : p
       );
       persistProviders(providers);
+      scheduleProviderSync(providers, id);
       return { providers };
     });
   },
@@ -452,17 +527,21 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
   },
 
   saveProvider: async (id) => {
-    const provider = get().providers.find((p) => p.id === id);
+    const providers = get().providers;
+    const provider = providers.find((p) => p.id === id);
     if (!provider) return;
-    persistProviders(get().providers);
-    const backend = await isBackendAvailable();
-    if (backend) {
-      await fetch(`${API_BASE}/providers/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: provider.apiKey, accessToken: provider.accessToken, baseUrl: provider.baseUrl }),
-      }).catch(() => { /* backend save failed, localStorage still has it */ });
+
+    persistProviders(providers);
+
+    try {
+      await syncProviderToBackend(provider);
+    } catch {
+      pendingProviderSync.add(id);
     }
+
+    flushPendingProviderSync(get().providers).catch(() => {
+      // best effort
+    });
   },
 
   deleteProvider: (id) => {
@@ -547,6 +626,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
 
         set({ providers: nextProviders, selectedProviderId: fallbackSelected });
         persistProviders(get().providers);
+        await flushPendingProviderSync(get().providers);
       }
     } catch {
       // Backend not available, use localStorage
@@ -556,7 +636,11 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
 
 // Init: try loading from backend
 isBackendAvailable().then((ok) => {
-  if (ok) useProviderStore.getState().loadFromBackend();
+  if (!ok) return;
+  useProviderStore.getState().loadFromBackend();
+  flushPendingProviderSync(useProviderStore.getState().providers).catch(() => {
+    // best effort
+  });
 });
 
 // Backwards-compatible helpers for consoleStore
