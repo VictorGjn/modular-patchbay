@@ -48,6 +48,17 @@ router.post('/chat', async (req, res) => {
     return;
   }
 
+  // Guard obvious key/provider mismatch to avoid confusing upstream errors
+  const key = (provider.apiKey || '').trim();
+  if (provider.type !== 'anthropic' && /^sk-ant-/i.test(key)) {
+    const resp: ApiResponse = {
+      status: 'error',
+      error: 'Provider/key mismatch: Anthropic key detected on OpenAI-compatible provider. Select Claude provider or set a valid OpenAI-compatible key.',
+    };
+    res.status(400).json(resp);
+    return;
+  }
+
   try {
     let url: string;
     let headers: Record<string, string>;
