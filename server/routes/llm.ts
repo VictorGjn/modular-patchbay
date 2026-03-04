@@ -136,4 +136,100 @@ router.post('/chat', async (req, res) => {
   }
 });
 
+// ── Non-streaming tool-calling endpoint ──
+// The frontend tool loop needs synchronous JSON responses (not SSE) so it can
+// inspect tool_calls, execute them, and loop.
+
+interface ChatToolsRequest {
+  provider: string;
+  model: string;
+  messages: unknown[];
+  tools: unknown[];
+  temperature?: number;
+  maxTokens?: number;
+}
+
+router.post('/chat-tools', async (req, res) => {
+  const { provider: providerId, model, messages, tools, temperature, maxTokens: rawMaxTokens } = req.body as ChatToolsRequest;
+  const maxTokens = rawMaxTokens ? Math.min(rawMaxTokens, MAX_TOKENS_LIMIT) : undefined;
+
+  if (!providerId || !model || !messages) {
+    const resp: ApiResponse = { status: 'error', error: 'Missing required fields: provider, model, messages' };
+    res.status(400).json(resp);
+    return;
+  }
+
+  const config = readConfig();
+  const provider = config.providers.find((p) => p.id === providerId);
+  if (!provider) {
+    const resp: ApiResponse = { status: 'error', error: `Provider "${providerId}" not found` };
+    res.status(404).json(resp);
+    return;
+  }
+
+  const baseUrl = normalizeBaseUrl(providerId, provider.baseUrl);
+  if (!baseUrl) {
+    const resp: ApiResponse = { status: 'error', error: `Provider "${providerId}" has no baseUrl configured` };
+    res.status(400).json(resp);
+    return;
+  }
+
+  try {
+    let url: string;
+    let headers: Record<string, string>;
+    let body: string;
+    const modelId = typeof model === 'object' ? (model as { id: string }).id : model;
+
+    if (provider.type === 'anthropic') {
+      url = `${baseUrl}/messages`;
+      headers = {
+        'x-api-key': provider.apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      };
+      // Anthropic: separate system message from the rest
+      const systemMsg = (messages as Array<{ role: string; content: unknown }>).find(m => m.role === 'system');
+      const nonSystem = (messages as Array<{ role: string; content: unknown }>).filter(m => m.role !== 'system');
+      body = JSON.stringify({
+        model: modelId,
+        max_tokens: maxTokens ?? 4096,
+        messages: nonSystem,
+        ...(systemMsg && { system: typeof systemMsg.content === 'string' ? systemMsg.content : '' }),
+        ...(tools && tools.length > 0 && { tools }),
+        ...(temperature != null && { temperature }),
+      });
+    } else {
+      // OpenAI-compatible
+      url = `${baseUrl}/chat/completions`;
+      headers = {
+        'Authorization': `Bearer ${provider.apiKey}`,
+        'Content-Type': 'application/json',
+      };
+      body = JSON.stringify({
+        model: modelId,
+        messages,
+        ...(tools && tools.length > 0 && { tools }),
+        ...(temperature != null && { temperature }),
+        ...(maxTokens != null && { max_tokens: maxTokens }),
+      });
+    }
+
+    const upstream = await fetch(url, { method: 'POST', headers, body });
+
+    if (!upstream.ok) {
+      const errText = await upstream.text();
+      const resp: ApiResponse = { status: 'error', error: `Upstream ${upstream.status}: ${errText}` };
+      res.status(502).json(resp);
+      return;
+    }
+
+    // Return raw JSON — no SSE piping
+    const data = await upstream.json();
+    res.json(data);
+  } catch (err) {
+    const resp: ApiResponse = { status: 'error', error: err instanceof Error ? err.message : String(err) };
+    res.status(500).json(resp);
+  }
+});
+
 export default router;
