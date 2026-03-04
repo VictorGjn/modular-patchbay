@@ -141,12 +141,22 @@ export async function generateFullAgent(brainDump: string): Promise<GeneratedAge
   if (!brainDump.trim()) throw new Error('Describe the agent you want to build');
 
   const store = useProviderStore.getState();
-  const provider = store.providers.find(p => p.id === store.selectedProviderId);
-  if (!provider) throw new Error('No provider configured — add one in Settings');
+  const connectedProviders = store.providers.filter((p) =>
+    (p.status === 'connected' || p.status === 'configured') && Array.isArray(p.models) && p.models.length > 0,
+  );
 
-  const model = typeof provider.models?.[0] === 'object'
-    ? (provider.models[0] as { id: string }).id
-    : (provider.models?.[0] || 'claude-sonnet-4-20250514');
+  const provider = store.providers.find((p) => p.id === store.selectedProviderId && connectedProviders.includes(p))
+    || connectedProviders[0];
+
+  if (!provider) {
+    throw new Error('No provider with models available. Connect a provider and refresh models in Settings.');
+  }
+
+  const firstModel = provider.models[0] as { id?: string; label?: string } | string | undefined;
+  const model = typeof firstModel === 'string' ? firstModel : (firstModel?.id || '');
+  if (!model) {
+    throw new Error(`Provider ${provider.name} has no selectable model.`);
+  }
 
   const isAgentSdk = provider.authMethod === 'claude-agent-sdk';
 
