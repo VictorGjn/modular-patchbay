@@ -118,7 +118,7 @@ function ChatSection() {
   const agentMeta = useConsoleStore(s => s.agentMeta);
   const navigationMode = useConsoleStore(s => s.navigationMode);
   const selectedProviderId = useProviderStore(s => s.selectedProviderId);
-  const getProviderForModel = useProviderStore(s => s.getProviderForModel);
+  const providers = useProviderStore(s => s.providers);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -137,8 +137,14 @@ function ChatSection() {
     let accum = '';
 
     try {
-      const modelProvider = getProviderForModel(agentConfig.model);
-      const effectiveProviderId = modelProvider?.id || selectedProviderId || 'openai';
+      const selectedProvider = providers.find((p) => p.id === selectedProviderId);
+      const selectedModels = Array.isArray(selectedProvider?.models) ? selectedProvider!.models : [];
+      const selectedHasCurrentModel = selectedModels.some((m) => m.id === agentConfig.model);
+
+      const effectiveProviderId = selectedProvider?.id || 'openai';
+      const effectiveModel = selectedHasCurrentModel
+        ? agentConfig.model
+        : (selectedModels[0]?.id || agentConfig.model);
 
       await runPipelineChat({
         userMessage: userMsg,
@@ -147,7 +153,7 @@ function ChatSection() {
         history: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
         agentMeta: { name: agentMeta.name, description: agentMeta.description, avatar: agentMeta.avatar, tags: agentMeta.tags },
         providerId: effectiveProviderId,
-        model: agentConfig.model,
+        model: effectiveModel,
         navigationMode,
         onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
         onDone: (stats) => { setLastPipelineStats(stats); },
@@ -158,7 +164,7 @@ function ChatSection() {
     } finally {
       setStreaming(false);
     }
-  }, [inputText, streaming, messages, agentConfig, channels, connectors, agentMeta, navigationMode, selectedProviderId, getProviderForModel, setInputText, addMessage, setStreaming, updateLastAssistant, setLastPipelineStats]);
+  }, [inputText, streaming, messages, agentConfig, channels, connectors, agentMeta, navigationMode, selectedProviderId, providers, setInputText, addMessage, setStreaming, updateLastAssistant, setLastPipelineStats]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
