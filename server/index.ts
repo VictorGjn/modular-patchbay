@@ -17,6 +17,7 @@ import healthRoutes from './routes/health.js';
 import connectorRoutes from './routes/connectors.js';
 import runtimeRoutes from './routes/runtime.js';
 import worktreeRoutes from './routes/worktrees.js';
+import authCodexRoutes from './routes/auth-codex.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -77,6 +78,7 @@ export function createApp() {
   app.use('/api/connectors', connectorRoutes);
   app.use('/api/runtime', runtimeRoutes);
   app.use('/api/worktrees', worktreeRoutes);
+  app.use('/api/auth/codex', authCodexRoutes);
 
   // Global error handler — prevent server crashes
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

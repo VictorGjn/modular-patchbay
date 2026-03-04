@@ -340,15 +340,18 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
       const provider = get().providers.find((p) => p.id === id);
 
       if (provider?.authMethod === 'oauth') {
-        const message = 'OpenAI OAuth login flow is not wired yet. Use API Key mode for now.';
-        set((state) => ({
-          testing: { ...state.testing, [id]: false },
-          providers: state.providers.map((p) =>
-            p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: message } : p
-          ),
-        }));
-        persistProviders(get().providers);
-        return { ok: false, error: message };
+        // Guided OAuth flow stores the API key, then uses standard provider test path.
+        if (!provider.apiKey?.trim()) {
+          const message = 'Codex sign-in not completed yet. Use "Sign in with Codex" first.';
+          set((state) => ({
+            testing: { ...state.testing, [id]: false },
+            providers: state.providers.map((p) =>
+              p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: message } : p
+            ),
+          }));
+          persistProviders(get().providers);
+          return { ok: false, error: message };
+        }
       }
 
       if (provider?.authMethod === 'claude-agent-sdk') {
