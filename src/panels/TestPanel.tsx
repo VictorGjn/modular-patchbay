@@ -141,10 +141,16 @@ function ChatSection() {
       const selectedModels = Array.isArray(selectedProvider?.models) ? selectedProvider!.models : [];
       const selectedHasCurrentModel = selectedModels.some((m) => m.id === agentConfig.model);
 
-      const effectiveProviderId = selectedProvider?.id || 'openai';
+      if (!selectedProvider || (selectedProvider.status !== 'connected' && selectedProvider.status !== 'configured') || selectedModels.length === 0) {
+        updateLastAssistant('No provider/model configured. Open Settings → Providers, connect one provider, refresh models, then retry.');
+        setStreaming(false);
+        return;
+      }
+
+      const effectiveProviderId = selectedProvider.id;
       const effectiveModel = selectedHasCurrentModel
         ? agentConfig.model
-        : (selectedModels[0]?.id || agentConfig.model);
+        : selectedModels[0].id;
 
       await runPipelineChat({
         userMessage: userMsg,

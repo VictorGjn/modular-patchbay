@@ -236,7 +236,7 @@ interface ProviderStore {
 
 export const useProviderStore = create<ProviderStore>((set, get) => ({
   providers: loadProviders(),
-  selectedProviderId: 'openai',
+  selectedProviderId: '',
   testing: {},
 
   setProviderKey: (id, apiKey) => {
@@ -543,7 +543,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
 
         const fallbackSelected = selectedUsable
           ? currentSelected
-          : (connectedWithModels?.id || nextProviders.find((p) => p.id === 'openai')?.id || nextProviders[0]?.id || 'openai');
+          : (connectedWithModels?.id || '');
 
         set({ providers: nextProviders, selectedProviderId: fallbackSelected });
         persistProviders(get().providers);
