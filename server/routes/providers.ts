@@ -87,8 +87,14 @@ router.post('/:id/test', async (req, res) => {
     return;
   }
 
-  // Determine provider type from id or type field
-  const providerType = provider.type || req.params.id;
+  // Determine provider type from id/baseUrl first (more reliable than stale saved type)
+  const idHint = req.params.id.toLowerCase();
+  const baseHint = (provider.baseUrl || '').toLowerCase();
+  const providerType =
+    idHint.includes('anthropic') || baseHint.includes('anthropic.com')
+      ? 'anthropic'
+      : (provider.type || req.params.id);
+
   const baseUrl = normalizeBaseUrl(providerType, provider.baseUrl || (
     providerType.includes('anthropic') ? 'https://api.anthropic.com/v1' :
     providerType.includes('openai') ? 'https://api.openai.com/v1' :

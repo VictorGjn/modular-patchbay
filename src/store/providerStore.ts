@@ -35,7 +35,7 @@ export interface ProviderConfig {
 export const DEFAULT_PROVIDERS: ProviderConfig[] = [
   {
     id: 'anthropic',
-    name: 'Anthropic',
+    name: 'Claude',
     authMethod: 'api-key',
     status: 'disconnected',
     baseUrl: 'https://api.anthropic.com/v1',
@@ -513,6 +513,8 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
           return {
             ...def,
             ...remote,
+            // keep canonical UX labels for first-party providers
+            name: def.id === 'anthropic' ? 'Claude' : (remote.name || def.name),
             // credentials are never returned by backend GET /providers
             apiKey: def.apiKey,
             accessToken: def.accessToken,
