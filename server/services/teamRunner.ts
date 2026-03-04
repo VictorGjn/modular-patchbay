@@ -3,7 +3,8 @@ import { extractFacts } from './factExtractor.js';
 import { runAgent } from './agentRunner.js';
 import type { AgentRunConfig, AgentRunResult, ProgressCallback } from './agentRunner.js';
 import type { ExtractedFact } from './factExtractor.js';
-import { indexGitHubRepo } from './githubIndexer.js';
+import { indexLocalRepo } from './githubIndexer.js';
+import { prepareAgentWorktree } from './worktreeManager.js';
 
 export interface TeamRunConfig {
   teamId: string;
@@ -148,38 +149,68 @@ export async function runTeam(config: TeamRunConfig, onProgress?: ProgressCallba
       contractFacts = await extractContractsFromSpec(config.featureSpec, config.providerId, config.model);
     }
 
-    // Step 2: Index repos for agents that have repoUrl
-    // Persist clones when using Claude SDK so agents can edit files
-    const useSdk = config.providerId === 'claude-agent-sdk';
-    const agentsWithRepos = config.agents.filter((a) => a.repoUrl);
-    const repoIndexes = new Map<string, { markdown: string; clonePath?: string }>();
+    // Step 2: Prepare worktree + tree index for each agent repo (prerequisite before execution)
+    const repoIndexes = new Map<string, { markdown: string; worktreePath: string; branch: string }>();
 
-    if (agentsWithRepos.length > 0) {
-      const indexResults = await Promise.allSettled(
-        agentsWithRepos.map(async (agent) => {
-          const result = await indexGitHubRepo({
-            url: agent.repoUrl!,
-            ref: agent.repoRef,
-            persist: useSdk, // keep clone on disk for SDK agents to edit
+    const prepared = await Promise.allSettled(
+      config.agents
+        .filter((a) => a.repoUrl)
+        .map(async (agent) => {
+          const wt = prepareAgentWorktree({
+            repoUrl: agent.repoUrl!,
+            baseRef: agent.repoRef,
+            teamId: config.teamId,
+            agentId: agent.agentId,
           });
-          return { url: agent.repoUrl!, markdown: result.fullMarkdown, clonePath: result.clonePath };
+
+          const indexed = await indexLocalRepo({
+            path: wt.worktreePath,
+            name: agent.name,
+          });
+
+          return {
+            agentId: agent.agentId,
+            repoUrl: agent.repoUrl!,
+            markdown: indexed.fullMarkdown,
+            worktreePath: wt.worktreePath,
+            branch: wt.branch,
+          };
         }),
-      );
-      for (const r of indexResults) {
-        if (r.status === 'fulfilled') {
-          repoIndexes.set(r.value.url, { markdown: r.value.markdown, clonePath: r.value.clonePath });
-        }
+    );
+
+    for (const item of prepared) {
+      if (item.status === 'fulfilled') {
+        repoIndexes.set(item.value.agentId, {
+          markdown: item.value.markdown,
+          worktreePath: item.value.worktreePath,
+          branch: item.value.branch,
+        });
+
+        contractFacts.push({
+          key: `worktree_${item.value.agentId}`,
+          value: `${item.value.worktreePath} @ ${item.value.branch}`,
+          epistemicType: 'contract',
+          confidence: 0.95,
+          source: 'worktree_manager',
+        });
       }
     }
 
     // Step 3: Run all agents in parallel, injecting contract facts + repo knowledge
     const agentConfigs = config.agents.map((agent) => {
-      const repoData = agent.repoUrl ? repoIndexes.get(agent.repoUrl) : undefined;
+      const repoData = repoIndexes.get(agent.agentId);
+      if (agent.repoUrl && !repoData) {
+        throw new Error(`Worktree/index prerequisite failed for agent ${agent.agentId}`);
+      }
+      const repoDescriptor = repoData
+        ? `\n<worktree path="${repoData.worktreePath}" branch="${repoData.branch}" />\n`
+        : '';
+
       return {
         ...agent,
         teamFacts: [...(agent.teamFacts ?? []), ...contractFacts],
-        repoKnowledge: repoData?.markdown,
-        repoClonePath: repoData?.clonePath,
+        repoKnowledge: repoData ? `${repoDescriptor}${repoData.markdown}` : undefined,
+        repoClonePath: repoData?.worktreePath,
       };
     });
 

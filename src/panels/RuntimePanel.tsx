@@ -6,6 +6,8 @@ import { useProviderStore } from '../store/providerStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { runTeam, extractContracts } from '../services/runtimeService';
 import { TextArea, Button, Card, EmptyState, Spinner, StatusDot } from '../components/ds';
+import { WorktreeGraphPanel, type AgentWorktreeStatus } from '../components/WorktreeGraphPanel';
+import { API_BASE } from '../config';
 import { Play, FileSearch, Users, GitBranch, UserPlus, X } from 'lucide-react';
 
 /* ── Epistemic Colors ── */
@@ -157,6 +159,8 @@ export function RuntimePanel() {
   const [globalInstruction, setGlobalInstruction] = useState('');
   const [agentInstructions, setAgentInstructions] = useState<Record<string, string>>({});
   const [selectedLibraryId, setSelectedLibraryId] = useState('');
+  const [worktreeRows, setWorktreeRows] = useState<AgentWorktreeStatus[]>([]);
+  const [worktreeLoading, setWorktreeLoading] = useState(false);
   const updateAgent = useTeamStore((s) => s.updateAgent);
   const [repoUrls, setRepoUrls] = useState<Record<string, string>>(() => {
     // Initialize from teamStore
@@ -167,6 +171,7 @@ export function RuntimePanel() {
     return urls;
   });
   const abortRef = useRef<AbortController | null>(null);
+  const teamIdRef = useRef(`team-${Date.now()}`);
 
   const status = useRuntimeStore((s) => s.status);
   const agents = useRuntimeStore((s) => s.agents);
@@ -198,18 +203,76 @@ export function RuntimePanel() {
     return result;
   }, [teamAgents, globalInstruction, agentInstructions]);
 
+  const handlePrepareWorktrees = useCallback(async () => {
+    const candidates = teamAgents
+      .filter((agent) => Boolean(repoUrls[agent.id]?.trim()))
+      .map((agent) => ({
+        agentId: agent.id,
+        repoUrl: repoUrls[agent.id].trim(),
+        baseRef: 'master',
+      }));
+
+    if (candidates.length === 0) return;
+
+    setWorktreeLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/worktrees/prepare`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId: teamIdRef.current, agents: candidates }),
+      });
+      const json = await response.json();
+      if (json.status === 'ok' && Array.isArray(json.data)) {
+        const rows: AgentWorktreeStatus[] = json.data.map((item: any) => ({
+          agentId: item.agentId,
+          repoUrl: item.repoUrl,
+          worktreePath: item.worktreePath,
+          branch: item.branch,
+          baseBranch: item.status.baseBranch,
+          ahead: item.status.ahead,
+          behind: item.status.behind,
+          headSha: item.status.headSha,
+          headMessage: item.status.headMessage,
+        }));
+        setWorktreeRows(rows);
+      }
+    } finally {
+      setWorktreeLoading(false);
+    }
+  }, [teamAgents, repoUrls]);
+
+  const handleRebaseWorktree = useCallback(async (row: AgentWorktreeStatus) => {
+    await fetch(`${API_BASE}/worktrees/rebase`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ worktreePath: row.worktreePath, branch: row.branch, baseBranch: row.baseBranch }),
+    });
+    await handlePrepareWorktrees();
+  }, [handlePrepareWorktrees]);
+
+  const handleMergeWorktree = useCallback(async (row: AgentWorktreeStatus) => {
+    await fetch(`${API_BASE}/worktrees/merge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ worktreePath: row.worktreePath, branch: row.branch, baseBranch: row.baseBranch }),
+    });
+    await handlePrepareWorktrees();
+  }, [handlePrepareWorktrees]);
+
   const handleExtractContracts = useCallback(async () => {
     if (!featureSpec.trim()) return;
     try {
       await extractContracts(featureSpec, selectedProviderId || 'anthropic', agentConfig.model);
-    } catch { /* store handles error status */ }
+    } catch {
+      // store handles error status
+    }
   }, [featureSpec, selectedProviderId, agentConfig.model]);
 
   const handleRunTeam = useCallback(() => {
     if (!featureSpec.trim() || teamAgents.length === 0) return;
 
     abortRef.current = runTeam({
-      teamId: 'team-' + Date.now(),
+      teamId: teamIdRef.current,
       agents: teamAgents.map((a) => ({
         agentId: a.id,
         name: a.name,
@@ -292,6 +355,14 @@ export function RuntimePanel() {
         contractCount={contractFacts.length}
         agentCount={agents.length}
         sharedCount={sharedFacts.length}
+      />
+
+      <WorktreeGraphPanel
+        rows={worktreeRows}
+        loading={worktreeLoading}
+        onPrepare={handlePrepareWorktrees}
+        onRebase={handleRebaseWorktree}
+        onMerge={handleMergeWorktree}
       />
 
       <Card>

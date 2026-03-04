@@ -1,0 +1,13 @@
+repo,query_id,missing_dependencies,missing_count
+52north-wrt,1,WeatherRoutingTool/routeparams.py|WeatherRoutingTool/ship/shipparams.py,2
+52north-wrt,2,,0
+52north-wrt,3,,0
+opencpn-core,1,buildandroid/libopenssl/arm64/openssl/include/openssl/rsa.h|buildandroid/libopenssl/armhf/openssl/include/openssl/rsa.h|libs/nmea0183/src/LatLong.hpp|libs/nmea0183/src/RMB.hpp|libs/nmea0183/src/RMC.HPP|libs/nmea0183/src/Response.hpp|libs/nmea0183/src/Sentence.hpp|libs/nmea0183/src/apb.cpp|libs/nmea0183/src/apb.hpp|libs/nmea0183/src/gga.cpp|libs/nmea0183/src/gga.hpp|libs/nmea0183/src/gll.cpp,12
+opencpn-core,2,buildandroid/libopenssl/arm64/openssl/include/openssl/rsa.h|buildandroid/libopenssl/armhf/openssl/include/openssl/rsa.h|libs/nmea0183/src/LatLong.hpp|libs/nmea0183/src/RMB.hpp|libs/nmea0183/src/RMC.HPP|libs/nmea0183/src/Response.hpp|libs/nmea0183/src/Sentence.hpp|libs/nmea0183/src/apb.cpp|libs/nmea0183/src/apb.hpp|libs/nmea0183/src/gga.cpp|libs/nmea0183/src/gga.hpp|libs/nmea0183/src/gll.cpp,12
+opencpn-core,3,buildandroid/libopenssl/arm64/openssl/include/openssl/rsa.h|buildandroid/libopenssl/armhf/openssl/include/openssl/rsa.h|libs/nmea0183/src/LatLong.hpp|libs/nmea0183/src/RMB.hpp|libs/nmea0183/src/RMC.HPP|libs/nmea0183/src/Response.hpp|libs/nmea0183/src/Sentence.hpp|libs/nmea0183/src/apb.cpp|libs/nmea0183/src/apb.hpp|libs/nmea0183/src/gga.cpp|libs/nmea0183/src/gga.hpp|libs/nmea0183/src/gll.cpp,12
+slocum,1,slocum/compression/tinylib.py|slocum/lib/angles.py|slocum/visualize/interactive.py|slocum/visualize/spot.py|slocum/visualize/velocity.py,5
+slocum,2,slocum/compression/schemes.py|slocum/compression/tinylib.py|slocum/lib/angles.py|slocum/lib/units.py|slocum/query/grads.py|slocum/query/utils.py|slocum/query/variables.py|slocum/visualize/interactive.py|slocum/visualize/spot.py|slocum/visualize/utils.py|slocum/visualize/velocity.py|test/utils.py,12
+slocum,3,slocum/compression/schemes.py|slocum/lib/angles.py|slocum/query/grads.py|slocum/query/variables.py|slocum/visualize/interactive.py|slocum/visualize/spot.py|slocum/visualize/velocity.py,7
+windmar,1,,0
+windmar,2,frontend/lib/api.ts|frontend/lib/demoMode.ts,2
+windmar,3,frontend/lib/demoMode.ts,1
