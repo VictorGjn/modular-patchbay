@@ -28,7 +28,14 @@ router.post('/', (req, res) => {
     res.status(400).json(resp);
     return;
   }
-  config.providers.push(provider);
+
+  const existingIdx = config.providers.findIndex((p) => p.id === provider.id);
+  if (existingIdx >= 0) {
+    config.providers[existingIdx] = { ...config.providers[existingIdx], ...provider };
+  } else {
+    config.providers.push(provider);
+  }
+
   writeConfig(config);
   const resp: ApiResponse<ProviderConfig> = { status: 'ok', data: provider };
   res.status(201).json(resp);
@@ -60,7 +67,7 @@ router.delete('/:id', (req, res) => {
     res.status(404).json(resp);
     return;
   }
-  config.providers.splice(idx, 1);
+  config.providers = config.providers.filter((p) => p.id !== req.params.id);
   writeConfig(config);
   const resp: ApiResponse = { status: 'ok' };
   res.json(resp);
@@ -119,13 +126,16 @@ router.post('/:id/test', async (req, res) => {
         return;
       }
 
-      const response = await fetch(`${baseUrl}/messages`, {
+      const headers = {
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      };
+
+      // 1) Validate auth cheaply with /messages
+      const authCheck = await fetch(`${baseUrl}/messages`, {
         method: 'POST',
-        headers: {
-          'x-api-key': anthropicKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           model: 'claude-3-haiku-20240307',
           max_tokens: 1,
@@ -133,18 +143,30 @@ router.post('/:id/test', async (req, res) => {
         }),
       });
 
-      if (!response.ok) {
-        const bodyText = await response.text().catch(() => '');
+      if (!authCheck.ok) {
+        const bodyText = await authCheck.text().catch(() => '');
         const resp: ApiResponse = {
           status: 'error',
-          error: bodyText || `API returned ${response.status}: ${response.statusText}`,
+          error: bodyText || `API returned ${authCheck.status}: ${authCheck.statusText}`,
         };
-        res.status(response.status).json(resp);
+        res.status(authCheck.status).json(resp);
         return;
       }
 
-      // Anthropic has no public list-models endpoint; return curated Claude model catalog on successful auth.
-      const models = [
+      // 2) Fetch model list from Anthropic models endpoint
+      const listRes = await fetch(`${baseUrl}/models`, { method: 'GET', headers });
+      if (listRes.ok) {
+        const body = await listRes.json() as { data?: Array<{ id?: string }> };
+        const listed = Array.isArray(body.data) ? body.data.map((m) => m.id).filter(Boolean) as string[] : [];
+        if (listed.length > 0) {
+          const resp: ApiResponse<{ models: string[] }> = { status: 'ok', data: { models: listed } };
+          res.json(resp);
+          return;
+        }
+      }
+
+      // 3) Fallback curated catalog if list endpoint unavailable
+      const fallback = [
         'claude-opus-4',
         'claude-sonnet-4',
         'claude-3-7-sonnet-20250219',
@@ -152,7 +174,7 @@ router.post('/:id/test', async (req, res) => {
         'claude-3-5-haiku-20241022',
         'claude-3-haiku-20240307',
       ];
-      const resp: ApiResponse<{ models: string[] }> = { status: 'ok', data: { models } };
+      const resp: ApiResponse<{ models: string[] }> = { status: 'ok', data: { models: fallback } };
       res.json(resp);
     } else {
       // OpenAI, OpenRouter, Google, Custom — hit /models
