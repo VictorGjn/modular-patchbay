@@ -118,6 +118,7 @@ function ChatSection() {
   const agentMeta = useConsoleStore(s => s.agentMeta);
   const navigationMode = useConsoleStore(s => s.navigationMode);
   const selectedProviderId = useProviderStore(s => s.selectedProviderId);
+  const getProviderForModel = useProviderStore(s => s.getProviderForModel);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -136,13 +137,16 @@ function ChatSection() {
     let accum = '';
 
     try {
+      const modelProvider = getProviderForModel(agentConfig.model);
+      const effectiveProviderId = modelProvider?.id || selectedProviderId || 'openai';
+
       await runPipelineChat({
         userMessage: userMsg,
         channels,
         connectors,
         history: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
         agentMeta: { name: agentMeta.name, description: agentMeta.description, avatar: agentMeta.avatar, tags: agentMeta.tags },
-        providerId: selectedProviderId || 'anthropic',
+        providerId: effectiveProviderId,
         model: agentConfig.model,
         navigationMode,
         onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
@@ -154,7 +158,7 @@ function ChatSection() {
     } finally {
       setStreaming(false);
     }
-  }, [inputText, streaming, messages, agentConfig, channels, connectors, agentMeta, navigationMode, selectedProviderId, setInputText, addMessage, setStreaming, updateLastAssistant, setLastPipelineStats]);
+  }, [inputText, streaming, messages, agentConfig, channels, connectors, agentMeta, navigationMode, selectedProviderId, getProviderForModel, setInputText, addMessage, setStreaming, updateLastAssistant, setLastPipelineStats]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
