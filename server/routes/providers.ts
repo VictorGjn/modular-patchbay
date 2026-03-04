@@ -12,16 +12,11 @@ function normalizeBaseUrl(providerId: string, baseUrl: string): string {
   return trimmed;
 }
 
-function maskApiKey(key: string): string {
-  if (!key || key.length <= 4) return '****';
-  return '****' + key.slice(-4);
-}
-
 router.get('/', (_req, res) => {
   const config = readConfig();
-  // Never expose full API keys in GET responses
-  const masked = config.providers.map((p) => ({ ...p, apiKey: maskApiKey(p.apiKey) }));
-  const resp: ApiResponse<ProviderConfig[]> = { status: 'ok', data: masked };
+  // Never expose API keys in GET responses
+  const redacted = config.providers.map((p) => ({ ...p, apiKey: '' }));
+  const resp: ApiResponse<ProviderConfig[]> = { status: 'ok', data: redacted };
   res.json(resp);
 });
 
@@ -136,7 +131,7 @@ router.post('/:id/test', async (req, res) => {
         ? `${baseUrl}/models?key=${authToken}`
         : `${baseUrl}/models`;
       const headers: Record<string, string> = {};
-      if (!isGoogle) {
+      if (!isGoogle && authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
       const response = await fetch(url, { headers });

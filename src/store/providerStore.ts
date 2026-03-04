@@ -510,6 +510,9 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
           return {
             ...def,
             ...remote,
+            // credentials are never returned by backend GET /providers
+            apiKey: def.apiKey,
+            accessToken: def.accessToken,
             models: Array.isArray(remote.models) ? remote.models : def.models,
           };
         });
