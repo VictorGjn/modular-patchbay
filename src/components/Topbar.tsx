@@ -16,7 +16,7 @@ function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: stri
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label={ariaLabel}
-      className="appearance-none cursor-pointer outline-none text-xs h-8 pl-3 pr-7 rounded-lg"
+      className="appearance-none cursor-pointer outline-none text-xs h-8 min-h-[44px] pl-3 pr-7 rounded-lg"
       style={{
         fontFamily: "'Inter', sans-serif",
         background: t.surfaceOpaque,
@@ -94,7 +94,7 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
         <button
           type="button"
           onClick={() => onWorkspaceModeChange('builder')}
-          className="px-3 py-1.5 rounded-md border-none text-[10px] font-bold tracking-[0.12em] uppercase cursor-pointer"
+          className="px-3 py-1.5 min-h-[44px] rounded-md border-none text-[10px] font-bold tracking-[0.12em] uppercase cursor-pointer focus-visible:outline focus-visible:outline-2"
           style={{
             fontFamily: "'Space Mono', monospace",
             background: workspaceMode === 'builder' ? '#FE5000' : 'transparent',
@@ -107,7 +107,7 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
         <button
           type="button"
           onClick={() => onWorkspaceModeChange('runtime')}
-          className="px-3 py-1.5 rounded-md border-none text-[10px] font-bold tracking-[0.12em] uppercase cursor-pointer"
+          className="px-3 py-1.5 min-h-[44px] rounded-md border-none text-[10px] font-bold tracking-[0.12em] uppercase cursor-pointer focus-visible:outline focus-visible:outline-2"
           style={{
             fontFamily: "'Space Mono', monospace",
             background: workspaceMode === 'runtime' ? '#FE5000' : 'transparent',
@@ -141,6 +141,12 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
           </option>
         ))}
       </TopbarSelect>
+
+      {!hasModels && (
+        <span className="text-[10px]" style={{ color: t.textDim }}>
+          No models loaded — connect a model source in settings
+        </span>
+      )}
 
       {/* Version indicator */}
       <VersionIndicator />
@@ -202,7 +208,7 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
       <button
         type="button"
         onClick={onSettingsClick}
-        className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        className="flex items-center justify-center w-11 h-11 rounded-md cursor-pointer border-none bg-transparent hover-accent-text focus-visible:outline focus-visible:outline-2"
         style={{ color: t.textDim }}
         aria-label="LLM settings"
       >
@@ -213,7 +219,7 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
       <button
         type="button"
         onClick={toggleTheme}
-        className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        className="flex items-center justify-center w-11 h-11 rounded-md cursor-pointer border-none bg-transparent hover-accent-text focus-visible:outline focus-visible:outline-2"
         style={{ color: t.textDim }}
         aria-label={t.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
@@ -224,7 +230,7 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
       <button
         type="button"
         onClick={onImportClick}
-        className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        className="flex items-center justify-center w-11 h-11 rounded-md cursor-pointer border-none bg-transparent hover-accent-text focus-visible:outline focus-visible:outline-2"
         style={{ color: t.textDim }}
         aria-label="Import agent definition"
       >
@@ -235,7 +241,7 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
       <button
         type="button"
         onClick={handleExport}
-        className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        className="flex items-center justify-center w-11 h-11 rounded-md cursor-pointer border-none bg-transparent hover-accent-text focus-visible:outline focus-visible:outline-2"
         style={{ color: t.textDim }}
         aria-label="Export as agent definition"
       >
@@ -246,7 +252,7 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
       <button
         type="button"
         onClick={clearChannels}
-        className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover-accent-text"
+        className="flex items-center justify-center w-11 h-11 rounded-md cursor-pointer border-none bg-transparent hover-accent-text focus-visible:outline focus-visible:outline-2"
         style={{ color: t.textDim }}
         aria-label="Clear all channels"
       >
