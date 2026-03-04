@@ -52,10 +52,14 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
   const isCustom = provider.id.startsWith('custom-');
   const isOpenAiProvider = provider.id === 'openai';
   const isCodexOAuth = isOpenAiProvider && provider.authMethod === 'oauth';
+  const displayName = provider.id === 'anthropic' ? 'Claude' : provider.name;
   const models = Array.isArray(provider.models) ? provider.models : [];
 
   useEffect(() => {
-    setLocalKey(provider.apiKey || '');
+    // Avoid wiping in-form keys when backend refresh returns redacted/empty apiKey
+    if (provider.apiKey && provider.apiKey.trim().length > 0) {
+      setLocalKey(provider.apiKey);
+    }
     setLocalUrl(provider.baseUrl);
   }, [provider.apiKey, provider.baseUrl]);
 
@@ -100,7 +104,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
           <Cpu size={14} style={{ color: provider.color }} />
         </div>
         <span className="text-xs font-semibold flex-1" style={{ fontFamily: "'Space Mono', monospace" }}>
-          {provider.name}
+          {displayName}
         </span>
         <span className="text-[10px]" style={{ color: t.textMuted }}>
           {provider.status === 'connected' ? `${models.length} models` : provider.status}
