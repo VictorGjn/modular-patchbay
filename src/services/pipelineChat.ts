@@ -26,6 +26,8 @@ import { useTreeIndexStore } from '../store/treeIndexStore';
 import { estimateTokens, type TreeNode } from './treeIndexer';
 import { renderFilteredMarkdown, applyDepthFilter } from '../utils/depthFilter';
 import { streamCompletion, streamAgentSdk } from './llmService';
+import { runToolLoop, type ToolCallResult } from './toolRunner';
+import { getUnifiedTools, supportsToolCalling } from './toolRegistry';
 import { API_BASE } from '../config';
 import {
   extractHeadlines,
@@ -36,6 +38,8 @@ import {
   extractFramework,
   compileFrameworkBlocks,
 } from './frameworkExtractor';
+import { preRecall, postWrite, clearScratchpad } from './memoryPipeline';
+import { useMemoryStore } from '../store/memoryStore';
 
 // ── Types ──
 
@@ -48,6 +52,8 @@ export interface PipelineChatOptions {
   providerId: string;
   model: string;
   navigationMode?: 'manual' | 'agent-driven';
+  agentId?: string;
+  sandboxRunId?: string;
   onChunk: (chunk: string) => void;
   onDone: (stats: PipelineChatStats) => void;
   onError: (err: Error) => void;
@@ -74,12 +80,24 @@ export interface FrameworkSummary {
   sources: string[];
 }
 
+export interface MemoryStats {
+  recalledFacts: number;
+  writtenFacts: number;
+  recallMs: number;
+  writeMs: number;
+  recallTokens: number;
+  domains: string[];
+}
+
 export interface PipelineChatStats {
   pipeline: PipelineResult | null;
   systemTokens: number;
   totalContextTokens: number;
   heatmap: SourceHeatmapEntry[];
   frameworkSummary?: FrameworkSummary;
+  toolCalls?: ToolCallResult[];
+  toolTurns?: number;
+  memory?: MemoryStats;
 }
 
 // ── Build non-knowledge system prompt (identity, instructions, constraints, workflow, tools) ──
@@ -466,10 +484,43 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       knowledgeBlock = knowledgeBlock ? `${knowledgeBlock}\n\n${connectorBlock}` : connectorBlock;
     }
 
+    // 2f. Pre-recall: inject relevant memory facts into context
+    const memoryConfig = useMemoryStore.getState();
+    let memoryBlock = '';
+    let memoryStats: MemoryStats | undefined;
+
+    if (memoryConfig.longTerm.enabled) {
+      // Clear scratchpad on new run if isolation requires it
+      if (memoryConfig.sandbox.isolation === 'reset_each_run') {
+        clearScratchpad();
+      }
+
+      const recallResult = preRecall({
+        userMessage,
+        agentId: options.agentId,
+        traceId,
+        sandboxRunId: options.sandboxRunId,
+      });
+
+      if (recallResult.contextBlock) {
+        memoryBlock = recallResult.contextBlock;
+      }
+
+      memoryStats = {
+        recalledFacts: recallResult.facts.length,
+        writtenFacts: 0,
+        recallMs: recallResult.durationMs,
+        writeMs: 0,
+        recallTokens: recallResult.tokenEstimate,
+        domains: [...new Set(recallResult.facts.map(f => f.domain))],
+      };
+    }
+
     // 3. Assemble final system prompt
-    //    Order: identity/instructions → framework rules → knowledge → connectors
+    //    Order: identity/instructions → framework rules → memory recall → knowledge → connectors
     const systemParts = [systemFrame];
     if (frameworkBlock) systemParts.push(frameworkBlock);
+    if (memoryBlock) systemParts.push(memoryBlock);
     if (knowledgeBlock) systemParts.push(knowledgeBlock);
     const systemPrompt = systemParts.filter(Boolean).join('\n\n');
     const systemTokens = estimateTokens(systemPrompt);
@@ -481,54 +532,133 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       { role: 'user' as const, content: userMessage },
     ];
 
-    // 5. Emit LLM call trace (start)
-    const llmStart = Date.now();
-    traceStore.addEvent(traceId, {
-      kind: 'llm_call',
-      model,
-      inputTokens: msgs.reduce((sum, m) => sum + estimateTokens(m.content), 0),
-    });
+    // 5. Check if we should use tool-calling loop
+    const unifiedTools = getUnifiedTools();
+    const providerState = useProviderStore.getState();
+    const currentProvider = providerState.providers.find((p: any) => p.id === providerId);
+    const providerType = currentProvider?.type ?? 'openai';
+    const useToolLoop = unifiedTools.length > 0
+      && supportsToolCalling(providerType)
+      && providerId !== 'claude-agent-sdk';
 
-    // 6. Stream LLM response
-    let accum = '';
+    let toolCallResults: ToolCallResult[] = [];
+    let toolTurns = 0;
+    let fullResponse = '';
 
-    await new Promise<void>((resolve, reject) => {
-      const callbacks = {
-        onChunk: (chunk: string) => { accum += chunk; onChunk(chunk); },
-        onDone: () => {
-          // Emit LLM completion trace
-          traceStore.addEvent(traceId, {
-            kind: 'llm_call',
-            model,
-            outputTokens: estimateTokens(accum),
-            durationMs: Date.now() - llmStart,
-          });
-          resolve();
-        },
-        onError: (err: Error) => reject(err),
-      };
+    if (useToolLoop) {
+      // 6a. Agentic tool-calling loop (non-streaming per turn, streams text chunks)
+      const llmStart = Date.now();
+      traceStore.addEvent(traceId, {
+        kind: 'llm_call',
+        model,
+        inputTokens: msgs.reduce((sum, m) => sum + estimateTokens(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)), 0),
+      });
 
-      if (providerId === 'claude-agent-sdk') {
-        streamAgentSdk({
-          prompt: userMessage,
-          model,
-          systemPrompt,
-          ...callbacks,
-        });
-      } else {
-        streamCompletion({
+      await new Promise<void>((resolve, reject) => {
+        runToolLoop({
           providerId,
           model,
           messages: msgs,
-          ...callbacks,
+          traceId,
+          maxTurns: 10,
+          callbacks: {
+            onChunk: (text) => { fullResponse += text; onChunk(text); },
+            onToolCallStart: (name, args) => {
+              // Emit a visible chunk so user sees tool activity
+              onChunk(`\n\n🔧 Calling **${name}**...\n`);
+            },
+            onToolCallEnd: (result) => {
+              if (result.error) {
+                onChunk(`❌ ${result.name} failed: ${result.error}\n`);
+              } else {
+                const preview = result.result.length > 200
+                  ? result.result.slice(0, 200) + '…'
+                  : result.result;
+                onChunk(`✅ ${result.name} (${result.durationMs}ms)\n`);
+              }
+            },
+            onDone: (stats) => {
+              toolCallResults = stats.toolCalls;
+              toolTurns = stats.turns;
+              traceStore.addEvent(traceId, {
+                kind: 'llm_call',
+                model,
+                outputTokens: stats.totalOutputTokens,
+                durationMs: Date.now() - llmStart,
+              });
+              resolve();
+            },
+            onError: (err) => reject(err),
+          },
         });
-      }
-    });
+      });
+    } else {
+      // 6b. Text-only streaming (no tools or unsupported provider)
+      const llmStart = Date.now();
+      traceStore.addEvent(traceId, {
+        kind: 'llm_call',
+        model,
+        inputTokens: msgs.reduce((sum, m) => sum + estimateTokens(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)), 0),
+      });
 
-    // 7. End trace
+      let accum = '';
+      await new Promise<void>((resolve, reject) => {
+        const callbacks = {
+          onChunk: (chunk: string) => { accum += chunk; fullResponse += chunk; onChunk(chunk); },
+          onDone: () => {
+            traceStore.addEvent(traceId, {
+              kind: 'llm_call',
+              model,
+              outputTokens: estimateTokens(accum),
+              durationMs: Date.now() - llmStart,
+            });
+            resolve();
+          },
+          onError: (err: Error) => reject(err),
+        };
+
+        if (providerId === 'claude-agent-sdk') {
+          streamAgentSdk({
+            prompt: userMessage,
+            model,
+            systemPrompt,
+            ...callbacks,
+          });
+        } else {
+          streamCompletion({
+            providerId,
+            model,
+            messages: msgs,
+            ...callbacks,
+          });
+        }
+      });
+    }
+
+    // 7. Post-write: extract facts from assistant response
+    if (memoryConfig.longTerm.enabled && fullResponse) {
+      const writeResult = postWrite({
+        userMessage,
+        assistantResponse: fullResponse,
+        agentId: options.agentId,
+        traceId,
+        sandboxRunId: options.sandboxRunId,
+      });
+
+      if (memoryStats) {
+        memoryStats.writtenFacts = writeResult.stored.length;
+        memoryStats.writeMs = writeResult.durationMs;
+        if (writeResult.stored.length > 0) {
+          const newDomains = [...new Set(writeResult.stored.map(f => f.domain))];
+          memoryStats.domains = [...new Set([...memoryStats.domains, ...newDomains])];
+        }
+      }
+    }
+
+    // 8. End trace
     traceStore.endTrace(traceId);
 
-    // 8. Build heatmap from tree indexes
+    // 9. Build heatmap from tree indexes
     const heatmap: SourceHeatmapEntry[] = [];
     const heatmapStore = useTreeIndexStore.getState();
     for (const ch of activeChannels) {
@@ -565,6 +695,8 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       totalContextTokens,
       heatmap,
       frameworkSummary,
+      toolCalls: toolCallResults.length > 0 ? toolCallResults : undefined,
+      toolTurns: toolTurns > 0 ? toolTurns : undefined,
     });
 
   } catch (err) {
