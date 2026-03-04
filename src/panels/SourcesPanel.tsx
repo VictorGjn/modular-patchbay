@@ -226,6 +226,10 @@ function KnowledgeSection() {
   const enabledCount = channels.filter(c => c.enabled).length;
   const indexedCount = channels.filter(c => c.enabled && treeIndexes[c.path]).length;
   const totalTokens = channels.filter(c => c.enabled).reduce((sum, c) => sum + getChannelTokens(c), 0);
+  const githubCompressedChannels = channels.filter(c => c.enabled && /\.compressed\.md$/i.test(c.path || ''));
+  const githubRawTokens = githubCompressedChannels.reduce((sum, c) => sum + (c.baseTokens || 0), 0);
+  const githubEffectiveTokens = githubCompressedChannels.reduce((sum, c) => sum + getChannelTokens(c), 0);
+  const githubSavingsPct = githubRawTokens > 0 ? Math.max(0, ((githubRawTokens - githubEffectiveTokens) / githubRawTokens) * 100) : 0;
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
 
   const handleScanSources = useCallback(async () => {
@@ -241,37 +245,48 @@ function KnowledgeSection() {
     if (!repoPath.trim() || repoScanning) return;
     setRepoScanning(true);
     try {
-      const resp = await fetch(`${API_BASE}/repo/index`, {
+      const target = repoPath.trim();
+      const isGitHub = /github\.com\//i.test(target) || target.endsWith('.git');
+      const endpoint = isGitHub ? `${API_BASE}/repo/index-github` : `${API_BASE}/repo/index`;
+      const payload = isGitHub ? { url: target, persist: true } : { path: target };
+
+      const resp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: repoPath.trim() }),
+        body: JSON.stringify(payload),
       });
       const json = await resp.json() as {
         status: string;
-        data?: { outputDir: string; files: string[]; stack: string[]; features: number; totalTokens: number };
+        data?: { outputDir: string; files: string[]; scan?: { totalTokens?: number }; totalTokens?: number };
         error?: string;
       };
+
       if (json.status === 'ok' && json.data) {
+        const totalTokens = json.data.totalTokens ?? json.data.scan?.totalTokens ?? 5000;
         for (const file of json.data.files) {
           const filePath = `${json.data.outputDir}/${file}`;
           addChannel({
             sourceId: `repo-${file}-${Date.now()}`,
-            name: file.replace('.md', '').replace(/^\d+-/, ''),
+            name: file.replace('.compressed.md', '').replace('.md', '').replace(/^\d+-/, ''),
             path: filePath,
             category: 'knowledge' as any,
             knowledgeType: 'ground-truth',
-            depth: 1,
-            baseTokens: Math.round((json.data.totalTokens || 5000) / Math.max(json.data.files.length, 1)),
+            depth: isGitHub ? 2 : 1,
+            baseTokens: Math.round(totalTokens / Math.max(json.data.files.length, 1)),
           });
         }
+
         setRepoPrompt(false);
         setRepoPath('');
-        // Auto-scan the newly added files
+
+        // Auto-scan newly materialized files for tree-index usage
         await useTreeIndexStore.getState().indexFiles(
-          json.data.files.map(f => `${json.data!.outputDir}/${f}`)
+          json.data.files.map(f => `${json.data!.outputDir}/${f}`),
         );
       }
-    } catch { /* user sees no change */ }
+    } catch {
+      // user sees no change
+    }
     setRepoScanning(false);
   }, [repoPath, repoScanning, addChannel]);
 
@@ -371,6 +386,7 @@ function KnowledgeSection() {
         {channels.map(ch => {
           const kt = KNOWLEDGE_TYPES[ch.knowledgeType] || KNOWLEDGE_TYPES.evidence;
           const depth = ch.depth ?? 0;
+          const isGithubCompressed = /\.compressed\.md$/i.test(ch.path || '');
           const barPct = ((4 - depth) / 4) * 100;
           const barColor = DEPTH_COLORS[depth] || '#999';
           const isIndexed = !!treeIndexes[ch.path];
@@ -399,6 +415,13 @@ function KnowledgeSection() {
                   style={{ color: ch.enabled ? t.textPrimary : t.textDim, lineHeight: 1.2 }}>
                   {ch.name}
                 </span>
+                {isGithubCompressed && (
+                  <span className="text-[8px] px-1 py-0.5 rounded shrink-0"
+                    style={{ fontFamily: "'Space Mono', monospace", color: '#24292F', background: '#24292F12', border: '1px solid #24292F30' }}
+                    title="GitHub indexed & compressed context">
+                    GH · compressed
+                  </span>
+                )}
                 <span className="text-[9px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: isIndexed ? t.textPrimary : t.textDim }}
                   title={isIndexed ? `Indexed: ${treeIndexes[ch.path].index.nodeCount} nodes` : 'Estimated'}>
                   {fmtTokens(realTokens)}
@@ -553,7 +576,7 @@ function KnowledgeSection() {
             type="text"
             value={repoPath}
             onChange={e => setRepoPath(e.target.value)}
-            placeholder="/path/to/repo"
+            placeholder="/path/to/repo or https://github.com/org/repo"
             aria-label="Repository path"
             className="flex-1 px-2.5 py-1.5 rounded text-[11px] outline-none"
             style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}
@@ -566,6 +589,23 @@ function KnowledgeSection() {
           >
             {repoScanning ? <Loader2 size={10} className="animate-spin motion-reduce:animate-none" /> : 'Index'}
           </button>
+        </div>
+      )}
+
+      {/* GitHub compression impact card */}
+      {githubCompressedChannels.length > 0 && (
+        <div className="mt-3 px-2.5 py-2 rounded-lg" style={{ border: `1px solid #24292F30`, background: '#24292F08' }}>
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] tracking-[0.1em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: '#24292F' }}>
+              GitHub Context Compression
+            </span>
+            <span className="text-[10px] font-semibold" style={{ color: '#00A86B' }}>
+              -{githubSavingsPct.toFixed(1)}%
+            </span>
+          </div>
+          <div className="mt-1 text-[10px]" style={{ color: t.textDim }}>
+            Raw {fmtTokens(githubRawTokens)} → Effective {fmtTokens(githubEffectiveTokens)} tokens ({githubCompressedChannels.length} channels)
+          </div>
         </div>
       )}
 

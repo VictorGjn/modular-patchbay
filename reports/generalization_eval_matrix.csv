@@ -1,0 +1,13 @@
+repo,feature,query,baseline_score,after_score
+52north-wrt,WeatherRoutingTool/routeparams.py,How is weather data transformed into route cost penalties?,0.0,0.0
+52north-wrt,WeatherRoutingTool/routeparams.py,Where are vessel constraints integrated during path search?,0.0,0.74
+52north-wrt,WeatherRoutingTool/routeparams.py,What modules are required to run end-to-end route optimization?,0.0,0.7375
+opencpn-core,plugins/dashboard_pi/src/nmea0183/nmea0183.hpp,How does route calculation flow from UI interaction to navigation state updates?,0.0,0.0
+opencpn-core,plugins/dashboard_pi/src/nmea0183/nmea0183.hpp,Which components persist and validate route waypoint data?,0.0,0.0404
+opencpn-core,plugins/dashboard_pi/src/nmea0183/nmea0183.hpp,What dependencies are involved when recalculating route geometry?,0.0,0.0
+slocum,slocum/visualize/utils.py,How are GRIB forecast fields converted into sailing performance decisions?,0.1667,0.525
+slocum,slocum/visualize/utils.py,Which modules compose the route search and scoring loop?,0.0,0.0
+slocum,slocum/visualize/utils.py,What code paths connect command entrypoint to final route output artifacts?,0.1667,0.3854
+windmar,frontend/lib/api.ts,How does the project compute optimized voyage recommendations?,0.0,0.7353
+windmar,frontend/lib/api.ts,"Which modules aggregate weather, vessel, and route constraints?",0.0,0.0
+windmar,frontend/lib/api.ts,What are the deepest dependency chains in optimization execution?,0.0,0.41

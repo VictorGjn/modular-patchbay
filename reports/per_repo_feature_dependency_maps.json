@@ -1,0 +1,668 @@
+[
+  {
+    "repo": "52north-wrt",
+    "feature_file": "WeatherRoutingTool/routeparams.py",
+    "feature_focus": "route optimization pipeline with weather ingestion",
+    "oracle_dependency_files": [
+      "WeatherRoutingTool/routeparams.py",
+      "WeatherRoutingTool/ship/shipparams.py"
+    ],
+    "top_nodes": [
+      {
+        "file": "WeatherRoutingTool/routeparams.py",
+        "out_degree": 1,
+        "in_degree": 20,
+        "coupling": 21
+      },
+      {
+        "file": "WeatherRoutingTool/config.py",
+        "out_degree": 0,
+        "in_degree": 14,
+        "coupling": 14
+      },
+      {
+        "file": "WeatherRoutingTool/ship/shipparams.py",
+        "out_degree": 0,
+        "in_degree": 14,
+        "coupling": 14
+      },
+      {
+        "file": "WeatherRoutingTool/algorithms/isobased.py",
+        "out_degree": 3,
+        "in_degree": 3,
+        "coupling": 6
+      },
+      {
+        "file": "WeatherRoutingTool/algorithms/genetic/utils.py",
+        "out_degree": 1,
+        "in_degree": 5,
+        "coupling": 6
+      },
+      {
+        "file": "WeatherRoutingTool/algorithms/isofuel.py",
+        "out_degree": 2,
+        "in_degree": 3,
+        "coupling": 5
+      },
+      {
+        "file": "WeatherRoutingTool/algorithms/routingalg.py",
+        "out_degree": 1,
+        "in_degree": 4,
+        "coupling": 5
+      },
+      {
+        "file": "WeatherRoutingTool/algorithms/genetic/__init__.py",
+        "out_degree": 4,
+        "in_degree": 0,
+        "coupling": 4
+      },
+      {
+        "file": "scripts/fuel_consumption_for_specific_route_gzip.py",
+        "out_degree": 3,
+        "in_degree": 0,
+        "coupling": 3
+      },
+      {
+        "file": "tests/basic_test_func.py",
+        "out_degree": 3,
+        "in_degree": 0,
+        "coupling": 3
+      },
+      {
+        "file": "WeatherRoutingTool/algorithms/dijkstra/__init__.py",
+        "out_degree": 3,
+        "in_degree": 0,
+        "coupling": 3
+      },
+      {
+        "file": "WeatherRoutingTool/algorithms/gcrslider/__init__.py",
+        "out_degree": 3,
+        "in_degree": 0,
+        "coupling": 3
+      },
+      {
+        "file": "cli.py",
+        "out_degree": 2,
+        "in_degree": 0,
+        "coupling": 2
+      },
+      {
+        "file": "scripts/fuel_consumption_for_specific_route.py",
+        "out_degree": 2,
+        "in_degree": 0,
+        "coupling": 2
+      },
+      {
+        "file": "tests/test_graphics.py",
+        "out_degree": 2,
+        "in_degree": 0,
+        "coupling": 2
+      },
+      {
+        "file": "tests/test_routeparams.py",
+        "out_degree": 2,
+        "in_degree": 0,
+        "coupling": 2
+      },
+      {
+        "file": "tests/test_route_postprocessing.py",
+        "out_degree": 2,
+        "in_degree": 0,
+        "coupling": 2
+      },
+      {
+        "file": "WeatherRoutingTool/algorithms/isochrone.py",
+        "out_degree": 2,
+        "in_degree": 0,
+        "coupling": 2
+      },
+      {
+        "file": "WeatherRoutingTool/algorithms/genetic/crossover.py",
+        "out_degree": 2,
+        "in_degree": 0,
+        "coupling": 2
+      },
+      {
+        "file": "WeatherRoutingTool/algorithms/genetic/mutation.py",
+        "out_degree": 2,
+        "in_degree": 0,
+        "coupling": 2
+      }
+    ]
+  },
+  {
+    "repo": "opencpn-core",
+    "feature_file": "plugins/dashboard_pi/src/nmea0183/nmea0183.hpp",
+    "feature_focus": "route manager and plugin-driven navigation planning",
+    "oracle_dependency_files": [
+      "buildandroid/libopenssl/arm64/openssl/include/openssl/rsa.h",
+      "buildandroid/libopenssl/armhf/openssl/include/openssl/rsa.h",
+      "libs/nmea0183/src/LatLong.hpp",
+      "libs/nmea0183/src/RMB.hpp",
+      "libs/nmea0183/src/RMC.HPP",
+      "libs/nmea0183/src/Response.hpp",
+      "libs/nmea0183/src/Sentence.hpp",
+      "libs/nmea0183/src/apb.cpp",
+      "libs/nmea0183/src/apb.hpp",
+      "libs/nmea0183/src/gga.cpp",
+      "libs/nmea0183/src/gga.hpp",
+      "libs/nmea0183/src/gll.cpp",
+      "libs/nmea0183/src/gll.hpp",
+      "libs/nmea0183/src/gsv.cpp",
+      "libs/nmea0183/src/gsv.hpp",
+      "libs/nmea0183/src/hdg.cpp",
+      "libs/nmea0183/src/hdg.hpp",
+      "libs/nmea0183/src/hdm.cpp",
+      "libs/nmea0183/src/hdm.hpp",
+      "libs/nmea0183/src/hdt.cpp",
+      "libs/nmea0183/src/hdt.hpp",
+      "libs/nmea0183/src/latlong.cpp",
+      "libs/nmea0183/src/mwd.cpp",
+      "libs/nmea0183/src/mwd.hpp",
+      "libs/nmea0183/src/mwv.cpp",
+      "libs/nmea0183/src/mwv.hpp",
+      "libs/nmea0183/src/nmea0183.cpp",
+      "libs/nmea0183/src/nmea0183.h",
+      "libs/nmea0183/src/nmea0183.hpp",
+      "libs/nmea0183/src/response.cpp",
+      "libs/nmea0183/src/rmb.cpp",
+      "libs/nmea0183/src/rmc.cpp",
+      "libs/nmea0183/src/rte.cpp",
+      "libs/nmea0183/src/rte.hpp",
+      "libs/nmea0183/src/sentence.cpp",
+      "libs/nmea0183/src/vtg.cpp",
+      "libs/nmea0183/src/vtg.hpp",
+      "libs/nmea0183/src/wpl.cpp",
+      "libs/nmea0183/src/wpl.hpp",
+      "libs/nmea0183/src/xte.cpp",
+      "libs/nmea0183/src/xte.hpp",
+      "plugins/dashboard_pi/src/nmea0183/LatLong.hpp",
+      "plugins/dashboard_pi/src/nmea0183/RMB.hpp",
+      "plugins/dashboard_pi/src/nmea0183/RMC.HPP",
+      "plugins/dashboard_pi/src/nmea0183/Response.hpp",
+      "plugins/dashboard_pi/src/nmea0183/SatInfo.h",
+      "plugins/dashboard_pi/src/nmea0183/Sentence.hpp",
+      "plugins/dashboard_pi/src/nmea0183/dbt.cpp",
+      "plugins/dashboard_pi/src/nmea0183/dbt.hpp",
+      "plugins/dashboard_pi/src/nmea0183/dpt.cpp",
+      "plugins/dashboard_pi/src/nmea0183/dpt.hpp",
+      "plugins/dashboard_pi/src/nmea0183/gga.cpp",
+      "plugins/dashboard_pi/src/nmea0183/gga.hpp",
+      "plugins/dashboard_pi/src/nmea0183/gll.cpp",
+      "plugins/dashboard_pi/src/nmea0183/gll.hpp",
+      "plugins/dashboard_pi/src/nmea0183/gsv.cpp",
+      "plugins/dashboard_pi/src/nmea0183/gsv.hpp",
+      "plugins/dashboard_pi/src/nmea0183/hdg.cpp",
+      "plugins/dashboard_pi/src/nmea0183/hdg.hpp",
+      "plugins/dashboard_pi/src/nmea0183/hdm.cpp",
+      "plugins/dashboard_pi/src/nmea0183/hdm.hpp",
+      "plugins/dashboard_pi/src/nmea0183/hdt.cpp",
+      "plugins/dashboard_pi/src/nmea0183/hdt.hpp",
+      "plugins/dashboard_pi/src/nmea0183/latlong.cpp",
+      "plugins/dashboard_pi/src/nmea0183/mda.cpp",
+      "plugins/dashboard_pi/src/nmea0183/mda.hpp",
+      "plugins/dashboard_pi/src/nmea0183/mta.cpp",
+      "plugins/dashboard_pi/src/nmea0183/mta.hpp",
+      "plugins/dashboard_pi/src/nmea0183/mtw.cpp",
+      "plugins/dashboard_pi/src/nmea0183/mtw.hpp",
+      "plugins/dashboard_pi/src/nmea0183/mwd.cpp",
+      "plugins/dashboard_pi/src/nmea0183/mwd.hpp",
+      "plugins/dashboard_pi/src/nmea0183/mwv.cpp",
+      "plugins/dashboard_pi/src/nmea0183/mwv.hpp",
+      "plugins/dashboard_pi/src/nmea0183/nmea0183.cpp",
+      "plugins/dashboard_pi/src/nmea0183/nmea0183.h",
+      "plugins/dashboard_pi/src/nmea0183/nmea0183.hpp",
+      "plugins/dashboard_pi/src/nmea0183/response.cpp",
+      "plugins/dashboard_pi/src/nmea0183/rmb.cpp",
+      "plugins/dashboard_pi/src/nmea0183/rmc.cpp",
+      "plugins/dashboard_pi/src/nmea0183/rsa.cpp",
+      "plugins/dashboard_pi/src/nmea0183/rsa.hpp",
+      "plugins/dashboard_pi/src/nmea0183/rte.cpp",
+      "plugins/dashboard_pi/src/nmea0183/rte.hpp",
+      "plugins/dashboard_pi/src/nmea0183/sentence.cpp",
+      "plugins/dashboard_pi/src/nmea0183/vhw.cpp",
+      "plugins/dashboard_pi/src/nmea0183/vhw.hpp",
+      "plugins/dashboard_pi/src/nmea0183/vlw.cpp",
+      "plugins/dashboard_pi/src/nmea0183/vlw.hpp",
+      "plugins/dashboard_pi/src/nmea0183/vtg.cpp",
+      "plugins/dashboard_pi/src/nmea0183/vtg.hpp",
+      "plugins/dashboard_pi/src/nmea0183/vwr.cpp",
+      "plugins/dashboard_pi/src/nmea0183/vwr.hpp",
+      "plugins/dashboard_pi/src/nmea0183/vwt.cpp",
+      "plugins/dashboard_pi/src/nmea0183/vwt.hpp",
+      "plugins/dashboard_pi/src/nmea0183/wpl.cpp",
+      "plugins/dashboard_pi/src/nmea0183/wpl.hpp",
+      "plugins/dashboard_pi/src/nmea0183/xdr.cpp",
+      "plugins/dashboard_pi/src/nmea0183/xdr.hpp",
+      "plugins/dashboard_pi/src/nmea0183/xte.cpp",
+      "plugins/dashboard_pi/src/nmea0183/xte.hpp",
+      "plugins/dashboard_pi/src/nmea0183/zda.cpp",
+      "plugins/dashboard_pi/src/nmea0183/zda.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/LatLong.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/RMB.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/RMC.HPP",
+      "plugins/demo_pi_sample/src/nmea0183/Response.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/Sentence.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/gga.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/gga.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/gll.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/gll.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/gsv.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/gsv.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/hdg.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/hdg.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/hdm.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/hdm.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/hdt.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/hdt.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/latlong.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/nmea0183.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/nmea0183.h",
+      "plugins/demo_pi_sample/src/nmea0183/nmea0183.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/response.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/rmb.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/rmc.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/rte.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/rte.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/sentence.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/vtg.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/vtg.hpp",
+      "plugins/demo_pi_sample/src/nmea0183/wpl.cpp",
+      "plugins/demo_pi_sample/src/nmea0183/wpl.hpp"
+    ],
+    "top_nodes": [
+      {
+        "file": "plugins/dashboard_pi/src/nmea0183/nmea0183.hpp",
+        "out_degree": 124,
+        "in_degree": 95,
+        "coupling": 219
+      },
+      {
+        "file": "libs/nmea0183/src/nmea0183.hpp",
+        "out_degree": 122,
+        "in_degree": 95,
+        "coupling": 217
+      },
+      {
+        "file": "plugins/demo_pi_sample/src/nmea0183/nmea0183.hpp",
+        "out_degree": 118,
+        "in_degree": 95,
+        "coupling": 213
+      },
+      {
+        "file": "gui/src/ocpn_frame.cpp",
+        "out_degree": 193,
+        "in_degree": 4,
+        "coupling": 197
+      },
+      {
+        "file": "gui/src/pluginmanager.cpp",
+        "out_degree": 156,
+        "in_degree": 19,
+        "coupling": 175
+      },
+      {
+        "file": "gui/src/ocpn_app.cpp",
+        "out_degree": 170,
+        "in_degree": 0,
+        "coupling": 170
+      },
+      {
+        "file": "gui/src/navutil.cpp",
+        "out_degree": 101,
+        "in_degree": 53,
+        "coupling": 154
+      },
+      {
+        "file": "gui/src/gl_chart_canvas.cpp",
+        "out_degree": 117,
+        "in_degree": 32,
+        "coupling": 149
+      },
+      {
+        "file": "android/androidUTIL.cpp",
+        "out_degree": 104,
+        "in_degree": 44,
+        "coupling": 148
+      },
+      {
+        "file": "libs/texcmp/squish/config.h",
+        "out_degree": 0,
+        "in_degree": 142,
+        "coupling": 142
+      },
+      {
+        "file": "libs/glshim/src/config.h",
+        "out_degree": 0,
+        "in_degree": 142,
+        "coupling": 142
+      },
+      {
+        "file": "libs/glshim/src/proxy/config.h",
+        "out_degree": 0,
+        "in_degree": 142,
+        "coupling": 142
+      },
+      {
+        "file": "gui/src/ocpn_platform.cpp",
+        "out_degree": 78,
+        "in_degree": 52,
+        "coupling": 130
+      },
+      {
+        "file": "libs/wxsvg/src/Elements_GetAttribute.cpp",
+        "out_degree": 126,
+        "in_degree": 0,
+        "coupling": 126
+      },
+      {
+        "file": "libs/wxsvg/src/Elements_GetAttributes.cpp",
+        "out_degree": 126,
+        "in_degree": 0,
+        "coupling": 126
+      },
+      {
+        "file": "libs/wxsvg/src/Elements_HasAttribute.cpp",
+        "out_degree": 126,
+        "in_degree": 0,
+        "coupling": 126
+      },
+      {
+        "file": "libs/wxsvg/src/Elements_SetAttribute.cpp",
+        "out_degree": 126,
+        "in_degree": 0,
+        "coupling": 126
+      },
+      {
+        "file": "gui/include/gui/chcanv.h",
+        "out_degree": 60,
+        "in_degree": 64,
+        "coupling": 124
+      },
+      {
+        "file": "libs/wxsvg/include/wxSVG/String_wxsvg.h",
+        "out_degree": 0,
+        "in_degree": 123,
+        "coupling": 123
+      },
+      {
+        "file": "libs/wxsvg/include/wxSVG/svg.h",
+        "out_degree": 103,
+        "in_degree": 10,
+        "coupling": 113
+      }
+    ]
+  },
+  {
+    "repo": "slocum",
+    "feature_file": "slocum/visualize/utils.py",
+    "feature_focus": "grib-driven sailing route optimization",
+    "oracle_dependency_files": [
+      "slocum/compression/schemes.py",
+      "slocum/compression/tinylib.py",
+      "slocum/lib/angles.py",
+      "slocum/lib/units.py",
+      "slocum/query/grads.py",
+      "slocum/query/utils.py",
+      "slocum/query/variables.py",
+      "slocum/visualize/interactive.py",
+      "slocum/visualize/spot.py",
+      "slocum/visualize/utils.py",
+      "slocum/visualize/velocity.py",
+      "test/utils.py"
+    ],
+    "top_nodes": [
+      {
+        "file": "slocum/visualize/utils.py",
+        "out_degree": 5,
+        "in_degree": 17,
+        "coupling": 22
+      },
+      {
+        "file": "slocum/query/utils.py",
+        "out_degree": 3,
+        "in_degree": 18,
+        "coupling": 21
+      },
+      {
+        "file": "test/utils.py",
+        "out_degree": 2,
+        "in_degree": 18,
+        "coupling": 20
+      },
+      {
+        "file": "slocum/query/request.py",
+        "out_degree": 9,
+        "in_degree": 3,
+        "coupling": 12
+      },
+      {
+        "file": "slocum/compression/compress.py",
+        "out_degree": 4,
+        "in_degree": 6,
+        "coupling": 10
+      },
+      {
+        "file": "slocum/visualize/visualize.py",
+        "out_degree": 7,
+        "in_degree": 3,
+        "coupling": 10
+      },
+      {
+        "file": "regression/test_interactive.py",
+        "out_degree": 7,
+        "in_degree": 0,
+        "coupling": 7
+      },
+      {
+        "file": "slocum/compression/schemes.py",
+        "out_degree": 2,
+        "in_degree": 5,
+        "coupling": 7
+      },
+      {
+        "file": "slocum/query/saildocs.py",
+        "out_degree": 3,
+        "in_degree": 4,
+        "coupling": 7
+      },
+      {
+        "file": "slocum/query/subset.py",
+        "out_degree": 4,
+        "in_degree": 3,
+        "coupling": 7
+      },
+      {
+        "file": "slocum/visualize/spot.py",
+        "out_degree": 5,
+        "in_degree": 2,
+        "coupling": 7
+      },
+      {
+        "file": "slocum/visualize/velocity.py",
+        "out_degree": 4,
+        "in_degree": 3,
+        "coupling": 7
+      },
+      {
+        "file": "slocum/lib/units.py",
+        "out_degree": 0,
+        "in_degree": 7,
+        "coupling": 7
+      },
+      {
+        "file": "test/test_request.py",
+        "out_degree": 6,
+        "in_degree": 0,
+        "coupling": 6
+      },
+      {
+        "file": "slocum/query/variables.py",
+        "out_degree": 1,
+        "in_degree": 5,
+        "coupling": 6
+      },
+      {
+        "file": "slocum/visualize/interactive.py",
+        "out_degree": 3,
+        "in_degree": 3,
+        "coupling": 6
+      },
+      {
+        "file": "slocum/lib/angles.py",
+        "out_degree": 0,
+        "in_degree": 6,
+        "coupling": 6
+      },
+      {
+        "file": "test/test_schemes.py",
+        "out_degree": 5,
+        "in_degree": 0,
+        "coupling": 5
+      },
+      {
+        "file": "slocum/query/zygrib.py",
+        "out_degree": 3,
+        "in_degree": 2,
+        "coupling": 5
+      },
+      {
+        "file": "regression/test_regression.py",
+        "out_degree": 4,
+        "in_degree": 0,
+        "coupling": 4
+      }
+    ]
+  },
+  {
+    "repo": "windmar",
+    "feature_file": "frontend/lib/api.ts",
+    "feature_focus": "voyage planning and optimization stack",
+    "oracle_dependency_files": [
+      "frontend/lib/api.ts",
+      "frontend/lib/demoMode.ts"
+    ],
+    "top_nodes": [
+      {
+        "file": "frontend/lib/api.ts",
+        "out_degree": 1,
+        "in_degree": 71,
+        "coupling": 72
+      },
+      {
+        "file": "frontend/components/Header.tsx",
+        "out_degree": 3,
+        "in_degree": 14,
+        "coupling": 17
+      },
+      {
+        "file": "frontend/lib/demoMode.ts",
+        "out_degree": 0,
+        "in_degree": 12,
+        "coupling": 12
+      },
+      {
+        "file": "api/routers/voyage.py",
+        "out_degree": 1,
+        "in_degree": 10,
+        "coupling": 11
+      },
+      {
+        "file": "api/schemas/voyage.py",
+        "out_degree": 2,
+        "in_degree": 9,
+        "coupling": 11
+      },
+      {
+        "file": "frontend/app/page.tsx",
+        "out_degree": 10,
+        "in_degree": 0,
+        "coupling": 10
+      },
+      {
+        "file": "frontend/components/Card.tsx",
+        "out_degree": 1,
+        "in_degree": 9,
+        "coupling": 10
+      },
+      {
+        "file": "frontend/components/VoyageContext.tsx",
+        "out_degree": 1,
+        "in_degree": 9,
+        "coupling": 10
+      },
+      {
+        "file": "src/optimization/voyage.py",
+        "out_degree": 0,
+        "in_degree": 10,
+        "coupling": 10
+      },
+      {
+        "file": "frontend/components/AnalysisPanel.tsx",
+        "out_degree": 6,
+        "in_degree": 1,
+        "coupling": 7
+      },
+      {
+        "file": "frontend/lib/analysisStorage.ts",
+        "out_degree": 1,
+        "in_degree": 6,
+        "coupling": 7
+      },
+      {
+        "file": "frontend/app/vessel/page.tsx",
+        "out_degree": 7,
+        "in_degree": 0,
+        "coupling": 7
+      },
+      {
+        "file": "frontend/app/analysis/page.tsx",
+        "out_degree": 6,
+        "in_degree": 0,
+        "coupling": 6
+      },
+      {
+        "file": "frontend/app/voyages/page.tsx",
+        "out_degree": 6,
+        "in_degree": 0,
+        "coupling": 6
+      },
+      {
+        "file": "api/reports/pdf_generator.py",
+        "out_degree": 6,
+        "in_degree": 0,
+        "coupling": 6
+      },
+      {
+        "file": "frontend/components/Toast.tsx",
+        "out_degree": 1,
+        "in_degree": 4,
+        "coupling": 5
+      },
+      {
+        "file": "frontend/app/engine-log/page.tsx",
+        "out_degree": 5,
+        "in_degree": 0,
+        "coupling": 5
+      },
+      {
+        "file": "api/reports/noon_reports.py",
+        "out_degree": 4,
+        "in_degree": 1,
+        "coupling": 5
+      },
+      {
+        "file": "api/reports/templates.py",
+        "out_degree": 4,
+        "in_degree": 1,
+        "coupling": 5
+      },
+      {
+        "file": "frontend/lib/utils.ts",
+        "out_degree": 0,
+        "in_degree": 5,
+        "coupling": 5
+      }
+    ]
+  }
+]
