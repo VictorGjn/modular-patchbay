@@ -6,6 +6,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { useTheme } from '../theme';
+import { API_BASE } from '../config';
 import { useProviderStore, type ProviderConfig, type ProviderStatus } from '../store/providerStore';
 import { useThemeStore, type Theme } from '../store/themeStore';
 import { useMcpStore, type McpServerState } from '../store/mcpStore';
@@ -213,7 +214,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                     type="button"
                     onClick={async () => {
                       try {
-                        const start = await fetch('/api/auth/codex/start', { method: 'POST' });
+                        const start = await fetch(`${API_BASE}/auth/codex/start`, { method: 'POST' });
                         const startJson = await start.json();
                         const sessionId = startJson?.data?.sessionId as string | undefined;
                         const authUrl = startJson?.data?.authUrl as string | undefined;
@@ -223,7 +224,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                         const pasted = window.prompt('Paste your OpenAI API key to complete Codex login');
                         if (!pasted) return;
 
-                        const complete = await fetch(`/api/auth/codex/complete/${sessionId}`, {
+                        const complete = await fetch(`${API_BASE}/auth/codex/complete/${sessionId}`, {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ apiKey: pasted.trim() }),
