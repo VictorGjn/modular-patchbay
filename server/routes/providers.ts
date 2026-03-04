@@ -104,12 +104,19 @@ router.post('/:id/test', async (req, res) => {
   }
 
   try {
-    const authToken = bodyAccessToken || provider.apiKey;
+    const authToken = (bodyAccessToken || provider.apiKey || '').trim();
     if (providerType.includes('anthropic')) {
+      const anthropicKey = authToken.replace(/^Bearer\s+/i, '').replace(/^x-api-key:\s*/i, '');
+      if (!anthropicKey) {
+        const resp: ApiResponse = { status: 'error', error: 'Missing Anthropic API key' };
+        res.status(400).json(resp);
+        return;
+      }
+
       const response = await fetch(`${baseUrl}/messages`, {
         method: 'POST',
         headers: {
-          'x-api-key': authToken,
+          'x-api-key': anthropicKey,
           'anthropic-version': '2023-06-01',
           'content-type': 'application/json',
         },
