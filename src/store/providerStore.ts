@@ -236,7 +236,7 @@ interface ProviderStore {
 
 export const useProviderStore = create<ProviderStore>((set, get) => ({
   providers: loadProviders(),
-  selectedProviderId: 'claude-agent-sdk',
+  selectedProviderId: 'openai',
   testing: {},
 
   setProviderKey: (id, apiKey) => {
@@ -507,10 +507,37 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         const merged = DEFAULT_PROVIDERS.map((def) => {
           const remote = data.find((d: ProviderConfig) => d.id === def.id);
           if (!remote) return def;
-          return { ...def, ...remote };
+          return {
+            ...def,
+            ...remote,
+            models: Array.isArray(remote.models) ? remote.models : def.models,
+          };
         });
-        const extras = data.filter((d: ProviderConfig) => !DEFAULT_PROVIDERS.some((def) => def.id === d.id));
-        set({ providers: [...merged, ...extras] });
+        const extras = data
+          .filter((d: ProviderConfig) => !DEFAULT_PROVIDERS.some((def) => def.id === d.id))
+          .map((d: ProviderConfig) => ({ ...d, models: Array.isArray(d.models) ? d.models : [] }));
+
+        const nextProviders = [...merged, ...extras];
+        const currentSelected = get().selectedProviderId;
+        const selectedProvider = nextProviders.find((p) => p.id === currentSelected);
+        const selectedUsable = Boolean(
+          selectedProvider &&
+          (selectedProvider.status === 'connected' || selectedProvider.status === 'configured') &&
+          Array.isArray(selectedProvider.models) &&
+          selectedProvider.models.length > 0,
+        );
+
+        const connectedWithModels = nextProviders.find((p) =>
+          (p.status === 'connected' || p.status === 'configured') &&
+          Array.isArray(p.models) &&
+          p.models.length > 0,
+        );
+
+        const fallbackSelected = selectedUsable
+          ? currentSelected
+          : (connectedWithModels?.id || nextProviders.find((p) => p.id === 'openai')?.id || nextProviders[0]?.id || 'openai');
+
+        set({ providers: nextProviders, selectedProviderId: fallbackSelected });
         persistProviders(get().providers);
       }
     } catch {

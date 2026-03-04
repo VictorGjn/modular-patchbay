@@ -143,8 +143,18 @@ router.post('/:id/test', async (req, res) => {
       if (!response.ok) {
         throw new Error(`API returned ${response.status}: ${response.statusText}`);
       }
-      const body = await response.json() as { data?: Array<{ id: string }> };
-      const models = body.data?.map((m) => m.id) ?? [];
+      const body = await response.json() as {
+        data?: Array<{ id?: string; model?: string; name?: string }>;
+        models?: Array<{ id?: string; model?: string; name?: string } | string>;
+      };
+
+      const fromData = Array.isArray(body.data)
+        ? body.data.map((m) => m.id || m.model || m.name).filter(Boolean) as string[]
+        : [];
+      const fromModels = Array.isArray(body.models)
+        ? body.models.map((m) => typeof m === 'string' ? m : (m.id || m.model || m.name)).filter(Boolean) as string[]
+        : [];
+      const models = [...new Set([...fromData, ...fromModels])];
       const resp: ApiResponse<{ models: string[] }> = { status: 'ok', data: { models } };
       res.json(resp);
     }
