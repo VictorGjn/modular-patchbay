@@ -30,7 +30,7 @@ import {
   type NavigationPlan,
   type BranchSelection,
 } from './treeNavigator';
-import { compress } from './rtk';
+import { compress } from './compress';
 import { estimateTokens } from './treeIndexer';
 
 // ── Types ──
