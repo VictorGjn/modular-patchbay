@@ -51,6 +51,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
   const isCustom = provider.id.startsWith('custom-');
   const isOpenAiProvider = provider.id === 'openai';
   const isCodexOAuth = isOpenAiProvider && provider.authMethod === 'oauth';
+  const models = Array.isArray(provider.models) ? provider.models : [];
 
   useEffect(() => {
     setLocalKey(provider.apiKey || '');
@@ -101,7 +102,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
           {provider.name}
         </span>
         <span className="text-[10px]" style={{ color: t.textMuted }}>
-          {provider.status === 'connected' ? `${provider.models.length} models` : provider.status}
+          {provider.status === 'connected' ? `${models.length} models` : provider.status}
         </span>
       </button>
 
@@ -161,7 +162,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   Available Models
                 </label>
                 <div className="flex flex-wrap gap-1">
-                  {provider.models.map((m) => (
+                  {models.map((m) => (
                     <span
                       key={m.id}
                       className="text-[10px] px-2 py-0.5 rounded"
