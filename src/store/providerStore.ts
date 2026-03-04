@@ -159,27 +159,27 @@ function loadProviders(): ProviderConfig[] {
       const s = saved.find((p) => p.id === def.id);
       if (!s) return def;
       const authMethod = (s.authMethod ?? def.authMethod) as AuthMethod;
-      const hasApiKey = Boolean((s.apiKey ?? def.apiKey)?.trim());
       return {
         ...def,
         authMethod,
-        apiKey: s.apiKey ?? def.apiKey,
-        accessToken: s.accessToken ?? def.accessToken,
+        // Do not restore credentials from localStorage
+        apiKey: def.apiKey,
+        accessToken: def.accessToken,
         baseUrl: s.baseUrl ?? def.baseUrl,
-        status: authMethod === 'oauth' ? ((s.status ?? 'configured') as ProviderStatus) : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus),
+        status: (s.status ?? def.status) as ProviderStatus,
       };
     }).concat(
       saved.filter((s) => !DEFAULT_PROVIDERS.some((d) => d.id === s.id)).map((s) => {
         const authMethod = (s.authMethod ?? 'api-key') as AuthMethod;
-        const hasApiKey = Boolean(s.apiKey?.trim());
         return {
           ...DEFAULT_PROVIDERS[DEFAULT_PROVIDERS.length - 1],
           ...s,
           authMethod,
-          accessToken: s.accessToken,
+          apiKey: '',
+          accessToken: '',
           id: s.id ?? 'custom-' + Date.now(),
           name: s.name ?? 'Custom',
-          status: authMethod === 'oauth' ? ((s.status ?? 'configured') as ProviderStatus) : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus),
+          status: (s.status ?? 'disconnected') as ProviderStatus,
           models: s.models ?? [{ id: 'custom-model', label: 'Custom Model' }],
         } as ProviderConfig;
       })
@@ -197,8 +197,7 @@ function persistProviders(providers: ProviderConfig[]) {
     return {
       id: p.id,
       name: p.name,
-      apiKey: p.apiKey,
-      accessToken: p.accessToken,
+      // Never persist secrets in localStorage
       baseUrl: p.baseUrl,
       status: p.status,
       authMethod: p.authMethod,
