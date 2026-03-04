@@ -308,7 +308,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
   },
 
   getProviderForModel: (modelId) => {
-    return get().providers.find((p) => p.models.some((m) => m.id === modelId));
+    return get().providers.find((p) => (Array.isArray(p.models) ? p.models : []).some((m) => m.id === modelId));
   },
 
   getActiveProvider: () => {
@@ -317,16 +317,19 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
 
   getAllModels: () => {
     return get().providers
-      .filter((p) => p.models.length > 0 && (p.status === 'connected' || p.status === 'configured'))
-      .flatMap((p) =>
-      p.models.map((m) => ({
-        id: m.id,
-        label: m.label,
-        providerId: p.id,
-        providerName: p.name,
-        providerColor: p.color,
-      }))
-    );
+      .flatMap((p) => {
+        const models = Array.isArray(p.models) ? p.models : [];
+        if (models.length === 0) return [];
+        if (!(p.status === 'connected' || p.status === 'configured')) return [];
+
+        return models.map((m) => ({
+          id: m.id,
+          label: m.label,
+          providerId: p.id,
+          providerName: p.name,
+          providerColor: p.color,
+        }));
+      });
   },
 
   selectProvider: (id) => set({ selectedProviderId: id }),
