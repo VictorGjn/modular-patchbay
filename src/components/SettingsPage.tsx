@@ -199,14 +199,53 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
           ) : (
             <>
               {isCodexOAuth ? (
-                <div
-                  className="flex items-start gap-2 text-xs px-3 py-2.5 rounded-lg"
-                  style={{ background: t.badgeBg, border: `1px solid ${t.borderSubtle}` }}
-                >
-                  <Terminal size={14} style={{ color: provider.color, marginTop: 1 }} />
-                  <span style={{ color: t.textSecondary }}>
-                    Local session login is not wired for OpenAI yet. Use API Key mode for now.
-                  </span>
+                <div className="flex flex-col gap-2">
+                  <div
+                    className="flex items-start gap-2 text-xs px-3 py-2.5 rounded-lg"
+                    style={{ background: t.badgeBg, border: `1px solid ${t.borderSubtle}` }}
+                  >
+                    <Terminal size={14} style={{ color: provider.color, marginTop: 1 }} />
+                    <span style={{ color: t.textSecondary }}>
+                      Codex browser sign-in (guided): open OpenAI dashboard, create key, and complete login flow.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const start = await fetch('/api/auth/codex/start', { method: 'POST' });
+                        const startJson = await start.json();
+                        const sessionId = startJson?.data?.sessionId as string | undefined;
+                        const authUrl = startJson?.data?.authUrl as string | undefined;
+                        if (!sessionId || !authUrl) return;
+
+                        window.open(authUrl, '_blank', 'noopener,noreferrer');
+                        const pasted = window.prompt('Paste your OpenAI API key to complete Codex login');
+                        if (!pasted) return;
+
+                        const complete = await fetch(`/api/auth/codex/complete/${sessionId}`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ apiKey: pasted.trim() }),
+                        });
+                        const completeJson = await complete.json();
+                        const apiKey = completeJson?.data?.apiKey as string | undefined;
+                        if (!apiKey) return;
+
+                        setProviderKey(provider.id, apiKey);
+                        setLocalKey(apiKey);
+                        setProviderBaseUrl(provider.id, localUrl);
+                        saveProvider(provider.id);
+                        await handleTest();
+                      } catch {
+                        // no-op
+                      }
+                    }}
+                    className="nodrag nowheel flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg cursor-pointer font-semibold border-none"
+                    style={{ background: '#FE5000', color: '#fff' }}
+                  >
+                    Sign in with Codex
+                  </button>
                 </div>
               ) : (
                 <div className="flex flex-col gap-1">
