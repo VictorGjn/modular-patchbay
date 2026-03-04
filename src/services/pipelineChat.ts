@@ -11,6 +11,7 @@
 import type { ChannelConfig, Connector } from '../store/knowledgeBase';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 import { useConsoleStore } from '../store/consoleStore';
+import { useProviderStore } from '../store/providerStore';
 import { useMcpStore, type McpTool } from '../store/mcpStore';
 import { compileWorkflow } from '../nodes/WorkflowNode';
 import {
@@ -216,6 +217,40 @@ function buildKnowledgeFallback(channels: ChannelConfig[]): string {
   }
 
   return `<knowledge>\n${knowledgeLines.join('\n\n')}\n</knowledge>`;
+}
+
+// ── Provider/model resolution (shared by all tester surfaces) ──
+
+export interface ResolvedProvider {
+  providerId: string;
+  model: string;
+  error?: string;
+}
+
+/**
+ * Resolve which provider and model to use for a test run.
+ * Centralises the logic so ConversationTester and TestPanel behave identically.
+ */
+export function resolveProviderAndModel(): ResolvedProvider {
+  const { agentConfig } = useConsoleStore.getState();
+  const { selectedProviderId, providers } = useProviderStore.getState();
+
+  const selected = providers.find((p: any) => p.id === selectedProviderId);
+  const models = Array.isArray(selected?.models) ? selected!.models : [];
+
+  if (!selected || (selected.status !== 'connected' && selected.status !== 'configured') || models.length === 0) {
+    return {
+      providerId: '',
+      model: '',
+      error: 'No provider/model configured. Open Settings → Providers, connect one provider, refresh models, then retry.',
+    };
+  }
+
+  const hasCurrentModel = models.some((m: any) => m.id === agentConfig.model);
+  return {
+    providerId: selected.id,
+    model: hasCurrentModel ? agentConfig.model : models[0].id,
+  };
 }
 
 // ── Main pipeline chat ──

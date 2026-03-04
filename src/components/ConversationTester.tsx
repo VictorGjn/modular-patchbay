@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { API_BASE } from '../config';
 import { useConversationStore } from '../store/conversationStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { useTheme } from '../theme';
@@ -9,94 +8,8 @@ import {
   Play, CheckCircle, XCircle, Minus, Plus, X, FlaskConical, History,
   GripHorizontal,
 } from 'lucide-react';
-import { streamAgentSdk } from '../services/llmService';
-import { assembleContext } from '../services/contextAssembler';
-import { useProviderStore } from '../store/providerStore';
-import { compileWorkflow } from '../nodes/WorkflowNode';
 import { ResponseRenderer } from './ResponseRenderer';
-
-type Provider = ReturnType<typeof useProviderStore.getState>['providers'][number];
-
-// Backend-proxy streaming function
-async function streamThroughBackend({
-  providerId,
-  model,
-  messages,
-  temperature,
-  maxTokens,
-  onChunk,
-  onDone,
-  onError,
-}: {
-  providerId: string;
-  model: string;
-  messages: { role: string; content: string }[];
-  temperature?: number;
-  maxTokens?: number;
-  onChunk: (text: string) => void;
-  onDone: () => void;
-  onError: (error: Error) => void;
-}): Promise<AbortController> {
-  const controller = new AbortController();
-
-  const response = await fetch(`${API_BASE}/llm/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ provider: providerId, model, messages, temperature, maxTokens }),
-    signal: controller.signal,
-  });
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    onError(new Error(`Backend error ${response.status}: ${body || response.statusText}`));
-    return controller;
-  }
-
-  const reader = response.body?.getReader();
-  if (!reader) {
-    onError(new Error('No response body'));
-    return controller;
-  }
-
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith('data: ')) continue;
-        const data = trimmed.slice(6);
-        if (data === '[DONE]') {
-          onDone();
-          return controller;
-        }
-
-        try {
-          const parsed = JSON.parse(data);
-          const content = parsed.choices?.[0]?.delta?.content;
-          if (content) {
-            onChunk(content);
-          }
-        } catch {
-          // Skip malformed JSON chunks
-        }
-      }
-    }
-    onDone();
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') return controller;
-    onError(err instanceof Error ? err : new Error(String(err)));
-  }
-
-  return controller;
-}
+import { resolveProviderAndModel, runPipelineChat } from '../services/pipelineChat';
 
 export function ConversationTester() {
   const t = useTheme();
@@ -141,7 +54,7 @@ export function ConversationTester() {
     document.addEventListener('mouseup', handleUp);
   }, [panelHeight, setPanelHeight]);
 
-  // Send message
+  // Send message (uses pipeline runtime, same as TestPanel)
   const handleSend = useCallback(async () => {
     const text = inputText.trim();
     if (!text || streaming) return;
@@ -152,60 +65,28 @@ export function ConversationTester() {
     setStreaming(true);
 
     try {
+      const resolved = resolveProviderAndModel();
+      if (resolved.error) {
+        updateLastAssistant(resolved.error);
+        setStreaming(false);
+        return;
+      }
+
       const store = useConsoleStore.getState();
-      const providers = useProviderStore.getState();
+      let accum = '';
 
-      // Build system prompt from instructions + workflow + context
-      const instructionPrompt = store.instructionState.rawPrompt || '';
-      const workflowPrompt = compileWorkflow(store.workflowSteps);
-      const assembled = assembleContext(store.channels, text, { name: store.agentMeta.name, description: store.agentMeta.description });
-      const contextSystem = assembled.find((m) => m.role === 'system')?.content || '';
-
-      const fullSystem = [instructionPrompt, workflowPrompt, contextSystem].filter(Boolean).join('\n\n');
-
-      // Build message history for multi-turn
-      const history = messages
-        .filter((m) => m.role !== 'system')
-        .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-      history.push({ role: 'user', content: text });
-
-      // Determine provider
-      const model = store.selectedModel;
-      const provider = providers.providers.find((p: Provider) => p.status === 'connected' || p.status === 'configured');
-      const useAgentSdk = provider?.authMethod === 'claude-agent-sdk';
-
-      let accumulated = '';
-      const onChunk = (chunk: string) => {
-        accumulated += chunk;
-        updateLastAssistant(accumulated);
-      };
-
-      await new Promise<void>((resolve, reject) => {
-        if (useAgentSdk) {
-          streamAgentSdk({
-            prompt: text,
-            model,
-            systemPrompt: fullSystem,
-            onChunk,
-            onDone: resolve,
-            onError: reject,
-          });
-        } else {
-          const allMessages = [
-            { role: 'system', content: fullSystem },
-            ...history,
-          ];
-          streamThroughBackend({
-            providerId: provider?.id || '',
-            model,
-            messages: allMessages,
-            temperature: 0.7,
-            maxTokens: 4096,
-            onChunk,
-            onDone: resolve,
-            onError: reject,
-          });
-        }
+      await runPipelineChat({
+        userMessage: text,
+        channels: store.channels,
+        connectors: store.connectors,
+        history: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
+        agentMeta: { name: store.agentMeta.name, description: store.agentMeta.description, avatar: store.agentMeta.avatar, tags: store.agentMeta.tags },
+        providerId: resolved.providerId,
+        model: resolved.model,
+        navigationMode: store.navigationMode,
+        onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
+        onDone: () => {},
+        onError: (err: Error) => { updateLastAssistant(accum + `\n\n_Error: ${err.message}_`); },
       });
     } catch (err) {
       updateLastAssistant(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -223,55 +104,34 @@ export function ConversationTester() {
     setRunningAllTests(true);
     const { updateTestCase } = useConversationStore.getState();
 
+    const resolved = resolveProviderAndModel();
+    if (resolved.error) {
+      for (const tc of testCases) {
+        updateTestCase(tc.id, { lastResult: resolved.error, passed: false });
+      }
+      setRunningAllTests(false);
+      return;
+    }
+
     for (const testCase of testCases) {
       try {
         const store = useConsoleStore.getState();
-        const providers = useProviderStore.getState();
-
-        // Build system prompt from instructions + workflow + context
-        const instructionPrompt = store.instructionState.rawPrompt || '';
-        const workflowPrompt = compileWorkflow(store.workflowSteps);
-        const assembled = assembleContext(store.channels, testCase.input, { name: store.agentMeta.name, description: store.agentMeta.description });
-        const contextSystem = assembled.find((m) => m.role === 'system')?.content || '';
-
-        const fullSystem = [instructionPrompt, workflowPrompt, contextSystem].filter(Boolean).join('\n\n');
-
-        // Determine provider
-        const model = store.selectedModel;
-        const provider = providers.providers.find((p: Provider) => p.status === 'connected' || p.status === 'configured');
-        const useAgentSdk = provider?.authMethod === 'claude-agent-sdk';
-
         let result = '';
 
-        await new Promise<void>((resolve, reject) => {
-          if (useAgentSdk) {
-            streamAgentSdk({
-              prompt: testCase.input,
-              model,
-              systemPrompt: fullSystem,
-              onChunk: (chunk: string) => { result += chunk; },
-              onDone: resolve,
-              onError: reject,
-            });
-          } else {
-            const allMessages = [
-              { role: 'system', content: fullSystem },
-              { role: 'user', content: testCase.input },
-            ];
-            streamThroughBackend({
-              providerId: provider?.id || '',
-              model,
-              messages: allMessages,
-              temperature: 0.7,
-              maxTokens: 4096,
-              onChunk: (chunk: string) => { result += chunk; },
-              onDone: resolve,
-              onError: reject,
-            });
-          }
+        await runPipelineChat({
+          userMessage: testCase.input,
+          channels: store.channels,
+          connectors: store.connectors,
+          history: [],
+          agentMeta: { name: store.agentMeta.name, description: store.agentMeta.description, avatar: store.agentMeta.avatar, tags: store.agentMeta.tags },
+          providerId: resolved.providerId,
+          model: resolved.model,
+          navigationMode: store.navigationMode,
+          onChunk: (chunk: string) => { result += chunk; },
+          onDone: () => {},
+          onError: (err: Error) => { throw err; },
         });
 
-        // Update test case with result
         const passed = testCase.expectedBehavior
           ? result.toLowerCase().includes(testCase.expectedBehavior.toLowerCase())
           : null;
