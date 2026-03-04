@@ -143,7 +143,16 @@ router.post('/:id/test', async (req, res) => {
         return;
       }
 
-      const resp: ApiResponse<{ models: string[] }> = { status: 'ok', data: { models: ['claude-3-haiku-20240307'] } };
+      // Anthropic has no public list-models endpoint; return curated Claude model catalog on successful auth.
+      const models = [
+        'claude-opus-4',
+        'claude-sonnet-4',
+        'claude-3-7-sonnet-20250219',
+        'claude-3-5-sonnet-20241022',
+        'claude-3-5-haiku-20241022',
+        'claude-3-haiku-20240307',
+      ];
+      const resp: ApiResponse<{ models: string[] }> = { status: 'ok', data: { models } };
       res.json(resp);
     } else {
       // OpenAI, OpenRouter, Google, Custom — hit /models
