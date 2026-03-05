@@ -17,6 +17,9 @@ import healthRoutes from './routes/health.js';
 import connectorRoutes from './routes/connectors.js';
 import runtimeRoutes from './routes/runtime.js';
 import worktreeRoutes from './routes/worktrees.js';
+import authCodexRoutes from './routes/auth-codex.js';
+import capabilitiesRoutes from './routes/capabilities.js';
+import qualificationRoutes from './routes/qualification.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -35,6 +38,35 @@ export function createApp() {
 
   app.use(express.json({ limit: '10mb' }));
 
+  // Basic security headers (lightweight helmet-like)
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    next();
+  });
+
+  // Simple in-memory rate limiter for API routes
+  const rateWindowMs = 60_000;
+  const maxRequestsPerWindow = 240;
+  const ipHits = new Map<string, { count: number; resetAt: number }>();
+  app.use('/api', (req, res, next) => {
+    const ip = req.ip || 'unknown';
+    const now = Date.now();
+    const current = ipHits.get(ip);
+    if (!current || now > current.resetAt) {
+      ipHits.set(ip, { count: 1, resetAt: now + rateWindowMs });
+      return next();
+    }
+    if (current.count >= maxRequestsPerWindow) {
+      return res.status(429).json({ status: 'error', error: 'Rate limit exceeded' });
+    }
+    current.count += 1;
+    ipHits.set(ip, current);
+    next();
+  });
+
   // API routes
   app.use('/api/providers', providerRoutes);
   app.use('/api/mcp', mcpRoutes);
@@ -48,6 +80,9 @@ export function createApp() {
   app.use('/api/connectors', connectorRoutes);
   app.use('/api/runtime', runtimeRoutes);
   app.use('/api/worktrees', worktreeRoutes);
+  app.use('/api/auth/codex', authCodexRoutes);
+  app.use('/api/capabilities', capabilitiesRoutes);
+  app.use('/api/qualification', qualificationRoutes);
 
   // Global error handler — prevent server crashes
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

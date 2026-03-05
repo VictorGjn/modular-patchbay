@@ -12,6 +12,8 @@ export type ExtractType = 'user_preferences' | 'decisions' | 'facts' | 'feedback
 export type MemoryScope = 'per_user' | 'per_agent' | 'global';
 export type WorkingFormat = 'json' | 'markdown' | 'freeform';
 export type FactType = 'preference' | 'decision' | 'fact' | 'entity' | 'custom';
+export type MemoryDomain = 'shared' | 'agent_private' | 'run_scratchpad';
+export type SandboxIsolation = 'reset_each_run' | 'persistent_sandbox' | 'clone_from_shared';
 
 export interface Fact {
   id: string;
@@ -19,6 +21,17 @@ export interface Fact {
   tags: string[];
   type: FactType;
   timestamp: number;
+  domain: MemoryDomain;
+}
+
+export interface SandboxConfig {
+  isolation: SandboxIsolation;
+  allowPromoteToShared: boolean;
+  domains: {
+    shared: { enabled: boolean };
+    agentPrivate: { enabled: boolean };
+    runScratchpad: { enabled: boolean };
+  };
 }
 
 export interface SessionMemoryConfig {
@@ -69,6 +82,7 @@ export interface MemoryState {
   longTerm: LongTermMemoryConfig;
   working: WorkingMemoryConfig;
   facts: Fact[];
+  sandbox: SandboxConfig;
 
   // Legacy aliases (for backward compat with MemoryNode)
   sessionMemory: SessionMemoryConfig;
@@ -89,9 +103,17 @@ export interface MemoryState {
   updateScratchpad: (text: string) => void;
 
   // Actions — facts
-  addFact: (content: string, tags?: string[], type?: FactType) => void;
+  addFact: (content: string, tags?: string[], type?: FactType, domain?: MemoryDomain) => void;
   removeFact: (id: string) => void;
   updateFact: (id: string, patch: Partial<Omit<Fact, 'id'>>) => void;
+
+  // Actions — sandbox
+  setSandboxConfig: (patch: Partial<SandboxConfig>) => void;
+  setSandboxDomain: (domain: keyof SandboxConfig['domains'], enabled: boolean) => void;
+
+  // Queries — domain-filtered facts
+  getFactsByDomain: (domain: MemoryDomain) => Fact[];
+  getRecallableFacts: (agentId?: string) => Fact[];
 
   // Export
   toYaml: () => Record<string, unknown>;
@@ -130,6 +152,16 @@ const DEFAULT_WORKING: WorkingMemoryConfig = {
   tokenBudget: 2000,
 };
 
+const DEFAULT_SANDBOX: SandboxConfig = {
+  isolation: 'reset_each_run',
+  allowPromoteToShared: false,
+  domains: {
+    shared: { enabled: true },
+    agentPrivate: { enabled: true },
+    runScratchpad: { enabled: true },
+  },
+};
+
 /* ── Store ── */
 
 export const useMemoryStore = create<MemoryState>((set, get) => ({
@@ -137,6 +169,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   longTerm: { ...DEFAULT_LONG_TERM },
   working: { ...DEFAULT_WORKING },
   facts: [],
+  sandbox: { ...DEFAULT_SANDBOX },
 
   // Legacy aliases — kept for MemoryNode backward compat
   // These are synced via subscriptions below
@@ -189,13 +222,14 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   },
 
   // Facts
-  addFact: (content, tags = [], type = 'fact') => {
+  addFact: (content, tags = [], type = 'fact', domain: MemoryDomain = 'shared') => {
     const fact: Fact = {
       id: `fact-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       content,
       tags,
       type,
       timestamp: Date.now(),
+      domain,
     };
     set((s) => {
       const facts = [...s.facts, fact];
@@ -214,9 +248,34 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     }));
   },
 
+  // Sandbox
+  setSandboxConfig: (patch) => {
+    set((s) => ({ sandbox: { ...s.sandbox, ...patch } }));
+  },
+  setSandboxDomain: (domain, enabled) => {
+    set((s) => ({
+      sandbox: {
+        ...s.sandbox,
+        domains: { ...s.sandbox.domains, [domain]: { enabled } },
+      },
+    }));
+  },
+
+  // Domain queries
+  getFactsByDomain: (domain) => get().facts.filter((f) => f.domain === domain),
+  getRecallableFacts: (agentId) => {
+    const { facts, sandbox } = get();
+    return facts.filter((f) => {
+      if (f.domain === 'run_scratchpad') return false; // never leak scratchpad
+      if (f.domain === 'agent_private' && agentId) return true; // agent sees own private
+      if (f.domain === 'shared') return true;
+      return false;
+    });
+  },
+
   // YAML export
   toYaml: () => {
-    const { session, longTerm, working, facts } = get();
+    const { session, longTerm, working, facts, sandbox } = get();
     return {
       memory: {
         session: {
@@ -249,6 +308,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
                   content: f.content,
                   type: f.type,
                   tags: f.tags,
+                  domain: f.domain,
                 })),
               }
             : {}),
@@ -259,6 +319,15 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
           persist: working.persist,
           format: working.format,
           token_budget: working.tokenBudget,
+        },
+        sandbox: {
+          isolation: sandbox.isolation,
+          allow_promote_to_shared: sandbox.allowPromoteToShared,
+          domains: {
+            shared: sandbox.domains.shared.enabled,
+            agent_private: sandbox.domains.agentPrivate.enabled,
+            run_scratchpad: sandbox.domains.runScratchpad.enabled,
+          },
         },
       },
     };

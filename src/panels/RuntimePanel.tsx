@@ -9,6 +9,9 @@ import { TextArea, Button, Card, EmptyState, Spinner, StatusDot } from '../compo
 import { WorktreeGraphPanel, type AgentWorktreeStatus } from '../components/WorktreeGraphPanel';
 import { API_BASE } from '../config';
 import { Play, FileSearch, Users, GitBranch, UserPlus, X } from 'lucide-react';
+import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
+import { CapabilityGate } from '../components/CapabilityGate';
+import { CapabilityMatrixDisplay } from '../components/CapabilityMatrix';
 
 /* ── Epistemic Colors ── */
 
@@ -190,6 +193,9 @@ export function RuntimePanel() {
 
   const isRunning = status === 'running' || status === 'extracting_contracts';
 
+  const capabilityMatrix = getCapabilityMatrix(selectedProviderId || 'custom');
+  const runtimeRequiredCaps: CapabilityKey[] = ['toolCalling', 'streaming', 'agentLoop'];
+
   const composedInstructions = useMemo(() => {
     const result: Record<string, string> = {};
     for (const agent of teamAgents) {
@@ -356,6 +362,10 @@ export function RuntimePanel() {
         agentCount={agents.length}
         sharedCount={sharedFacts.length}
       />
+
+      {/* Capability Matrix & Gating */}
+      <CapabilityMatrixDisplay matrix={capabilityMatrix} />
+      <CapabilityGate matrix={capabilityMatrix} requiredCapabilities={runtimeRequiredCaps} />
 
       <WorktreeGraphPanel
         rows={worktreeRows}

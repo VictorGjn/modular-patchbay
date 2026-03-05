@@ -8,7 +8,9 @@ export type TraceEventKind =
   | 'retrieval'       // Knowledge source retrieval
   | 'error'           // Any error
   | 'token_usage'     // Token count snapshot
-  | 'fact_extracted'   // Memory fact extracted from conversation
+  | 'fact_extracted'  // Memory fact extracted from conversation
+  | 'memory_recall'   // Memory pre-recall: facts injected into context
+  | 'memory_write'    // Memory post-write: facts extracted from response
   | 'handoff';        // Cross-agent handoff
 
 export interface TraceEvent {
@@ -43,6 +45,11 @@ export interface TraceEvent {
   errorMessage?: string;
   errorStack?: string;
   rootCause?: string;          // "MCP server `github-mcp` returned 403 — API token expired"
+
+  // Memory recall/write
+  memoryDomain?: string;
+  memoryFactIds?: string[];
+  memoryFactCount?: number;
 
   // Handoff
   fromAgentId?: string;

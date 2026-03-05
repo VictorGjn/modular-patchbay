@@ -2,14 +2,15 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useConversationStore } from '../store/conversationStore';
-import { useProviderStore } from '../store/providerStore';
 import { exportAgentYaml } from '../utils/agentExportYaml';
-import { runPipelineChat } from '../services/pipelineChat';
+import { runPipelineChat, resolveProviderAndModel } from '../services/pipelineChat';
 import {
   Send, Download, Check,
   FileText, FileCode, Zap, ChevronDown,
 } from 'lucide-react';
 import { TraceViewer } from './TraceViewer';
+import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
+import { CapabilityGate } from '../components/CapabilityGate';
 
 /* ── Pipeline Stats Bar ── */
 function PipelineStatsBar() {
@@ -112,12 +113,21 @@ function ChatSection() {
   const updateLastAssistant = useConversationStore(s => s.updateLastAssistant);
   const setLastPipelineStats = useConversationStore(s => s.setLastPipelineStats);
 
-  const agentConfig = useConsoleStore(s => s.agentConfig);
   const channels = useConsoleStore(s => s.channels);
   const connectors = useConsoleStore(s => s.connectors);
+  const mcpServers = useConsoleStore(s => s.mcpServers);
   const agentMeta = useConsoleStore(s => s.agentMeta);
   const navigationMode = useConsoleStore(s => s.navigationMode);
-  const selectedProviderId = useProviderStore(s => s.selectedProviderId);
+
+  // Derive required capabilities from agent config
+  const requiredCapabilities: CapabilityKey[] = (() => {
+    const caps: CapabilityKey[] = ['streaming'];
+    if (connectors.length > 0) caps.push('toolCalling');
+    if (mcpServers.length > 0) caps.push('mcpBridge');
+    return caps;
+  })();
+  const resolved = resolveProviderAndModel();
+  const capabilityMatrix = getCapabilityMatrix(resolved.providerId || 'custom');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -136,14 +146,21 @@ function ChatSection() {
     let accum = '';
 
     try {
+      const { providerId, model, error } = resolveProviderAndModel();
+      if (error) {
+        updateLastAssistant(error);
+        setStreaming(false);
+        return;
+      }
+
       await runPipelineChat({
         userMessage: userMsg,
         channels,
         connectors,
         history: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
         agentMeta: { name: agentMeta.name, description: agentMeta.description, avatar: agentMeta.avatar, tags: agentMeta.tags },
-        providerId: selectedProviderId || 'anthropic',
-        model: agentConfig.model,
+        providerId,
+        model,
         navigationMode,
         onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
         onDone: (stats) => { setLastPipelineStats(stats); },
@@ -154,7 +171,7 @@ function ChatSection() {
     } finally {
       setStreaming(false);
     }
-  }, [inputText, streaming, messages, agentConfig, channels, connectors, agentMeta, navigationMode, selectedProviderId, setInputText, addMessage, setStreaming, updateLastAssistant, setLastPipelineStats]);
+  }, [inputText, streaming, messages, channels, connectors, agentMeta, navigationMode, setInputText, addMessage, setStreaming, updateLastAssistant, setLastPipelineStats]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -188,6 +205,13 @@ function ChatSection() {
         ))}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Capability Warnings */}
+      {requiredCapabilities.length > 0 && (
+        <div className="px-4 py-1.5">
+          <CapabilityGate matrix={capabilityMatrix} requiredCapabilities={requiredCapabilities} />
+        </div>
+      )}
 
       {/* Pipeline Stats */}
       <PipelineStatsBar />

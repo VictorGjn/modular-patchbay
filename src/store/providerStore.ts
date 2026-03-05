@@ -35,7 +35,7 @@ export interface ProviderConfig {
 export const DEFAULT_PROVIDERS: ProviderConfig[] = [
   {
     id: 'anthropic',
-    name: 'Anthropic',
+    name: 'Claude',
     authMethod: 'api-key',
     status: 'disconnected',
     baseUrl: 'https://api.anthropic.com/v1',
@@ -130,8 +130,12 @@ function normalizeProviderBaseUrl(id: string, baseUrl: string): string {
 
 // Check if backend is available with TTL cache
 let backendAvailable: boolean | null = null;
-let backendCheckTime: number = 0;
-const BACKEND_CHECK_TTL = 30000; // 30 seconds
+let backendCheckTime = 0;
+const BACKEND_CHECK_TTL = 30000;
+
+const pendingProviderSync = new Set<string>();
+const providerSyncTimers = new Map<string, ReturnType<typeof setTimeout>>();
+let flushingProviderSync = false;
 
 async function isBackendAvailable(): Promise<boolean> {
   const now = Date.now();
@@ -150,6 +154,82 @@ async function isBackendAvailable(): Promise<boolean> {
   return backendAvailable;
 }
 
+async function syncProviderToBackend(provider: ProviderConfig): Promise<void> {
+  const backend = await isBackendAvailable();
+  if (!backend) {
+    pendingProviderSync.add(provider.id);
+    return;
+  }
+
+  // Derive backend type from provider id
+  const backendType =
+    provider.id.includes('anthropic') || provider.id === 'claude-agent-sdk' ? 'anthropic' :
+    provider.id.includes('google') ? 'google' :
+    provider.id.includes('openrouter') ? 'openrouter' :
+    provider.id.includes('openai') ? 'openai' :
+    'custom';
+
+  await fetch(`${API_BASE}/providers/${provider.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      apiKey: provider.apiKey,
+      accessToken: provider.accessToken,
+      baseUrl: provider.baseUrl,
+      authMethod: provider.authMethod,
+      name: provider.name,
+      type: backendType,
+    }),
+  });
+  pendingProviderSync.delete(provider.id);
+}
+
+function scheduleProviderSync(providers: ProviderConfig[], id: string): void {
+  const existingTimer = providerSyncTimers.get(id);
+  if (existingTimer) clearTimeout(existingTimer);
+
+  const timer = setTimeout(() => {
+    const provider = providers.find((p) => p.id === id);
+    if (!provider) return;
+
+    syncProviderToBackend(provider)
+      .catch(() => {
+        pendingProviderSync.add(id);
+      })
+      .finally(() => {
+        providerSyncTimers.delete(id);
+      });
+  }, 400);
+
+  providerSyncTimers.set(id, timer);
+}
+
+async function flushPendingProviderSync(providers: ProviderConfig[]): Promise<void> {
+  if (flushingProviderSync || pendingProviderSync.size === 0) return;
+  flushingProviderSync = true;
+
+  try {
+    const backend = await isBackendAvailable();
+    if (!backend) return;
+
+    const ids = [...pendingProviderSync];
+    for (const id of ids) {
+      const provider = providers.find((p) => p.id === id);
+      if (!provider) {
+        pendingProviderSync.delete(id);
+        continue;
+      }
+      try {
+        await syncProviderToBackend(provider);
+      } catch {
+        // keep in queue, will retry later
+      }
+    }
+  } finally {
+    flushingProviderSync = false;
+  }
+}
+
 function loadProviders(): ProviderConfig[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -159,27 +239,27 @@ function loadProviders(): ProviderConfig[] {
       const s = saved.find((p) => p.id === def.id);
       if (!s) return def;
       const authMethod = (s.authMethod ?? def.authMethod) as AuthMethod;
-      const hasApiKey = Boolean((s.apiKey ?? def.apiKey)?.trim());
       return {
         ...def,
         authMethod,
-        apiKey: s.apiKey ?? def.apiKey,
-        accessToken: s.accessToken ?? def.accessToken,
+        // Do not restore credentials from localStorage
+        apiKey: def.apiKey,
+        accessToken: def.accessToken,
         baseUrl: s.baseUrl ?? def.baseUrl,
-        status: authMethod === 'oauth' ? ((s.status ?? 'configured') as ProviderStatus) : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus),
+        status: (s.status ?? def.status) as ProviderStatus,
       };
     }).concat(
       saved.filter((s) => !DEFAULT_PROVIDERS.some((d) => d.id === s.id)).map((s) => {
         const authMethod = (s.authMethod ?? 'api-key') as AuthMethod;
-        const hasApiKey = Boolean(s.apiKey?.trim());
         return {
           ...DEFAULT_PROVIDERS[DEFAULT_PROVIDERS.length - 1],
           ...s,
           authMethod,
-          accessToken: s.accessToken,
+          apiKey: '',
+          accessToken: '',
           id: s.id ?? 'custom-' + Date.now(),
           name: s.name ?? 'Custom',
-          status: authMethod === 'oauth' ? ((s.status ?? 'configured') as ProviderStatus) : ((hasApiKey ? 'configured' : 'disconnected') as ProviderStatus),
+          status: (s.status ?? 'disconnected') as ProviderStatus,
           models: s.models ?? [{ id: 'custom-model', label: 'Custom Model' }],
         } as ProviderConfig;
       })
@@ -197,8 +277,7 @@ function persistProviders(providers: ProviderConfig[]) {
     return {
       id: p.id,
       name: p.name,
-      apiKey: p.apiKey,
-      accessToken: p.accessToken,
+      // Never persist secrets in localStorage
       baseUrl: p.baseUrl,
       status: p.status,
       authMethod: p.authMethod,
@@ -237,7 +316,7 @@ interface ProviderStore {
 
 export const useProviderStore = create<ProviderStore>((set, get) => ({
   providers: loadProviders(),
-  selectedProviderId: 'claude-agent-sdk',
+  selectedProviderId: '',
   testing: {},
 
   setProviderKey: (id, apiKey) => {
@@ -249,6 +328,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         return { ...p, apiKey, status };
       });
       persistProviders(providers);
+      scheduleProviderSync(providers, id);
       return { providers };
     });
   },
@@ -259,6 +339,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         p.id === id ? { ...p, accessToken, status: accessToken.trim() ? 'configured' as ProviderStatus : p.status } : p
       );
       persistProviders(providers);
+      scheduleProviderSync(providers, id);
       return { providers };
     });
   },
@@ -272,6 +353,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         return { ...p, authMethod, status, lastError: undefined };
       });
       persistProviders(providers);
+      scheduleProviderSync(providers, id);
       return { providers };
     });
   },
@@ -283,6 +365,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         p.id === id ? { ...p, baseUrl: normalized } : p
       );
       persistProviders(providers);
+      scheduleProviderSync(providers, id);
       return { providers };
     });
   },
@@ -308,7 +391,7 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
   },
 
   getProviderForModel: (modelId) => {
-    return get().providers.find((p) => p.models.some((m) => m.id === modelId));
+    return get().providers.find((p) => (Array.isArray(p.models) ? p.models : []).some((m) => m.id === modelId));
   },
 
   getActiveProvider: () => {
@@ -317,16 +400,19 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
 
   getAllModels: () => {
     return get().providers
-      .filter((p) => p.models.length > 0 && (p.status === 'connected' || p.status === 'configured'))
-      .flatMap((p) =>
-      p.models.map((m) => ({
-        id: m.id,
-        label: m.label,
-        providerId: p.id,
-        providerName: p.name,
-        providerColor: p.color,
-      }))
-    );
+      .flatMap((p) => {
+        const models = Array.isArray(p.models) ? p.models : [];
+        if (models.length === 0) return [];
+        if (!(p.status === 'connected' || p.status === 'configured')) return [];
+
+        return models.map((m) => ({
+          id: m.id,
+          label: m.label,
+          providerId: p.id,
+          providerName: p.name,
+          providerColor: p.color,
+        }));
+      });
   },
 
   selectProvider: (id) => set({ selectedProviderId: id }),
@@ -338,15 +424,18 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
       const provider = get().providers.find((p) => p.id === id);
 
       if (provider?.authMethod === 'oauth') {
-        const message = 'OpenAI OAuth login flow is not wired yet. Use API Key mode for now.';
-        set((state) => ({
-          testing: { ...state.testing, [id]: false },
-          providers: state.providers.map((p) =>
-            p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: message } : p
-          ),
-        }));
-        persistProviders(get().providers);
-        return { ok: false, error: message };
+        // Guided OAuth flow stores the API key, then uses standard provider test path.
+        if (!provider.apiKey?.trim()) {
+          const message = 'Codex sign-in not completed yet. Use "Sign in with Codex" first.';
+          set((state) => ({
+            testing: { ...state.testing, [id]: false },
+            providers: state.providers.map((p) =>
+              p.id === id ? { ...p, status: 'error' as ProviderStatus, lastError: message } : p
+            ),
+          }));
+          persistProviders(get().providers);
+          return { ok: false, error: message };
+        }
       }
 
       if (provider?.authMethod === 'claude-agent-sdk') {
@@ -447,17 +536,21 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
   },
 
   saveProvider: async (id) => {
-    const provider = get().providers.find((p) => p.id === id);
+    const providers = get().providers;
+    const provider = providers.find((p) => p.id === id);
     if (!provider) return;
-    persistProviders(get().providers);
-    const backend = await isBackendAvailable();
-    if (backend) {
-      await fetch(`${API_BASE}/providers/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: provider.apiKey, accessToken: provider.accessToken, baseUrl: provider.baseUrl }),
-      }).catch(() => { /* backend save failed, localStorage still has it */ });
+
+    persistProviders(providers);
+
+    try {
+      await syncProviderToBackend(provider);
+    } catch {
+      pendingProviderSync.add(id);
     }
+
+    flushPendingProviderSync(get().providers).catch(() => {
+      // best effort
+    });
   },
 
   deleteProvider: (id) => {
@@ -505,11 +598,44 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         const merged = DEFAULT_PROVIDERS.map((def) => {
           const remote = data.find((d: ProviderConfig) => d.id === def.id);
           if (!remote) return def;
-          return { ...def, ...remote };
+          return {
+            ...def,
+            ...remote,
+            // keep canonical UX labels for first-party providers
+            name: def.id === 'anthropic' ? 'Claude' : (remote.name || def.name),
+            // credentials are never returned by backend GET /providers
+            apiKey: def.apiKey,
+            accessToken: def.accessToken,
+            models: Array.isArray(remote.models) ? remote.models : def.models,
+          };
         });
-        const extras = data.filter((d: ProviderConfig) => !DEFAULT_PROVIDERS.some((def) => def.id === d.id));
-        set({ providers: [...merged, ...extras] });
+        const extras = data
+          .filter((d: ProviderConfig) => !DEFAULT_PROVIDERS.some((def) => def.id === d.id))
+          .map((d: ProviderConfig) => ({ ...d, models: Array.isArray(d.models) ? d.models : [] }));
+
+        const nextProviders = [...merged, ...extras];
+        const currentSelected = get().selectedProviderId;
+        const selectedProvider = nextProviders.find((p) => p.id === currentSelected);
+        const selectedUsable = Boolean(
+          selectedProvider &&
+          (selectedProvider.status === 'connected' || selectedProvider.status === 'configured') &&
+          Array.isArray(selectedProvider.models) &&
+          selectedProvider.models.length > 0,
+        );
+
+        const connectedWithModels = nextProviders.find((p) =>
+          (p.status === 'connected' || p.status === 'configured') &&
+          Array.isArray(p.models) &&
+          p.models.length > 0,
+        );
+
+        const fallbackSelected = selectedUsable
+          ? currentSelected
+          : (connectedWithModels?.id || '');
+
+        set({ providers: nextProviders, selectedProviderId: fallbackSelected });
         persistProviders(get().providers);
+        await flushPendingProviderSync(get().providers);
       }
     } catch {
       // Backend not available, use localStorage
@@ -519,7 +645,11 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
 
 // Init: try loading from backend
 isBackendAvailable().then((ok) => {
-  if (ok) useProviderStore.getState().loadFromBackend();
+  if (!ok) return;
+  useProviderStore.getState().loadFromBackend();
+  flushPendingProviderSync(useProviderStore.getState().providers).catch(() => {
+    // best effort
+  });
 });
 
 // Backwards-compatible helpers for consoleStore

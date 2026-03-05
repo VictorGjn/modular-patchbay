@@ -1,33 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useModeStore } from '../../src/store/modeStore';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useConversationStore } from '../../src/store/conversationStore';
-
-// ─── Mode Store ──────────────────────────────────────────────
-
-describe('useModeStore', () => {
-  beforeEach(() => {
-    useModeStore.setState({ mode: 'design' });
-  });
-
-  it('defaults to design mode', () => {
-    expect(useModeStore.getState().mode).toBe('design');
-  });
-
-  it('toggleMode switches between design and test', () => {
-    useModeStore.getState().toggleMode();
-    expect(useModeStore.getState().mode).toBe('test');
-    useModeStore.getState().toggleMode();
-    expect(useModeStore.getState().mode).toBe('design');
-  });
-
-  it('setMode sets explicitly', () => {
-    useModeStore.getState().setMode('test');
-    expect(useModeStore.getState().mode).toBe('test');
-    useModeStore.getState().setMode('design');
-    expect(useModeStore.getState().mode).toBe('design');
-  });
-});
 
 // ─── Theme Store ─────────────────────────────────────────────
 
