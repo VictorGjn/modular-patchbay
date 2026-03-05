@@ -79,10 +79,15 @@ router.post('/chat', async (req, res) => {
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       };
+      // Anthropic: extract system message into top-level param
+      const typedMessages = messages as Array<{ role: string; content: unknown }>;
+      const systemMsg = typedMessages.find(m => m.role === 'system');
+      const nonSystem = typedMessages.filter(m => m.role !== 'system');
       body = JSON.stringify({
         model: modelId,
         max_tokens: maxTokens ?? 4096,
-        messages,
+        messages: nonSystem,
+        ...(systemMsg && { system: typeof systemMsg.content === 'string' ? systemMsg.content : '' }),
         stream: true,
         ...(temperature != null && { temperature }),
       });
