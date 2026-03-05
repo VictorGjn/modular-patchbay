@@ -127,7 +127,8 @@ function GeneratorSection() {
     mcp: lastConfig.mcpServerIds?.length || 0,
     skills: lastConfig.skillIds?.length || 0,
     steps: lastConfig.workflowSteps?.length || 0,
-    knowledge: lastConfig.knowledgeSuggestions?.length || 0,
+    knowledge: lastConfig.knowledgeSelections?.length || lastConfig.knowledgeSuggestions?.length || 0,
+    gaps: lastConfig.knowledgeGaps?.length || 0,
   } : null;
 
   return (
@@ -157,12 +158,30 @@ function GeneratorSection() {
               { label: 'MCP', count: stats.mcp, color: '#2ecc71' },
               { label: 'Skills', count: stats.skills, color: '#f1c40f' },
               { label: 'Steps', count: stats.steps, color: '#e67e22' },
-              { label: 'Knowledge', count: stats.knowledge, color: '#3498db' },
+              { label: 'Sources', count: stats.knowledge, color: '#3498db' },
+              ...(stats.gaps > 0 ? [{ label: 'Gaps', count: stats.gaps, color: '#e74c3c' }] : []),
             ].map(s => (
               <span key={s.label} className="text-[9px] px-1.5 py-0.5 rounded"
                 style={{ fontFamily: "'Space Mono', monospace", background: `${s.color}15`, color: s.color, border: `1px solid ${s.color}30` }}>
                 {s.count} {s.label}
               </span>
+            ))}
+          </div>
+        )}
+        {lastConfig?.knowledgeGaps && lastConfig.knowledgeGaps.length > 0 && (
+          <div className="flex flex-col gap-1 px-2 py-2 rounded" style={{ background: '#e74c3c10', border: '1px solid #e74c3c20' }}>
+            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#e74c3c', fontFamily: "'Space Mono', monospace" }}>
+              Missing Sources
+            </span>
+            {lastConfig.knowledgeGaps.map((gap, i) => (
+              <div key={i} className="flex items-start gap-1.5 text-[10px]" style={{ color: t.textSecondary }}>
+                <AlertCircle size={10} style={{ color: '#e74c3c', marginTop: 2, flexShrink: 0 }} />
+                <div>
+                  <span style={{ color: t.text, fontWeight: 600 }}>{gap.name}</span>
+                  <span style={{ color: t.textDim }}> ({gap.type})</span>
+                  {gap.description && <div style={{ color: t.textDim, fontSize: 9, marginTop: 1 }}>{gap.description}</div>}
+                </div>
+              </div>
             ))}
           </div>
         )}

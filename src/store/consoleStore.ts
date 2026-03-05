@@ -997,23 +997,45 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       .filter(Boolean) as Skill[];
     set({ skills });
 
-    // Hydrate knowledge suggestions as channels
+    // Hydrate knowledge from real selections or legacy suggestions
     const knowledgeTypes: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
-    const channels: ChannelConfig[] = (config.knowledgeSuggestions || []).map((k, i) => {
-      const ktIndex = knowledgeTypes.indexOf(k.type as KnowledgeType);
-      const knowledgeType = ktIndex >= 0 ? knowledgeTypes[ktIndex] : 'evidence';
-      return {
-        sourceId: `gen-knowledge-${i}-${Date.now()}`,
-        name: k.name,
-        path: '',
-        category: 'knowledge' as const,
-        knowledgeType,
-        enabled: true,
-        depth: 0,
-        baseTokens: 2000,
-      };
-    });
-    set({ channels });
+    const existingChannels = get().channels;
+
+    if (config.knowledgeSelections && config.knowledgeSelections.length > 0) {
+      // New path: apply type/depth overrides to real connected sources
+      const channels = existingChannels.map((ch) => {
+        const selection = config.knowledgeSelections!.find((s) => s.sourceId === ch.sourceId);
+        if (!selection) {
+          // Source not selected by the generator — disable it
+          return { ...ch, enabled: false };
+        }
+        // Apply the generator's recommended type and depth
+        const ktIndex = knowledgeTypes.indexOf(selection.type as KnowledgeType);
+        const knowledgeType = ktIndex >= 0 ? knowledgeTypes[ktIndex] : (ch.knowledgeType || 'evidence');
+        const depth = typeof selection.depth === 'number' && selection.depth >= 0 && selection.depth <= 4
+          ? selection.depth : ch.depth;
+        return { ...ch, enabled: true, knowledgeType, depth };
+      });
+      set({ channels });
+    } else if (config.knowledgeSuggestions && config.knowledgeSuggestions.length > 0) {
+      // Legacy path: create placeholder channels from suggestions (backward compat)
+      const channels: ChannelConfig[] = config.knowledgeSuggestions.map((k, i) => {
+        const ktIndex = knowledgeTypes.indexOf(k.type as KnowledgeType);
+        const knowledgeType = ktIndex >= 0 ? knowledgeTypes[ktIndex] : 'evidence';
+        return {
+          sourceId: `gen-knowledge-${i}-${Date.now()}`,
+          name: k.name,
+          path: '',
+          category: 'knowledge' as const,
+          knowledgeType,
+          enabled: true,
+          depth: 0,
+          baseTokens: 2000,
+        };
+      });
+      set({ channels });
+    }
+    // If neither field present, keep existing channels untouched
 
     // Clear response
     set({ response: '', selectedPreset: '' });
