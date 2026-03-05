@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, extname, relative, resolve, basename } from 'node:path';
 import { homedir } from 'node:os';
 import type { ApiResponse } from '../types.js';
+import { loadContent, listContent, deleteContent } from '../services/contentStore.js';
 
 const router = Router();
 
@@ -483,6 +484,57 @@ router.post('/filter', (req, res) => {
     res.json({ status: 'ok', data: { ...result, source: index.source, nodeCount: index.nodeCount, totalTokens: index.totalTokens } });
   } catch {
     res.status(500).json({ status: 'error', error: 'Failed to filter file' });
+  }
+});
+
+// ── Content Store Routes ──
+
+/**
+ * GET /api/knowledge/content
+ * Lists all stored content (sourceId + name + repoMeta only).
+ */
+router.get('/content', (_req, res) => {
+  try {
+    const items = listContent();
+    res.json({ status: 'ok', data: items } satisfies ApiResponse);
+  } catch {
+    res.status(500).json({ status: 'error', error: 'Failed to list content' } satisfies ApiResponse);
+  }
+});
+
+/**
+ * GET /api/knowledge/content/:sourceId
+ * Returns full stored content for a sourceId.
+ */
+router.get('/content/:sourceId', (req, res) => {
+  const { sourceId } = req.params;
+  try {
+    const content = loadContent(sourceId);
+    if (!content) {
+      res.status(404).json({ status: 'error', error: 'Content not found' } satisfies ApiResponse);
+      return;
+    }
+    res.json({ status: 'ok', data: content } satisfies ApiResponse);
+  } catch {
+    res.status(500).json({ status: 'error', error: 'Failed to load content' } satisfies ApiResponse);
+  }
+});
+
+/**
+ * DELETE /api/knowledge/content/:sourceId
+ * Removes stored content for a sourceId.
+ */
+router.delete('/content/:sourceId', (req, res) => {
+  const { sourceId } = req.params;
+  try {
+    const deleted = deleteContent(sourceId);
+    if (!deleted) {
+      res.status(404).json({ status: 'error', error: 'Content not found' } satisfies ApiResponse);
+      return;
+    }
+    res.json({ status: 'ok', data: { deleted: true } } satisfies ApiResponse);
+  } catch {
+    res.status(500).json({ status: 'error', error: 'Failed to delete content' } satisfies ApiResponse);
   }
 });
 
