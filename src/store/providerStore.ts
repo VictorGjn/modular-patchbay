@@ -161,6 +161,14 @@ async function syncProviderToBackend(provider: ProviderConfig): Promise<void> {
     return;
   }
 
+  // Derive backend type from provider id
+  const backendType =
+    provider.id.includes('anthropic') || provider.id === 'claude-agent-sdk' ? 'anthropic' :
+    provider.id.includes('google') ? 'google' :
+    provider.id.includes('openrouter') ? 'openrouter' :
+    provider.id.includes('openai') ? 'openai' :
+    'custom';
+
   await fetch(`${API_BASE}/providers/${provider.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -170,6 +178,7 @@ async function syncProviderToBackend(provider: ProviderConfig): Promise<void> {
       baseUrl: provider.baseUrl,
       authMethod: provider.authMethod,
       name: provider.name,
+      type: backendType,
     }),
   });
   pendingProviderSync.delete(provider.id);

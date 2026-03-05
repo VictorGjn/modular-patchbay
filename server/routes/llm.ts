@@ -48,9 +48,15 @@ router.post('/chat', async (req, res) => {
     return;
   }
 
+  // Infer provider type from id/baseUrl when type is missing or stale
+  const inferredType =
+    provider.type === 'anthropic' || providerId.includes('anthropic') || baseUrl.includes('anthropic.com')
+      ? 'anthropic'
+      : provider.type;
+
   // Guard obvious key/provider mismatch to avoid confusing upstream errors
   const key = (provider.apiKey || '').trim();
-  if (provider.type !== 'anthropic' && /^sk-ant-/i.test(key)) {
+  if (inferredType !== 'anthropic' && /^sk-ant-/i.test(key)) {
     const resp: ApiResponse = {
       status: 'error',
       error: 'Provider/key mismatch: Anthropic key detected on OpenAI-compatible provider. Select Claude provider or set a valid OpenAI-compatible key.',
@@ -66,7 +72,7 @@ router.post('/chat', async (req, res) => {
 
     const modelId = typeof model === 'object' ? (model as { id: string }).id : model;
 
-    if (provider.type === 'anthropic') {
+    if (inferredType === 'anthropic') {
       url = `${baseUrl}/messages`;
       headers = {
         'x-api-key': provider.apiKey,
@@ -174,13 +180,19 @@ router.post('/chat-tools', async (req, res) => {
     return;
   }
 
+  // Infer provider type from id/baseUrl when type is missing or stale
+  const inferredType =
+    provider.type === 'anthropic' || providerId.includes('anthropic') || baseUrl.includes('anthropic.com')
+      ? 'anthropic'
+      : provider.type;
+
   try {
     let url: string;
     let headers: Record<string, string>;
     let body: string;
     const modelId = typeof model === 'object' ? (model as { id: string }).id : model;
 
-    if (provider.type === 'anthropic') {
+    if (inferredType === 'anthropic') {
       url = `${baseUrl}/messages`;
       headers = {
         'x-api-key': provider.apiKey,
