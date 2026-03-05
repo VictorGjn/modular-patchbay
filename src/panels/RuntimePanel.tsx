@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useTheme } from '../theme';
 import { useRuntimeStore, type ExtractedFact } from '../store/runtimeStore';
 import { useTeamStore } from '../store/teamStore';
@@ -186,7 +186,23 @@ export function RuntimePanel() {
   const agentLibrary = useTeamStore((s) => s.agentLibrary);
   const addSharedFact = useTeamStore((s) => s.addSharedFact);
   const addAgentFromLibrary = useTeamStore((s) => s.addAgentFromLibrary);
+  const addAgentFromBackend = useTeamStore((s) => s.addAgentFromBackend);
   const removeAgent = useTeamStore((s) => s.removeAgent);
+
+  // Fetch saved agents from backend
+  const [backendAgents, setBackendAgents] = useState<{ id: string; agentMeta?: { name: string; description: string } }[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/agents`);
+        if (!res.ok) return;
+        const json = await res.json();
+        setBackendAgents(json.data ?? []);
+      } catch {
+        // backend not available, fall back to library
+      }
+    })();
+  }, []);
 
   const selectedProviderId = useProviderStore((s) => s.selectedProviderId);
   const agentConfig = useConsoleStore((s) => s.agentConfig);
@@ -332,16 +348,25 @@ export function RuntimePanel() {
             aria-label="Select saved agent"
           >
             <option value="">Select a saved agent…</option>
-            {agentLibrary.map((a) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
+            {backendAgents.length > 0
+              ? backendAgents.map((a) => (
+                  <option key={a.id} value={a.id}>{a.agentMeta?.name || a.id}</option>
+                ))
+              : agentLibrary.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))
+            }
           </select>
           <Button
             variant="primary"
             icon={<UserPlus size={12} />}
             onClick={() => {
               if (!selectedLibraryId) return;
-              addAgentFromLibrary(selectedLibraryId);
+              if (backendAgents.length > 0) {
+                addAgentFromBackend(selectedLibraryId);
+              } else {
+                addAgentFromLibrary(selectedLibraryId);
+              }
             }}
             disabled={!selectedLibraryId}
             aria-label="Add selected agent to runtime canvas"
@@ -390,16 +415,25 @@ export function RuntimePanel() {
             aria-label="Select saved agent for runtime canvas"
           >
             <option value="">Add saved agent…</option>
-            {agentLibrary.map((a) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
+            {backendAgents.length > 0
+              ? backendAgents.map((a) => (
+                  <option key={a.id} value={a.id}>{a.agentMeta?.name || a.id}</option>
+                ))
+              : agentLibrary.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))
+            }
           </select>
           <Button
             variant="secondary"
             icon={<UserPlus size={11} />}
             onClick={() => {
               if (!selectedLibraryId) return;
-              addAgentFromLibrary(selectedLibraryId);
+              if (backendAgents.length > 0) {
+                addAgentFromBackend(selectedLibraryId);
+              } else {
+                addAgentFromLibrary(selectedLibraryId);
+              }
             }}
             disabled={!selectedLibraryId}
             aria-label="Add selected saved agent"

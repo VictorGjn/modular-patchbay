@@ -49,6 +49,8 @@ export default function App() {
       if (partial.prompt) store.setPrompt(partial.prompt);
       if (partial.tokenBudget) store.setTokenBudget(partial.tokenBudget);
       if (partial.agentMeta) store.setAgentMeta(partial.agentMeta);
+      if (partial.instructionState) store.setInstructionState(partial.instructionState);
+      if (partial.workflowSteps) store.setWorkflowSteps(partial.workflowSteps);
     };
     reader.readAsText(file);
     e.target.value = '';

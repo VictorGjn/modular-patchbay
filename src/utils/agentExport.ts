@@ -1,4 +1,4 @@
-import { type ConsoleState, type AgentMeta, type ExportTarget } from '../store/consoleStore';
+import { type ConsoleState, type AgentMeta, type ExportTarget, type InstructionState, type WorkflowStep } from '../store/consoleStore';
 import { KNOWLEDGE_TYPES, OUTPUT_FORMATS, type McpServer, type Skill, type Connector } from '../store/knowledgeBase';
 import { type OutputTemplateConfig, templateConfigToSchema } from '../store/outputTemplates';
 
@@ -23,6 +23,8 @@ export interface ExportConfig {
   agentConfig?: ConsoleState['agentConfig'];
   connectors?: Connector[];
   outputTemplateConfig?: Record<string, OutputTemplateConfig>;
+  instructionState?: InstructionState;
+  workflowSteps?: WorkflowStep[];
 }
 
 interface AgentData {
@@ -41,6 +43,39 @@ interface AgentData {
   prompt: string;
   system: string;
   connectors: { read: { service: string; config: Record<string, string> }[]; write: { service: string; config: Record<string, string> }[] };
+}
+
+function compileSystemFromInstructions(inst: InstructionState | undefined, fallbackPrompt: string): string {
+  if (!inst || (!inst.persona && !inst.objectives.primary && !inst.constraints.customConstraints)) {
+    return fallbackPrompt || 'You are an analyst combining multiple knowledge sources to produce structured output.';
+  }
+  const parts: string[] = [];
+  if (inst.persona) {
+    parts.push(`You are ${inst.persona}.`);
+  }
+  if (inst.tone !== 'neutral') {
+    parts.push(`Use a ${inst.tone} tone.`);
+  }
+  if (inst.objectives.primary) {
+    parts.push(`\nPrimary objective: ${inst.objectives.primary}`);
+  }
+  if (inst.objectives.successCriteria.length > 0) {
+    parts.push('Success criteria: ' + inst.objectives.successCriteria.join('; '));
+  }
+  const constraintLines: string[] = [];
+  if (inst.constraints.neverMakeUp) constraintLines.push('Never make up information');
+  if (inst.constraints.askBeforeActions) constraintLines.push('Ask before taking actions');
+  if (inst.constraints.stayInScope) constraintLines.push(`Stay in scope${inst.constraints.scopeDefinition ? ': ' + inst.constraints.scopeDefinition : ''}`);
+  if (inst.constraints.useOnlyTools) constraintLines.push('Only use provided tools');
+  if (inst.constraints.limitWords) constraintLines.push(`Keep responses under ${inst.constraints.wordLimit} words`);
+  if (inst.constraints.customConstraints) constraintLines.push(inst.constraints.customConstraints);
+  if (constraintLines.length > 0) {
+    parts.push('\nConstraints:\n' + constraintLines.map((c) => `- ${c}`).join('\n'));
+  }
+  if (fallbackPrompt) {
+    parts.push('\n' + fallbackPrompt);
+  }
+  return parts.join('\n');
 }
 
 function buildAgentData(config: ExportConfig): AgentData {
@@ -66,11 +101,8 @@ function buildAgentData(config: ExportConfig): AgentData {
     : [config.outputFormat];
 
   const systemParts: string[] = [];
-  if (config.prompt) {
-    systemParts.push(config.prompt);
-  } else {
-    systemParts.push('You are an analyst combining multiple knowledge sources to produce structured output.');
-  }
+  const compiledSystem = compileSystemFromInstructions(config.instructionState, config.prompt);
+  systemParts.push(compiledSystem);
 
   const temperature = config.agentConfig?.temperature ?? 0.7;
   const planningMode = config.agentConfig?.planningMode ?? 'single-shot';
@@ -152,11 +184,59 @@ function buildYamlFrontmatter(data: AgentData): string {
 
 function buildMarkdownBody(data: AgentData, config: ExportConfig): string {
   const activeChannels = config.channels.filter((ch) => ch.enabled);
+  const inst = config.instructionState;
+  const steps = config.workflowSteps;
   const body: string[] = [''];
+
+  // Persona section (from instructionState if available)
+  if (inst?.persona) {
+    body.push('## Persona');
+    body.push(inst.persona);
+    if (inst.tone !== 'neutral') body.push(`\nTone: ${inst.tone}`);
+    if (inst.expertise !== 3) body.push(`Expertise level: ${inst.expertise}/5`);
+    body.push('');
+  }
 
   body.push('## Role');
   body.push(data.system);
   body.push('');
+
+  // Objectives section
+  if (inst?.objectives.primary) {
+    body.push('## Objectives');
+    body.push(`**Primary:** ${inst.objectives.primary}`);
+    if (inst.objectives.successCriteria.length > 0) {
+      body.push('\n**Success Criteria:**');
+      for (const c of inst.objectives.successCriteria) {
+        body.push(`- ${c}`);
+      }
+    }
+    if (inst.objectives.failureModes.length > 0) {
+      body.push('\n**Failure Modes:**');
+      for (const f of inst.objectives.failureModes) {
+        body.push(`- ${f}`);
+      }
+    }
+    body.push('');
+  }
+
+  // Constraints section
+  if (inst) {
+    const constraintLines: string[] = [];
+    if (inst.constraints.neverMakeUp) constraintLines.push('Never make up information');
+    if (inst.constraints.askBeforeActions) constraintLines.push('Ask before taking actions');
+    if (inst.constraints.stayInScope) constraintLines.push(`Stay in scope${inst.constraints.scopeDefinition ? ': ' + inst.constraints.scopeDefinition : ''}`);
+    if (inst.constraints.useOnlyTools) constraintLines.push('Only use provided tools');
+    if (inst.constraints.limitWords) constraintLines.push(`Keep responses under ${inst.constraints.wordLimit} words`);
+    if (inst.constraints.customConstraints) constraintLines.push(inst.constraints.customConstraints);
+    if (constraintLines.length > 0) {
+      body.push('## Constraints');
+      for (const c of constraintLines) {
+        body.push(`- ${c}`);
+      }
+      body.push('');
+    }
+  }
 
   if (data.prompt) {
     body.push('## Default Prompt');
@@ -165,7 +245,17 @@ function buildMarkdownBody(data: AgentData, config: ExportConfig): string {
   }
 
   body.push('## Workflow');
-  if (activeChannels.length > 0) {
+  // Use explicit workflow steps if defined
+  if (steps && steps.length > 0) {
+    steps.forEach((step, i) => {
+      const prefix = `${i + 1}. ${step.label}`;
+      const suffix = step.action ? ` — ${step.action}` : '';
+      const cond = step.condition !== 'always' && step.conditionText
+        ? ` (${step.condition} ${step.conditionText})`
+        : '';
+      body.push(`${prefix}${suffix}${cond}`);
+    });
+  } else if (activeChannels.length > 0) {
     body.push('1. Read all knowledge sources');
     const grouped = new Map<string, typeof activeChannels>();
     for (const ch of activeChannels) {
@@ -240,9 +330,11 @@ export function exportForAmp(config: ExportConfig): string {
     }
   }
 
-  if (data.system) {
+  // Compile instructions from instructionState (persona + constraints) or fallback to system
+  const instructions = compileSystemFromInstructions(config.instructionState, config.prompt);
+  if (instructions) {
     lines.push('instructions: |');
-    for (const line of data.system.split('\n')) {
+    for (const line of instructions.split('\n')) {
       lines.push(`  ${line}`);
     }
   }
@@ -344,6 +436,8 @@ export function exportGenericJSON(config: ExportConfig): string {
       output_formats: data.output_format,
       token_budget: data.token_budget,
       connectors: data.connectors,
+      ...(config.instructionState ? { instructionState: config.instructionState } : {}),
+      ...(config.workflowSteps && config.workflowSteps.length > 0 ? { workflowSteps: config.workflowSteps } : {}),
       ...(templates && Object.keys(templates).length > 0 ? { output: { templates } } : {}),
     },
   };
