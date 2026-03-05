@@ -306,7 +306,11 @@ function buildOrientationBlock(channels: ChannelConfig[]): string {
   if (lines.length === 0) return '';
 
   const header = 'You have access to the following codebases and knowledge sources:\n';
-  const footer = 'Approach: Always explore the codebase and read relevant files BEFORE asking the user for information. You have full context — use it.';
+  const footer = `Approach:
+- Your knowledge about these codebases is already loaded in your context below. Use it directly.
+- For file contents not in your context, use get_file_contents or read_file tools — NOT the knowledge graph.
+- Do NOT call search_nodes or read_graph to find basic structure — that information is already here.
+- Explore files and trace dependencies BEFORE asking the user for information.`;
 
   return `<orientation>\n${header}\n${lines.join('\n')}\n${footer}\n</orientation>`;
 }

@@ -322,6 +322,13 @@ function KnowledgeSection() {
         await useTreeIndexStore.getState().indexFiles(
           json.data.files.map(f => `${json.data!.outputDir}/${f}`),
         );
+
+        // Auto-populate MCP knowledge graph if a memory server is connected
+        if (scan) {
+          import('../services/graphPopulator').then(({ populateGraphFromScan }) => {
+            populateGraphFromScan(json.data!.name ?? repoPath, scan as any).catch(() => {});
+          });
+        }
       }
     } catch {
       // user sees no change
