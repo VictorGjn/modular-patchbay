@@ -3,6 +3,7 @@ import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useConversationStore } from '../store/conversationStore';
 import { exportAgentYaml } from '../utils/agentExportYaml';
+import { exportForTarget, downloadAgentFile } from '../utils/agentExport';
 import { runPipelineChat, resolveProviderAndModel } from '../services/pipelineChat';
 import {
   Send, Download, Check,
@@ -248,13 +249,38 @@ function ExportSection() {
 
   const handleExport = useCallback(async (format: 'md' | 'yaml' | 'json') => {
     try {
+      const store = useConsoleStore.getState();
+      const config = {
+        channels: store.channels,
+        selectedModel: store.selectedModel,
+        outputFormat: store.outputFormat,
+        outputFormats: store.outputFormats,
+        prompt: store.prompt,
+        tokenBudget: store.tokenBudget,
+        mcpServers: store.mcpServers,
+        skills: store.skills,
+        agentMeta: store.agentMeta,
+        agentConfig: store.agentConfig,
+        connectors: store.connectors,
+        instructionState: store.instructionState,
+        workflowSteps: store.workflowSteps,
+      };
       let content: string;
-      if (format === 'yaml') {
-        content = exportAgentYaml();
+      let ext: string;
+      if (format === 'md') {
+        content = exportForTarget('claude', config);
+        ext = '.md';
+      } else if (format === 'yaml') {
+        content = exportForTarget('openclaw', config);
+        ext = '.yaml';
       } else {
-        // For md and json, use YAML as the canonical format for now
-        content = exportAgentYaml();
+        content = exportForTarget('generic', config);
+        ext = '.json';
       }
+      // Download the file
+      const name = (store.agentMeta.name || 'modular-agent').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      downloadAgentFile(content, name, ext);
+      // Also copy to clipboard
       await navigator.clipboard.writeText(content);
       setCopied(format);
       setTimeout(() => setCopied(null), 2000);

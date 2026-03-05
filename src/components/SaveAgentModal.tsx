@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { exportForTarget, downloadAgentFile, downloadAllTargets, TARGET_META, type ExportConfig } from '../utils/agentExport';
+import { API_BASE } from '../config';
 import { exportAgentYaml } from '../utils/agentExportYaml';
 
 const ICON_OPTIONS: { id: string; Icon: LucideIcon }[] = [
@@ -159,7 +160,7 @@ export function SaveAgentModal() {
 
     // Persist full state to backend
     const fullState = collectFullState();
-    fetch(`/api/agents/${encodeURIComponent(safeName)}`, {
+    fetch(`${API_BASE}/agents/${encodeURIComponent(safeName)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(fullState),
