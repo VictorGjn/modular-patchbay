@@ -14,8 +14,13 @@ function normalizeBaseUrl(providerId: string, baseUrl: string): string {
 
 router.get('/', (_req, res) => {
   const config = readConfig();
-  // Never expose API keys in GET responses
-  const redacted = config.providers.map((p) => ({ ...p, apiKey: '' }));
+  // Never expose API keys in GET responses — but signal that one is stored
+  const redacted = config.providers.map((p) => ({
+    ...p,
+    apiKey: '',
+    hasStoredKey: !!(p.apiKey && p.apiKey.trim()),
+    hasStoredAccessToken: !!(p.accessToken && String(p.accessToken).trim()),
+  }));
   const resp: ApiResponse<ProviderConfig[]> = { status: 'ok', data: redacted };
   res.json(resp);
 });

@@ -169,17 +169,22 @@ async function syncProviderToBackend(provider: ProviderConfig): Promise<void> {
     provider.id.includes('openai') ? 'openai' :
     'custom';
 
+  // Don't overwrite real keys with sentinel/empty values
+  const isSentinel = (v?: string) => !v || v === '••••••••';
+  const payload: Record<string, unknown> = {
+    baseUrl: provider.baseUrl,
+    authMethod: provider.authMethod,
+    name: provider.name,
+    type: backendType,
+  };
+  // Only include credentials if the user actually set a new value
+  if (!isSentinel(provider.apiKey)) payload.apiKey = provider.apiKey;
+  if (!isSentinel(provider.accessToken)) payload.accessToken = provider.accessToken;
+
   await fetch(`${API_BASE}/providers/${provider.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      apiKey: provider.apiKey,
-      accessToken: provider.accessToken,
-      baseUrl: provider.baseUrl,
-      authMethod: provider.authMethod,
-      name: provider.name,
-      type: backendType,
-    }),
+    body: JSON.stringify(payload),
   });
   pendingProviderSync.delete(provider.id);
 }
@@ -598,14 +603,18 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         const merged = DEFAULT_PROVIDERS.map((def) => {
           const remote = data.find((d: ProviderConfig) => d.id === def.id);
           if (!remote) return def;
+          const hasBackendKey = !!(remote as any).hasStoredKey;
+          const hasBackendToken = !!(remote as any).hasStoredAccessToken;
           return {
             ...def,
             ...remote,
             // keep canonical UX labels for first-party providers
             name: def.id === 'anthropic' ? 'Claude' : (remote.name || def.name),
-            // credentials are never returned by backend GET /providers
-            apiKey: def.apiKey,
-            accessToken: def.accessToken,
+            // If backend has a stored key, mark provider as configured
+            // and use a sentinel so the frontend knows not to overwrite it
+            apiKey: hasBackendKey ? (def.apiKey || '••••••••') : def.apiKey,
+            accessToken: hasBackendToken ? (def.accessToken || '••••••••') : def.accessToken,
+            status: hasBackendKey || hasBackendToken ? 'configured' as const : (remote.status || def.status),
             models: Array.isArray(remote.models) ? remote.models : def.models,
           };
         });
