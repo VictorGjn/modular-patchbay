@@ -27,6 +27,8 @@ export interface Fact {
   granularity: FactGranularity;
   embedding?: number[];
   embeddingPending?: boolean;
+  /** Owner agent ID — used to scope agent_private facts */
+  ownerAgentId?: string;
 }
 
 export interface SandboxConfig {
@@ -108,7 +110,7 @@ export interface MemoryState {
   updateScratchpad: (text: string) => void;
 
   // Actions — facts
-  addFact: (content: string, tags?: string[], type?: FactType, domain?: MemoryDomain, granularity?: FactGranularity) => void;
+  addFact: (content: string, tags?: string[], type?: FactType, domain?: MemoryDomain, granularity?: FactGranularity, ownerAgentId?: string) => void;
   removeFact: (id: string) => void;
   updateFact: (id: string, patch: Partial<Omit<Fact, 'id'>>) => void;
   addEpisode: (summary: string, tags?: string[]) => void;
@@ -229,7 +231,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   },
 
   // Facts
-  addFact: (content, tags = [], type = 'fact', domain: MemoryDomain = 'shared', granularity: FactGranularity = 'fact') => {
+  addFact: (content, tags = [], type = 'fact', domain: MemoryDomain = 'shared', granularity: FactGranularity = 'fact', ownerAgentId?: string) => {
     const fact: Fact = {
       id: `fact-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       content,
@@ -239,6 +241,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       domain,
       granularity,
       embeddingPending: true,
+      ...(ownerAgentId && { ownerAgentId }),
     };
     set((s) => {
       const facts = [...s.facts, fact];
@@ -319,8 +322,15 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     const { facts, sandbox } = get();
     return facts.filter((f) => {
       if (f.domain === 'run_scratchpad') return false; // never leak scratchpad
-      if (f.domain === 'agent_private' && agentId) return true; // agent sees own private
-      if (f.domain === 'shared') return true;
+      // Honor domain toggles from sandbox config
+      if (f.domain === 'agent_private') {
+        if (!sandbox.domains.agentPrivate.enabled) return false;
+        // Only return agent_private facts owned by this specific agent
+        return !!agentId && f.ownerAgentId === agentId;
+      }
+      if (f.domain === 'shared') {
+        return sandbox.domains.shared.enabled;
+      }
       return false;
     });
   },

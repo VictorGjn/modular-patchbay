@@ -241,7 +241,16 @@ export function postWrite(options: MemoryPipelineOptions): WriteResult {
 
     // Sandbox guard: never write directly to shared from a sandboxed run
     const finalDomain = enforceSandboxWrite(writeDomain, sandbox);
-    store.addFact(ef.content, [ef.type], ef.type as any, finalDomain, 'fact');
+    // Map extracted types to canonical FactType values
+    const typeMap: Record<string, string> = {
+      'decisions': 'decision',
+      'user_preferences': 'preference',
+      'facts': 'fact',
+      'feedback': 'fact',
+      'entities': 'entity',
+    };
+    const canonicalType = typeMap[ef.type] || ef.type;
+    store.addFact(ef.content, [ef.type], canonicalType as any, finalDomain, 'fact', options.agentId);
 
     const facts = useMemoryStore.getState().facts;
     const latest = facts[facts.length - 1];
