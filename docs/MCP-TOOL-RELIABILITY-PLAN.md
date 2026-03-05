@@ -1,106 +1,94 @@
-# MCP Tool Reliability + Repo Indexing + UI Fixes
+# MCP Tool Reliability + Repo Indexing + UI Fixes (v2)
 
-## Core Insight (from Victor)
-The whole point is to build an **indexed mapping** of repos locally to efficiently retrieve specific features/functions/components. The indexer already produces good compressed docs (file paths, categories, exports, imports, data flow). But:
-- File references have no base URL → agent can't link to GitHub
-- Old indexations pile up (28 duplicate dirs, 0.8MB of redundant data)
-- The index should be THE lookup table — short path from question → feature file → full content
+## Core Philosophy
+The indexed repo is THE lookup table. Short path: question → feature mapping → specific file path → GitHub URL for full content. Keep context small, reference precisely.
 
 ---
 
-## Ticket 1: Clean repo indexation lifecycle
+## Ticket 1: Index lifecycle — base URL, cleanup, stable paths
 **Files:** `server/services/githubIndexer.ts`, `server/routes/repo-index.ts`
 
-**1a. Add GitHub base URL to indexed content**
-- When indexing `syrocolab/efficientship-live`, every file reference should include: `https://github.com/syrocolab/efficientship-live/blob/main/{path}`
-- The compressed docs already have file paths (`src/App.tsx`). Prepend the base URL.
-- Store `baseUrl` in scan metadata: `https://github.com/{owner}/{repo}/blob/{branch}/`
-- In the compressed markdown output, file paths become clickable links: `[src/App.tsx](https://github.com/syrocolab/efficientship-live/blob/main/src/App.tsx)`
+**1a. Store base URL, reference files by path**
+- Store `baseUrl: "https://github.com/{owner}/{repo}/blob/{branch}/"` in the scan metadata
+- Indexed docs keep file paths as-is (`src/App.tsx`) but the orientation block and agent context include the base URL as a prefix instruction
+- Agent can then construct full URLs: `{baseUrl}{filePath}`
+- Pass `baseUrl` through to the channel's `repoMeta` so it's available at runtime
 
-**1b. Delete old indexations on re-index**
-- Currently: `modular-gh-knowledge/compass-{timestamp}` creates a new dir every time
-- Fix: Before indexing, delete ALL previous dirs for the same repo name (e.g., `compass-*`)
-- Keep only the latest indexation per repo
-- Also add cleanup on server startup: remove dirs older than 7 days
+**1b. Stable directory names — overwrite on re-index**
+- Change output dir from `{repoName}-{timestamp}` to just `{repoName}/`
+- On re-index: delete existing dir for that repo, write new one
+- Channels pointing to `modular-gh-knowledge/efficientship-live/05-src.compressed.md` stay valid
 
-**1c. Stable output directory names**
-- Instead of `{repoName}-{timestamp}`, use just `{repoName}` (overwrite on re-index)
-- Channel paths then stay valid across re-indexes
-- Channels currently point to timestamped paths that become stale on re-index
+**1c. Cleanup old timestamped dirs**
+- On server startup: scan `modular-gh-knowledge/`, delete dirs matching `{name}-{timestamp}` pattern if a stable `{name}/` dir exists
+- One-time migration from old format to new
 
-## Ticket 2: Tool-aware error handling
+## Ticket 2: File tree in orientation block
+**Files:** `src/services/pipelineChat.ts`
+
+Parse indexed compressed markdown to extract full file listing. Build condensed tree:
+```
+efficientship-live (base: https://github.com/syrocolab/efficientship-live/blob/main/)
+  src/components/ → Hurricane/, Map/, Vessel/, auto-update-registration/, ...
+  src/hooks/ → map.hooks.ts, time-slider.ts, ...
+  src/services/ → api.service.ts, ...
+  src/store/ → voyage.store.ts, ...
+```
+This is the lookup table. Agent sees paths, constructs `{base}{path}` for file access tools. No guessing.
+
+## Ticket 3: Auto-reconnect MCP servers on startup
+**Files:** `server/index.ts`, `server/mcp/manager.ts`
+
+**Root cause of skill.sh disconnect:** `loadSavedServers()` only calls `addServer()` (registers config) but never `connect()`. Every restart loses all connections.
+
+Fix:
+- After `loadSavedServers()`, iterate and auto-connect all registered servers
+- Add `autoConnect: true` flag to McpServerConfig (default true) so user can disable for specific servers
+- Log connection results (success/failure per server)
+- On the frontend: show accurate connection state on load (currently shows "connected" from stale localStorage even when backend lost connection)
+
+## Ticket 4: Tool error handling for path targeting
 **Files:** `src/services/toolRunner.ts`
 
-When MCP tool returns null/empty:
-- `get_file_contents` → "No content returned. This path may be a directory. Use list_directory first."
-- Generic null → "Tool returned no result."
-- `_parseError` args → "Malformed tool arguments from model."
-- Surface error hints in agent context so it can self-correct on next turn
+The main issue is bad path targeting (directory instead of file). When a tool returns null:
+- For `get_file_contents`: "No content returned. This path may be a directory — use list_directory first, or check the file tree in your context."
+- Include the hint in the tool result message so the agent self-corrects on the next turn
+- For generic null: "Tool returned no result. Check arguments."
 
-## Ticket 3: File tree in system prompt from indexed data
-**Files:** `src/services/pipelineChat.ts`
+## Ticket 5: "Save Agent" button
+**Files:** `src/components/Topbar.tsx`, `src/store/consoleStore.ts`
 
-- Parse the compressed markdown files to extract the full file listing
-- Build a condensed tree view for the orientation block: `src/ → components/ (Hurricane/, Map/, Vessel/), hooks/, services/, store/`
-- This prevents the agent from guessing paths — it KNOWS what exists
-- Also include the GitHub base URL so the agent can construct valid paths for `get_file_contents`
+No save button exists in the app — only load/import/export.
+- Add "Save" button in Topbar (floppy disk icon)
+- On click: `collectFullState()` → `PUT /api/agents/:id`
+- If no agent name set, show a quick inline prompt for the name
+- Show brief confirmation (checkmark for 2s)
 
-## Ticket 4: Tool usage guide in system prompt  
-**Files:** `src/services/pipelineChat.ts`
+## Ticket 6: Fix import parsing into Agent Builder
+**Files:** `src/utils/agentImport.ts`
 
-Dynamic `<tools_guide>` block generated from connected MCP servers:
-- Lists each tool with its purpose and constraints
-- `get_file_contents`: "Use only on FILES, not directories. Requires owner, repo, path."
-- `list_directory`: "Use to explore directory contents."
-- `search_nodes`: "Search knowledge graph — only useful if graph has been populated."
-- Generated from actual connected server tool lists
+Import dumps everything into the identity/persona field. Need proper field mapping:
+- Parse system prompt to separate: persona (first paragraph/sentence), constraints (bullet lists with "never"/"always"/"must"), objectives (goal statements)
+- Map to `instructionState.persona`, `.constraints.customConstraints`, `.objectives.primary`
+- Don't dump raw text into a single field
 
-## Ticket 5: Auto-connect MCP servers on repo index
-**Files:** `src/panels/SourcesPanel.tsx`, `src/store/mcpStore.ts`
-
-When indexing a GitHub repo:
-1. Auto-register + connect `mcp-github` if not already connected
-2. Auto-register + connect `mcp-memory` for graph population
-3. Then run graphPopulator with the indexed data
-4. Show connection status in the UI during indexing
-
-## Ticket 6: "Save Agent" button in the app
-**Files:** `src/components/Topbar.tsx` or `src/panels/AgentBuilder.tsx`
-
-Currently there's no save button — only load from backend, import from file, export to file.
-- Add a "Save" button in the Topbar (next to Load Agent)
-- On click: save current state to backend via `PUT /api/agents/:id`
-- Use agent name as ID (slugified)
-- Show confirmation toast/badge
-- If no name set, prompt for one
-
-## Ticket 7: Fix import parsing into Agent Builder
-**Files:** `src/utils/agentImport.ts`, `src/App.tsx`
-
-Currently import pastes everything into the identity/persona field.
-- `mapDataToState()` puts the system prompt into `result.prompt` which gets set via `store.setPrompt()`
-- But `prompt` might not map to the right field in the Agent Builder UI
-- Need to map imported data to the correct instructionState fields:
-  - persona → `instructionState.persona`
-  - constraints → `instructionState.constraints`
-  - objectives → `instructionState.objectives`
-  - The raw system prompt should be PARSED, not dumped into identity
-
-## Ticket 8: Version history scrollbar
+## Ticket 7: Version history display
 **Files:** `src/components/VersionIndicator.tsx`
 
-- The version history panel container needs a scrollbar
-- Check the parent container of the version items list — may be missing `overflow-y-auto` or `max-h`
-- The inner changelog div has `max-h-[60vh] overflow-y-auto` but the VERSION LIST itself may overflow without scroll
+Versions render as 1px containers. Fix:
+- Add `min-h-[36px]` to VersionRow button for consistent height
+- Ensure version title (v{version} + label) is always visible
+- Expand on click should show changelog entries + what changed
+- The version list container needs proper scroll behavior
 
 ---
 
 ## Implementation Order
-- **Batch 1** (core): Tickets 1 + 3 (repo indexing fixes + file tree in prompt)
-- **Batch 2** (tools): Tickets 2 + 4 + 5 (error handling + tool guide + auto-connect)
-- **Batch 3** (UI): Tickets 6 + 7 + 8 (save button + import fix + version scroll)
+- **Batch 1** (indexing): Ticket 1 + 2 (base URL + stable paths + file tree) — these are the core value
+- **Batch 2** (reliability): Ticket 3 + 4 (auto-reconnect + error handling) — makes agents actually work
+- **Batch 3** (UI): Ticket 5 + 6 + 7 (save button + import fix + version display)
 
 ## Model Strategy
 - Plan: Opus ✅
-- Tickets/delivery: Sonnet
+- Delivery: Sonnet (parallel batches)
 - Review: Opus
