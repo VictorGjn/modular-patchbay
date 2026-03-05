@@ -75,7 +75,14 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
   }, []);
 
   const handleExport = () => {
-    const content = exportAsAgent({ channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta });
+    const store = useConsoleStore.getState();
+    const content = exportAsAgent({
+      channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta,
+      agentConfig: store.agentConfig,
+      connectors: store.connectors,
+      instructionState: store.instructionState,
+      workflowSteps: store.workflowSteps,
+    });
     const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? 'modular-agent';
     downloadAgentFile(content, name);
   };
