@@ -276,14 +276,24 @@ function KnowledgeSection() {
       });
       const json = await resp.json() as {
         status: string;
-        data?: { outputDir: string; files: string[]; scan?: { totalTokens?: number }; totalTokens?: number };
+        data?: {
+          outputDir: string;
+          files: string[];
+          scan?: { totalTokens?: number; totalFiles?: number; stack?: string[]; features?: { name: string }[] };
+          totalTokens?: number;
+          overviewMarkdown?: string;
+          name?: string;
+          contentSourceId?: string;
+        };
         error?: string;
       };
 
       if (json.status === 'ok' && json.data) {
         const totalTokens = json.data.totalTokens ?? json.data.scan?.totalTokens ?? 5000;
+        const scan = json.data.scan;
         for (const file of json.data.files) {
           const filePath = `${json.data.outputDir}/${file}`;
+          const isOverview = file.includes('overview');
           addChannel({
             sourceId: `repo-${file}-${Date.now()}`,
             name: file.replace('.compressed.md', '').replace('.md', '').replace(/^\d+-/, ''),
@@ -292,6 +302,16 @@ function KnowledgeSection() {
             knowledgeType: 'ground-truth',
             depth: isGitHub ? 2 : 1,
             baseTokens: Math.round(totalTokens / Math.max(json.data.files.length, 1)),
+            ...(isOverview && json.data.overviewMarkdown ? { content: json.data.overviewMarkdown } : {}),
+            ...(isOverview && scan ? {
+              repoMeta: {
+                name: json.data.name ?? '',
+                stack: scan.stack ?? [],
+                totalFiles: scan.totalFiles ?? 0,
+                features: (scan.features ?? []).map(f => f.name),
+              },
+            } : {}),
+            ...(json.data.contentSourceId ? { contentSourceId: json.data.contentSourceId } : {}),
           });
         }
 

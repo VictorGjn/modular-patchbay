@@ -224,6 +224,14 @@ export interface ChannelConfig {
   enabled: boolean;
   depth: number; // 0-4 index into DEPTH_LEVELS
   baseTokens: number;
+  content?: string; // inline markdown content (e.g., overviewMarkdown)
+  repoMeta?: {
+    name: string;
+    stack: string[];
+    totalFiles: number;
+    features: string[];
+  };
+  contentSourceId?: string; // links to backend content store
 }
 
 export type PlanningMode = 'single-shot' | 'chain-of-thought' | 'react';

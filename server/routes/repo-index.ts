@@ -3,6 +3,7 @@ import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import type { ApiResponse } from '../types.js';
+import { saveContent, githubSourceId, localSourceId } from '../services/contentStore.js';
 
 const router = Router();
 
@@ -111,6 +112,28 @@ router.post('/index', async (req, res) => {
       written.push(filename);
     }
 
+    // Auto-save to content store
+    const docsObj: Record<string, string> = {};
+    for (const [filename, content] of docs) {
+      docsObj[filename] = content;
+    }
+    const sid = localSourceId(resolved);
+    saveContent(sid, {
+      name: scan.name,
+      overviewMarkdown: docsObj['00-overview.md'] ?? docs[0]?.[1] ?? '',
+      knowledgeDocs: docsObj,
+      repoMeta: {
+        name: scan.name,
+        stack: scan.stack,
+        totalFiles: scan.totalFiles,
+        totalTokens: scan.totalTokens,
+        features: scan.features.map((f: any) => ({
+          name: f.name,
+          keyFiles: f.keyFiles.slice(0, 5),
+        })),
+      },
+    });
+
     res.json({
       status: 'ok',
       data: {
@@ -120,6 +143,7 @@ router.post('/index', async (req, res) => {
         totalTokens: scan.totalTokens,
         features: scan.features.length,
         stack: scan.stack,
+        contentSourceId: sid,
       },
     } satisfies ApiResponse);
   } catch (err) {
@@ -176,6 +200,24 @@ router.post('/index-github', async (req, res) => {
     writeFileSync(join(outDir, overviewFile), overviewCompressed, 'utf8');
     if (!written.includes(overviewFile)) written.unshift(overviewFile);
 
+    // Auto-save to content store
+    const sid = githubSourceId(url);
+    saveContent(sid, {
+      name: result.name,
+      overviewMarkdown: result.overviewMarkdown,
+      knowledgeDocs: docsObj,
+      repoMeta: {
+        name: result.name,
+        stack: result.scan.stack,
+        totalFiles: result.scan.totalFiles,
+        totalTokens: result.scan.totalTokens,
+        features: result.scan.features.map((f: any) => ({
+          name: f.name,
+          keyFiles: f.keyFiles.slice(0, 5),
+        })),
+      },
+    });
+
     res.json({
       status: 'ok',
       data: {
@@ -186,6 +228,7 @@ router.post('/index-github', async (req, res) => {
         overviewMarkdown: result.overviewMarkdown,
         fullMarkdown: result.fullMarkdown,
         knowledgeDocs: docsObj,
+        contentSourceId: sid,
         timing: result.timing,
         scan: {
           totalFiles: result.scan.totalFiles,
