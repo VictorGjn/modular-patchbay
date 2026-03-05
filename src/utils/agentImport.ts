@@ -1,4 +1,4 @@
-import { type ConsoleState, type AgentMeta, type ExportTarget } from '../store/consoleStore';
+import { type ConsoleState, type AgentMeta, type ExportTarget, type InstructionState, type WorkflowStep } from '../store/consoleStore';
 import { type KnowledgeType, type Category, type OutputFormat, classifyKnowledgeType, type KnowledgeSource } from '../store/knowledgeBase';
 
 interface ModularChannel {
@@ -33,6 +33,8 @@ const VALID_OUTPUT_FORMATS = new Set<string>([
 export interface ImportResult extends Partial<ConsoleState> {
   agentMeta?: AgentMeta;
   detectedFormat?: ExportTarget;
+  instructionState?: InstructionState;
+  workflowSteps?: WorkflowStep[];
 }
 
 export function importAgent(text: string): ImportResult {
@@ -69,6 +71,8 @@ function importJSON(text: string): ImportResult {
       token_budget: agent.token_budget,
     });
     result.detectedFormat = 'generic';
+    if (agent.instructionState) result.instructionState = agent.instructionState as InstructionState;
+    if (agent.workflowSteps) result.workflowSteps = agent.workflowSteps as WorkflowStep[];
     return result;
   }
 
@@ -127,6 +131,35 @@ function importMarkdown(text: string): ImportResult {
     }
   }
 
+  // Parse instruction sections from markdown body
+  const personaMatch = body.match(/## Persona\n([\s\S]*?)(?=\n## |$)/);
+  const constraintsMatch = body.match(/## Constraints\n([\s\S]*?)(?=\n## |$)/);
+  const objectivesMatch = body.match(/## Objectives\n([\s\S]*?)(?=\n## |$)/);
+  if (personaMatch || constraintsMatch || objectivesMatch) {
+    result.instructionState = {
+      persona: personaMatch ? personaMatch[1].trim() : '',
+      tone: 'neutral',
+      expertise: 3,
+      constraints: {
+        neverMakeUp: false,
+        askBeforeActions: false,
+        stayInScope: false,
+        useOnlyTools: false,
+        limitWords: false,
+        wordLimit: 500,
+        customConstraints: constraintsMatch ? constraintsMatch[1].trim() : '',
+        scopeDefinition: '',
+      },
+      objectives: {
+        primary: objectivesMatch ? objectivesMatch[1].trim() : '',
+        successCriteria: [],
+        failureModes: [],
+      },
+      rawPrompt: '',
+      autoSync: true,
+    };
+  }
+
   return result;
 }
 
@@ -159,6 +192,17 @@ function importPureYAML(text: string): ImportResult {
       reads: parsed.context_files,
     });
     result.detectedFormat = 'amp';
+    if (parsed.instructions && typeof parsed.instructions === 'string') {
+      result.instructionState = {
+        persona: parsed.instructions as string,
+        tone: 'neutral',
+        expertise: 3,
+        constraints: { neverMakeUp: false, askBeforeActions: false, stayInScope: false, useOnlyTools: false, limitWords: false, wordLimit: 500, customConstraints: '', scopeDefinition: '' },
+        objectives: { primary: '', successCriteria: [], failureModes: [] },
+        rawPrompt: '',
+        autoSync: true,
+      };
+    }
     return result;
   }
 
