@@ -27,19 +27,19 @@ function startTrace(): string {
 describe('preRecall', () => {
   beforeEach(resetStores);
 
-  it('returns empty when long-term memory is disabled', () => {
+  it('returns empty when long-term memory is disabled', async () => {
     useMemoryStore.getState().setLongTermConfig({ enabled: false });
     const traceId = startTrace();
-    const result = preRecall({ userMessage: 'hello', traceId });
+    const result = await preRecall({ userMessage: 'hello', traceId });
     expect(result.facts).toHaveLength(0);
     expect(result.contextBlock).toBe('');
   });
 
-  it('recalls shared facts and excludes scratchpad by default (reset_each_run)', () => {
+  it('recalls shared facts and excludes scratchpad by default (reset_each_run)', async () => {
     seedFacts();
     useMemoryStore.getState().setSandboxConfig({ isolation: 'reset_each_run' });
     const traceId = startTrace();
-    const result = preRecall({ userMessage: 'TypeScript dark mode', traceId });
+    const result = await preRecall({ userMessage: 'TypeScript dark mode', traceId });
 
     // Should include shared facts, exclude scratchpad
     const domains = result.facts.map(f => f.domain);
@@ -48,18 +48,18 @@ describe('preRecall', () => {
     expect(result.contextBlock).toContain('<memory_recall>');
   });
 
-  it('only recalls shared facts in clone_from_shared mode', () => {
+  it('only recalls shared facts in clone_from_shared mode', async () => {
     seedFacts();
     useMemoryStore.getState().setSandboxConfig({ isolation: 'clone_from_shared' });
     const traceId = startTrace();
-    const result = preRecall({ userMessage: 'TypeScript dark mode', traceId });
+    const result = await preRecall({ userMessage: 'TypeScript dark mode', traceId });
 
     const domains = new Set(result.facts.map(f => f.domain));
     expect(domains.has('agent_private')).toBe(false);
     expect(domains.has('run_scratchpad')).toBe(false);
   });
 
-  it('respects top_k limit', () => {
+  it('respects top_k limit', async () => {
     // Add many facts
     const store = useMemoryStore.getState();
     for (let i = 0; i < 20; i++) {
@@ -67,14 +67,14 @@ describe('preRecall', () => {
     }
     store.setRecallConfig({ strategy: 'top_k', k: 3 });
     const traceId = startTrace();
-    const result = preRecall({ userMessage: 'testing', traceId });
+    const result = await preRecall({ userMessage: 'testing', traceId });
     expect(result.facts.length).toBeLessThanOrEqual(3);
   });
 
-  it('emits a memory_recall trace event', () => {
+  it('emits a memory_recall trace event', async () => {
     seedFacts();
     const traceId = startTrace();
-    preRecall({ userMessage: 'dark mode', traceId });
+    await preRecall({ userMessage: 'dark mode', traceId });
 
     const trace = useTraceStore.getState().getTrace(traceId);
     const recallEvents = trace?.events.filter(e => e.kind === 'memory_recall') ?? [];
