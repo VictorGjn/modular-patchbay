@@ -138,8 +138,20 @@ Create persistent agent storage:
 2. `addAgentFromLibrary()` should fetch full state from `GET /api/agents/:id` and populate the team agent with real instructions/channels
 3. Keep localStorage as cache/fallback
 
+### Ticket F: Fix Export to Include Full State
+**Files**: `src/utils/agentExport.ts`, `src/components/SaveAgentModal.tsx`
+
+1. `ExportConfig` is missing: `instructionState`, `workflowSteps`, `memoryConfig`
+2. `buildAgentData()` doesn't use instructionState — `system` prompt is just the raw `config.prompt`
+3. Exports should include:
+   - Claude MD: persona, constraints, objectives in the body; workflow steps as numbered list
+   - Generic JSON: full `instructionState` + `workflowSteps` + `memoryConfig` sections
+   - Amp YAML: instructions should compile persona + constraints + workflow
+   - All formats: MCP server configs, skill configs, connector configs
+4. `SaveAgentModal` collects config via `useMemo` but doesn't pull from instructionState — add it
+
 ## Implementation Order
-- Ticket A → B → C → D → E (sequential — each builds on the previous)
+- Ticket A → B+F → C → D → E (B and F can be parallel since B is backend save, F is export format)
 
 ## Model Strategy
 - Plan: Opus (this doc) ✅
