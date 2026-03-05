@@ -192,11 +192,16 @@ function parseOpenAIResponse(data: Record<string, unknown>): LlmTurnResult {
 
   return {
     content: msg?.content ?? '',
-    toolCalls: (msg?.tool_calls ?? []).map(tc => ({
-      id: tc.id,
-      name: tc.function.name,
-      args: JSON.parse(tc.function.arguments) as Record<string, unknown>,
-    })),
+    toolCalls: (msg?.tool_calls ?? []).map(tc => {
+      let args: Record<string, unknown> = {};
+      try {
+        args = JSON.parse(tc.function.arguments) as Record<string, unknown>;
+      } catch {
+        // Malformed JSON from model — pass raw string as _raw so caller can handle
+        args = { _raw: tc.function.arguments, _parseError: true };
+      }
+      return { id: tc.id, name: tc.function.name, args };
+    }),
     inputTokens: usage?.prompt_tokens ?? 0,
     outputTokens: usage?.completion_tokens ?? 0,
     rawAssistantMessage: { role: 'assistant', ...msg },
