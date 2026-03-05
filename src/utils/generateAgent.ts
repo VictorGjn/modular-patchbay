@@ -7,9 +7,17 @@ import { REGISTRY_SKILLS } from '../store/registry';
 /**
  * Full-canvas agent generator.
  * Takes a brain dump → returns structured config to hydrate every node on the canvas.
+ *
+ * Knowledge is sourced from REAL connected sources (indexed repos, scanned files,
+ * existing channels) — NOT hallucinated. The LLM selects from what's available
+ * and suggests what's missing.
  */
 
-function buildGeneratorMetaprompt(mcpList: string, skillsList: string): string {
+function buildGeneratorMetaprompt(
+  mcpList: string,
+  skillsList: string,
+  knowledgeSourcesList: string,
+): string {
   return `You are an expert AI agent architect. Given a user's rough description of an agent they want to build, produce a COMPLETE agent configuration as JSON.
 
 You have access to these MCP servers (pick ONLY from this list):
@@ -21,6 +29,11 @@ You have access to these skills (pick ONLY from this list):
 <skills>
 ${skillsList}
 </skills>
+
+The user has these REAL knowledge sources already connected (indexed repos, documents, files):
+<connected_knowledge>
+${knowledgeSourcesList}
+</connected_knowledge>
 
 Produce a JSON response with this EXACT structure:
 {
@@ -60,11 +73,19 @@ Produce a JSON response with this EXACT structure:
   ],
   "mcpServerIds": ["<mcp-id from the list above>"],
   "skillIds": ["<skill-id from the list above>"],
-  "knowledgeSuggestions": [
+  "knowledgeSelections": [
     {
-      "name": "<suggested knowledge source name>",
-      "type": "<ground-truth|signal|evidence|framework|hypothesis|artifact>",
-      "description": "<what this knowledge contains>"
+      "sourceId": "<exact sourceId from connected_knowledge>",
+      "type": "<ground-truth|signal|evidence|framework|hypothesis|guideline>",
+      "depth": <0-4>,
+      "reason": "<why this source is relevant>"
+    }
+  ],
+  "knowledgeGaps": [
+    {
+      "name": "<what's missing>",
+      "type": "<ground-truth|signal|evidence|framework|hypothesis|guideline>",
+      "description": "<what the user should connect and why>"
     }
   ],
   "memoryConfig": {
@@ -80,12 +101,30 @@ Rules:
 1. Pick MCP servers and skills ONLY from the provided lists — use exact IDs
 2. Suggest 2-6 MCP servers and 1-4 skills that are genuinely useful for this agent
 3. Generate 3-8 workflow steps that form a coherent process
-4. Knowledge suggestions should be specific to the domain (e.g., "Company wiki" for internal agents)
-5. Be opinionated — make real choices, don't hedge
-6. Memory config: enable summarization for conversational agents, disable for one-shot tools
-7. Output suggestions: pick targets that match the agent's purpose
+4. **Knowledge: select from REAL connected sources using their exact sourceId**
+   - Set the appropriate knowledge type (ground-truth for specs, signal for feedback, etc.)
+   - Set depth: 0=Full, 1=Detail(75%), 2=Summary(50%), 3=Headlines(25%), 4=Mention(10%)
+   - If no connected sources exist or none are relevant, leave knowledgeSelections empty
+5. **Knowledge gaps: suggest what REAL documents/repos the user should connect**
+   - Be specific: "Odfjell fleet spec PDF" not "Company documentation"
+   - Only suggest gaps that would genuinely improve the agent
+6. Be opinionated — make real choices, don't hedge
+7. Memory config: enable summarization for conversational agents, disable for one-shot tools
 
 Output ONLY the JSON object. No markdown fences, no explanation.`;
+}
+
+export interface KnowledgeSelection {
+  sourceId: string;
+  type: string;
+  depth: number;
+  reason: string;
+}
+
+export interface KnowledgeGap {
+  name: string;
+  type: string;
+  description: string;
 }
 
 export interface GeneratedAgentConfig {
@@ -123,7 +162,12 @@ export interface GeneratedAgentConfig {
   }[];
   mcpServerIds: string[];
   skillIds: string[];
-  knowledgeSuggestions: {
+  /** Real sources selected from connected knowledge — replaces knowledgeSuggestions */
+  knowledgeSelections: KnowledgeSelection[];
+  /** What's missing that the user should connect */
+  knowledgeGaps: KnowledgeGap[];
+  /** @deprecated — kept for backward compat with older configs */
+  knowledgeSuggestions?: {
     name: string;
     type: string;
     description: string;
@@ -178,7 +222,15 @@ export async function generateFullAgent(brainDump: string): Promise<GeneratedAge
     ? availableSkills.map((s) => `${s.id}: ${s.description}`).join('\n')
     : 'none';
 
-  const generatorMetaprompt = buildGeneratorMetaprompt(mcpList, skillsList);
+  // Gather REAL connected knowledge sources from the store
+  const existingChannels = consoleState.channels;
+  const knowledgeSourcesList = existingChannels.length > 0
+    ? existingChannels.map((ch) =>
+        `- sourceId: "${ch.sourceId}" | name: "${ch.name}" | path: "${ch.path || '(no path)'}" | type: ${ch.knowledgeType || 'unclassified'} | tokens: ${ch.baseTokens} | depth: ${ch.depth}`
+      ).join('\n')
+    : 'No knowledge sources connected yet. Suggest what the user should add in knowledgeGaps.';
+
+  const generatorMetaprompt = buildGeneratorMetaprompt(mcpList, skillsList, knowledgeSourcesList);
 
   const text = isAgentSdk
     ? await fetchAgentSdkCompletion({
