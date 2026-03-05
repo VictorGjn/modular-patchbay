@@ -2,8 +2,9 @@ import { Router } from 'express';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, extname, relative, resolve, basename } from 'node:path';
 import { homedir } from 'node:os';
-import type { ApiResponse } from '../types.js';
+import type { ApiResponse, ProviderConfig } from '../types.js';
 import { loadContent, listContent, deleteContent } from '../services/contentStore.js';
+import { readConfig } from '../config.js';
 
 const router = Router();
 
@@ -535,6 +536,104 @@ router.delete('/content/:sourceId', (req, res) => {
     res.json({ status: 'ok', data: { deleted: true } } satisfies ApiResponse);
   } catch {
     res.status(500).json({ status: 'error', error: 'Failed to delete content' } satisfies ApiResponse);
+  }
+});
+
+// ── Embedding endpoint (Ticket 3.1) ──
+
+/**
+ * POST /api/knowledge/embed
+ * Body: { texts: string[], model?: string, providerId?: string }
+ * Response: { embeddings: number[][] }
+ *
+ * Uses an OpenAI-compatible /v1/embeddings endpoint from a configured provider.
+ */
+router.post('/embed', async (req, res) => {
+  const { texts, model, providerId } = req.body as {
+    texts?: string[];
+    model?: string;
+    providerId?: string;
+  };
+
+  if (!texts || !Array.isArray(texts) || texts.length === 0) {
+    res.status(400).json({ status: 'error', error: 'Missing or empty texts array' } satisfies ApiResponse);
+    return;
+  }
+
+  // Find an embedding-capable provider
+  const config = readConfig();
+  let provider: ProviderConfig | undefined;
+
+  if (providerId) {
+    provider = config.providers.find((p) => p.id === providerId);
+  } else {
+    // Prefer OpenAI-compatible providers (openai, openrouter, custom with baseUrl)
+    provider = config.providers.find((p) =>
+      p.type === 'openai' && p.apiKey,
+    ) ?? config.providers.find((p) =>
+      (p.type === 'openrouter' || p.type === 'custom') && p.apiKey && p.baseUrl,
+    );
+  }
+
+  if (!provider || !provider.apiKey) {
+    res.status(503).json({
+      status: 'error',
+      error: 'No embedding-capable provider configured',
+    } satisfies ApiResponse);
+    return;
+  }
+
+  // Build the base URL for the embedding endpoint
+  const baseUrl = provider.baseUrl?.replace(/\/+$/, '') || 'https://api.openai.com/v1';
+  const embeddingUrl = baseUrl.endsWith('/v1')
+    ? `${baseUrl}/embeddings`
+    : `${baseUrl}/v1/embeddings`;
+  const embeddingModel = model || 'text-embedding-3-small';
+
+  try {
+    const response = await fetch(embeddingUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${provider.apiKey}`,
+      },
+      body: JSON.stringify({
+        input: texts,
+        model: embeddingModel,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      res.status(response.status).json({
+        status: 'error',
+        error: `Embedding API error: ${response.status} — ${errorText}`,
+      } satisfies ApiResponse);
+      return;
+    }
+
+    const result = (await response.json()) as {
+      data?: Array<{ embedding: number[]; index: number }>;
+    };
+
+    if (!result.data || !Array.isArray(result.data)) {
+      res.status(502).json({
+        status: 'error',
+        error: 'Invalid response from embedding API',
+      } satisfies ApiResponse);
+      return;
+    }
+
+    // Sort by index to ensure order matches input
+    const sorted = result.data.sort((a, b) => a.index - b.index);
+    const embeddings = sorted.map((d) => d.embedding);
+
+    res.json({ status: 'ok', embeddings } satisfies ApiResponse & { embeddings: number[][] });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      error: `Embedding request failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
+    } satisfies ApiResponse);
   }
 });
 

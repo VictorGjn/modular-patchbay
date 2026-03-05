@@ -558,7 +558,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         clearScratchpad();
       }
 
-      const recallResult = preRecall({
+      const recallResult = await preRecall({
         userMessage,
         agentId: options.agentId,
         traceId,

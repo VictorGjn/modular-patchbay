@@ -11,6 +11,7 @@
 import {
   useMemoryStore,
   type Fact,
+  type FactGranularity,
   type MemoryDomain,
   type SandboxIsolation,
   type ExtractType,
@@ -46,9 +47,79 @@ export interface MemoryPipelineOptions {
   sandboxRunId?: string;
 }
 
+// ── Recall intent classification (Ticket 3.3) ──
+
+export type RecallIntent = 'specific' | 'summary' | 'exploratory';
+
+export function classifyRecallIntent(query: string): RecallIntent {
+  const lower = query.toLowerCase();
+
+  // Specific: direct questions, identifiers, quotes
+  const specificPatterns = [
+    'what is', 'where is', 'how does', 'who is', 'when did',
+    'which', 'define', 'explain',
+  ];
+  if (specificPatterns.some((p) => lower.includes(p))) return 'specific';
+  // Quoted identifiers suggest specific lookup
+  if (/["'`].+["'`]/.test(query)) return 'specific';
+  // CamelCase or UPPER_CASE identifiers
+  if (/[A-Z][a-z]+[A-Z]/.test(query) || /[A-Z_]{3,}/.test(query)) return 'specific';
+
+  // Summary: recap/overview keywords, time references
+  const summaryPatterns = [
+    'summarize', 'summary', 'overview', 'what happened', 'recap',
+    'yesterday', 'last week', 'last month', 'today', 'recently',
+    'so far', 'progress', 'status update',
+  ];
+  if (summaryPatterns.some((p) => lower.includes(p))) return 'summary';
+
+  return 'exploratory';
+}
+
+// ── Granularity weighting ──
+
+const GRANULARITY_WEIGHT: Record<FactGranularity, number> = {
+  fact: 1.0,
+  episode: 0.8,
+  raw: 0.6,
+};
+
+// ── Cosine similarity ──
+
+export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length || a.length === 0) return 0;
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
+// ── Compute embedding via backend ──
+
+export async function computeEmbedding(text: string): Promise<number[] | null> {
+  try {
+    const response = await fetch('/api/knowledge/embed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texts: [text] }),
+    });
+    if (!response.ok) return null;
+    const result = (await response.json()) as { embeddings?: number[][] };
+    return result.embeddings?.[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Pre-recall: inject relevant memory into context ──
 
-export function preRecall(options: MemoryPipelineOptions): RecallResult {
+export async function preRecall(options: MemoryPipelineOptions): Promise<RecallResult> {
   const start = Date.now();
   const store = useMemoryStore.getState();
   const { longTerm, sandbox } = store;
@@ -62,22 +133,52 @@ export function preRecall(options: MemoryPipelineOptions): RecallResult {
 
   // Apply sandbox isolation rules
   if (sandbox.isolation === 'reset_each_run') {
-    // Only shared facts survive across runs — filter out any stale scratchpad
     recallable = recallable.filter((f) => f.domain !== 'run_scratchpad');
   } else if (sandbox.isolation === 'clone_from_shared') {
-    // Start with shared facts only (agent_private from previous runs excluded)
     recallable = recallable.filter((f) => f.domain === 'shared');
   }
-  // persistent_sandbox: all recallable facts pass through
 
-  // Score and rank by relevance (simple keyword overlap for now)
-  const scored = recallable.map((fact) => ({
-    fact,
-    score: computeRelevance(fact.content, options.userMessage),
-  }));
+  // Classify intent (Ticket 3.3)
+  const intent = classifyRecallIntent(options.userMessage);
 
-  // Apply recall strategy
-  const { strategy, k, minScore } = longTerm.recall;
+  // Determine k based on intent
+  const intentConfig: Record<RecallIntent, { k: number; granularityBoost: Partial<Record<FactGranularity, number>> }> = {
+    specific:    { k: 3, granularityBoost: { fact: 1.3, episode: 0.7, raw: 0.5 } },
+    summary:     { k: 5, granularityBoost: { fact: 0.8, episode: 1.3, raw: 0.6 } },
+    exploratory: { k: 8, granularityBoost: { fact: 1.0, episode: 1.0, raw: 1.0 } },
+  };
+  const { k: intentK, granularityBoost } = intentConfig[intent];
+
+  // Try embedding-based scoring, fall back to keyword
+  const hasEmbeddedFacts = recallable.some((f) => f.embedding && f.embedding.length > 0);
+  let queryEmbedding: number[] | null = null;
+
+  if (hasEmbeddedFacts) {
+    queryEmbedding = await computeEmbedding(options.userMessage);
+  }
+
+  const scored = recallable.map((fact) => {
+    let baseScore: number;
+
+    if (queryEmbedding && fact.embedding && fact.embedding.length > 0) {
+      // Embedding-based similarity
+      baseScore = cosineSimilarity(queryEmbedding, fact.embedding);
+    } else {
+      // Keyword fallback
+      baseScore = computeRelevance(fact.content, options.userMessage);
+    }
+
+    // Apply granularity weight (Ticket 3.2)
+    const granWeight = GRANULARITY_WEIGHT[fact.granularity ?? 'fact'];
+    // Apply intent-based granularity boost (Ticket 3.3)
+    const intentBoost = granularityBoost[fact.granularity ?? 'fact'] ?? 1.0;
+
+    return { fact, score: baseScore * granWeight * intentBoost };
+  });
+
+  // Apply recall strategy, using intent-based k as cap
+  const { strategy, k: configK, minScore } = longTerm.recall;
+  const effectiveK = Math.min(intentK, configK || intentK);
   let selected: typeof scored;
 
   if (strategy === 'threshold') {
@@ -86,10 +187,10 @@ export function preRecall(options: MemoryPipelineOptions): RecallResult {
     selected = scored
       .filter((s) => s.score >= minScore)
       .sort((a, b) => b.score - a.score)
-      .slice(0, k);
+      .slice(0, effectiveK);
   } else {
     // top_k
-    selected = scored.sort((a, b) => b.score - a.score).slice(0, k);
+    selected = scored.sort((a, b) => b.score - a.score).slice(0, effectiveK);
   }
 
   const facts = selected.map((s) => s.fact);
@@ -140,7 +241,7 @@ export function postWrite(options: MemoryPipelineOptions): WriteResult {
 
     // Sandbox guard: never write directly to shared from a sandboxed run
     const finalDomain = enforceSandboxWrite(writeDomain, sandbox);
-    store.addFact(ef.content, [ef.type], ef.type as any, finalDomain);
+    store.addFact(ef.content, [ef.type], ef.type as any, finalDomain, 'fact');
 
     const facts = useMemoryStore.getState().facts;
     const latest = facts[facts.length - 1];
