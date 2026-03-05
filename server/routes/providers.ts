@@ -12,16 +12,11 @@ function normalizeBaseUrl(providerId: string, baseUrl: string): string {
   return trimmed;
 }
 
-function maskApiKey(key: string): string {
-  if (!key || key.length <= 4) return '****';
-  return '****' + key.slice(-4);
-}
-
 router.get('/', (_req, res) => {
   const config = readConfig();
-  // Never expose full API keys in GET responses
-  const masked = config.providers.map((p) => ({ ...p, apiKey: maskApiKey(p.apiKey) }));
-  const resp: ApiResponse<ProviderConfig[]> = { status: 'ok', data: masked };
+  // Never expose API keys in GET responses
+  const redacted = config.providers.map((p) => ({ ...p, apiKey: '' }));
+  const resp: ApiResponse<ProviderConfig[]> = { status: 'ok', data: redacted };
   res.json(resp);
 });
 
@@ -33,7 +28,14 @@ router.post('/', (req, res) => {
     res.status(400).json(resp);
     return;
   }
-  config.providers.push(provider);
+
+  const existingIdx = config.providers.findIndex((p) => p.id === provider.id);
+  if (existingIdx >= 0) {
+    config.providers[existingIdx] = { ...config.providers[existingIdx], ...provider };
+  } else {
+    config.providers.push(provider);
+  }
+
   writeConfig(config);
   const resp: ApiResponse<ProviderConfig> = { status: 'ok', data: provider };
   res.status(201).json(resp);
@@ -65,7 +67,7 @@ router.delete('/:id', (req, res) => {
     res.status(404).json(resp);
     return;
   }
-  config.providers.splice(idx, 1);
+  config.providers = config.providers.filter((p) => p.id !== req.params.id);
   writeConfig(config);
   const resp: ApiResponse = { status: 'ok' };
   res.json(resp);
@@ -92,8 +94,14 @@ router.post('/:id/test', async (req, res) => {
     return;
   }
 
-  // Determine provider type from id or type field
-  const providerType = provider.type || req.params.id;
+  // Determine provider type from id/baseUrl first (more reliable than stale saved type)
+  const idHint = req.params.id.toLowerCase();
+  const baseHint = (provider.baseUrl || '').toLowerCase();
+  const providerType =
+    idHint.includes('anthropic') || baseHint.includes('anthropic.com')
+      ? 'anthropic'
+      : (provider.type || req.params.id);
+
   const baseUrl = normalizeBaseUrl(providerType, provider.baseUrl || (
     providerType.includes('anthropic') ? 'https://api.anthropic.com/v1' :
     providerType.includes('openai') ? 'https://api.openai.com/v1' :
@@ -109,25 +117,64 @@ router.post('/:id/test', async (req, res) => {
   }
 
   try {
-    const authToken = bodyAccessToken || provider.apiKey;
+    const authToken = (bodyAccessToken || provider.apiKey || '').trim();
     if (providerType.includes('anthropic')) {
-      const response = await fetch(`${baseUrl}/messages`, {
+      const anthropicKey = authToken.replace(/^Bearer\s+/i, '').replace(/^x-api-key:\s*/i, '');
+      if (!anthropicKey) {
+        const resp: ApiResponse = { status: 'error', error: 'Missing Anthropic API key' };
+        res.status(400).json(resp);
+        return;
+      }
+
+      const headers = {
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      };
+
+      // 1) Validate auth cheaply with /messages
+      const authCheck = await fetch(`${baseUrl}/messages`, {
         method: 'POST',
-        headers: {
-          'x-api-key': authToken,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           model: 'claude-3-haiku-20240307',
           max_tokens: 1,
           messages: [{ role: 'user', content: 'hi' }],
         }),
       });
-      if (!response.ok && response.status === 401) {
-        throw new Error('Invalid API key');
+
+      if (!authCheck.ok) {
+        const bodyText = await authCheck.text().catch(() => '');
+        const resp: ApiResponse = {
+          status: 'error',
+          error: bodyText || `API returned ${authCheck.status}: ${authCheck.statusText}`,
+        };
+        res.status(authCheck.status).json(resp);
+        return;
       }
-      const resp: ApiResponse<{ models: string[] }> = { status: 'ok', data: { models: ['claude-3-haiku-20240307'] } };
+
+      // 2) Fetch model list from Anthropic models endpoint
+      const listRes = await fetch(`${baseUrl}/models`, { method: 'GET', headers });
+      if (listRes.ok) {
+        const body = await listRes.json() as { data?: Array<{ id?: string }> };
+        const listed = Array.isArray(body.data) ? body.data.map((m) => m.id).filter(Boolean) as string[] : [];
+        if (listed.length > 0) {
+          const resp: ApiResponse<{ models: string[] }> = { status: 'ok', data: { models: listed } };
+          res.json(resp);
+          return;
+        }
+      }
+
+      // 3) Fallback curated catalog if list endpoint unavailable
+      const fallback = [
+        'claude-opus-4',
+        'claude-sonnet-4',
+        'claude-3-7-sonnet-20250219',
+        'claude-3-5-sonnet-20241022',
+        'claude-3-5-haiku-20241022',
+        'claude-3-haiku-20240307',
+      ];
+      const resp: ApiResponse<{ models: string[] }> = { status: 'ok', data: { models: fallback } };
       res.json(resp);
     } else {
       // OpenAI, OpenRouter, Google, Custom — hit /models
@@ -136,15 +183,31 @@ router.post('/:id/test', async (req, res) => {
         ? `${baseUrl}/models?key=${authToken}`
         : `${baseUrl}/models`;
       const headers: Record<string, string> = {};
-      if (!isGoogle) {
+      if (!isGoogle && authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
       const response = await fetch(url, { headers });
       if (!response.ok) {
-        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+        const bodyText = await response.text().catch(() => '');
+        const resp: ApiResponse = {
+          status: 'error',
+          error: bodyText || `API returned ${response.status}: ${response.statusText}`,
+        };
+        res.status(response.status).json(resp);
+        return;
       }
-      const body = await response.json() as { data?: Array<{ id: string }> };
-      const models = body.data?.map((m) => m.id) ?? [];
+      const body = await response.json() as {
+        data?: Array<{ id?: string; model?: string; name?: string }>;
+        models?: Array<{ id?: string; model?: string; name?: string } | string>;
+      };
+
+      const fromData = Array.isArray(body.data)
+        ? body.data.map((m) => m.id || m.model || m.name).filter(Boolean) as string[]
+        : [];
+      const fromModels = Array.isArray(body.models)
+        ? body.models.map((m) => typeof m === 'string' ? m : (m.id || m.model || m.name)).filter(Boolean) as string[]
+        : [];
+      const models = [...new Set([...fromData, ...fromModels])];
       const resp: ApiResponse<{ models: string[] }> = { status: 'ok', data: { models } };
       res.json(resp);
     }

@@ -506,9 +506,9 @@ export function SaveAgentModal() {
                     >
                       {i + 1}
                     </span>
-                    <span
-                      dangerouslySetInnerHTML={{ __html: colorizeLine(line, exportTarget, t) }}
-                    />
+                    <span style={{ color: lineColor(line, exportTarget, t) }}>
+                      {line || ' '}
+                    </span>
                   </div>
                 ))}
               </pre>
@@ -520,48 +520,21 @@ export function SaveAgentModal() {
   );
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function colorizeLine(line: string, target: ExportTarget, t: ReturnType<typeof useTheme>): string {
-  const escaped = escapeHtml(line);
-  if (!escaped.trim()) return ' ';
+function lineColor(line: string, target: ExportTarget, t: ReturnType<typeof useTheme>): string {
+  if (!line.trim()) return t.textMuted;
 
   const isJson = target === 'codex' || target === 'vibe-kanban' || target === 'generic';
-
   if (isJson) {
-    // JSON syntax coloring
-    return escaped
-      .replace(/^(\s*)"(\w[\w_-]*)"\s*:/gm, (_, ws, key) =>
-        `${ws}<span style="color:#67d4e8">"${key}"</span>:`)
-      .replace(/:\s*"([^"]*)"(,?)$/gm, (_, val, comma) =>
-        `: <span style="color:#a8d4a0">"${val}"</span>${comma}`)
-      .replace(/:\s*(\d+\.?\d*)(,?)$/gm, (_, num, comma) =>
-        `: <span style="color:#d4a86a">${num}</span>${comma}`)
-      .replace(/:\s*(true|false|null)(,?)$/gm, (_, kw, comma) =>
-        `: <span style="color:#d4a86a">${kw}</span>${comma}`);
+    if (/^\s*"\w[\w_-]*"\s*:/.test(line)) return '#67d4e8';
+    if (/:\s*"[^"]*"\s*,?$/.test(line)) return '#a8d4a0';
+    if (/:\s*(\d+\.?\d*|true|false|null)\s*,?$/.test(line)) return '#d4a86a';
+    return t.textSecondary;
   }
 
-  // YAML / Markdown syntax coloring
-  if (escaped === '---') return `<span style="color:#FE5000">${escaped}</span>`;
-  if (escaped.startsWith('##') || escaped.startsWith('# '))
-    return `<span style="color:${t.textPrimary}">${escaped}</span>`;
-  if (/^\s*#/.test(escaped))
-    return `<span style="color:${t.isDark ? '#666' : '#999'}">${escaped}</span>`;
-  if (/^\w[\w_-]*\s*:/.test(escaped)) {
-    const colonIdx = escaped.indexOf(':');
-    const key = escaped.slice(0, colonIdx);
-    const rest = escaped.slice(colonIdx);
-    return `<span style="color:#67d4e8">${key}</span>${rest}`;
-  }
-  if (/^\s{2,}\w[\w_-]*\s*:/.test(escaped)) {
-    const match = escaped.match(/^(\s+)(\w[\w_-]*)(:.*)/);
-    if (match) return `${match[1]}<span style="color:#67d4e8">${match[2]}</span>${match[3]}`;
-  }
-  if (/^\s+-\s/.test(escaped))
-    return `<span style="color:${t.textSecondary}">${escaped}</span>`;
-  if (/^\d+\./.test(escaped))
-    return `<span style="color:${t.textSecondary}">${escaped}</span>`;
-  return `<span style="color:${t.textMuted}">${escaped}</span>`;
+  if (line === '---') return '#FE5000';
+  if (line.startsWith('##') || line.startsWith('# ')) return t.textPrimary;
+  if (/^\s*#/.test(line)) return t.isDark ? '#666' : '#999';
+  if (/^\s*\w[\w_-]*\s*:/.test(line)) return '#67d4e8';
+  if (/^\s+-\s/.test(line) || /^\d+\./.test(line)) return t.textSecondary;
+  return t.textMuted;
 }

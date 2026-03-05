@@ -106,7 +106,7 @@ test.describe('Backend API — Providers', () => {
   });
 
   test('CRUD lifecycle for provider', async ({ request }) => {
-    const providerId = 'test-provider-e2e';
+    const providerId = `test-provider-e2e-${Date.now()}`;
 
     // Create
     const createRes = await request.post(`${API_BASE}/providers`, {
@@ -123,7 +123,7 @@ test.describe('Backend API — Providers', () => {
     const list = await listRes.json();
     const found = list.data.find((p: any) => p.id === providerId);
     expect(found).toBeTruthy();
-    expect(found.apiKey).toMatch(/^\*{4}/); // Masked
+    expect(found.apiKey).toBe(''); // Redacted
 
     // Update
     const updateRes = await request.put(`${API_BASE}/providers/${providerId}`, {

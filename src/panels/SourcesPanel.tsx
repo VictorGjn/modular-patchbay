@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
-import { useMemoryStore } from '../store/memoryStore';
+import { useMemoryStore, type MemoryDomain } from '../store/memoryStore';
 import { useMcpStore } from '../store/mcpStore';
 // import { useSkillsStore } from '../store/skillsStore';
 // import { useKnowledgeStore } from '../store/knowledgeStore';
@@ -127,7 +127,8 @@ function GeneratorSection() {
     mcp: lastConfig.mcpServerIds?.length || 0,
     skills: lastConfig.skillIds?.length || 0,
     steps: lastConfig.workflowSteps?.length || 0,
-    knowledge: lastConfig.knowledgeSuggestions?.length || 0,
+    knowledge: lastConfig.knowledgeSelections?.length || lastConfig.knowledgeSuggestions?.length || 0,
+    gaps: lastConfig.knowledgeGaps?.length || 0,
   } : null;
 
   return (
@@ -157,12 +158,30 @@ function GeneratorSection() {
               { label: 'MCP', count: stats.mcp, color: '#2ecc71' },
               { label: 'Skills', count: stats.skills, color: '#f1c40f' },
               { label: 'Steps', count: stats.steps, color: '#e67e22' },
-              { label: 'Knowledge', count: stats.knowledge, color: '#3498db' },
+              { label: 'Sources', count: stats.knowledge, color: '#3498db' },
+              ...(stats.gaps > 0 ? [{ label: 'Gaps', count: stats.gaps, color: '#e74c3c' }] : []),
             ].map(s => (
               <span key={s.label} className="text-[9px] px-1.5 py-0.5 rounded"
                 style={{ fontFamily: "'Space Mono', monospace", background: `${s.color}15`, color: s.color, border: `1px solid ${s.color}30` }}>
                 {s.count} {s.label}
               </span>
+            ))}
+          </div>
+        )}
+        {lastConfig?.knowledgeGaps && lastConfig.knowledgeGaps.length > 0 && (
+          <div className="flex flex-col gap-1 px-2 py-2 rounded" style={{ background: '#e74c3c10', border: '1px solid #e74c3c20' }}>
+            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: '#e74c3c', fontFamily: "'Space Mono', monospace" }}>
+              Missing Sources
+            </span>
+            {lastConfig.knowledgeGaps.map((gap, i) => (
+              <div key={i} className="flex items-start gap-1.5 text-[10px]" style={{ color: t.textSecondary }}>
+                <AlertCircle size={10} style={{ color: '#e74c3c', marginTop: 2, flexShrink: 0 }} />
+                <div>
+                  <span style={{ color: t.text, fontWeight: 600 }}>{gap.name}</span>
+                  <span style={{ color: t.textDim }}> ({gap.type})</span>
+                  {gap.description && <div style={{ color: t.textDim, fontSize: 9, marginTop: 1 }}>{gap.description}</div>}
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -916,6 +935,16 @@ const EXTRACT_TYPES: Array<{ value: string; label: string; color: string }> = [
   { value: 'feedback', label: 'Feedback', color: '#9b59b6' },
   { value: 'entities', label: 'Entities', color: '#f1c40f' },
 ];
+const SANDBOX_OPTIONS = [
+  { value: 'reset_each_run', label: 'Reset Each Run' },
+  { value: 'persistent_sandbox', label: 'Persistent Sandbox' },
+  { value: 'clone_from_shared', label: 'Clone from Shared' },
+];
+const DOMAIN_COLORS: Record<string, string> = {
+  shared: '#2ecc71',
+  agent_private: '#3498db',
+  run_scratchpad: '#e67e22',
+};
 const FACT_TYPE_COLORS: Record<string, string> = {
   preference: '#3498db',
   decision: '#e67e22',
@@ -971,8 +1000,12 @@ function MemorySection() {
   const setWorkingConfig = useMemoryStore(s => s.setWorkingConfig);
   const addFact = useMemoryStore(s => s.addFact);
   const removeFact = useMemoryStore(s => s.removeFact);
+  const sandbox = useMemoryStore(s => s.sandbox);
+  const setSandboxConfig = useMemoryStore(s => s.setSandboxConfig);
+  const setSandboxDomain = useMemoryStore(s => s.setSandboxDomain);
   const [collapsed, setCollapsed] = useState(false);
   const [newFactText, setNewFactText] = useState('');
+  const [newFactDomain, setNewFactDomain] = useState<MemoryDomain>('shared');
   const [generating, setGenerating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -1021,23 +1054,30 @@ function MemorySection() {
       {/* ── Seed Facts (always visible — most tangible) ── */}
       <SubLabel>Seed Facts</SubLabel>
       <div className="flex flex-col gap-1 mb-2">
-        {facts.map(fact => (
-          <div key={fact.id} className="flex items-center gap-1.5 text-[11px] py-1 px-2 rounded"
-            style={{ background: t.surfaceElevated, color: t.textSecondary }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: FACT_TYPE_COLORS[fact.type] || '#999', flexShrink: 0 }} />
-            <span className="flex-1 truncate" style={{ fontFamily: "'Inter', sans-serif" }}>{fact.content}</span>
-            {fact.tags.length > 0 && fact.tags.map(tag => (
-              <span key={tag} className="text-[8px] px-1 py-0.5 rounded"
-                style={{ background: `${FACT_TYPE_COLORS[fact.type] || '#999'}15`, color: FACT_TYPE_COLORS[fact.type] || '#999', fontFamily: "'Space Mono', monospace" }}>
-                {tag}
+        {facts.map(fact => {
+          const domainColor = DOMAIN_COLORS[fact.domain] || '#999';
+          return (
+            <div key={fact.id} className="flex items-center gap-1.5 text-[11px] py-1 px-2 rounded"
+              style={{ background: t.surfaceElevated, color: t.textSecondary }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: FACT_TYPE_COLORS[fact.type] || '#999', flexShrink: 0 }} />
+              <span className="flex-1 truncate" style={{ fontFamily: "'Inter', sans-serif" }}>{fact.content}</span>
+              <span className="text-[8px] px-1 py-0.5 rounded"
+                style={{ background: `${domainColor}15`, color: domainColor, fontFamily: "'Space Mono', monospace", border: `1px solid ${domainColor}30` }}>
+                {fact.domain.replace('_', ' ')}
               </span>
-            ))}
-            <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)}
-              className="border-none bg-transparent cursor-pointer p-2 rounded shrink-0 hover:bg-[#ff000010] min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: t.textFaint }}>
-              <X size={9} />
-            </button>
-          </div>
-        ))}
+              {fact.tags.length > 0 && fact.tags.map(tag => (
+                <span key={tag} className="text-[8px] px-1 py-0.5 rounded"
+                  style={{ background: `${FACT_TYPE_COLORS[fact.type] || '#999'}15`, color: FACT_TYPE_COLORS[fact.type] || '#999', fontFamily: "'Space Mono', monospace" }}>
+                  {tag}
+                </span>
+              ))}
+              <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)}
+                className="border-none bg-transparent cursor-pointer p-2 rounded shrink-0 hover:bg-[#ff000010] min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: t.textFaint }}>
+                <X size={9} />
+              </button>
+            </div>
+          );
+        })}
         {facts.length === 0 && (
           <div className="text-[10px] py-2 text-center" style={{ color: t.textFaint }}>
             Pre-load facts the agent should always know
@@ -1046,10 +1086,18 @@ function MemorySection() {
       </div>
       <div className="flex gap-1">
         <Input value={newFactText} onChange={e => setNewFactText(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && newFactText.trim()) { addFact(newFactText.trim()); setNewFactText(''); } }}
+          onKeyDown={e => { if (e.key === 'Enter' && newFactText.trim()) { addFact(newFactText.trim(), [], 'fact', newFactDomain); setNewFactText(''); } }}
           placeholder="Add a seed fact..." />
+        <select value={newFactDomain} onChange={e => setNewFactDomain(e.target.value as MemoryDomain)}
+          aria-label="Fact domain"
+          className="text-[9px] px-1 rounded border-none cursor-pointer"
+          style={{ background: t.surfaceElevated, color: t.textDim, fontFamily: "'Space Mono', monospace", width: 70 }}>
+          <option value="shared">shared</option>
+          <option value="agent_private">private</option>
+          <option value="run_scratchpad">scratch</option>
+        </select>
         <button type="button" aria-label="Add fact"
-          onClick={() => { if (newFactText.trim()) { addFact(newFactText.trim()); setNewFactText(''); } }}
+          onClick={() => { if (newFactText.trim()) { addFact(newFactText.trim(), [], 'fact', newFactDomain); setNewFactText(''); } }}
           className="px-2 border-none rounded cursor-pointer shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
           style={{ background: t.surfaceElevated, color: t.textDim }}>
           <Plus size={12} />
@@ -1072,6 +1120,38 @@ function MemorySection() {
       {/* ── Advanced: everything else ── */}
       {showAdvanced && (
         <div className="mt-2 pt-2 flex flex-col gap-1.5" style={{ borderTop: `1px solid ${t.isDark ? '#1e1e22' : '#e8e8ec'}` }}>
+
+          {/* Sandbox isolation */}
+          <SubLabel>Sandbox Isolation</SubLabel>
+          <Select options={SANDBOX_OPTIONS} value={sandbox.isolation}
+            onChange={v => setSandboxConfig({ isolation: v as any })} size="sm" />
+          <div className="flex flex-col gap-1 mt-1">
+            <Toggle checked={sandbox.allowPromoteToShared} onChange={v => setSandboxConfig({ allowPromoteToShared: v })}
+              label="Allow promote to shared" size="sm" />
+          </div>
+          <SubLabel>Memory Domains</SubLabel>
+          <div className="flex flex-wrap gap-1">
+            {([
+              { key: 'shared' as const, label: 'Shared', color: DOMAIN_COLORS.shared },
+              { key: 'agentPrivate' as const, label: 'Agent Private', color: DOMAIN_COLORS.agent_private },
+              { key: 'runScratchpad' as const, label: 'Run Scratchpad', color: DOMAIN_COLORS.run_scratchpad },
+            ]).map(d => {
+              const active = sandbox.domains[d.key].enabled;
+              return (
+                <button key={d.key} type="button" aria-label={`Toggle ${d.label}`} aria-pressed={active}
+                  onClick={() => setSandboxDomain(d.key, !active)}
+                  className="text-[9px] px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
+                  style={{
+                    fontFamily: "'Space Mono', monospace",
+                    background: active ? `${d.color}20` : t.isDark ? '#1c1c20' : '#f0f0f5',
+                    color: active ? d.color : t.textDim,
+                    border: `1px solid ${active ? `${d.color}40` : 'transparent'}`,
+                  }}>
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
 
           {/* Session strategy */}
           <SubLabel>Session Strategy</SubLabel>

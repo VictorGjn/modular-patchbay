@@ -24,6 +24,8 @@ import {
   type ProviderStatus,
   DEFAULT_PROVIDERS,
 } from '../store/providerStore';
+import { getCapabilityMatrix } from '../capabilities';
+import { CapabilityMatrixDisplay } from './CapabilityMatrix';
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number; style?: React.CSSProperties }>> = {
   Bot,
@@ -254,6 +256,12 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
               {provider.headerNote}
             </span>
           )}
+
+          {/* Capability Matrix */}
+          <CapabilityMatrixDisplay
+            matrix={getCapabilityMatrix(provider.id)}
+            providerName={provider.name}
+          />
 
           {/* Actions row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>

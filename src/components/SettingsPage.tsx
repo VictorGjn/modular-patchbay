@@ -6,6 +6,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { useTheme } from '../theme';
+import { API_BASE } from '../config';
 import { useProviderStore, type ProviderConfig, type ProviderStatus } from '../store/providerStore';
 import { useThemeStore, type Theme } from '../store/themeStore';
 import { useMcpStore, type McpServerState } from '../store/mcpStore';
@@ -51,9 +52,14 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
   const isCustom = provider.id.startsWith('custom-');
   const isOpenAiProvider = provider.id === 'openai';
   const isCodexOAuth = isOpenAiProvider && provider.authMethod === 'oauth';
+  const displayName = provider.id === 'anthropic' ? 'Claude' : provider.name;
+  const models = Array.isArray(provider.models) ? provider.models : [];
 
   useEffect(() => {
-    setLocalKey(provider.apiKey || '');
+    // Avoid wiping in-form keys when backend refresh returns redacted/empty apiKey
+    if (provider.apiKey && provider.apiKey.trim().length > 0) {
+      setLocalKey(provider.apiKey);
+    }
     setLocalUrl(provider.baseUrl);
   }, [provider.apiKey, provider.baseUrl]);
 
@@ -98,10 +104,10 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
           <Cpu size={14} style={{ color: provider.color }} />
         </div>
         <span className="text-xs font-semibold flex-1" style={{ fontFamily: "'Space Mono', monospace" }}>
-          {provider.name}
+          {displayName}
         </span>
         <span className="text-[10px]" style={{ color: t.textMuted }}>
-          {provider.status === 'connected' ? `${provider.models.length} models` : provider.status}
+          {provider.status === 'connected' ? `${models.length} models` : provider.status}
         </span>
       </button>
 
@@ -161,7 +167,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   Available Models
                 </label>
                 <div className="flex flex-wrap gap-1">
-                  {provider.models.map((m) => (
+                  {models.map((m) => (
                     <span
                       key={m.id}
                       className="text-[10px] px-2 py-0.5 rounded"
@@ -198,14 +204,53 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
           ) : (
             <>
               {isCodexOAuth ? (
-                <div
-                  className="flex items-start gap-2 text-xs px-3 py-2.5 rounded-lg"
-                  style={{ background: t.badgeBg, border: `1px solid ${t.borderSubtle}` }}
-                >
-                  <Terminal size={14} style={{ color: provider.color, marginTop: 1 }} />
-                  <span style={{ color: t.textSecondary }}>
-                    Local session login is not wired for OpenAI yet. Use API Key mode for now.
-                  </span>
+                <div className="flex flex-col gap-2">
+                  <div
+                    className="flex items-start gap-2 text-xs px-3 py-2.5 rounded-lg"
+                    style={{ background: t.badgeBg, border: `1px solid ${t.borderSubtle}` }}
+                  >
+                    <Terminal size={14} style={{ color: provider.color, marginTop: 1 }} />
+                    <span style={{ color: t.textSecondary }}>
+                      Codex browser sign-in (guided): open OpenAI dashboard, create key, and complete login flow.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const start = await fetch(`${API_BASE}/auth/codex/start`, { method: 'POST' });
+                        const startJson = await start.json();
+                        const sessionId = startJson?.data?.sessionId as string | undefined;
+                        const authUrl = startJson?.data?.authUrl as string | undefined;
+                        if (!sessionId || !authUrl) return;
+
+                        window.open(authUrl, '_blank', 'noopener,noreferrer');
+                        const pasted = window.prompt('Paste your OpenAI API key to complete Codex login');
+                        if (!pasted) return;
+
+                        const complete = await fetch(`${API_BASE}/auth/codex/complete/${sessionId}`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ apiKey: pasted.trim() }),
+                        });
+                        const completeJson = await complete.json();
+                        const apiKey = completeJson?.data?.apiKey as string | undefined;
+                        if (!apiKey) return;
+
+                        setProviderKey(provider.id, apiKey);
+                        setLocalKey(apiKey);
+                        setProviderBaseUrl(provider.id, localUrl);
+                        saveProvider(provider.id);
+                        await handleTest();
+                      } catch {
+                        // no-op
+                      }
+                    }}
+                    className="nodrag nowheel flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg cursor-pointer font-semibold border-none"
+                    style={{ background: '#FE5000', color: '#fff' }}
+                  >
+                    Sign in with Codex
+                  </button>
                 </div>
               ) : (
                 <div className="flex flex-col gap-1">
