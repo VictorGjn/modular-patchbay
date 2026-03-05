@@ -131,10 +131,28 @@ export async function indexGitHubRepo(request: GitHubIndexRequest): Promise<GitH
     const depthArg = '--depth 1';
     const branchArg = ref ? `--branch ${ref}` : '';
 
-    execSync(
-      `git clone ${depthArg} ${branchArg} --single-branch "${cloneUrl}" "${tempDir}"`,
-      { stdio: 'pipe', timeout: 60_000 },
-    );
+    try {
+      execSync(
+        `git clone ${depthArg} ${branchArg} --single-branch "${cloneUrl}" "${tempDir}"`,
+        { stdio: 'pipe', timeout: 60_000 },
+      );
+    } catch (cloneErr: unknown) {
+      // On Windows, filenames with colons (e.g. timestamps) cause checkout
+      // failures even though the clone (object fetch) succeeds. Detect this
+      // and recover: the .git dir exists, just some files couldn't checkout.
+      const gitDir = join(tempDir, '.git');
+      if (existsSync(gitDir)) {
+        // Best-effort checkout of whatever files Windows can handle
+        try {
+          execSync('git checkout HEAD -- .', { cwd: tempDir, stdio: 'pipe', timeout: 30_000 });
+        } catch {
+          // Some files still fail — that's fine, we index what we can
+        }
+      } else {
+        // Genuine clone failure (network, auth, etc.)
+        throw cloneErr;
+      }
+    }
     const cloneMs = Date.now() - cloneStart;
 
     // 2. Determine scan root (may be a subdirectory)
