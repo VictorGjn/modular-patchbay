@@ -19,6 +19,7 @@ import runtimeRoutes from './routes/runtime.js';
 import worktreeRoutes from './routes/worktrees.js';
 import authCodexRoutes from './routes/auth-codex.js';
 import capabilitiesRoutes from './routes/capabilities.js';
+import qualificationRoutes from './routes/qualification.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -81,6 +82,7 @@ export function createApp() {
   app.use('/api/worktrees', worktreeRoutes);
   app.use('/api/auth/codex', authCodexRoutes);
   app.use('/api/capabilities', capabilitiesRoutes);
+  app.use('/api/qualification', qualificationRoutes);
 
   // Global error handler — prevent server crashes
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
