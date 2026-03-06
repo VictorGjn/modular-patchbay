@@ -279,7 +279,13 @@ function KnowledgeSection() {
         data?: {
           outputDir: string;
           files: string[];
-          scan?: { totalTokens?: number; totalFiles?: number; stack?: string[]; features?: { name: string }[] };
+          scan?: {
+            totalTokens?: number;
+            totalFiles?: number;
+            baseUrl?: string;
+            stack?: string[] | Record<string, string>;
+            features?: { name: string }[];
+          };
           totalTokens?: number;
           overviewMarkdown?: string;
           name?: string;
@@ -291,6 +297,12 @@ function KnowledgeSection() {
       if (json.status === 'ok' && json.data) {
         const totalTokens = json.data.totalTokens ?? json.data.scan?.totalTokens ?? 5000;
         const scan = json.data.scan;
+        const normalizedStack = Array.isArray(scan?.stack)
+          ? scan.stack
+          : scan?.stack && typeof scan.stack === 'object'
+            ? Object.values(scan.stack).filter((v): v is string => typeof v === 'string' && v !== 'unknown' && v !== 'none')
+            : [];
+
         for (const file of json.data.files) {
           const filePath = `${json.data.outputDir}/${file}`;
           const isOverview = file.includes('overview');
@@ -306,8 +318,9 @@ function KnowledgeSection() {
             ...(isOverview && scan ? {
               repoMeta: {
                 name: json.data.name ?? '',
-                stack: scan.stack ?? [],
+                stack: normalizedStack,
                 totalFiles: scan.totalFiles ?? 0,
+                baseUrl: scan.baseUrl,
                 features: (scan.features ?? []).map(f => f.name),
               },
             } : {}),

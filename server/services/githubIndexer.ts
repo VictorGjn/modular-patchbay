@@ -36,6 +36,8 @@ export interface GitHubIndexRequest {
 export interface GitHubIndexResult {
   /** Repo name (from package.json or URL) */
   name: string;
+  /** Base GitHub blob URL for building file links */
+  baseUrl?: string;
   /** Where it was cloned (only if persist=true) */
   clonePath?: string;
   /** Full repo scan data */
@@ -75,6 +77,13 @@ function normalizeGitUrl(url: string): string {
   // Ensure it ends with .git for clone
   if (!url.endsWith('.git')) return `${url}.git`;
   return url;
+}
+
+function buildGitHubBaseUrl(url: string, ref?: string): string | undefined {
+  if (!url.includes('github.com')) return undefined;
+  const { owner, repo } = parseGitUrl(url);
+  const branch = ref || 'HEAD';
+  return `https://github.com/${owner}/${repo}/blob/${branch}/`;
 }
 
 export async function indexLocalRepo(request: LocalRepoIndexRequest): Promise<GitHubIndexResult> {
@@ -122,6 +131,7 @@ export async function indexGitHubRepo(request: GitHubIndexRequest): Promise<GitH
   const { url, ref, subdir, persist } = request;
   const { repo } = parseGitUrl(url);
   const cloneUrl = normalizeGitUrl(url);
+  const baseUrl = buildGitHubBaseUrl(url, ref);
 
   // 1. Clone into temp directory (shallow for speed)
   const tempDir = mkdtempSync(join(tmpdir(), `modular-gh-${repo}-`));
@@ -184,6 +194,7 @@ export async function indexGitHubRepo(request: GitHubIndexRequest): Promise<GitH
 
     const result: GitHubIndexResult = {
       name: repo,
+      baseUrl,
       scan,
       knowledgeDocs,
       overviewMarkdown,

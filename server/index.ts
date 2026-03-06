@@ -12,7 +12,7 @@ import agentSdkRoutes from './routes/agent-sdk.js';
 import knowledgeRoutes from './routes/knowledge.js';
 import claudeConfigRoutes from './routes/claude-config.js';
 import skillsSearchRoutes from './routes/skills-search.js';
-import repoIndexRoutes from './routes/repo-index.js';
+import repoIndexRoutes, { cleanupLegacyGitHubKnowledgeDirs } from './routes/repo-index.js';
 import healthRoutes from './routes/health.js';
 import connectorRoutes from './routes/connectors.js';
 import runtimeRoutes from './routes/runtime.js';
@@ -117,6 +117,10 @@ function loadSavedServers() {
 }
 
 export function startServer(port: number = 4800) {
+  const removedLegacyDirs = cleanupLegacyGitHubKnowledgeDirs();
+  if (removedLegacyDirs > 0) {
+    console.log(`Cleaned ${removedLegacyDirs} legacy GitHub index director${removedLegacyDirs === 1 ? 'y' : 'ies'}`);
+  }
   loadSavedServers();
   const app = createApp();
   const server = app.listen(port, () => {

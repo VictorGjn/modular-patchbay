@@ -229,6 +229,7 @@ export interface ChannelConfig {
     name: string;
     stack: string[];
     totalFiles: number;
+    baseUrl?: string;
     features: string[];
   };
   contentSourceId?: string; // links to backend content store

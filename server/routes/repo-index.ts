@@ -1,11 +1,44 @@
 import { Router } from 'express';
 import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import type { ApiResponse } from '../types.js';
 import { saveContent, githubSourceId, localSourceId } from '../services/contentStore.js';
 
 const router = Router();
+const GITHUB_KNOWLEDGE_ROOT = join(tmpdir(), 'modular-gh-knowledge');
+
+function ensureGithubKnowledgeRoot(): void {
+  mkdirSync(GITHUB_KNOWLEDGE_ROOT, { recursive: true });
+}
+
+export function cleanupLegacyGitHubKnowledgeDirs(): number {
+  if (!existsSync(GITHUB_KNOWLEDGE_ROOT)) return 0;
+
+  const removed: string[] = [];
+  const entries = readdirSync(GITHUB_KNOWLEDGE_ROOT);
+  const legacyPattern = /^(.*)-(\d{10,})$/;
+
+  for (const entry of entries) {
+    const match = entry.match(legacyPattern);
+    if (!match) continue;
+
+    const stableName = match[1];
+    const stablePath = join(GITHUB_KNOWLEDGE_ROOT, stableName);
+    const legacyPath = join(GITHUB_KNOWLEDGE_ROOT, entry);
+
+    try {
+      if (!existsSync(stablePath)) continue;
+      if (!statSync(stablePath).isDirectory()) continue;
+      rmSync(legacyPath, { recursive: true, force: true });
+      removed.push(entry);
+    } catch {
+      // best effort cleanup
+    }
+  }
+
+  return removed.length;
+}
 
 function compressKnowledgeMarkdown(content: string): string {
   const lines = content.split('\n');
@@ -181,7 +214,9 @@ router.post('/index-github', async (req, res) => {
     const result = await mod.indexGitHubRepo({ url, ref, subdir, persist });
 
     const safeName = result.name.toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-    const outDir = join(tmpdir(), 'modular-gh-knowledge', `${safeName}-${Date.now()}`);
+    ensureGithubKnowledgeRoot();
+    const outDir = join(GITHUB_KNOWLEDGE_ROOT, safeName);
+    rmSync(outDir, { recursive: true, force: true });
     mkdirSync(outDir, { recursive: true });
 
     // Materialize compressed knowledge docs to filesystem so Knowledge node can index them
@@ -211,6 +246,7 @@ router.post('/index-github', async (req, res) => {
         stack: result.scan.stack,
         totalFiles: result.scan.totalFiles,
         totalTokens: result.scan.totalTokens,
+        baseUrl: result.baseUrl,
         features: result.scan.features.map((f: any) => ({
           name: f.name,
           keyFiles: f.keyFiles.slice(0, 5),
@@ -234,6 +270,7 @@ router.post('/index-github', async (req, res) => {
           totalFiles: result.scan.totalFiles,
           totalTokens: result.scan.totalTokens,
           stack: result.scan.stack,
+          baseUrl: result.baseUrl,
           conventions: result.scan.conventions,
           features: result.scan.features.map((f: any) => ({
             name: f.name,

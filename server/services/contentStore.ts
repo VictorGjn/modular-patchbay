@@ -6,9 +6,10 @@ const CONTENT_DIR = join(homedir(), '.modular-studio', 'content');
 
 export interface ContentRepoMeta {
   name: string;
-  stack: string[];
+  stack: string[] | Record<string, string>;
   totalFiles: number;
   totalTokens: number;
+  baseUrl?: string;
   features: { name: string; keyFiles: string[] }[];
 }
 
