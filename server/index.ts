@@ -109,15 +109,37 @@ export function createApp() {
 }
 
 // Load saved MCP servers into manager on startup
-function loadSavedServers() {
+function loadSavedServers(): string[] {
   const config = readConfig();
+  const registeredIds: string[] = [];
   for (const server of config.mcpServers) {
     mcpManager.addServer(server);
+    registeredIds.push(server.id);
+  }
+  return registeredIds;
+}
+
+async function autoConnectSavedServers(serverIds: string[]): Promise<void> {
+  for (const serverId of serverIds) {
+    const server = mcpManager.getServer(serverId);
+    if (!server) continue;
+    if (server.config.autoConnect === false) {
+      console.log(`[MCP] Skipping auto-connect for "${serverId}" (autoConnect=false)`);
+      continue;
+    }
+    try {
+      const result = await mcpManager.connect(serverId);
+      console.log(`[MCP] Auto-connected "${serverId}" with ${result.tools.length} tool(s)`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[MCP] Auto-connect failed for "${serverId}": ${message}`);
+    }
   }
 }
 
 export function startServer(port: number = 4800) {
-  loadSavedServers();
+  const registeredServerIds = loadSavedServers();
+  void autoConnectSavedServers(registeredServerIds);
   const app = createApp();
   const server = app.listen(port, () => {
     const addr = server.address();

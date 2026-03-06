@@ -94,6 +94,19 @@ async function executeTool(
   const mcpStore = useMcpStore.getState();
   try {
     const raw = await mcpStore.callTool(origin.serverId, toolName, args);
+    if (raw == null) {
+      if (toolName === 'get_file_contents') {
+        return {
+          result: 'No content returned. This path may be a directory - use list_directory first, or check the file tree in your context.',
+          serverId: origin.serverId,
+        };
+      }
+      return {
+        result: 'Tool returned no result. Check arguments.',
+        serverId: origin.serverId,
+      };
+    }
+
     // MCP results can be { content: [...] } or plain value
     let resultText: string;
     if (raw && typeof raw === 'object' && 'content' in (raw as Record<string, unknown>)) {
