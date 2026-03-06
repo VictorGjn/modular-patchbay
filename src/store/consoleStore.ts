@@ -1136,10 +1136,14 @@ export interface SavedAgentState {
   prompt: string;
 }
 
+export function agentNameToId(name: string): string {
+  const safeName = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  return safeName || 'modular-agent';
+}
+
 export function collectFullState(): SavedAgentState {
   const s = useConsoleStore.getState();
-  const name = s.agentMeta.name || 'modular-agent';
-  const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const id = agentNameToId(s.agentMeta.name);
   return {
     id,
     version: '1.0.0',
