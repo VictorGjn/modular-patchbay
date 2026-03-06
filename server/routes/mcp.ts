@@ -20,6 +20,7 @@ function getClaudeConfigServer(id: string): McpServerConfig | null {
       command: srv.command || '',
       args: srv.args || [],
       env: srv.env || {},
+      autoConnect: true,
     };
   } catch { return null; }
 }
@@ -51,6 +52,7 @@ router.post('/', (req, res) => {
   }
   serverConfig.args = serverConfig.args ?? [];
   serverConfig.env = serverConfig.env ?? {};
+  serverConfig.autoConnect = serverConfig.autoConnect ?? true;
 
   // Persist to config
   const existing = config.mcpServers.findIndex((s) => s.id === serverConfig.id);
@@ -84,6 +86,7 @@ router.put('/:id', (req, res) => {
     id: current.id,
     args: patch.args ?? current.args ?? [],
     env: patch.env ?? current.env ?? {},
+    autoConnect: patch.autoConnect ?? current.autoConnect ?? true,
   };
 
   if (!next.name || !next.command) {
