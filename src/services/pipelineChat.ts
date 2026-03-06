@@ -100,6 +100,8 @@ export interface PipelineChatStats {
   memory?: MemoryStats;
 }
 
+type TreeIndexLookup = ReturnType<typeof useTreeIndexStore.getState>['getIndex'];
+
 // ── Build non-knowledge system prompt (identity, instructions, constraints, workflow, tools) ──
 
 function buildSystemFrame(): string {
@@ -278,7 +280,63 @@ export function resolveProviderAndModel(): ResolvedProvider {
  * Lists codebases (channels with repoMeta) and documents (channels with content but no repoMeta).
  * Gives the LLM a map of what's available without including actual content.
  */
-function buildOrientationBlock(channels: ChannelConfig[]): string {
+const FILE_PATH_PATTERN = /(?:^|[\s`"'([<{])([A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)+\.[A-Za-z0-9._-]+)(?=$|[\s`"')\]}>:,;.!?])/g;
+
+function normalizePath(input: string): string {
+  return input.replace(/\\/g, '/').replace(/\/+/g, '/');
+}
+
+function parentDir(input: string): string {
+  const normalized = normalizePath(input);
+  const idx = normalized.lastIndexOf('/');
+  return idx > 0 ? normalized.slice(0, idx) : normalized;
+}
+
+function collectFilePathsFromText(text: string, out: Set<string>): void {
+  FILE_PATH_PATTERN.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = FILE_PATH_PATTERN.exec(text)) !== null) {
+    const path = match[1].replace(/^\.?\//, '');
+    if (path.includes('/')) out.add(path);
+  }
+}
+
+function collectFilePathsFromTree(node: TreeNode, out: Set<string>): void {
+  collectFilePathsFromText(node.title, out);
+  if (node.text) collectFilePathsFromText(node.text, out);
+  for (const child of node.children) collectFilePathsFromTree(child, out);
+}
+
+function buildCondensedTree(paths: string[]): string[] {
+  const groups = new Map<string, Set<string>>();
+
+  for (const rawPath of paths) {
+    const path = normalizePath(rawPath).replace(/^\.?\//, '');
+    if (!path.includes('/')) continue;
+    const parts = path.split('/').filter(Boolean);
+    if (parts.length < 2) continue;
+
+    const branch = parts.length >= 3 ? `${parts[0]}/${parts[1]}/` : `${parts[0]}/`;
+    const child = parts.length >= 3
+      ? `${parts[2]}${parts.length > 3 ? '/' : ''}`
+      : parts[1];
+
+    if (!groups.has(branch)) groups.set(branch, new Set());
+    groups.get(branch)!.add(child);
+  }
+
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(0, 14)
+    .map(([branch, children]) => {
+      const sortedChildren = [...children].sort();
+      const visible = sortedChildren.slice(0, 8);
+      const suffix = sortedChildren.length > visible.length ? ', ...' : '';
+      return `  ${branch} -> ${visible.join(', ')}${suffix}`;
+    });
+}
+
+function buildOrientationBlock(channels: ChannelConfig[], getTreeIndex: TreeIndexLookup): string {
   const active = channels.filter(ch => ch.enabled);
   const lines: string[] = [];
 
@@ -286,9 +344,27 @@ function buildOrientationBlock(channels: ChannelConfig[]): string {
   const repoChannels = active.filter(ch => ch.repoMeta);
   for (const ch of repoChannels) {
     const meta = ch.repoMeta!;
+    const repoRoot = ch.path ? parentDir(ch.path) : '';
+    const related = repoRoot
+      ? active.filter(c => c.path && normalizePath(c.path).startsWith(`${repoRoot}/`))
+      : [ch];
+    const filePaths = new Set<string>();
+    for (const relatedChannel of related) {
+      if (relatedChannel.content) collectFilePathsFromText(relatedChannel.content, filePaths);
+      if (!relatedChannel.path) continue;
+      const index = getTreeIndex(relatedChannel.path);
+      if (index) collectFilePathsFromTree(index.root, filePaths);
+    }
+    const condensedTree = buildCondensedTree([...filePaths]);
+
     lines.push(`## ${meta.name}`);
     if (meta.stack.length > 0) lines.push(`- Stack: ${meta.stack.join(', ')}`);
+    if (meta.baseUrl) lines.push(`- Base URL: ${meta.baseUrl}`);
     lines.push(`- ${meta.totalFiles} files, key features: ${meta.features.join(', ')}`);
+    if (meta.baseUrl && condensedTree.length > 0) {
+      lines.push(`- File lookup table (${filePaths.size} paths): use \`${meta.baseUrl}{filePath}\``);
+      lines.push(...condensedTree);
+    }
     lines.push(`- You can explore this codebase in depth — read files, trace dependencies, check implementations.`);
     lines.push('');
   }
@@ -310,6 +386,7 @@ function buildOrientationBlock(channels: ChannelConfig[]): string {
 - Your knowledge about these codebases is already loaded in your context below. Use it directly.
 - For file contents not in your context, use get_file_contents or read_file tools — NOT the knowledge graph.
 - Do NOT call search_nodes or read_graph to find basic structure — that information is already here.
+- Use each repo's base URL + file path from the lookup table to build exact file links.
 - Explore files and trace dependencies BEFORE asking the user for information.`;
 
   return `<orientation>\n${header}\n${lines.join('\n')}\n${footer}\n</orientation>`;
@@ -585,7 +662,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
 
     // 3. Assemble final system prompt
     //    Order: identity/instructions → orientation → framework rules → memory recall → knowledge → connectors
-    const orientationBlock = buildOrientationBlock(channels);
+    const orientationBlock = buildOrientationBlock(channels, useTreeIndexStore.getState().getIndex);
     const systemParts = [systemFrame];
     if (orientationBlock) systemParts.push(orientationBlock);
     if (frameworkBlock) systemParts.push(frameworkBlock);

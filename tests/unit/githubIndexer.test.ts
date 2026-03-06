@@ -81,13 +81,15 @@ describe('githubIndexer', () => {
       expect(cloneCmd).toContain('--depth 1');
       expect(cloneCmd).toContain('https://github.com/owner/test-repo.git');
       expect(result.name).toBe('test-repo');
+      expect(result.baseUrl).toBe('https://github.com/owner/test-repo/blob/HEAD/');
     });
 
     it('passes branch ref to git clone', async () => {
-      await indexGitHubRepo({ url: 'https://github.com/owner/repo', ref: 'develop' });
+      const result = await indexGitHubRepo({ url: 'https://github.com/owner/repo', ref: 'develop' });
 
       const cloneCmd = (execSync as any).mock.calls[0][0] as string;
       expect(cloneCmd).toContain('--branch develop');
+      expect(result.baseUrl).toBe('https://github.com/owner/repo/blob/develop/');
     });
 
     it('returns scan data with stack detection', async () => {
