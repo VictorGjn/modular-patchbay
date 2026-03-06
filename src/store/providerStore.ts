@@ -450,15 +450,23 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
           const info = data?.data;
           const authenticated = info?.authenticated === true;
           const displayInfo = authenticated && info?.email ? `${info.displayName || 'User'} (${info.email})` : undefined;
+          const sdkModels: { id: string; label: string }[] = Array.isArray(info?.models)
+            ? info.models.map((m: string) => ({ id: m, label: m }))
+            : [];
           set((state) => ({
             testing: { ...state.testing, [id]: false },
             providers: state.providers.map((p) =>
-              p.id === id ? { ...p, status: (authenticated ? 'connected' : 'error') as ProviderStatus, lastError: authenticated ? displayInfo : (info?.error || 'Not authenticated') } : p
+              p.id === id ? {
+                ...p,
+                status: (authenticated ? 'connected' : 'error') as ProviderStatus,
+                models: sdkModels.length > 0 ? sdkModels : p.models,
+                lastError: authenticated ? displayInfo : (info?.error || 'Not authenticated'),
+              } : p
             ),
           }));
           persistProviders(get().providers);
           return authenticated
-            ? { ok: true, models: provider.models.map((m) => m.id) }
+            ? { ok: true, models: sdkModels.map((m) => m.id) }
             : { ok: false, error: data?.data?.error || 'Not authenticated — run `claude` in your terminal first' };
         } catch (err) {
           const errorMsg = normalizeConnectionError(err);
