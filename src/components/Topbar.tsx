@@ -1,10 +1,10 @@
-import { useConsoleStore } from '../store/consoleStore';
+import { useConsoleStore, collectFullState, agentNameToId } from '../store/consoleStore';
 import { useThemeStore } from '../store/themeStore';
 import { useTheme } from '../theme';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
-import { useMemo, useState, useCallback } from 'react';
-import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings, ShoppingBag, Target, FolderOpen } from 'lucide-react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { Download, Upload, Trash2, Play, Square, Sun, Moon, Settings, ShoppingBag, Target, FolderOpen, Save, Check, X } from 'lucide-react';
 import { OutputIcon } from './icons/SectionIcons';
 import { useProviderStore } from '../store/providerStore';
 import { VersionIndicator } from './VersionIndicator';
@@ -55,6 +55,7 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
   const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
   const loadDemoPreset = useConsoleStore((s) => s.loadDemoPreset);
   const loadAgent = useConsoleStore((s) => s.loadAgent);
+  const setAgentMeta = useConsoleStore((s) => s.setAgentMeta);
   const getAllModels = useProviderStore((s) => s.getAllModels);
   const providers = useProviderStore((s) => s.providers);
   const allModels = useMemo(() => getAllModels(), [getAllModels, providers]);
@@ -62,6 +63,19 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
 
   const [savedAgents, setSavedAgents] = useState<{ id: string; agentMeta?: { name: string; description: string } }[]>([]);
   const [agentPickerOpen, setAgentPickerOpen] = useState(false);
+  const [showSaveNamePrompt, setShowSaveNamePrompt] = useState(false);
+  const [saveNameInput, setSaveNameInput] = useState('');
+  const [savingAgent, setSavingAgent] = useState(false);
+  const [saveConfirmed, setSaveConfirmed] = useState(false);
+  const saveConfirmTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveConfirmTimerRef.current) {
+        window.clearTimeout(saveConfirmTimerRef.current);
+      }
+    };
+  }, []);
 
   const fetchSavedAgents = useCallback(async () => {
     try {
@@ -86,6 +100,50 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
     const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? 'modular-agent';
     downloadAgentFile(content, name);
   };
+
+  const showSaveConfirmation = useCallback(() => {
+    setSaveConfirmed(true);
+    if (saveConfirmTimerRef.current) {
+      window.clearTimeout(saveConfirmTimerRef.current);
+    }
+    saveConfirmTimerRef.current = window.setTimeout(() => {
+      setSaveConfirmed(false);
+    }, 2000);
+  }, []);
+
+  const persistAgent = useCallback(async (nameOverride?: string) => {
+    const resolvedName = (nameOverride ?? agentMeta.name).trim();
+    if (!resolvedName) {
+      setSaveNameInput(agentMeta.name);
+      setShowSaveNamePrompt(true);
+      return;
+    }
+
+    if (resolvedName !== agentMeta.name) {
+      setAgentMeta({ name: resolvedName });
+    }
+
+    setSavingAgent(true);
+    try {
+      const id = agentNameToId(resolvedName);
+      const state = collectFullState();
+      state.id = id;
+      state.agentMeta = { ...state.agentMeta, name: resolvedName };
+
+      const res = await fetch(`${API_BASE}/agents/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state),
+      });
+      if (!res.ok) return;
+      setShowSaveNamePrompt(false);
+      showSaveConfirmation();
+    } catch {
+      // backend may not be available
+    } finally {
+      setSavingAgent(false);
+    }
+  }, [agentMeta.name, setAgentMeta, showSaveConfirmation]);
 
   const formatInfo = OUTPUT_FORMATS.find((f) => f.id === outputFormat);
 
@@ -305,6 +363,59 @@ export function Topbar({ onImportClick, onSettingsClick, workspaceMode, onWorksp
         aria-label="Import agent definition"
       >
         <Upload size={14} />
+      </button>
+
+      {showSaveNamePrompt && (
+        <div className="flex items-center gap-1.5 h-8 px-2 rounded-lg" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}` }}>
+          <input
+            type="text"
+            value={saveNameInput}
+            onChange={(e) => setSaveNameInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                void persistAgent(saveNameInput);
+              }
+              if (e.key === 'Escape') {
+                setShowSaveNamePrompt(false);
+              }
+            }}
+            className="w-44 h-6 px-2 text-xs rounded-md outline-none"
+            style={{ background: t.inputBg, border: `1px solid ${t.borderSubtle}`, color: t.textPrimary }}
+            placeholder="Agent name required"
+            aria-label="Agent name"
+          />
+          <button
+            type="button"
+            onClick={() => { void persistAgent(saveNameInput); }}
+            className="flex items-center justify-center w-6 h-6 rounded-md border-none cursor-pointer"
+            style={{ background: '#FE5000', color: '#fff' }}
+            aria-label="Confirm agent name and save"
+          >
+            <Check size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSaveNamePrompt(false)}
+            className="flex items-center justify-center w-6 h-6 rounded-md border-none cursor-pointer"
+            style={{ background: 'transparent', color: t.textDim }}
+            aria-label="Cancel agent save"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* Save */}
+      <button
+        type="button"
+        onClick={() => { void persistAgent(); }}
+        className="flex items-center justify-center w-11 h-11 rounded-md cursor-pointer border-none bg-transparent hover-accent-text focus-visible:outline focus-visible:outline-2"
+        style={{ color: saveConfirmed ? t.statusSuccess : t.textDim, opacity: savingAgent ? 0.6 : 1 }}
+        aria-label="Save agent"
+        title={saveConfirmed ? 'Saved' : 'Save agent'}
+        disabled={savingAgent}
+      >
+        {saveConfirmed ? <Check size={14} /> : <Save size={14} />}
       </button>
 
       {/* Export */}
