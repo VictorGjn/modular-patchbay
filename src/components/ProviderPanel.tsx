@@ -164,7 +164,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                 type={showKey ? 'text' : 'password'}
                 value={provider.apiKey || ''}
                 onChange={(e) => setProviderKey(provider.id, e.target.value)}
-                placeholder="sk-..."
+                placeholder={provider._hasStoredKey ? 'Key stored on server' : 'sk-...'}
                 className="nodrag nowheel"
                 style={{ ...inputStyle, paddingRight: 32 }}
               />
