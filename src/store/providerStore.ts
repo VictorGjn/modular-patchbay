@@ -30,6 +30,9 @@ export interface ProviderConfig {
   headerNote?: string;
   // Test result
   lastError?: string;
+  // Backend key sentinels (key exists on server but not exposed to frontend)
+  _hasStoredKey?: boolean;
+  _hasStoredAccessToken?: boolean;
 }
 
 export const DEFAULT_PROVIDERS: ProviderConfig[] = [
@@ -170,7 +173,7 @@ async function syncProviderToBackend(provider: ProviderConfig): Promise<void> {
     'custom';
 
   // Don't overwrite real keys with sentinel/empty values
-  const isSentinel = (v?: string) => !v || v === '••••••••';
+  const isSentinel = (v?: string) => !v || /^[•]+$/.test(v);
   const payload: Record<string, unknown> = {
     baseUrl: provider.baseUrl,
     authMethod: provider.authMethod,
@@ -485,17 +488,21 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
       if (backend) {
         // Save first, then test via backend
         const provider = get().providers.find((p) => p.id === id);
-        if (provider) {
+        const hasRealKey = provider?.apiKey && !/^[•]+$/.test(provider.apiKey);
+        if (provider && hasRealKey) {
           await fetch(`${API_BASE}/providers/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ apiKey: provider.apiKey, baseUrl: provider.baseUrl }),
           });
         }
+        // Don't send sentinel/empty keys — backend will use its stored key
+        const testBody: Record<string, string> = { baseUrl: provider?.baseUrl || '' };
+        if (hasRealKey) testBody.apiKey = provider!.apiKey!;
         const res = await fetch(`${API_BASE}/providers/${id}/test`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey: provider?.apiKey, baseUrl: provider?.baseUrl }),
+          body: JSON.stringify(testBody),
         });
         const data = await res.json();
         if (data.status === 'ok') {
@@ -620,8 +627,10 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
             name: def.id === 'anthropic' ? 'Claude' : (remote.name || def.name),
             // If backend has a stored key, mark provider as configured
             // and use a sentinel so the frontend knows not to overwrite it
-            apiKey: hasBackendKey ? (def.apiKey || '••••••••') : def.apiKey,
-            accessToken: hasBackendToken ? (def.accessToken || '••••••••') : def.accessToken,
+            apiKey: hasBackendKey ? '' : def.apiKey,
+            accessToken: hasBackendToken ? '' : def.accessToken,
+            _hasStoredKey: hasBackendKey,
+            _hasStoredAccessToken: hasBackendToken,
             status: hasBackendKey || hasBackendToken ? 'configured' as const : (remote.status || def.status),
             models: Array.isArray(remote.models) ? remote.models : def.models,
           };

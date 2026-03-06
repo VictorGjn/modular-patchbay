@@ -263,7 +263,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                       value={localKey}
                       onChange={(e) => setLocalKey(e.target.value)}
                       onBlur={handleSave}
-                      placeholder="sk-..."
+                      placeholder={provider._hasStoredKey ? 'Key stored on server' : 'sk-...'}
                       className="nodrag nowheel w-full text-xs px-3 py-2 pr-9 rounded-lg outline-none"
                       style={inputStyle}
                     />
