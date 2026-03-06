@@ -15,14 +15,24 @@ interface McpConnection {
 export class McpManager {
   private connections = new Map<string, McpConnection>();
 
+  private normalizeConfig(config: McpServerConfig): McpServerConfig {
+    return {
+      ...config,
+      args: config.args ?? [],
+      env: config.env ?? {},
+      autoConnect: config.autoConnect ?? true,
+    };
+  }
+
   addServer(config: McpServerConfig): void {
+    const normalizedConfig = this.normalizeConfig(config);
     if (this.connections.has(config.id)) {
       const existing = this.connections.get(config.id)!;
-      existing.config = config;
+      existing.config = normalizedConfig;
       return;
     }
     this.connections.set(config.id, {
-      config,
+      config: normalizedConfig,
       client: null,
       transport: null,
       status: 'disconnected',
@@ -40,11 +50,12 @@ export class McpManager {
     return this.connections.get(id);
   }
 
-  listServers(): Array<McpServerConfig & { status: string; tools: McpConnection['tools'] }> {
+  listServers(): Array<McpServerConfig & { status: string; tools: McpConnection['tools']; lastError: string | null }> {
     return Array.from(this.connections.values()).map((c) => ({
       ...c.config,
       status: c.status,
       tools: c.tools,
+      lastError: c.lastError,
     }));
   }
 
