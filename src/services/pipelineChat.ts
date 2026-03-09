@@ -106,7 +106,7 @@ type TreeIndexLookup = ReturnType<typeof useTreeIndexStore.getState>['getIndex']
 
 function buildSystemFrame(): string {
   const state = useConsoleStore.getState();
-  const { instructionState, workflowSteps, agentMeta, skills } = state;
+  const { instructionState, workflowSteps, agentMeta } = state;
   const parts: string[] = [];
 
   // Identity
@@ -156,22 +156,9 @@ function buildSystemFrame(): string {
     parts.push(`<workflow>\n${compiled}\n</workflow>`);
   }
 
-  // Tools
-  const connectedTools: McpTool[] = useMcpStore.getState().getConnectedTools();
-  const enabledSkills = skills.filter(s => s.enabled);
-  if (connectedTools.length > 0 || enabledSkills.length > 0) {
-    const toolLines: string[] = [];
-    if (connectedTools.length > 0) {
-      toolLines.push('MCP Tools:');
-      toolLines.push(...connectedTools.map(t => `- ${t.name}: ${t.description || 'No description'}`));
-    }
-    if (enabledSkills.length > 0) {
-      if (toolLines.length > 0) toolLines.push('');
-      toolLines.push('Skills:');
-      toolLines.push(...enabledSkills.map(s => `- ${s.name}: ${s.description || 'No description'}`));
-    }
-    parts.push(`<tools>\n${toolLines.join('\n')}\n</tools>`);
-  }
+  // Tools — replaced by dynamic tool guide (Ticket B)
+  const toolGuide = buildToolGuide();
+  if (toolGuide) parts.push(toolGuide);
 
   return parts.join('\n\n');
 }
@@ -336,6 +323,187 @@ function buildCondensedTree(paths: string[]): string[] {
     });
 }
 
+// ── Knowledge Format Guide (Ticket A) ──
+
+/**
+ * Builds a <knowledge_format> block that teaches the agent how to read
+ * the compressed knowledge docs produced by the indexing pipeline.
+ * Only injected when at least one repo channel is connected.
+ */
+function buildKnowledgeFormatGuide(): string {
+  return `<knowledge_format>
+The knowledge below is produced by an automated indexing pipeline. Here is how to read it:
+
+## Heading Hierarchy = Depth Levels
+- # (H1) = Feature name — top-level grouping
+- ## (H2) = Section: Architecture, Key Files, Data Flow, State Management, Components
+- ### (H3) = Individual file entry with metadata
+
+## How to Read a Key File Entry
+Each file under "Key Files" has structured metadata:
+- **Category**: What the file DOES (component=UI, store=state, service=logic, route=endpoint, util=helper, test=tests, config=settings, type=contracts)
+- **Exports**: The public API surface — function/class/constant names this file makes available
+- **Types**: TypeScript interfaces/types defined in this file
+- **Size/Tokens**: File size and estimated token count for budget decisions
+- **Imports**: Direct dependencies of this file
+
+## How to Use Data Flow (CRITICAL)
+The "Data Flow" section contains the import graph between files. Each line is:
+  source_file → imported_module
+This IS the dependency graph. You do NOT need to open files to trace dependencies.
+Example: if Data Flow shows \`App.tsx → ./providers/AuthProvider\`, you already know App depends on AuthProvider.
+
+## Escalation Strategy
+1. **Check the knowledge docs first** — most answers are already here (exports, types, data flow, architecture)
+2. **Use get_file_contents ONLY when you need actual implementation details** — the code itself, not its structure
+3. **Build exact file URLs** using the base URL from orientation + the file path from Key Files
+
+## What You Can Answer WITHOUT Reading Files
+- "What does X export?" → Check Exports field
+- "What depends on X?" → Check Data Flow
+- "What state does X manage?" → Check State Management section
+- "What type is X?" → Check Types field
+- "What stack/framework?" → Check Architecture section
+</knowledge_format>`;
+}
+
+// ── Dynamic Tool Guide (Ticket B) ──
+
+/**
+ * Replaces the basic <tools> block with a <tool_guide> that includes
+ * usage patterns and anti-patterns adapted to actually connected tools.
+ */
+function buildToolGuide(): string {
+  const connectedTools: McpTool[] = useMcpStore.getState().getConnectedTools();
+  const { skills } = useConsoleStore.getState();
+  const enabledSkills = skills.filter(s => s.enabled);
+  const channels: ChannelConfig[] = useConsoleStore.getState().channels;
+  const hasRepos = channels.some(ch => ch.enabled && ch.repoMeta);
+
+  if (connectedTools.length === 0 && enabledSkills.length === 0) return '';
+
+  const lines: string[] = [];
+
+  // Tool inventory
+  if (connectedTools.length > 0) {
+    lines.push('## Available MCP Tools');
+    for (const t of connectedTools) {
+      lines.push(`- **${t.name}**: ${t.description || 'No description'}`);
+    }
+  }
+  if (enabledSkills.length > 0) {
+    if (lines.length > 0) lines.push('');
+    lines.push('## Available Skills');
+    for (const s of enabledSkills) {
+      lines.push(`- **${s.name}**: ${s.description || 'No description'}`);
+    }
+  }
+
+  // Usage patterns
+  lines.push('');
+  lines.push('## Tool Usage Patterns');
+
+  // File access tools
+  const fileTools = connectedTools.filter(t =>
+    /get_file|read_file|file_content/i.test(t.name),
+  );
+  if (fileTools.length > 0 && hasRepos) {
+    lines.push('### File Access');
+    lines.push('- **FIRST**: Check your loaded knowledge (Key Files, Data Flow, Exports) — most structural questions are answered there');
+    lines.push('- **THEN**: Use file tools ONLY for actual source code / implementation details');
+    lines.push(`- Tool: \`${fileTools[0].name}\` — pass a single file path, NOT a directory`);
+  }
+
+  // Search tools
+  const searchTools = connectedTools.filter(t =>
+    /search|find|grep|query/i.test(t.name) && !/search_nodes/i.test(t.name),
+  );
+  if (searchTools.length > 0) {
+    lines.push('### Search');
+    for (const st of searchTools) {
+      lines.push(`- \`${st.name}\`: Use for finding files or symbols not in loaded knowledge`);
+    }
+  }
+
+  // Graph tools (lower priority when knowledge is loaded)
+  const graphTools = connectedTools.filter(t =>
+    /search_nodes|read_graph|knowledge_graph/i.test(t.name),
+  );
+  if (graphTools.length > 0 && hasRepos) {
+    lines.push('### Knowledge Graph (Low Priority)');
+    lines.push('- Your loaded knowledge already contains structure, dependencies, and exports');
+    lines.push('- Do NOT use graph tools to find basic repo structure — it is already in your context');
+    lines.push('- Use graph tools ONLY for cross-repo relationship queries not covered by loaded knowledge');
+  }
+
+  // Anti-patterns
+  lines.push('');
+  lines.push('## Anti-Patterns (NEVER do these)');
+  if (fileTools.length > 0) {
+    lines.push(`- NEVER pass a directory path to \`${fileTools[0].name}\` — it only accepts single files`);
+  }
+  if (hasRepos) {
+    lines.push('- NEVER open a file just to check its exports or types — that information is in your loaded knowledge');
+    lines.push('- NEVER fabricate file URLs — use base URL from orientation + exact file path from Key Files');
+    lines.push('- NEVER call search_nodes/read_graph for structure already in your context');
+  }
+
+  // Workflow
+  if (hasRepos) {
+    lines.push('');
+    lines.push('## Recommended Workflow');
+    lines.push('1. Check orientation block → find which repo/feature is relevant');
+    lines.push('2. Check loaded knowledge → exports, data flow, types, architecture');
+    lines.push('3. Need implementation details? → `get_file_contents` with exact file path');
+    lines.push('4. Need something not indexed? → search tools');
+    lines.push('5. Need cross-repo relationships? → graph tools');
+  }
+
+  return `<tool_guide>\n${lines.join('\n')}\n</tool_guide>`;
+}
+
+// ── Worked Example in Orientation (Ticket C) ──
+
+/**
+ * Build a worked example for each connected repo showing the
+ * full knowledge escalation chain. Injected into the orientation block.
+ */
+function buildWorkedExamples(channels: ChannelConfig[]): string {
+  const repoChannels = channels.filter(ch => ch.enabled && ch.repoMeta);
+  if (repoChannels.length === 0) return '';
+
+  const examples: string[] = [];
+
+  for (const ch of repoChannels) {
+    const meta = ch.repoMeta!;
+    // Pick the first feature name for the example
+    const featureNames = meta.features;
+    if (featureNames.length === 0) continue;
+
+    const featName = featureNames[0];
+    // Use a plausible file path pattern based on feature name
+    const featureSlug = featName.toLowerCase().replace(/\s+/g, '-');
+    const samplePath = `src/${featureSlug}/index.ts`;
+
+    const example = [
+      `### Example: answering a question about ${meta.name}`,
+      `Q: "How does ${featName} work?"`,
+      `1. Check Data Flow in "${featName}" section → see what files import/depend on each other`,
+      `2. Check Key Files → exports and types tell you the API surface without opening files`,
+      `3. Need actual implementation? → \`get_file_contents("${samplePath}")\``,
+    ];
+
+    if (meta.baseUrl) {
+      example.push(`4. Need to share a link? → \`${meta.baseUrl}{exact_file_path}\``);
+    }
+
+    examples.push(example.join('\n'));
+  }
+
+  if (examples.length === 0) return '';
+  return examples.join('\n\n');
+}
+
 function buildOrientationBlock(channels: ChannelConfig[], getTreeIndex: TreeIndexLookup): string {
   const active = channels.filter(ch => ch.enabled);
   const lines: string[] = [];
@@ -382,6 +550,13 @@ function buildOrientationBlock(channels: ChannelConfig[], getTreeIndex: TreeInde
   if (lines.length === 0) return '';
 
   const header = 'You have access to the following codebases and knowledge sources:\n';
+
+  // Ticket C: inject worked examples
+  const workedExamples = buildWorkedExamples(channels);
+  const exampleSection = workedExamples
+    ? `\n## How to Use This Knowledge\n${workedExamples}\n`
+    : '';
+
   const footer = `Approach:
 - Your knowledge about these codebases is already loaded in your context below. Use it directly.
 - For file contents not in your context, use get_file_contents or read_file tools — NOT the knowledge graph.
@@ -389,7 +564,7 @@ function buildOrientationBlock(channels: ChannelConfig[], getTreeIndex: TreeInde
 - Use each repo's base URL + file path from the lookup table to build exact file links.
 - Explore files and trace dependencies BEFORE asking the user for information.`;
 
-  return `<orientation>\n${header}\n${lines.join('\n')}\n${footer}\n</orientation>`;
+  return `<orientation>\n${header}\n${lines.join('\n')}\n${exampleSection}${footer}\n</orientation>`;
 }
 
 // ── Main pipeline chat ──
@@ -661,10 +836,12 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     }
 
     // 3. Assemble final system prompt
-    //    Order: identity/instructions → orientation → framework rules → memory recall → knowledge → connectors
+    //    Order: identity/instructions/tools → orientation → knowledge format guide → framework rules → memory recall → knowledge → connectors
     const orientationBlock = buildOrientationBlock(channels, useTreeIndexStore.getState().getIndex);
+    const hasRepos = channels.some(ch => ch.enabled && ch.repoMeta);
     const systemParts = [systemFrame];
     if (orientationBlock) systemParts.push(orientationBlock);
+    if (hasRepos) systemParts.push(buildKnowledgeFormatGuide());
     if (frameworkBlock) systemParts.push(frameworkBlock);
     if (memoryBlock) systemParts.push(memoryBlock);
     if (knowledgeBlock) systemParts.push(knowledgeBlock);
