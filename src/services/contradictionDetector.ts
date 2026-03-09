@@ -1,4 +1,4 @@
-import { type KnowledgeType } from '../store/knowledgeBase';
+import { type KnowledgeType } from '../store/knowledgeBase.js';
 
 interface SourceBlock {
   name: string;

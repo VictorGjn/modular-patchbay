@@ -26,7 +26,8 @@
     "design-tool"
   ],
   "bin": {
-    "modular-studio": "./dist-server/bin/modular-studio.js"
+    "modular-studio": "./dist-server/bin/modular-studio.js",
+    "modular-mcp-server": "./dist-server/bin/modular-mcp.js"
   },
   "files": [
     "dist/",

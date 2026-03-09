@@ -6,7 +6,7 @@
  * proportionally more tokens while respecting minimum floors.
  */
 
-import type { KnowledgeType } from '../store/knowledgeBase';
+import type { KnowledgeType } from '../store/knowledgeBase.js';
 
 // Epistemic weights by knowledge type (must sum to 1.0)
 export const TYPE_WEIGHTS: Record<KnowledgeType, number> = {

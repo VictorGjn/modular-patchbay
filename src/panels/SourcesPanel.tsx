@@ -9,14 +9,15 @@ import { TextArea } from '../components/ds/TextArea';
 import { Input } from '../components/ds/Input';
 import { Toggle } from '../components/ds/Toggle';
 import { Select } from '../components/ds/Select';
-// import { Tooltip } from '../components/ds/Tooltip';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
 import { generateMemoryConfig, generateKnowledge } from '../utils/generateSection';
 import { analyzeFactsForPromotion, type FactPromotion, type FactAnalysisResult } from '../utils/analyzeFactsForPromotion';
 import { useVersionStore } from '../store/versionStore';
 import { useHealthStore } from '../store/healthStore';
 import { useTreeIndexStore } from '../store/treeIndexStore';
-import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
+import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/knowledgeBase';
+import { TYPE_WEIGHTS } from '../services/budgetAllocator';
+import { Tooltip } from '../components/ds/Tooltip';
 import { API_BASE } from '../config';
 import { setApiKey, type ConnectorAuthStatus } from '../services/connectorAuth';
 // import { formatTokens } from '../utils/formatTokens';
@@ -25,7 +26,7 @@ import {
   ChevronDown, ChevronRight,
   Database, Plug, Zap, Brain,
   Plus, X, Minus, Library,
-  Lightbulb, ArrowUpRight, Check, AlertCircle, Bot, FolderGit2, KeyRound,
+  Lightbulb, ArrowUpRight, Check, AlertCircle, Bot, FolderGit2, KeyRound, Info,
 } from 'lucide-react';
 
 /* ── Shared Generate Button ── */
@@ -140,6 +141,32 @@ function GeneratorSection() {
         </span>
       </div>
       <div className="px-5 py-3 flex flex-col gap-2">
+        {/* One-Click Agent Templates */}
+        <div className="flex flex-wrap gap-1">
+          {[
+            { label: 'Code Review', icon: '🔍', prompt: 'A code review agent that uses framework sources for coding standards, ground-truth for API specs, and strict constraints. Reviews PRs for correctness, style, and security.' },
+            { label: 'Research', icon: '🔬', prompt: 'A research agent that uses evidence and signal sources with broad exploration. Synthesizes data from multiple sources, identifies patterns, and generates structured research reports.' },
+            { label: 'Maritime Ops', icon: '⚓', prompt: 'A maritime operations agent with ground-truth for SOLAS/MARPOL regulations, evidence from vessel data, and signal from crew feedback. Supports voyage planning, compliance checks, and operational reporting.' },
+            { label: 'Writing', icon: '✍️', prompt: 'A writing agent that uses framework sources for style guides, ground-truth for facts and references, and hypothesis for draft content. Produces polished documents with consistent voice and accurate citations.' },
+          ].map(tmpl => (
+            <button key={tmpl.label} type="button"
+              onClick={() => setBrainDump(tmpl.prompt)}
+              className="text-[8px] px-2 py-1 rounded-full cursor-pointer"
+              title={tmpl.prompt}
+              style={{
+                fontFamily: "'Space Mono', monospace", fontWeight: 500,
+                background: t.isDark ? '#1c1c20' : '#eeeef3', color: t.textDim,
+                border: `1px solid ${t.border}`, transition: 'border-color 150ms',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+            >
+              {tmpl.icon} {tmpl.label}
+            </button>
+          ))}
+        </div>
         <TextArea
           value={brainDump}
           onChange={e => setBrainDump(e.target.value)}
@@ -212,6 +239,7 @@ function KnowledgeSection() {
   const setChannelDepth = useConsoleStore(s => s.setChannelDepth);
   const removeChannel = useConsoleStore(s => s.removeChannel);
   const addChannel = useConsoleStore(s => s.addChannel);
+  const setChannelKnowledgeType = useConsoleStore(s => s.setChannelKnowledgeType);
   const setShowFilePicker = useConsoleStore(s => s.setShowFilePicker);
   const setShowConnectorPicker = useConsoleStore(s => s.setShowConnectorPicker);
   const navigationMode = useConsoleStore(s => s.navigationMode);
@@ -231,6 +259,17 @@ function KnowledgeSection() {
   const [authKey, setAuthKey] = useState('');
   const [authTesting, setAuthTesting] = useState(false);
   const [authStatuses, setAuthStatuses] = useState<Record<string, ConnectorAuthStatus>>({});
+  const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
+
+  const DETAIL_LABELS = ['Maximum', 'High', 'Normal', 'Low', 'Minimal'] as const;
+  const KT_KEYS: KnowledgeType[] = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
+
+  // Compute budget % for a knowledge type (how much of total TYPE_WEIGHTS it occupies among enabled types)
+  const getBudgetPct = (type: KnowledgeType) => {
+    const enabledTypes = new Set(channels.filter(c => c.enabled).map(c => c.knowledgeType));
+    const totalWeight = Array.from(enabledTypes).reduce((s, t) => s + (TYPE_WEIGHTS[t] || 0), 0);
+    return totalWeight > 0 ? Math.round((TYPE_WEIGHTS[type] / totalWeight) * 100) : 0;
+  };
 
   // Compute real tokens from tree indexes where available
   const getChannelTokens = (ch: typeof channels[number]) => {
@@ -349,7 +388,6 @@ function KnowledgeSection() {
     setRepoScanning(false);
   }, [repoPath, repoScanning, addChannel]);
 
-  const DEPTH_LABELS = ['Full', 'High', 'Ref', 'Skim', 'Mention'] as const;
   const DEPTH_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e67e22', '#999'];
 
   // Load connector auth statuses on mount
@@ -440,7 +478,7 @@ function KnowledgeSection() {
         </div>
       </div>
 
-      {/* Channel list */}
+      {/* Channel list — Smart Defaults + Progressive Disclosure */}
       <div className="flex flex-col">
         {channels.map(ch => {
           const kt = KNOWLEDGE_TYPES[ch.knowledgeType] || KNOWLEDGE_TYPES.evidence;
@@ -452,11 +490,13 @@ function KnowledgeSection() {
           const isLoading = !!treeLoading[ch.path];
           const hasError = !!treeErrors[ch.path];
           const realTokens = getChannelTokens(ch);
+          const isExpanded = expandedChannel === ch.sourceId;
+          const budgetPct = getBudgetPct(ch.knowledgeType);
 
           return (
             <div key={ch.sourceId} className="py-1.5"
               style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
-              {/* Row 1: Type dot + Name + Token count + Remove */}
+              {/* Level 1: Source name + auto-detected type pill (default view) */}
               <div className="flex items-center gap-1.5">
                 <div style={{ position: 'relative', flexShrink: 0 }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: kt.color }} />
@@ -470,15 +510,25 @@ function KnowledgeSection() {
                     <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ff3344' }} />
                   )}
                 </div>
-                <span className="flex-1 truncate text-[11px]" title={ch.name}
+                {/* Clickable name — expands Level 3 panel */}
+                <button type="button" onClick={() => setExpandedChannel(isExpanded ? null : ch.sourceId)}
+                  className="flex-1 truncate text-[11px] text-left border-none bg-transparent cursor-pointer p-0"
+                  title={ch.name}
                   style={{ color: ch.enabled ? t.textPrimary : t.textDim, lineHeight: 1.2 }}>
                   {ch.name}
-                </span>
+                </button>
+                {/* Level 2: Knowledge Type pill (hover shows tooltip) */}
+                <Tooltip content={`${kt.icon} ${kt.label} — ${kt.instruction}\nBudget: ~${budgetPct}% · Detail: ${DETAIL_LABELS[depth]}`} position="top">
+                  <span className="text-[7px] px-1.5 py-0.5 rounded-full shrink-0 cursor-default select-none"
+                    style={{ fontFamily: "'Space Mono', monospace", fontWeight: 600, background: `${kt.color}18`, color: kt.color, border: `1px solid ${kt.color}30` }}>
+                    {kt.label}
+                  </span>
+                </Tooltip>
                 {isGithubCompressed && (
                   <span className="text-[8px] px-1 py-0.5 rounded shrink-0"
                     style={{ fontFamily: "'Space Mono', monospace", color: '#24292F', background: '#24292F12', border: '1px solid #24292F30' }}
                     title="GitHub indexed & compressed context">
-                    GH · compressed
+                    GH
                   </span>
                 )}
                 <span className="text-[9px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: isIndexed ? t.textPrimary : t.textDim }}
@@ -491,9 +541,10 @@ function KnowledgeSection() {
                   <X size={9} />
                 </button>
               </div>
-              {/* Row 2: Depth bar (compact) */}
+
+              {/* Detail Level bar (compact — always visible) */}
               <div className="flex items-center gap-1 mt-0.5 pl-4">
-                <button type="button" aria-label="Less content" onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
+                <button type="button" aria-label="Less detail" onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
                   className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
                   style={{ color: depth >= 4 ? t.textFaint : t.textDim, width: 20, height: 20, padding: 0 }}>
                   <Minus size={9} />
@@ -501,15 +552,64 @@ function KnowledgeSection() {
                 <div className="flex-1" style={{ height: 4, background: `${barColor}18`, borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{ width: `${barPct}%`, height: '100%', background: barColor, borderRadius: 2, transition: 'width 200ms' }} />
                 </div>
-                <button type="button" aria-label="More content" onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
+                <button type="button" aria-label="More detail" onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
                   className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
                   style={{ color: depth <= 0 ? t.textFaint : t.textDim, width: 20, height: 20, padding: 0 }}>
                   <Plus size={9} />
                 </button>
-                <span className="text-[8px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, width: 24, textAlign: 'right' }}>
-                  {DEPTH_LABELS[depth]}
+                <span className="text-[8px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, width: 44, textAlign: 'right' }}>
+                  {DETAIL_LABELS[depth]}
                 </span>
               </div>
+
+              {/* Level 3: Expanded panel — manual overrides for type, depth, budget weight */}
+              {isExpanded && (
+                <div className="mt-1.5 ml-4 px-2.5 py-2 rounded-md" style={{ background: t.isDark ? '#1a1a1e' : '#f5f5f8', border: `1px solid ${t.isDark ? '#2a2a30' : '#e0e0e5'}` }}>
+                  {/* Knowledge Type pill row */}
+                  <div className="flex items-center gap-1 mb-2">
+                    <span className="text-[8px] tracking-[0.1em] uppercase shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, width: 32 }}>
+                      Type
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {KT_KEYS.map((key, idx) => {
+                        const info = KNOWLEDGE_TYPES[key];
+                        const isActive = ch.knowledgeType === key;
+                        return (
+                          <button key={key} type="button" onClick={() => setChannelKnowledgeType(ch.sourceId, idx)}
+                            className="text-[7px] px-1.5 py-0.5 rounded-full cursor-pointer border-none"
+                            style={{
+                              fontFamily: "'Space Mono', monospace", fontWeight: 600,
+                              background: isActive ? `${info.color}25` : 'transparent',
+                              color: isActive ? info.color : t.textFaint,
+                              border: `1px solid ${isActive ? `${info.color}40` : 'transparent'}`,
+                            }}>
+                            {info.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* Instruction from selected type */}
+                  <div className="flex items-start gap-1.5 mb-2">
+                    <Info size={9} style={{ color: kt.color, marginTop: 1, flexShrink: 0 }} />
+                    <span className="text-[9px]" style={{ color: t.textDim, lineHeight: 1.3 }}>
+                      {kt.instruction}
+                    </span>
+                  </div>
+                  {/* Budget + Detail summary */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-[8px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+                      Budget: ~{budgetPct}%
+                    </span>
+                    <span className="text-[8px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+                      Detail: {DETAIL_LABELS[depth]}
+                    </span>
+                    <span className="text-[8px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+                      Tokens: {fmtTokens(realTokens)}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

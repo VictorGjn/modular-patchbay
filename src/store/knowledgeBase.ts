@@ -160,7 +160,7 @@ export function classifyKnowledge(path: string, content?: string): Classificatio
   return { knowledgeType: 'evidence', depth, confidence: 'low', reason: 'Default' };
 }
 
-function suggestDepth(content: string, type: KnowledgeType): number {
+export function suggestDepth(content: string, type: KnowledgeType): number {
   for (const rule of DEPTH_RULES) {
     if (rule.test(content, type)) return rule.depth;
   }

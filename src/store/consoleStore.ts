@@ -453,7 +453,20 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   addChannel: (channel) => {
     const { channels } = get();
     if (channels.some((ch) => ch.sourceId === channel.sourceId)) return;
-    set({ channels: [...channels, { ...channel, enabled: true }], selectedPreset: '' });
+    // Auto-classify knowledge type + depth if caller used generic defaults
+    const enriched = { ...channel };
+    if (channel.path) {
+      const cls = classifyKnowledge(channel.path, channel.content);
+      // Only override if caller didn't set a specific type (or used evidence as default)
+      if (!channel.knowledgeType || channel.knowledgeType === 'evidence') {
+        enriched.knowledgeType = cls.knowledgeType;
+      }
+      // Auto-set depth from classification unless caller explicitly set it
+      if (channel.depth === undefined || channel.depth === null) {
+        enriched.depth = cls.depth;
+      }
+    }
+    set({ channels: [...channels, { ...enriched, enabled: true }], selectedPreset: '' });
   },
 
   removeChannel: (sourceId: string) => {
