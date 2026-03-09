@@ -22,13 +22,21 @@ interface AuditData {
   [skillId: string]: { gen: string; socket: string; snyk: string };
 }
 
-interface AuditCache {
-  data: AuditData;
+interface CatalogEntry {
+  name: string;
+  repo: string;
+  installs: string;
+  url: string;
+}
+
+interface Cache<T> {
+  data: T;
   ts: number;
 }
 
-let auditCache: AuditCache | null = null;
-const AUDIT_TTL_MS = 10 * 60 * 1000; // 10 minutes
+let auditCache: Cache<AuditData> | null = null;
+let catalogCache: Cache<CatalogEntry[]> | null = null;
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 function parseInstalls(installs: string): number {
   const s = installs.trim().toUpperCase();
@@ -41,8 +49,59 @@ function stripTags(html: string): string {
   return html.replace(/<[^>]+>/g, '').trim();
 }
 
+async function fetchCatalog(): Promise<CatalogEntry[]> {
+  if (catalogCache && Date.now() - catalogCache.ts < CACHE_TTL_MS) {
+    return catalogCache.data;
+  }
+
+  const res = await fetch('https://skills.sh/', {
+    headers: { 'User-Agent': 'modular-patchbay/1.0' },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const html = await res.text();
+
+  const entries: CatalogEntry[] = [];
+  // Parse leaderboard rows: [1find-skillsvercel-labs/skills462.7K]
+  // Each row is an <a> with href like /vercel-labs/skills/find-skills
+  // Content pattern: rank + skillName + repo + installs
+  const rowRegex = /\[(\d+)([a-z0-9_-]+?)([a-z0-9_-]+\/[a-z0-9_-]+)([\d.]+[KkMm]?)\]/gi;
+  let m: RegExpExecArray | null;
+  while ((m = rowRegex.exec(html)) !== null) {
+    const skillName = m[2];
+    const repo = m[3];
+    const installs = m[4];
+    entries.push({
+      name: skillName,
+      repo,
+      installs,
+      url: `https://skills.sh/${repo}/${skillName}`,
+    });
+  }
+
+  // Fallback: try href-based parsing if regex above fails
+  if (entries.length === 0) {
+    const hrefRegex = /href="\/([^"]+?\/[^"]+?\/([^"]+))"/g;
+    while ((m = hrefRegex.exec(html)) !== null) {
+      const path = m[1];
+      const parts = path.split('/');
+      if (parts.length === 3) {
+        entries.push({
+          name: parts[2],
+          repo: `${parts[0]}/${parts[1]}`,
+          installs: '0',
+          url: `https://skills.sh/${path}`,
+        });
+      }
+    }
+  }
+
+  catalogCache = { data: entries, ts: Date.now() };
+  return entries;
+}
+
 async function fetchAudits(): Promise<AuditData> {
-  if (auditCache && Date.now() - auditCache.ts < AUDIT_TTL_MS) {
+  if (auditCache && Date.now() - auditCache.ts < CACHE_TTL_MS) {
     return auditCache.data;
   }
 
@@ -106,51 +165,55 @@ router.get('/search', async (req: Request, res: Response) => {
   }
 
   try {
-    const [{ stdout }, auditData] = await Promise.all([
-      exec('npx', ['skills', 'find', query], {
-        timeout: 30000,
-        shell: true,
-        env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
-      }),
+    const [catalog, auditData] = await Promise.all([
+      fetchCatalog(),
       fetchAudits().catch(() => ({} as AuditData)),
     ]);
 
-    // Parse the CLI output
-    const results: SkillResult[] = [];
-    const lines = stdout.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].replace(/\x1b\[[0-9;]*m/g, '').trim();
-      // Lines like: vercel-labs/agent-skills@vercel-react-best-practices  176.5K installs
-      const match = line.match(/^(.+?)@(.+?)\s+([\d.]+[KkMm]?)\s*installs?$/);
-      if (match) {
-        const repo = match[1];
-        const skillName = match[2];
-        const installs = match[3];
-        // Next line should be the URL
-        const nextLine = (lines[i + 1] || '').replace(/\x1b\[[0-9;]*m/g, '').trim();
-        const urlMatch = nextLine.match(/https:\/\/skills\.sh\/.+/);
-        const skillId = `${repo}@${skillName}`;
+    const q = query.toLowerCase();
+
+    // Score each skill: prioritize skill name matches over repo matches
+    const scored = catalog
+      .map((entry) => {
+        const nameLower = entry.name.toLowerCase();
+        const repoLower = entry.repo.toLowerCase();
+        let score = 0;
+        if (nameLower === q) score = 100;               // exact name match
+        else if (nameLower.startsWith(q)) score = 80;   // name starts with query
+        else if (nameLower.includes(q)) score = 60;     // name contains query
+        else if (repoLower.includes(q)) score = 20;     // repo contains query
+        return { entry, score };
+      })
+      .filter((s) => s.score > 0)
+      .sort((a, b) => {
+        // Primary: relevance score, secondary: installs
+        if (b.score !== a.score) return b.score - a.score;
+        return parseInstalls(b.entry.installs) - parseInstalls(a.entry.installs);
+      })
+      .slice(0, 50); // fetch top 50
+
+    // Build results, re-sort by installs and take top 10
+    const results: SkillResult[] = scored
+      .sort((a, b) => parseInstalls(b.entry.installs) - parseInstalls(a.entry.installs))
+      .slice(0, 10)
+      .map(({ entry }) => {
+        const skillId = `${entry.repo}@${entry.name}`;
         const audit = auditData[skillId];
-        results.push({
+        return {
           id: skillId,
-          name: skillName,
-          repo,
-          installs,
-          url: urlMatch ? urlMatch[0] : `https://skills.sh/${repo}/${skillName}`,
+          name: entry.name,
+          repo: entry.repo,
+          installs: entry.installs,
+          url: entry.url,
           gen: audit?.gen,
           socket: audit?.socket,
           snyk: audit?.snyk,
-        });
-      }
-    }
-
-    // Sort by installs descending
-    results.sort((a, b) => parseInstalls(b.installs) - parseInstalls(a.installs));
+        };
+      });
 
     res.json({ data: results, query });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Search failed';
-    // If npx skills is not available, return empty
     res.json({ data: [], query, error: message });
   }
 });
