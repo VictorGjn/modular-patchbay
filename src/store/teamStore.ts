@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { API_BASE } from '../config';
 
 const LIBRARY_STORAGE_KEY = 'modular-agent-library-v1';
 
@@ -63,6 +64,7 @@ export interface TeamState {
   // Agent CRUD
   addAgent: (agent: Omit<TeamAgent, 'factIds' | 'knowledgeSourceIds' | 'mcpServerIds' | 'skillIds'>) => void;
   addAgentFromLibrary: (libraryId: string) => void;
+  addAgentFromBackend: (id: string) => void;
   removeAgent: (id: string) => void;
   updateAgent: (id: string, patch: Partial<TeamAgent>) => void;
   setActiveAgent: (id: string | null) => void;
@@ -136,6 +138,34 @@ export const useTeamStore = create<TeamState>((set, get) => ({
       mcpServerIds: item.mcpServerIds,
       skillIds: item.skillIds,
     });
+  },
+
+  addAgentFromBackend: (id: string) => {
+    // Fire-and-forget async: fetch full state from backend and create team agent
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/agents/${encodeURIComponent(id)}`);
+        if (!res.ok) return;
+        const json = await res.json();
+        const state = json.data ?? json;
+        const meta = state.agentMeta ?? {};
+        get().addAgent({
+          id: `${id}-${Date.now()}`,
+          name: meta.name || id,
+          description: meta.description || '',
+          avatar: meta.avatar || 'bot',
+          version: state.version || '1.0.0',
+        });
+        const newId = get().agents[get().agents.length - 1]?.id;
+        if (!newId) return;
+        get().updateAgent(newId, {
+          mcpServerIds: (state.mcpServers ?? []).map((s: { id: string }) => s.id),
+          skillIds: (state.skills ?? []).map((s: { id: string }) => s.id),
+        });
+      } catch {
+        // silent fail
+      }
+    })();
   },
 
   upsertLibraryAgent: (agent) => set((s) => {

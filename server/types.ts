@@ -4,6 +4,7 @@ export interface ProviderConfig {
   type: 'openai' | 'anthropic' | 'openrouter' | 'google' | 'custom';
   apiKey: string;
   baseUrl: string;
+  accessToken?: string;
 }
 
 export interface McpServerConfig {
@@ -13,6 +14,7 @@ export interface McpServerConfig {
   command: string;
   args: string[];
   env: Record<string, string>;
+  autoConnect?: boolean;
   url?: string;
   headers?: Record<string, string>;
 }

@@ -9,6 +9,7 @@ import { REACT_CODE_REVIEWER_PRESET } from './demoPreset';
 import { DEMO_PRESETS } from './demoPresets';
 import type { OutputTemplateConfig } from './outputTemplates';
 import { MCP_REGISTRY } from './mcp-registry';
+import { API_BASE } from '../config';
 
 // Module-level abort controller for run cancellation (avoids type-punning the store)
 let _runAbortController: AbortController | undefined;
@@ -253,6 +254,9 @@ export interface ConsoleState {
   removeSkill: (id: string) => void;
   upsertSkill: (skill: { id: string; name: string; description?: string }) => void;
   loadAgent: (id: string) => void;
+  restoreFullState: (state: Record<string, unknown>) => void;
+  setInstructionState: (state: InstructionState) => void;
+  setWorkflowSteps: (steps: WorkflowStep[]) => void;
   toggleConnector: (id: string) => void;
   addConnector: (connector: Connector) => void;
   removeConnector: (id: string) => void;
@@ -665,18 +669,53 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   },
 
   loadAgent: (id: string) => {
-    const agent = get().agents.find((a) => a.id === id);
-    if (!agent) return;
-    // Find matching preset by agent name
-    const presetMap: Record<string, string> = {
-      'agent-senior-pm': 'senior-pm',
-      'agent-feedback-mgr': 'feedback-manager',
-      'agent-company-intel': 'company-intel',
-    };
-    const presetId = presetMap[id];
-    if (presetId) {
-      get().loadPreset(presetId);
+    // Fire-and-forget async: fetch full state from backend then restore
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/agents/${encodeURIComponent(id)}`);
+        if (!res.ok) return;
+        const json = await res.json();
+        const state = json.data ?? json;
+        get().restoreFullState(state);
+      } catch {
+        // silent fail — backend may not be available yet
+      }
+    })();
+  },
+
+  restoreFullState: (state: Record<string, unknown>) => {
+    const patch: Partial<ConsoleState> = {};
+
+    if (state.agentMeta) patch.agentMeta = state.agentMeta as AgentMeta;
+    if (state.instructionState) patch.instructionState = state.instructionState as InstructionState;
+    if (state.workflowSteps) patch.workflowSteps = state.workflowSteps as WorkflowStep[];
+    if (state.mcpServers) patch.mcpServers = state.mcpServers as McpServer[];
+    if (state.skills) patch.skills = state.skills as Skill[];
+    if (state.connectors) patch.connectors = state.connectors as Connector[];
+    if (state.agentConfig) patch.agentConfig = state.agentConfig as AgentConfig;
+    if (state.exportTarget) patch.exportTarget = state.exportTarget as ExportTarget;
+    if (state.outputFormat) patch.outputFormat = state.outputFormat as OutputFormat;
+    if (state.outputFormats) patch.outputFormats = state.outputFormats as OutputFormat[];
+    if (state.tokenBudget) patch.tokenBudget = state.tokenBudget as number;
+    if (state.prompt) patch.prompt = state.prompt as string;
+
+    // Clear and restore channels
+    if (state.channels) {
+      patch.channels = state.channels as ChannelConfig[];
     }
+
+    patch.selectedPreset = '';
+    patch.response = '';
+
+    set(patch);
+  },
+
+  setInstructionState: (instructionState: InstructionState) => {
+    set({ instructionState });
+  },
+
+  setWorkflowSteps: (workflowSteps: WorkflowStep[]) => {
+    set({ workflowSteps });
   },
 
   toggleConnector: (id: string) => {
@@ -1075,4 +1114,53 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
 }));
 
 export { getEffectiveTokens };
+
+// ─── Full State Snapshot (for backend persistence) ──────────────────
+
+export interface SavedAgentState {
+  id: string;
+  version: string;
+  savedAt: string;
+  agentMeta: AgentMeta;
+  instructionState: InstructionState;
+  workflowSteps: WorkflowStep[];
+  channels: ChannelConfig[];
+  mcpServers: McpServer[];
+  skills: Skill[];
+  connectors: Connector[];
+  agentConfig: AgentConfig;
+  exportTarget: ExportTarget;
+  outputFormat: OutputFormat;
+  outputFormats: OutputFormat[];
+  tokenBudget: number;
+  prompt: string;
+}
+
+export function agentNameToId(name: string): string {
+  const safeName = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  return safeName || 'modular-agent';
+}
+
+export function collectFullState(): SavedAgentState {
+  const s = useConsoleStore.getState();
+  const id = agentNameToId(s.agentMeta.name);
+  return {
+    id,
+    version: '1.0.0',
+    savedAt: new Date().toISOString(),
+    agentMeta: { ...s.agentMeta },
+    instructionState: { ...s.instructionState },
+    workflowSteps: s.workflowSteps.map((ws) => ({ ...ws })),
+    channels: s.channels.map((ch) => ({ ...ch })),
+    mcpServers: s.mcpServers.map((m) => ({ ...m })),
+    skills: s.skills.map((sk) => ({ ...sk })),
+    connectors: s.connectors.map((c) => ({ ...c })),
+    agentConfig: { ...s.agentConfig },
+    exportTarget: s.exportTarget,
+    outputFormat: s.outputFormat,
+    outputFormats: [...s.outputFormats],
+    tokenBudget: s.tokenBudget,
+    prompt: s.prompt,
+  };
+}
 

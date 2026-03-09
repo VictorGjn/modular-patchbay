@@ -4,9 +4,17 @@ import { useMcpStore } from '../store/mcpStore';
 import { MARKETPLACE_CATEGORIES, RUNTIME_INFO, REGISTRY_PRESETS, type MarketplaceCategory, type Runtime, type InstallScope, type ConfigField } from '../store/registry';
 import { RegistryIcon } from './icons/SectionIcons';
 import { useTheme } from '../theme';
-import { X, Search, Check, Loader2, ChevronDown, Terminal } from 'lucide-react';
+import { X, Search, Check, Loader2, ChevronDown, Terminal, ExternalLink, Download, Zap } from 'lucide-react';
+import { API_BASE } from '../config';
 
 type Tab = 'skills' | 'mcp' | 'presets';
+type SkillSearchResult = {
+  id: string;
+  name: string;
+  repo: string;
+  installs: string;
+  url: string;
+};
 
 export function Marketplace() {
   const showMarketplace = useConsoleStore((s) => s.showMarketplace);
@@ -16,10 +24,16 @@ export function Marketplace() {
   const registryMcpServers = useConsoleStore((s) => s.registryMcpServers);
   const installRegistrySkill = useConsoleStore((s) => s.installRegistrySkill);
   const installRegistryMcp = useConsoleStore((s) => s.installRegistryMcp);
+  const upsertSkill = useConsoleStore((s) => s.upsertSkill);
 
   const [filter, setFilter] = useState('');
   const [category, setCategory] = useState<MarketplaceCategory>('all');
   const [installingId, setInstallingId] = useState<string | null>(null);
+  const [remoteInstallingId, setRemoteInstallingId] = useState<string | null>(null);
+  const [remoteInstalledIds, setRemoteInstalledIds] = useState<Set<string>>(() => new Set<string>());
+  const [remoteResults, setRemoteResults] = useState<SkillSearchResult[]>([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+  const [remoteError, setRemoteError] = useState<string | null>(null);
   const [installDropdown, setInstallDropdown] = useState<string | null>(null);
   const [configuring, setConfiguring] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +60,10 @@ export function Marketplace() {
       setFilter('');
       setCategory('all');
       setInstallingId(null);
+      setRemoteInstallingId(null);
+      setRemoteResults([]);
+      setRemoteLoading(false);
+      setRemoteError(null);
       setInstallDropdown(null);
       setConfiguring(null);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -65,6 +83,9 @@ export function Marketplace() {
     setShowMarketplace(true, tab);
     setFilter('');
     setCategory('all');
+    setRemoteResults([]);
+    setRemoteError(null);
+    setRemoteLoading(false);
   }, [setShowMarketplace]);
 
   const handleInstall = useCallback((skillId: string, target: Runtime | 'all', scope: InstallScope) => {
@@ -75,6 +96,30 @@ export function Marketplace() {
       setInstallingId(null);
     }, 1200);
   }, [installRegistrySkill]);
+
+  const handleRemoteInstall = useCallback(async (skill: SkillSearchResult) => {
+    setRemoteInstallingId(skill.id);
+    try {
+      const res = await fetch(`${API_BASE}/skills/install`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skillId: skill.id }),
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      setRemoteInstalledIds((prev) => new Set(prev).add(skill.id));
+      upsertSkill({
+        id: skill.id,
+        name: skill.name,
+        description: `Installed from skills.sh (${skill.repo})`,
+      });
+    } catch (err) {
+      setRemoteError(err instanceof Error ? err.message : 'Install failed');
+    } finally {
+      setRemoteInstallingId(null);
+    }
+  }, [upsertSkill]);
 
   const handleMcpInstall = useCallback(async (mcpId: string, envVars: Record<string, string>) => {
     setInstallingId(mcpId);
@@ -100,6 +145,53 @@ export function Marketplace() {
     setInstallingId(null);
     setConfiguring(null);
   }, [installRegistryMcp, registryMcpServers]);
+
+  useEffect(() => {
+    if (!showMarketplace || activeTab !== 'skills') {
+      setRemoteLoading(false);
+      setRemoteResults([]);
+      setRemoteError(null);
+      return;
+    }
+
+    const query = filter.trim();
+    if (query.length < 2) {
+      setRemoteLoading(false);
+      setRemoteResults([]);
+      setRemoteError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setRemoteLoading(true);
+      setRemoteError(null);
+      try {
+        const res = await fetch(`${API_BASE}/skills/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const json = await res.json() as { data?: SkillSearchResult[]; error?: string };
+        setRemoteResults(Array.isArray(json.data) ? json.data : []);
+        setRemoteError(json.error ?? null);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setRemoteResults([]);
+        setRemoteError(err instanceof Error ? err.message : 'Search failed');
+      } finally {
+        if (!controller.signal.aborted) {
+          setRemoteLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [activeTab, filter, showMarketplace]);
 
   if (!showMarketplace) return null;
 
@@ -244,9 +336,48 @@ export function Marketplace() {
                     t={t}
                   />
                 ))}
-                {filteredSkills.length === 0 && (
+                {filteredSkills.length === 0 && !remoteLoading && !remoteError && remoteResults.length === 0 && (
                   <div className="flex items-center justify-center py-12">
                     <span className="text-xs" style={{ color: t.textFaint }}>No skills match your search</span>
+                  </div>
+                )}
+                {(filter.trim().length >= 2 || remoteLoading || remoteError || remoteResults.length > 0) && (
+                  <div className="px-4 pt-4 pb-2" style={{ borderTop: `1px solid ${t.borderSubtle}` }}>
+                    <span className="text-[10px] tracking-wider uppercase" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
+                      From skill.sh
+                    </span>
+                  </div>
+                )}
+                {remoteLoading && (
+                  <div className="flex items-center justify-center py-6">
+                    <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: t.textDim }}>
+                      <Loader2 size={12} className="animate-spin" />
+                      Searching skill.sh...
+                    </span>
+                  </div>
+                )}
+                {!remoteLoading && remoteError && (
+                  <div className="flex items-center justify-center py-6 px-4">
+                    <span className="text-[11px]" style={{ color: t.statusError }}>
+                      skill.sh search unavailable
+                    </span>
+                  </div>
+                )}
+                {!remoteLoading && !remoteError && remoteResults.map((skill) => (
+                  <RemoteSkillRow
+                    key={skill.id}
+                    skill={skill}
+                    installing={remoteInstallingId === skill.id}
+                    installed={remoteInstalledIds.has(skill.id)}
+                    onInstall={() => handleRemoteInstall(skill)}
+                    t={t}
+                  />
+                ))}
+                {!remoteLoading && !remoteError && filter.trim().length >= 2 && remoteResults.length === 0 && (
+                  <div className="flex items-center justify-center py-6 px-4">
+                    <span className="text-[11px]" style={{ color: t.textFaint }}>
+                      No results from skill.sh
+                    </span>
                   </div>
                 )}
               </div>
@@ -431,6 +562,82 @@ function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ──────── Remote Skill Row (list item, 48px) ──────── */
+
+function RemoteSkillRow({ skill, installing, installed, onInstall, t }: {
+  skill: SkillSearchResult;
+  installing: boolean;
+  installed: boolean;
+  onInstall: () => void;
+  t: ReturnType<typeof useTheme>;
+}) {
+  return (
+    <div
+      className="relative"
+      style={{ borderBottom: `1px solid ${t.borderSubtle}` }}
+    >
+      <div
+        className="flex items-center gap-3 px-4"
+        style={{ height: 48, transition: 'background 100ms ease' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+      >
+        <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ background: t.surfaceElevated }}>
+          <Zap size={13} style={{ color: t.textSecondary }} />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium truncate" style={{ color: t.textPrimary }} spellCheck={false}>{skill.name}</span>
+            <span className="text-[10px] truncate" style={{ color: t.textDim }}>{skill.repo}</span>
+          </div>
+          <div className="flex gap-1 mt-0.5">
+            <span className="text-[9px] px-1 rounded-sm" style={{ color: t.textMuted, background: t.badgeBg }}>
+              {skill.installs} installs
+            </span>
+          </div>
+        </div>
+
+        <a
+          href={skill.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1 rounded-md shrink-0"
+          style={{ color: t.textDim }}
+          aria-label={`Open ${skill.name} on skills.sh`}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = t.textDim; }}
+        >
+          <ExternalLink size={12} />
+        </a>
+
+        {installed ? (
+          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
+            <Check size={10} /> Installed
+          </span>
+        ) : installing ? (
+          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#FE5000', background: '#FE500010' }}>
+            <Loader2 size={10} className="animate-spin" /> Installing
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={onInstall}
+            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer shrink-0 border-none"
+            style={{
+              background: '#FE500010',
+              border: `1px solid ${t.border}`,
+              color: '#FE5000',
+            }}
+          >
+            <Download size={10} /> Install
+          </button>
+        )}
+      </div>
     </div>
   );
 }

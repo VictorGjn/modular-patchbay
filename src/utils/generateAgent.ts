@@ -3,6 +3,7 @@ import { useConsoleStore } from '../store/consoleStore';
 import { fetchCompletion, fetchAgentSdkCompletion } from '../services/llmService';
 import { MCP_REGISTRY } from '../store/mcp-registry';
 import { REGISTRY_SKILLS } from '../store/registry';
+import type { ChannelConfig, KnowledgeType } from '../store/knowledgeBase';
 
 /**
  * Full-canvas agent generator.
@@ -251,14 +252,93 @@ export async function generateFullAgent(brainDump: string): Promise<GeneratedAge
       });
 
   // Parse JSON — try direct, then fence, then brace extraction
-  try { return JSON.parse(text); } catch { /* continue */ }
-  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenceMatch) {
-    try { return JSON.parse(fenceMatch[1].trim()); } catch { /* continue */ }
+  let config: GeneratedAgentConfig | undefined;
+  try { config = JSON.parse(text); } catch { /* continue */ }
+  if (!config) {
+    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenceMatch) {
+      try { config = JSON.parse(fenceMatch[1].trim()); } catch { /* continue */ }
+    }
   }
-  const braceMatch = text.match(/\{[\s\S]*\}/);
-  if (braceMatch) {
-    try { return JSON.parse(braceMatch[0]); } catch { /* continue */ }
+  if (!config) {
+    const braceMatch = text.match(/\{[\s\S]*\}/);
+    if (braceMatch) {
+      try { config = JSON.parse(braceMatch[0]); } catch { /* continue */ }
+    }
   }
-  throw new Error('Could not parse generated agent config');
+  if (!config) throw new Error('Could not parse generated agent config');
+
+  // — Post-process: enrich from connected knowledge (Tickets 2.1 + 2.2) —
+  enrichFromConnectedKnowledge(config);
+
+  return config;
+}
+
+/**
+ * Ticket 2.1 + 2.2: Post-process generated config to enrich persona and
+ * constraints based on actually connected knowledge sources.
+ */
+function enrichFromConnectedKnowledge(config: GeneratedAgentConfig): void {
+  const channels: ChannelConfig[] = useConsoleStore.getState().channels;
+  if (channels.length === 0) return;
+
+  // Helper: append to customConstraints regardless of string or string[] shape
+  function appendConstraint(constraint: string): void {
+    const cc = config.instructionState.constraints.customConstraints;
+    if (Array.isArray(cc)) {
+      cc.push(constraint);
+    } else if (typeof cc === 'string') {
+      (config.instructionState.constraints as Record<string, unknown>).customConstraints =
+        cc ? `${cc}\n${constraint}` : constraint;
+    } else {
+      config.instructionState.constraints.customConstraints = [constraint];
+    }
+  }
+
+  // --- Ticket 2.1: Auto-enrich persona from connected repos ---
+  const repoChannels = channels.filter((ch) => ch.repoMeta);
+  if (repoChannels.length > 0) {
+    const repoDescriptions = repoChannels.map((ch) => {
+      const meta = ch.repoMeta!;
+      const stack = meta.stack.length > 0 ? meta.stack.join(', ') : 'unknown stack';
+      return `${meta.name} (${stack})`;
+    });
+
+    config.instructionState.persona +=
+      ` You have deep access to ${repoDescriptions.join(' and ')}.`;
+
+    appendConstraint(
+      'Explore connected codebases autonomously — read files, check structure, trace dependencies before asking the user for information.',
+    );
+
+    // Collect all features across repos
+    const allFeatures = repoChannels.flatMap((ch) => ch.repoMeta!.features).filter(Boolean);
+    if (allFeatures.length > 0) {
+      const unique = [...new Set(allFeatures)];
+      config.instructionState.persona +=
+        ` Key capabilities include: ${unique.join(', ')}.`;
+    }
+  }
+
+  // --- Ticket 2.2: Auto-constraints from knowledge types ---
+  const typeMap = new Map<KnowledgeType, string[]>();
+  for (const ch of channels) {
+    if (!ch.knowledgeType) continue;
+    const names = typeMap.get(ch.knowledgeType) ?? [];
+    names.push(ch.name);
+    typeMap.set(ch.knowledgeType, names);
+  }
+
+  const typeConstraints: Partial<Record<KnowledgeType, (names: string) => string>> = {
+    'ground-truth': (names) => `Do not contradict information from: ${names}`,
+    'signal': (names) => `When interpreting ${names}, look for underlying user needs, not surface requests`,
+    'guideline': (names) => `Follow the conventions and rules defined in: ${names}`,
+  };
+
+  for (const [type, nameList] of typeMap) {
+    const builder = typeConstraints[type];
+    if (builder) {
+      appendConstraint(builder(nameList.join(', ')));
+    }
+  }
 }

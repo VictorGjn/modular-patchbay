@@ -15,6 +15,8 @@ export type FactType = 'preference' | 'decision' | 'fact' | 'entity' | 'custom';
 export type MemoryDomain = 'shared' | 'agent_private' | 'run_scratchpad';
 export type SandboxIsolation = 'reset_each_run' | 'persistent_sandbox' | 'clone_from_shared';
 
+export type FactGranularity = 'raw' | 'fact' | 'episode';
+
 export interface Fact {
   id: string;
   content: string;
@@ -22,6 +24,11 @@ export interface Fact {
   type: FactType;
   timestamp: number;
   domain: MemoryDomain;
+  granularity: FactGranularity;
+  embedding?: number[];
+  embeddingPending?: boolean;
+  /** Owner agent ID — used to scope agent_private facts */
+  ownerAgentId?: string;
 }
 
 export interface SandboxConfig {
@@ -103,9 +110,11 @@ export interface MemoryState {
   updateScratchpad: (text: string) => void;
 
   // Actions — facts
-  addFact: (content: string, tags?: string[], type?: FactType, domain?: MemoryDomain) => void;
+  addFact: (content: string, tags?: string[], type?: FactType, domain?: MemoryDomain, granularity?: FactGranularity, ownerAgentId?: string) => void;
   removeFact: (id: string) => void;
   updateFact: (id: string, patch: Partial<Omit<Fact, 'id'>>) => void;
+  addEpisode: (summary: string, tags?: string[]) => void;
+  computeEmbeddings: () => Promise<void>;
 
   // Actions — sandbox
   setSandboxConfig: (patch: Partial<SandboxConfig>) => void;
@@ -222,7 +231,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   },
 
   // Facts
-  addFact: (content, tags = [], type = 'fact', domain: MemoryDomain = 'shared') => {
+  addFact: (content, tags = [], type = 'fact', domain: MemoryDomain = 'shared', granularity: FactGranularity = 'fact', ownerAgentId?: string) => {
     const fact: Fact = {
       id: `fact-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       content,
@@ -230,6 +239,9 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       type,
       timestamp: Date.now(),
       domain,
+      granularity,
+      embeddingPending: true,
+      ...(ownerAgentId && { ownerAgentId }),
     };
     set((s) => {
       const facts = [...s.facts, fact];
@@ -246,6 +258,49 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     set((s) => ({
       facts: s.facts.map((f) => (f.id === id ? { ...f, ...patch } : f)),
     }));
+  },
+  addEpisode: (summary, tags = []) => {
+    const fact: Fact = {
+      id: `episode-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      content: summary,
+      tags,
+      type: 'fact',
+      timestamp: Date.now(),
+      domain: 'shared',
+      granularity: 'episode',
+      embeddingPending: true,
+    };
+    set((s) => {
+      const facts = [...s.facts, fact];
+      return { facts, longTermMemory: facts };
+    });
+  },
+  computeEmbeddings: async () => {
+    const state = get();
+    const pending = state.facts.filter((f) => f.embeddingPending && !f.embedding);
+    if (pending.length === 0) return;
+
+    try {
+      const response = await fetch('/api/knowledge/embed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: pending.map((f) => f.content) }),
+      });
+      if (!response.ok) return; // graceful skip
+
+      const result = (await response.json()) as { embeddings?: number[][] };
+      if (!result.embeddings || result.embeddings.length !== pending.length) return;
+
+      set((s) => ({
+        facts: s.facts.map((f) => {
+          const idx = pending.findIndex((p) => p.id === f.id);
+          if (idx === -1) return f;
+          return { ...f, embedding: result.embeddings![idx], embeddingPending: false };
+        }),
+      }));
+    } catch {
+      // Embedding endpoint unavailable — graceful skip
+    }
   },
 
   // Sandbox
@@ -267,8 +322,15 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     const { facts, sandbox } = get();
     return facts.filter((f) => {
       if (f.domain === 'run_scratchpad') return false; // never leak scratchpad
-      if (f.domain === 'agent_private' && agentId) return true; // agent sees own private
-      if (f.domain === 'shared') return true;
+      // Honor domain toggles from sandbox config
+      if (f.domain === 'agent_private') {
+        if (!sandbox.domains.agentPrivate.enabled) return false;
+        // Only return agent_private facts owned by this specific agent
+        return !!agentId && f.ownerAgentId === agentId;
+      }
+      if (f.domain === 'shared') {
+        return sandbox.domains.shared.enabled;
+      }
       return false;
     });
   },
@@ -309,6 +371,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
                   type: f.type,
                   tags: f.tags,
                   domain: f.domain,
+                  granularity: f.granularity,
                 })),
               }
             : {}),

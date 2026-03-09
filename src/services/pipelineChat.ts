@@ -23,7 +23,7 @@ import {
 import { useTraceStore } from '../store/traceStore';
 import { useVersionStore } from '../store/versionStore';
 import { useTreeIndexStore } from '../store/treeIndexStore';
-import { estimateTokens, type TreeNode } from './treeIndexer';
+import { estimateTokens, indexMarkdown, type TreeNode } from './treeIndexer';
 import { renderFilteredMarkdown, applyDepthFilter } from '../utils/depthFilter';
 import { streamCompletion, streamAgentSdk } from './llmService';
 import { runToolLoop, type ToolCallResult } from './toolRunner';
@@ -99,6 +99,8 @@ export interface PipelineChatStats {
   toolTurns?: number;
   memory?: MemoryStats;
 }
+
+type TreeIndexLookup = ReturnType<typeof useTreeIndexStore.getState>['getIndex'];
 
 // ── Build non-knowledge system prompt (identity, instructions, constraints, workflow, tools) ──
 
@@ -271,6 +273,125 @@ export function resolveProviderAndModel(): ResolvedProvider {
   };
 }
 
+// ── Orientation Block ──
+
+/**
+ * Build a lightweight <orientation> block from channel metadata.
+ * Lists codebases (channels with repoMeta) and documents (channels with content but no repoMeta).
+ * Gives the LLM a map of what's available without including actual content.
+ */
+const FILE_PATH_PATTERN = /(?:^|[\s`"'([<{])([A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)+\.[A-Za-z0-9._-]+)(?=$|[\s`"')\]}>:,;.!?])/g;
+
+function normalizePath(input: string): string {
+  return input.replace(/\\/g, '/').replace(/\/+/g, '/');
+}
+
+function parentDir(input: string): string {
+  const normalized = normalizePath(input);
+  const idx = normalized.lastIndexOf('/');
+  return idx > 0 ? normalized.slice(0, idx) : normalized;
+}
+
+function collectFilePathsFromText(text: string, out: Set<string>): void {
+  FILE_PATH_PATTERN.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = FILE_PATH_PATTERN.exec(text)) !== null) {
+    const path = match[1].replace(/^\.?\//, '');
+    if (path.includes('/')) out.add(path);
+  }
+}
+
+function collectFilePathsFromTree(node: TreeNode, out: Set<string>): void {
+  collectFilePathsFromText(node.title, out);
+  if (node.text) collectFilePathsFromText(node.text, out);
+  for (const child of node.children) collectFilePathsFromTree(child, out);
+}
+
+function buildCondensedTree(paths: string[]): string[] {
+  const groups = new Map<string, Set<string>>();
+
+  for (const rawPath of paths) {
+    const path = normalizePath(rawPath).replace(/^\.?\//, '');
+    if (!path.includes('/')) continue;
+    const parts = path.split('/').filter(Boolean);
+    if (parts.length < 2) continue;
+
+    const branch = parts.length >= 3 ? `${parts[0]}/${parts[1]}/` : `${parts[0]}/`;
+    const child = parts.length >= 3
+      ? `${parts[2]}${parts.length > 3 ? '/' : ''}`
+      : parts[1];
+
+    if (!groups.has(branch)) groups.set(branch, new Set());
+    groups.get(branch)!.add(child);
+  }
+
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(0, 14)
+    .map(([branch, children]) => {
+      const sortedChildren = [...children].sort();
+      const visible = sortedChildren.slice(0, 8);
+      const suffix = sortedChildren.length > visible.length ? ', ...' : '';
+      return `  ${branch} -> ${visible.join(', ')}${suffix}`;
+    });
+}
+
+function buildOrientationBlock(channels: ChannelConfig[], getTreeIndex: TreeIndexLookup): string {
+  const active = channels.filter(ch => ch.enabled);
+  const lines: string[] = [];
+
+  // Channels with repoMeta → codebase entries
+  const repoChannels = active.filter(ch => ch.repoMeta);
+  for (const ch of repoChannels) {
+    const meta = ch.repoMeta!;
+    const repoRoot = ch.path ? parentDir(ch.path) : '';
+    const related = repoRoot
+      ? active.filter(c => c.path && normalizePath(c.path).startsWith(`${repoRoot}/`))
+      : [ch];
+    const filePaths = new Set<string>();
+    for (const relatedChannel of related) {
+      if (relatedChannel.content) collectFilePathsFromText(relatedChannel.content, filePaths);
+      if (!relatedChannel.path) continue;
+      const index = getTreeIndex(relatedChannel.path);
+      if (index) collectFilePathsFromTree(index.root, filePaths);
+    }
+    const condensedTree = buildCondensedTree([...filePaths]);
+
+    lines.push(`## ${meta.name}`);
+    if (meta.stack.length > 0) lines.push(`- Stack: ${meta.stack.join(', ')}`);
+    if (meta.baseUrl) lines.push(`- Base URL: ${meta.baseUrl}`);
+    lines.push(`- ${meta.totalFiles} files, key features: ${meta.features.join(', ')}`);
+    if (meta.baseUrl && condensedTree.length > 0) {
+      lines.push(`- File lookup table (${filePaths.size} paths): use \`${meta.baseUrl}{filePath}\``);
+      lines.push(...condensedTree);
+    }
+    lines.push(`- You can explore this codebase in depth — read files, trace dependencies, check implementations.`);
+    lines.push('');
+  }
+
+  // Channels with content but no repoMeta → document entries
+  const docChannels = active.filter(ch => !ch.repoMeta && ch.content);
+  for (const ch of docChannels) {
+    const kt = KNOWLEDGE_TYPES[ch.knowledgeType as keyof typeof KNOWLEDGE_TYPES];
+    const label = kt ? kt.label : ch.knowledgeType;
+    lines.push(`## Document: ${ch.name}`);
+    lines.push(`- Type: ${label}`);
+    lines.push('');
+  }
+
+  if (lines.length === 0) return '';
+
+  const header = 'You have access to the following codebases and knowledge sources:\n';
+  const footer = `Approach:
+- Your knowledge about these codebases is already loaded in your context below. Use it directly.
+- For file contents not in your context, use get_file_contents or read_file tools — NOT the knowledge graph.
+- Do NOT call search_nodes or read_graph to find basic structure — that information is already here.
+- Use each repo's base URL + file path from the lookup table to build exact file links.
+- Explore files and trace dependencies BEFORE asking the user for information.`;
+
+  return `<orientation>\n${header}\n${lines.join('\n')}\n${footer}\n</orientation>`;
+}
+
 // ── Main pipeline chat ──
 
 export async function runPipelineChat(options: PipelineChatOptions): Promise<void> {
@@ -321,7 +442,12 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       if (frameworkChannels.length > 0) {
         const frameworks = frameworkChannels
           .map(ch => {
-            const treeIndex = treeStore.getIndex(ch.path);
+            let treeIndex = ch.path ? treeStore.getIndex(ch.path) : null;
+            // Inline content fallback for framework channels
+            if (!treeIndex && ch.content) {
+              const virtualPath = `content://${ch.contentSourceId || ch.sourceId}`;
+              treeIndex = indexMarkdown(virtualPath, ch.content);
+            }
             if (!treeIndex) return null;
             const filtered = applyDepthFilter(treeIndex, 0); // Full depth for framework extraction
             const content = renderFilteredMarkdown(filtered.filtered);
@@ -368,11 +494,13 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       }
 
       // 2c. Build pipeline sources from indexed content (regular channels only)
+      //     Supports three paths: inline content, file-backed tree index, metadata-only fallback
       const sourcesWithContent: PipelineSource[] = [];
       for (const ch of regularChannels) {
-        const treeIndex = treeStore.getIndex(ch.path);
-        if (treeIndex) {
-          // Use depth-filtered content from the tree index
+        if (ch.content) {
+          // Inline content path — index the markdown in-memory, then apply depth filter
+          const virtualPath = `content://${ch.contentSourceId || ch.sourceId}`;
+          const treeIndex = indexMarkdown(virtualPath, ch.content);
           const filtered = applyDepthFilter(treeIndex, ch.depth);
           const content = renderFilteredMarkdown(filtered.filtered);
           if (content.trim()) {
@@ -383,7 +511,23 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
               sourceType: ch.knowledgeType,
             });
           }
+        } else if (ch.path) {
+          // File-backed path — use treeIndexStore as before
+          const treeIndex = treeStore.getIndex(ch.path);
+          if (treeIndex) {
+            const filtered = applyDepthFilter(treeIndex, ch.depth);
+            const content = renderFilteredMarkdown(filtered.filtered);
+            if (content.trim()) {
+              sourcesWithContent.push({
+                name: ch.name,
+                type: 'markdown',
+                content,
+                sourceType: ch.knowledgeType,
+              });
+            }
+          }
         }
+        // else: metadata-only fallback — no content to add, handled by buildKnowledgeFallback
       }
 
       // 2d. Run pipeline if we have indexed content
@@ -407,7 +551,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
 
         let navigationResponse = '';
         let manualSelections = activeChannels
-          .filter(ch => treeStore.getIndex(ch.path) != null)
+          .filter(ch => (ch.path && treeStore.getIndex(ch.path) != null) || ch.content)
           .map(ch => ({
             nodeId: ch.name,
             depth: ch.depth,
@@ -495,7 +639,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         clearScratchpad();
       }
 
-      const recallResult = preRecall({
+      const recallResult = await preRecall({
         userMessage,
         agentId: options.agentId,
         traceId,
@@ -517,8 +661,10 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     }
 
     // 3. Assemble final system prompt
-    //    Order: identity/instructions → framework rules → memory recall → knowledge → connectors
+    //    Order: identity/instructions → orientation → framework rules → memory recall → knowledge → connectors
+    const orientationBlock = buildOrientationBlock(channels, useTreeIndexStore.getState().getIndex);
     const systemParts = [systemFrame];
+    if (orientationBlock) systemParts.push(orientationBlock);
     if (frameworkBlock) systemParts.push(frameworkBlock);
     if (memoryBlock) systemParts.push(memoryBlock);
     if (knowledgeBlock) systemParts.push(knowledgeBlock);
@@ -563,7 +709,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
           maxTurns: 10,
           callbacks: {
             onChunk: (text) => { fullResponse += text; onChunk(text); },
-            onToolCallStart: (name, args) => {
+            onToolCallStart: (name, _args) => {
               // Emit a visible chunk so user sees tool activity
               onChunk(`\n\n🔧 Calling **${name}**...\n`);
             },
@@ -571,9 +717,6 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
               if (result.error) {
                 onChunk(`❌ ${result.name} failed: ${result.error}\n`);
               } else {
-                const preview = result.result.length > 200
-                  ? result.result.slice(0, 200) + '…'
-                  : result.result;
                 onChunk(`✅ ${result.name} (${result.durationMs}ms)\n`);
               }
             },
@@ -662,7 +805,12 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     const heatmap: SourceHeatmapEntry[] = [];
     const heatmapStore = useTreeIndexStore.getState();
     for (const ch of activeChannels) {
-      const treeIdx = heatmapStore.getIndex(ch.path);
+      let treeIdx = ch.path ? heatmapStore.getIndex(ch.path) : null;
+      // Generate in-memory index for inline content channels (for heatmap)
+      if (!treeIdx && ch.content) {
+        const virtualPath = `content://${ch.contentSourceId || ch.sourceId}`;
+        treeIdx = indexMarkdown(virtualPath, ch.content);
+      }
       if (!treeIdx) continue;
 
       const headings: SourceHeatmapEntry['headings'] = [];
@@ -677,7 +825,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       const filtered = applyDepthFilter(treeIdx, ch.depth);
       heatmap.push({
         name: ch.name,
-        path: ch.path,
+        path: ch.path || `content://${ch.contentSourceId || ch.sourceId}`,
         nodeCount: treeIdx.nodeCount,
         totalTokens: treeIdx.totalTokens,
         filteredTokens: filtered.totalTokens,

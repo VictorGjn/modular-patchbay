@@ -12,7 +12,7 @@ import agentSdkRoutes from './routes/agent-sdk.js';
 import knowledgeRoutes from './routes/knowledge.js';
 import claudeConfigRoutes from './routes/claude-config.js';
 import skillsSearchRoutes from './routes/skills-search.js';
-import repoIndexRoutes from './routes/repo-index.js';
+import repoIndexRoutes, { cleanupLegacyGitHubKnowledgeDirs } from './routes/repo-index.js';
 import healthRoutes from './routes/health.js';
 import connectorRoutes from './routes/connectors.js';
 import runtimeRoutes from './routes/runtime.js';
@@ -20,6 +20,7 @@ import worktreeRoutes from './routes/worktrees.js';
 import authCodexRoutes from './routes/auth-codex.js';
 import capabilitiesRoutes from './routes/capabilities.js';
 import qualificationRoutes from './routes/qualification.js';
+import agentRoutes from './routes/agents.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -83,6 +84,7 @@ export function createApp() {
   app.use('/api/auth/codex', authCodexRoutes);
   app.use('/api/capabilities', capabilitiesRoutes);
   app.use('/api/qualification', qualificationRoutes);
+  app.use('/api/agents', agentRoutes);
 
   // Global error handler — prevent server crashes
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -107,15 +109,41 @@ export function createApp() {
 }
 
 // Load saved MCP servers into manager on startup
-function loadSavedServers() {
+function loadSavedServers(): string[] {
   const config = readConfig();
+  const registeredIds: string[] = [];
   for (const server of config.mcpServers) {
     mcpManager.addServer(server);
+    registeredIds.push(server.id);
+  }
+  return registeredIds;
+}
+
+async function autoConnectSavedServers(serverIds: string[]): Promise<void> {
+  for (const serverId of serverIds) {
+    const server = mcpManager.getServer(serverId);
+    if (!server) continue;
+    if (server.config.autoConnect === false) {
+      console.log(`[MCP] Skipping auto-connect for "${serverId}" (autoConnect=false)`);
+      continue;
+    }
+    try {
+      const result = await mcpManager.connect(serverId);
+      console.log(`[MCP] Auto-connected "${serverId}" with ${result.tools.length} tool(s)`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[MCP] Auto-connect failed for "${serverId}": ${message}`);
+    }
   }
 }
 
 export function startServer(port: number = 4800) {
-  loadSavedServers();
+  const removedLegacyDirs = cleanupLegacyGitHubKnowledgeDirs();
+  if (removedLegacyDirs > 0) {
+    console.log(`Cleaned ${removedLegacyDirs} legacy GitHub index director${removedLegacyDirs === 1 ? 'y' : 'ies'}`);
+  }
+  const registeredServerIds = loadSavedServers();
+  void autoConnectSavedServers(registeredServerIds);
   const app = createApp();
   const server = app.listen(port, () => {
     const addr = server.address();

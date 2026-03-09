@@ -23,7 +23,7 @@ import {
 import { useMcpStore } from '../store/mcpStore';
 import { useProviderStore } from '../store/providerStore';
 import { useTraceStore } from '../store/traceStore';
-import { estimateTokens } from './treeIndexer';
+// estimateTokens imported if needed for tracing
 
 // ── Types ──
 
@@ -94,6 +94,19 @@ async function executeTool(
   const mcpStore = useMcpStore.getState();
   try {
     const raw = await mcpStore.callTool(origin.serverId, toolName, args);
+    if (raw == null) {
+      if (toolName === 'get_file_contents') {
+        return {
+          result: 'No content returned. This path may be a directory - use list_directory first, or check the file tree in your context.',
+          serverId: origin.serverId,
+        };
+      }
+      return {
+        result: 'Tool returned no result. Check arguments.',
+        serverId: origin.serverId,
+      };
+    }
+
     // MCP results can be { content: [...] } or plain value
     let resultText: string;
     if (raw && typeof raw === 'object' && 'content' in (raw as Record<string, unknown>)) {
@@ -192,11 +205,16 @@ function parseOpenAIResponse(data: Record<string, unknown>): LlmTurnResult {
 
   return {
     content: msg?.content ?? '',
-    toolCalls: (msg?.tool_calls ?? []).map(tc => ({
-      id: tc.id,
-      name: tc.function.name,
-      args: JSON.parse(tc.function.arguments) as Record<string, unknown>,
-    })),
+    toolCalls: (msg?.tool_calls ?? []).map(tc => {
+      let args: Record<string, unknown> = {};
+      try {
+        args = JSON.parse(tc.function.arguments) as Record<string, unknown>;
+      } catch {
+        // Malformed JSON from model — pass raw string as _raw so caller can handle
+        args = { _raw: tc.function.arguments, _parseError: true };
+      }
+      return { id: tc.id, name: tc.function.name, args };
+    }),
     inputTokens: usage?.prompt_tokens ?? 0,
     outputTokens: usage?.completion_tokens ?? 0,
     rawAssistantMessage: { role: 'assistant', ...msg },
