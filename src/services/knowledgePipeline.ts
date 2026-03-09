@@ -130,11 +130,10 @@ export async function compressKnowledge(
   const sourcesWithContent: PipelineSource[] = [];
   for (const ch of regularChannels) {
     if (ch.content) {
-      // Inline content path — index the markdown in-memory, then apply depth filter
+      // Inline content path — index the markdown in-memory, then apply full depth filter
       const virtualPath = `content://${ch.contentSourceId || ch.sourceId}`;
       const treeIndex = indexMarkdown(virtualPath, ch.content);
-      const filtered = applyDepthFilter(treeIndex, ch.depth);
-      const content = renderFilteredMarkdown(filtered.filtered);
+      const content = renderFilteredMarkdown(applyDepthFilter(treeIndex, 0).filtered);
       if (content.trim()) {
         sourcesWithContent.push({
           name: ch.name,
@@ -144,11 +143,10 @@ export async function compressKnowledge(
         });
       }
     } else if (ch.path) {
-      // File-backed path — use treeIndexStore as before
+      // File-backed path — use treeIndexStore with full depth
       const treeIndex = treeStore.getIndex(ch.path);
       if (treeIndex) {
-        const filtered = applyDepthFilter(treeIndex, ch.depth);
-        const content = renderFilteredMarkdown(filtered.filtered);
+        const content = renderFilteredMarkdown(applyDepthFilter(treeIndex, 0).filtered);
         if (content.trim()) {
           sourcesWithContent.push({
             name: ch.name,
