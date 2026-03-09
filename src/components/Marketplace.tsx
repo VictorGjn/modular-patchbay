@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, type KeyboardEvent as ReactKeyboardEvent, type CSSProperties } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore } from '../store/mcpStore';
 import { MARKETPLACE_CATEGORIES, RUNTIME_INFO, REGISTRY_PRESETS, type MarketplaceCategory, type Runtime, type InstallScope, type ConfigField } from '../store/registry';
@@ -7,6 +7,7 @@ import { useTheme } from '../theme';
 import { X, Search, Check, Loader2, ChevronDown, ChevronUp, Terminal, ExternalLink, Download, Zap } from 'lucide-react';
 import { API_BASE } from '../config';
 import { SecurityBadges } from './SecurityBadges';
+import { Tooltip } from './ds/Tooltip';
 
 type Tab = 'skills' | 'mcp' | 'presets';
 type SkillSearchResult = {
@@ -196,37 +197,71 @@ export function Marketplace() {
   );
   const filteredPresets = REGISTRY_PRESETS.filter((p) => matchesFilter(p.name, p.description));
 
+  // Responsive grid columns calculation
+  const getGridColumns = () => {
+    if (typeof window === 'undefined') return 4;
+    const width = window.innerWidth;
+    if (width <= 1024) return 2;
+    if (width <= 1440) return 3;
+    return 4;
+  };
+
+  const [gridColumns, setGridColumns] = useState(getGridColumns);
+
+  useEffect(() => {
+    const handleResize = () => setGridColumns(getGridColumns());
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const skillGridStyle: CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
+    gap: 12,
+    padding: 16,
+    alignContent: 'start',
+  };
+
   return (
     <>
-      <style>{`
-        .mp-skill-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 12px;
-          padding: 16px;
-          align-content: start;
-        }
-        @media (max-width: 1440px) {
-          .mp-skill-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        @media (max-width: 1024px) {
-          .mp-skill-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-      `}</style>
 
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
         onClick={() => setShowMarketplace(false)}
       >
-        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.90)', backdropFilter: 'blur(4px)' }} />
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.90)',
+            backdropFilter: 'blur(4px)'
+          }}
+        />
 
         <div
           ref={modalRef}
           role="dialog"
           aria-modal="true"
           aria-label="Marketplace"
-          className="relative flex flex-col rounded-md overflow-hidden"
           style={{
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            borderRadius: 6,
+            overflow: 'hidden',
             isolation: 'isolate',
             zIndex: 1,
             width: '90vw',
@@ -241,22 +276,29 @@ export function Marketplace() {
           onKeyDown={handleFocusTrap}
         >
           {/* Header */}
-          <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
-            <span className="text-sm font-semibold shrink-0" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: `1px solid ${t.border}` }}>
+            <span style={{ fontSize: 14, fontWeight: 600, flexShrink: 0, color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
               Marketplace
             </span>
 
             {/* Search */}
-            <div className="relative" style={{ width: 240, flexShrink: 0 }}>
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: t.textDim }} />
+            <div style={{ position: 'relative', width: 240, flexShrink: 0 }}>
+              <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: t.textDim }} />
               <input
                 ref={inputRef}
                 type="text"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 placeholder="Search..."
-                className="w-full outline-none text-xs pl-8 pr-3 py-1.5 rounded-md"
                 style={{
+                  width: '100%',
+                  outline: 'none',
+                  fontSize: 12,
+                  paddingLeft: 32,
+                  paddingRight: 12,
+                  paddingTop: 6,
+                  paddingBottom: 6,
+                  borderRadius: 6,
                   background: t.inputBg,
                   border: `1px solid ${t.border}`,
                   color: t.textPrimary,
@@ -266,14 +308,20 @@ export function Marketplace() {
             </div>
 
             {/* Main tabs */}
-            <div className="flex items-center ml-auto" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', borderBottom: `1px solid ${t.borderSubtle}` }}>
               {(['skills', 'mcp', 'presets'] as Tab[]).map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setTab(tab)}
-                  className="px-3 py-1.5 text-[11px] font-medium tracking-wide uppercase cursor-pointer border-none"
                   style={{
+                    padding: '6px 12px',
+                    fontSize: 11,
+                    fontWeight: 500,
+                    letterSpacing: '0.025em',
+                    textTransform: 'uppercase',
+                    cursor: 'pointer',
+                    border: 'none',
                     color: activeTab === tab ? '#FE5000' : t.textDim,
                     borderBottom: activeTab === tab ? '2px solid #FE5000' : '2px solid transparent',
                     background: 'transparent',
@@ -286,31 +334,51 @@ export function Marketplace() {
               ))}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowMarketplace(false)}
-              className="p-1 rounded-md cursor-pointer border-none bg-transparent shrink-0"
-              style={{ color: t.textDim }}
-              aria-label="Close marketplace"
-            >
-              <X size={16} />
-            </button>
+            <Tooltip content="Close marketplace (Esc)">
+              <button
+                type="button"
+                onClick={() => setShowMarketplace(false)}
+                style={{
+                  padding: 4,
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: 'transparent',
+                  flexShrink: 0,
+                  color: t.textDim
+                }}
+                aria-label="Close marketplace"
+              >
+                <X size={16} />
+              </button>
+            </Tooltip>
           </div>
 
           {/* Sub-header: category pills + provider legend (skills) */}
           {activeTab === 'skills' && (
             <div
-              className="flex items-center px-4 py-2"
-              style={{ borderBottom: `1px solid ${t.borderSubtle}`, gap: 12, flexWrap: 'wrap' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '8px 16px',
+                borderBottom: `1px solid ${t.borderSubtle}`,
+                gap: 12,
+                flexWrap: 'wrap'
+              }}
             >
-              <div className="flex items-center gap-1 flex-wrap flex-1">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', flex: 1 }}>
                 {MARKETPLACE_CATEGORIES.map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => setCategory(cat.id)}
-                    className="text-[10px] px-2.5 py-0.5 rounded-full cursor-pointer border-none font-medium"
                     style={{
+                      fontSize: 10,
+                      padding: '2px 10px',
+                      borderRadius: 9999,
+                      cursor: 'pointer',
+                      border: 'none',
+                      fontWeight: 500,
                       background: category === cat.id ? '#FE5000' : t.surfaceElevated,
                       color: category === cat.id ? '#fff' : t.textSecondary,
                       transition: 'background 150ms ease, color 150ms ease',
@@ -321,9 +389,9 @@ export function Marketplace() {
                 ))}
               </div>
               {/* Provider legend */}
-              <div className="flex items-center gap-3 shrink-0">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                 {(Object.entries(RUNTIME_INFO) as [Runtime, { label: string; color: string }][]).map(([rt, info]) => (
-                  <span key={rt} className="flex items-center gap-1" style={{ fontSize: 9, color: t.textDim }}>
+                  <span key={rt} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: t.textDim }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: info.color, display: 'inline-block', flexShrink: 0 }} />
                     {info.label}
                   </span>
@@ -335,16 +403,27 @@ export function Marketplace() {
           {/* Sub-header: category pills only (mcp) */}
           {activeTab === 'mcp' && (
             <div
-              className="flex items-center px-4 py-2 gap-1 flex-wrap"
-              style={{ borderBottom: `1px solid ${t.borderSubtle}` }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '8px 16px',
+                gap: 4,
+                flexWrap: 'wrap',
+                borderBottom: `1px solid ${t.borderSubtle}`
+              }}
             >
               {MARKETPLACE_CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
                   onClick={() => setCategory(cat.id)}
-                  className="text-[10px] px-2.5 py-0.5 rounded-full cursor-pointer border-none font-medium"
                   style={{
+                    fontSize: 10,
+                    padding: '2px 10px',
+                    borderRadius: 9999,
+                    cursor: 'pointer',
+                    border: 'none',
+                    fontWeight: 500,
                     background: category === cat.id ? '#FE5000' : t.surfaceElevated,
                     color: category === cat.id ? '#fff' : t.textSecondary,
                     transition: 'background 150ms ease, color 150ms ease',
@@ -357,11 +436,11 @@ export function Marketplace() {
           )}
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto">
+          <div style={{ flex: 1, overflowY: 'auto' }}>
             {activeTab === 'skills' && (
               <>
                 {filteredSkills.length > 0 && (
-                  <div className="mp-skill-grid">
+                  <div style={skillGridStyle}>
                     {filteredSkills.map((skill) => (
                       <SkillCard
                         key={skill.id}
@@ -377,35 +456,35 @@ export function Marketplace() {
                   </div>
                 )}
                 {filteredSkills.length === 0 && !remoteLoading && !remoteError && remoteResults.length === 0 && (
-                  <div className="flex items-center justify-center py-12">
-                    <span className="text-xs" style={{ color: t.textFaint }}>No skills match your search</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
+                    <span style={{ fontSize: 12, color: t.textFaint }}>No skills match your search</span>
                   </div>
                 )}
 
                 {(filter.trim().length >= 2 || remoteLoading || remoteError || remoteResults.length > 0) && (
-                  <div className="px-4 pt-4 pb-2" style={{ borderTop: `1px solid ${t.borderSubtle}` }}>
-                    <span className="text-[10px] tracking-wider uppercase" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
+                  <div style={{ padding: '16px 16px 8px', borderTop: `1px solid ${t.borderSubtle}` }}>
+                    <span style={{ fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
                       From skill.sh
                     </span>
                   </div>
                 )}
                 {remoteLoading && (
-                  <div className="flex items-center justify-center py-6">
-                    <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: t.textDim }}>
-                      <Loader2 size={12} className="animate-spin" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 0' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: t.textDim }}>
+                      <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
                       Searching skill.sh...
                     </span>
                   </div>
                 )}
                 {!remoteLoading && remoteError && (
-                  <div className="flex items-center justify-center py-6 px-4">
-                    <span className="text-[11px]" style={{ color: t.statusError }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+                    <span style={{ fontSize: 11, color: t.statusError }}>
                       skill.sh search unavailable
                     </span>
                   </div>
                 )}
                 {!remoteLoading && !remoteError && remoteResults.length > 0 && (
-                  <div className="mp-skill-grid" style={{ paddingTop: 0 }}>
+                  <div style={{ ...skillGridStyle, paddingTop: 0 }}>
                     {remoteResults.map((skill) => (
                       <RemoteSkillCard
                         key={skill.id}
@@ -419,15 +498,15 @@ export function Marketplace() {
                   </div>
                 )}
                 {!remoteLoading && !remoteError && filter.trim().length >= 2 && remoteResults.length === 0 && (
-                  <div className="flex items-center justify-center py-6 px-4">
-                    <span className="text-[11px]" style={{ color: t.textFaint }}>No results from skill.sh</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+                    <span style={{ fontSize: 11, color: t.textFaint }}>No results from skill.sh</span>
                   </div>
                 )}
               </>
             )}
 
             {activeTab === 'mcp' && (
-              <div className="flex flex-col">
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {filteredMcp.map((mcp) => (
                   <McpRow
                     key={mcp.id}
@@ -440,21 +519,21 @@ export function Marketplace() {
                   />
                 ))}
                 {filteredMcp.length === 0 && (
-                  <div className="flex items-center justify-center py-12">
-                    <span className="text-xs" style={{ color: t.textFaint }}>No MCP servers match your search</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
+                    <span style={{ fontSize: 12, color: t.textFaint }}>No MCP servers match your search</span>
                   </div>
                 )}
               </div>
             )}
 
             {activeTab === 'presets' && (
-              <div className="flex flex-col">
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {filteredPresets.map((preset) => (
                   <PresetRow key={preset.id} preset={preset} t={t} onLoad={() => setShowMarketplace(false)} />
                 ))}
                 {filteredPresets.length === 0 && (
-                  <div className="flex items-center justify-center py-12">
-                    <span className="text-xs" style={{ color: t.textFaint }}>No presets match your search</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
+                    <span style={{ fontSize: 12, color: t.textFaint }}>No presets match your search</span>
                   </div>
                 )}
               </div>
@@ -736,17 +815,19 @@ function RemoteSkillCard({ skill, installing, installed, onInstall, t }: {
         <span style={{ fontSize: 10, color: t.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontFamily: "'Inter', sans-serif" }}>
           {skill.repo}
         </span>
-        <a
-          href={skill.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: t.textDim, flexShrink: 0, display: 'inline-flex' }}
-          aria-label={`Open ${skill.name} on skills.sh`}
-          onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = t.textDim; }}
-        >
-          <ExternalLink size={10} />
-        </a>
+        <Tooltip content="View on skills.sh">
+          <a
+            href={skill.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: t.textDim, flexShrink: 0, display: 'inline-flex' }}
+            aria-label={`Open ${skill.name} on skills.sh`}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = t.textDim; }}
+          >
+            <ExternalLink size={10} />
+          </a>
+        </Tooltip>
       </div>
 
       {/* Row 3: description with expand */}
@@ -818,56 +899,115 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
   const isInstalled = mcp.installed || mcpServers.some((s) => s.name === mcp.name);
   return (
     <div
-      className="relative"
-      style={{ borderBottom: `1px solid ${t.borderSubtle}` }}
+      style={{
+        position: 'relative',
+        borderBottom: `1px solid ${t.borderSubtle}`
+      }}
     >
       <div
-        className="flex items-center gap-3 px-4"
-        style={{ height: 48, transition: 'background 100ms ease' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '0 16px',
+          height: 48,
+          transition: 'background 100ms ease'
+        }}
         onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
       >
         {/* Icon */}
-        <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ background: t.surfaceElevated }}>
+        <div style={{
+          width: 20,
+          height: 20,
+          borderRadius: 4,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          background: t.surfaceElevated
+        }}>
           <RegistryIcon icon={mcp.icon} size={13} style={{ color: t.textSecondary }} />
         </div>
 
         {/* Name + transport */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium truncate" style={{ color: t.textPrimary }} spellCheck={false}>{mcp.name}</span>
-            <span className="text-[10px] truncate" style={{ color: t.textDim }}>{mcp.author}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.textPrimary }} spellCheck={false}>
+              {mcp.name}
+            </span>
+            <span style={{ fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.textDim }}>
+              {mcp.author}
+            </span>
           </div>
-          <div className="flex gap-0.5 mt-0.5">
+          <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
             {mcp.runtimes.map((rt) => (
-              <div key={rt} className="rounded-sm" style={{ width: 16, height: 3, background: RUNTIME_INFO[rt].color }} title={RUNTIME_INFO[rt].label} />
+              <div key={rt} style={{ borderRadius: 2, width: 16, height: 3, background: RUNTIME_INFO[rt].color }} title={RUNTIME_INFO[rt].label} />
             ))}
-            <span className="text-[8px] ml-1 uppercase" style={{ color: mcp.transport === 'stdio' ? t.statusInfo : t.statusWarning, fontFamily: "'Space Mono', monospace" }}>
+            <span style={{
+              fontSize: 8,
+              marginLeft: 4,
+              textTransform: 'uppercase',
+              color: mcp.transport === 'stdio' ? t.statusInfo : t.statusWarning,
+              fontFamily: "'Space Mono', monospace"
+            }}>
               {mcp.transport}
             </span>
           </div>
         </div>
 
         {/* Description */}
-        <span className="text-[11px] truncate shrink-0" style={{ color: t.textMuted, maxWidth: 200 }} title={mcp.description} spellCheck={false}>
+        <span style={{
+          fontSize: 11,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+          color: t.textMuted,
+          maxWidth: 200
+        }} title={mcp.description} spellCheck={false}>
           {mcp.description}
         </span>
 
         {/* Action */}
         {isInstalled ? (
-          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
+          <span style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 10,
+            padding: '4px 8px',
+            borderRadius: 6,
+            flexShrink: 0,
+            color: t.statusSuccess,
+            background: t.statusSuccessBg
+          }}>
             <Check size={10} /> Installed
           </span>
         ) : installing ? (
-          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#FE5000', background: '#FE500010' }}>
-            <Loader2 size={10} className="animate-spin" /> Configuring
+          <span style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 10,
+            padding: '4px 8px',
+            borderRadius: 6,
+            flexShrink: 0,
+            color: '#FE5000',
+            background: '#FE500010'
+          }}>
+            <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} /> Configuring
           </span>
         ) : (
           <button
             type="button"
             onClick={onToggleConfigure}
-            className="text-[10px] px-2 py-1 rounded-md cursor-pointer shrink-0"
             style={{
+              fontSize: 10,
+              padding: '4px 8px',
+              borderRadius: 6,
+              cursor: 'pointer',
+              flexShrink: 0,
               background: 'transparent',
               border: `1px solid ${t.border}`,
               color: t.textSecondary,
@@ -900,30 +1040,55 @@ function McpConfigForm({ mcp, onInstall, t }: {
 
   return (
     <div
-      className="absolute right-4 mt-0 rounded-md p-3 z-10 flex flex-col gap-2"
-      style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', width: 260, top: 48 }}
+      style={{
+        position: 'absolute',
+        right: 16,
+        marginTop: 0,
+        borderRadius: 6,
+        padding: 12,
+        zIndex: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        background: t.surfaceOpaque,
+        border: `1px solid ${t.border}`,
+        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        width: 260,
+        top: 48
+      }}
     >
       {mcp.configFields.length > 0 ? (
         mcp.configFields.map((field) => (
           <div key={field.key}>
-            <label className="text-[10px] font-medium" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>{field.label}</label>
+            <label style={{ fontSize: 10, fontWeight: 500, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
+              {field.label}
+            </label>
             <input
               type={field.type === 'password' ? 'password' : 'text'}
               placeholder={field.placeholder}
               value={envValues[field.key] || ''}
               onChange={(e) => setEnvValues({ ...envValues, [field.key]: e.target.value })}
-              className="w-full text-[11px] px-2 py-1 rounded-md outline-none mt-0.5"
-              style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+              style={{
+                width: '100%',
+                fontSize: 11,
+                padding: '4px 8px',
+                borderRadius: 6,
+                outline: 'none',
+                marginTop: 2,
+                background: t.inputBg,
+                border: `1px solid ${t.border}`,
+                color: t.textPrimary
+              }}
             />
           </div>
         ))
       ) : (
-        <span className="text-[11px]" style={{ color: t.textMuted }}>No configuration needed</span>
+        <span style={{ fontSize: 11, color: t.textMuted }}>No configuration needed</span>
       )}
 
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md" style={{ background: t.inputBg }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 6, background: t.inputBg }}>
         <Terminal size={9} style={{ color: t.textDim }} />
-        <code className="text-[9px]" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+        <code style={{ fontSize: 9, color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
           {mcp.installCmd}
         </code>
       </div>
@@ -931,8 +1096,17 @@ function McpConfigForm({ mcp, onInstall, t }: {
       <button
         type="button"
         onClick={() => onInstall(mcp.id, envValues)}
-        className="w-full py-1.5 rounded-md text-[11px] font-medium cursor-pointer border-none"
-        style={{ background: '#FE5000', color: '#fff' }}
+        style={{
+          width: '100%',
+          padding: '6px 0',
+          borderRadius: 6,
+          fontSize: 11,
+          fontWeight: 500,
+          cursor: 'pointer',
+          border: 'none',
+          background: '#FE5000',
+          color: '#fff'
+        }}
       >
         Save & Install
       </button>
@@ -949,8 +1123,11 @@ function PresetRow({ preset, t, onLoad }: {
 }) {
   return (
     <div
-      className="flex items-center gap-3 px-4"
       style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '0 16px',
         minHeight: 56,
         borderBottom: `1px solid ${t.borderSubtle}`,
         transition: 'background 100ms ease',
@@ -959,20 +1136,54 @@ function PresetRow({ preset, t, onLoad }: {
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
     >
       {/* Icon */}
-      <div className="w-6 h-6 rounded flex items-center justify-center shrink-0" style={{ background: '#FE500010' }}>
+      <div style={{
+        width: 24,
+        height: 24,
+        borderRadius: 4,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        background: '#FE500010'
+      }}>
         <RegistryIcon icon={preset.icon} size={14} style={{ color: '#FE5000' }} />
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium" style={{ color: t.textPrimary }}>{preset.name}</div>
-        <div className="text-[10px] truncate mt-0.5" style={{ color: t.textMuted }} title={preset.description} spellCheck={false}>{preset.description}</div>
-        <div className="flex gap-1 mt-0.5">
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: t.textPrimary }}>{preset.name}</div>
+        <div style={{
+          fontSize: 10,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          marginTop: 2,
+          color: t.textMuted
+        }} title={preset.description} spellCheck={false}>
+          {preset.description}
+        </div>
+        <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
           {preset.skills.slice(0, 3).map((s) => (
-            <span key={s} className="text-[8px] px-1 rounded-sm" style={{ color: t.cableSkills, background: t.cableSkills + '10' }}>{s}</span>
+            <span key={s} style={{
+              fontSize: 8,
+              padding: '0 4px',
+              borderRadius: 2,
+              color: t.cableSkills,
+              background: t.cableSkills + '10'
+            }}>
+              {s}
+            </span>
           ))}
           {preset.mcpServers.slice(0, 2).map((m) => (
-            <span key={m} className="text-[8px] px-1 rounded-sm" style={{ color: t.cableMcp, background: t.cableMcp + '10' }}>{m}</span>
+            <span key={m} style={{
+              fontSize: 8,
+              padding: '0 4px',
+              borderRadius: 2,
+              color: t.cableMcp,
+              background: t.cableMcp + '10'
+            }}>
+              {m}
+            </span>
           ))}
         </div>
       </div>
@@ -981,8 +1192,12 @@ function PresetRow({ preset, t, onLoad }: {
       <button
         type="button"
         onClick={onLoad}
-        className="text-[10px] px-2 py-1 rounded-md cursor-pointer shrink-0"
         style={{
+          fontSize: 10,
+          padding: '4px 8px',
+          borderRadius: 6,
+          cursor: 'pointer',
+          flexShrink: 0,
           background: 'transparent',
           border: `1px solid ${t.border}`,
           color: t.textSecondary,
