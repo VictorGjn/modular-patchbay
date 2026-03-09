@@ -214,6 +214,32 @@ describe('buildHyDEPrompt', () => {
     expect(prompt).toContain('Configuration options');
     expect(prompt).toContain('best practices');
   });
+
+  it('handles queries with special characters and symbols', () => {
+    const query = 'How to handle <XML> & JSON parsing with "quotes" & regex /patterns/?';
+    const prompt = buildHyDEPrompt(query);
+
+    expect(prompt).toContain('<XML>');
+    expect(prompt).toContain('"quotes"');
+    expect(prompt).toContain('/patterns/');
+    expect(prompt).toContain('&');
+    expect(prompt).toContain('?');
+  });
+
+  it('handles very long queries', () => {
+    const longQuery = 'How to implement a comprehensive user authentication system with JWT tokens refresh token rotation OAuth2 integration social login support multi-factor authentication password reset email verification account lockout rate limiting session management and audit logging';
+    const prompt = buildHyDEPrompt(longQuery);
+
+    expect(prompt).toContain(longQuery);
+    expect(prompt).toContain('hypothetical');
+    expect(prompt).toContain('documentation');
+  });
+
+  it('handles empty and whitespace queries', () => {
+    expect(buildHyDEPrompt('')).toContain('hypothetical');
+    expect(buildHyDEPrompt('   ')).toContain('hypothetical');
+    expect(buildHyDEPrompt('\n\t')).toContain('hypothetical');
+  });
 });
 
 describe('shouldUseHyDE', () => {
@@ -234,9 +260,45 @@ describe('shouldUseHyDE', () => {
     expect(shouldUseHyDE('this query has exactly ten words in it today now')).toBe(true);
   });
 
+  it('handles boundary cases around 10 words', () => {
+    // Exactly 9 words - should be false
+    expect(shouldUseHyDE('this query has exactly nine words in it now')).toBe(false);
+
+    // Exactly 10 words - should be true
+    expect(shouldUseHyDE('this query has exactly ten words in it right now')).toBe(true);
+
+    // Exactly 11 words - should be true
+    expect(shouldUseHyDE('this query has exactly eleven words in it right now here')).toBe(true);
+  });
+
+  it('handles queries with extra whitespace and punctuation', () => {
+    // Test with extra spaces (count actual words)
+    const query1 = '  this   query  has exactly ten words   in  it now  ';
+    const words1 = query1.trim().split(/\s+/).filter(w => w.length > 0);
+    expect(shouldUseHyDE(query1)).toBe(words1.length > 10);
+
+    // Test with punctuation (count actual words)
+    const query2 = 'this, query has exactly ten words in it now!';
+    const words2 = query2.trim().split(/\s+/).filter(w => w.length > 0);
+    expect(shouldUseHyDE(query2)).toBe(words2.length > 10);
+
+    // Test with fewer words
+    const query3 = 'this query has exactly nine words in it!';
+    const words3 = query3.trim().split(/\s+/).filter(w => w.length > 0);
+    expect(shouldUseHyDE(query3)).toBe(words3.length > 10);
+  });
+
   it('handles empty and whitespace queries', () => {
     expect(shouldUseHyDE('')).toBe(false);
     expect(shouldUseHyDE('   ')).toBe(false);
     expect(shouldUseHyDE('\n\t')).toBe(false);
+  });
+
+  it('handles queries with special characters', () => {
+    // 10 words with special chars - should be true
+    expect(shouldUseHyDE('How do I parse <XML> & JSON with regex /patterns/ today?')).toBe(true);
+
+    // 9 words with special chars - should be false
+    expect(shouldUseHyDE('How parse <XML> & JSON with regex /patterns/ today?')).toBe(false);
   });
 });
