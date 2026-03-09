@@ -12,6 +12,7 @@ import { useThemeStore, type Theme } from '../store/themeStore';
 import { useMcpStore, type McpServerState } from '../store/mcpStore';
 import { useSkillsStore } from '../store/skillsStore';
 import { useConsoleStore } from '../store/consoleStore';
+import { SecurityBadges } from './SecurityBadges';
 
 type SettingsTab = 'providers' | 'mcp' | 'skills' | 'general';
 
@@ -917,11 +918,16 @@ function SkillsTab() {
         </div>
       )}
 
-      {loaded && skills.map((skill) => (
+      {loaded && skills.map((skill) => {
+        // Detect skills.sh origin: id format is "owner/repo@skillname"
+        const skillsShPath = /^[a-z0-9_.-]+\/[a-z0-9_.-]+@[a-z0-9_.-]+$/.test(skill.id)
+          ? skill.id.replace('@', '/')
+          : null;
+        return (
         <div
           key={skill.id}
-          className="flex items-center gap-3 px-4 py-3"
-          style={{ borderBottom: `1px solid ${t.borderSubtle}` }}
+          className="flex items-center gap-3 px-4"
+          style={{ minHeight: 64, borderBottom: `1px solid ${t.borderSubtle}` }}
         >
           <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.badgeBg }}>
             <Wrench size={14} style={{ color: t.textDim }} />
@@ -959,6 +965,7 @@ function SkillsTab() {
                   USER
                 </span>
               )}
+              {skillsShPath && <SecurityBadges skillPath={skillsShPath} />}
             </div>
             {skill.description && (
               <div className="text-xs text-wrap" style={{ color: t.textDim }}>
@@ -986,7 +993,8 @@ function SkillsTab() {
             />
           </button>
         </div>
-      ))}
+        );
+      })}
 
       {loaded && skills.length === 0 && (
         <div className="px-4 py-8 text-center">

@@ -15,9 +15,6 @@ type SkillSearchResult = {
   repo: string;
   installs: string;
   url: string;
-  gen?: string;
-  socket?: string;
-  snyk?: string;
 };
 
 export function Marketplace() {
@@ -117,9 +114,7 @@ export function Marketplace() {
         id: skill.id,
         name: skill.name,
         description: `Installed from skills.sh (${skill.repo})`,
-        gen: skill.gen,
-        socket: skill.socket,
-        snyk: skill.snyk,
+        skillUrl: skill.url,
       });
     } catch (err) {
       setRemoteError(err instanceof Error ? err.message : 'Install failed');
@@ -573,7 +568,7 @@ function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall
   );
 }
 
-/* ──────── Remote Skill Row (list item, 48px) ──────── */
+/* ──────── Remote Skill Row (list item, 64px) ──────── */
 
 function RemoteSkillRow({ skill, installing, installed, onInstall, t }: {
   skill: SkillSearchResult;
@@ -582,6 +577,7 @@ function RemoteSkillRow({ skill, installing, installed, onInstall, t }: {
   onInstall: () => void;
   t: ReturnType<typeof useTheme>;
 }) {
+  const skillPath = skill.url.replace('https://skills.sh/', '');
   return (
     <div
       className="relative"
@@ -589,7 +585,7 @@ function RemoteSkillRow({ skill, installing, installed, onInstall, t }: {
     >
       <div
         className="flex items-center gap-3 px-4"
-        style={{ height: 48, transition: 'background 100ms ease' }}
+        style={{ minHeight: 64, transition: 'background 100ms ease' }}
         onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
       >
@@ -597,31 +593,32 @@ function RemoteSkillRow({ skill, installing, installed, onInstall, t }: {
           <Zap size={13} style={{ color: t.textSecondary }} />
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 py-2">
+          {/* Line 1: skill name + repo */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium truncate" style={{ color: t.textPrimary }} spellCheck={false}>{skill.name}</span>
+            <span className="text-xs font-semibold truncate" style={{ color: t.textPrimary }} spellCheck={false}>{skill.name}</span>
             <span className="text-[10px] truncate" style={{ color: t.textDim }}>{skill.repo}</span>
           </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[9px] px-1 rounded-sm" style={{ color: t.textMuted, background: t.badgeBg }}>
+          {/* Line 2: installs + security badges + external link */}
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[9px] px-1 rounded-sm shrink-0" style={{ color: t.textMuted, background: t.badgeBg }}>
               {skill.installs} installs
             </span>
-            <SecurityBadges gen={skill.gen} socket={skill.socket} snyk={skill.snyk} />
+            <SecurityBadges skillPath={skillPath} />
+            <a
+              href={skill.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-0.5 rounded shrink-0"
+              style={{ color: t.textDim }}
+              aria-label={`Open ${skill.name} on skills.sh`}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = t.textDim; }}
+            >
+              <ExternalLink size={10} />
+            </a>
           </div>
         </div>
-
-        <a
-          href={skill.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-1 rounded-md shrink-0"
-          style={{ color: t.textDim }}
-          aria-label={`Open ${skill.name} on skills.sh`}
-          onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = t.textDim; }}
-        >
-          <ExternalLink size={12} />
-        </a>
 
         {installed ? (
           <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>

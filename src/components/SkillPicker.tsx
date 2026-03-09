@@ -113,7 +113,9 @@ export function SkillPicker() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium" style={{ color: t.textPrimary }}>{skill.name}</span>
-                    <SecurityBadges gen={skill.gen} socket={skill.socket} snyk={skill.snyk} />
+                    {skill.skillUrl?.startsWith('https://skills.sh/') && (
+                      <SecurityBadges skillPath={skill.skillUrl.replace('https://skills.sh/', '')} />
+                    )}
                   </div>
                   <span className="text-xs" style={{ color: t.textDim }}>{skill.description}</span>
                 </div>

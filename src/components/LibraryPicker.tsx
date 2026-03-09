@@ -35,9 +35,6 @@ interface MarketplaceResult {
   repo: string;
   installs: string;
   url: string;
-  gen?: string;
-  socket?: string;
-  snyk?: string;
 }
 
 function getStatusColor(status: string | undefined, t: ReturnType<typeof useTheme>): string {
@@ -94,7 +91,7 @@ function useMarketplaceSearch(open: boolean) {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [query]);
 
-  const installSkill = useCallback(async (skillId: string, skillName?: string, repo?: string, gen?: string, socket?: string, snyk?: string) => {
+  const installSkill = useCallback(async (skillId: string, skillName?: string, repo?: string, skillUrl?: string) => {
     setInstalling((prev) => new Set(prev).add(skillId));
     try {
       const res = await fetch(`${API_BASE}/skills/install`, {
@@ -108,9 +105,7 @@ function useMarketplaceSearch(open: boolean) {
         id: skillId,
         name: skillName || skillId,
         description: repo ? `Installed from skills.sh (${repo})` : 'Installed from skills.sh',
-        gen,
-        socket,
-        snyk,
+        skillUrl,
       });
     } catch {
       // silent — button stays available for retry
@@ -178,38 +173,43 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
         {!loading && results.map((skill) => {
           const isInstalling = installing.has(skill.id);
           const isInstalled = installed.has(skill.id);
+          const skillPath = skill.url.replace('https://skills.sh/', '');
           return (
             <div
               key={skill.id}
-              className="flex items-center gap-3 px-5 py-2.5 w-full"
-              style={{ transition: 'background 100ms ease' }}
+              className="flex items-center gap-3 px-5 w-full"
+              style={{ minHeight: 64, transition: 'background 100ms ease' }}
               onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
             >
               <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.badgeBg }}>
                 <Zap size={14} style={{ color: t.textDim }} />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 py-2">
+                {/* Line 1: skill name + repo */}
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium truncate" style={{ color: t.textPrimary }}>{skill.name}</span>
-                  <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{ fontFamily: "'Space Mono', monospace", fontWeight: 600, background: t.badgeBg, color: t.textMuted }}>
+                  <span className="text-sm font-semibold truncate" style={{ color: t.textPrimary }}>{skill.name}</span>
+                  <span className="text-xs truncate" style={{ color: t.textDim }}>{skill.repo}</span>
+                </div>
+                {/* Line 2: installs badge + security badges + external link */}
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase shrink-0" style={{ fontFamily: "'Space Mono', monospace", fontWeight: 600, background: t.badgeBg, color: t.textMuted }}>
                     {skill.installs}
                   </span>
-                  <SecurityBadges gen={skill.gen} socket={skill.socket} snyk={skill.snyk} />
+                  <SecurityBadges skillPath={skillPath} />
+                  <a
+                    href={skill.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 p-0.5"
+                    style={{ color: t.textDim }}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`View ${skill.name} on skills.sh`}
+                  >
+                    <ExternalLink size={10} />
+                  </a>
                 </div>
-                <span className="text-xs truncate block" style={{ color: t.textDim }}>{skill.repo}</span>
               </div>
-              <a
-                href={skill.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 p-1"
-                style={{ color: t.textDim }}
-                onClick={(e) => e.stopPropagation()}
-                aria-label={`View ${skill.name} on skills.sh`}
-              >
-                <ExternalLink size={12} />
-              </a>
               {isInstalled ? (
                 <span className="shrink-0" style={{ color: t.statusSuccess }}><Check size={14} /></span>
               ) : isInstalling ? (
@@ -217,7 +217,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
               ) : (
                 <button
                   type="button"
-                  onClick={() => installSkill(skill.id, skill.name, skill.repo, skill.gen, skill.socket, skill.snyk)}
+                  onClick={() => installSkill(skill.id, skill.name, skill.repo, skill.url)}
                   className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer border-none shrink-0"
                   style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", background: '#FE500020', color: '#FE5000' }}
                   aria-label={`Install ${skill.name}`}
