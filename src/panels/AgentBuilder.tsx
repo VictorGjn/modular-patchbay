@@ -26,14 +26,40 @@ function SectionHeader({
   label: string; color: string; collapsed: boolean; onToggle: () => void; right?: React.ReactNode; t: ThemePalette & { isDark: boolean };
 }) {
   return (
-    <div className="flex items-center gap-2.5 w-full px-5 py-3.5 select-none"
-      style={{ borderTop: `1px solid ${t.isDark ? '#222226' : '#e8e8ec'}`, background: `${color}08` }}>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      width: '100%',
+      padding: '14px 20px',
+      userSelect: 'none',
+      borderTop: `1px solid ${t.isDark ? '#222226' : '#e8e8ec'}`,
+      background: `${color}08`
+    }}>
       <button type="button" onClick={onToggle} aria-expanded={!collapsed}
-        className="flex items-center gap-2.5 flex-1 cursor-pointer border-none bg-transparent p-0 text-left">
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flex: 1,
+          cursor: 'pointer',
+          border: 'none',
+          background: 'transparent',
+          padding: 0,
+          textAlign: 'left'
+        }}>
         {collapsed ? <ChevronRight size={12} style={{ color: t.textDim }} /> : <ChevronDown size={12} style={{ color: t.textDim }} />}
         <div style={{ width: 3, height: 14, borderRadius: 2, background: color, opacity: 0.8 }} />
-        <span className="text-[10px] font-bold tracking-[0.15em] uppercase"
-          style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>{label}</span>
+        <span style={{
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          fontFamily: "'Space Mono', monospace",
+          color: t.textPrimary
+        }}>
+          {label}
+        </span>
       </button>
       {right}
     </div>
@@ -44,9 +70,20 @@ function SectionHeader({
 function GenerateBtn({ loading, onClick }: { loading: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={e => { e.stopPropagation(); onClick(); }} disabled={loading}
-      className="flex items-center gap-1 text-[9px] px-2 py-1 rounded cursor-pointer border-none"
-      style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Space Mono', monospace" }}>
-      {loading ? <Loader2 size={9} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={9} />}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        fontSize: 9,
+        padding: '4px 8px',
+        borderRadius: 4,
+        cursor: 'pointer',
+        border: 'none',
+        background: '#FE500015',
+        color: '#FE5000',
+        fontFamily: "'Space Mono', monospace"
+      }}>
+      {loading ? <Loader2 size={9} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={9} />}
       Generate
     </button>
   );
@@ -128,7 +165,7 @@ export function AgentBuilder() {
   const totalUsed = knowledgeTokens + instructionTokens + workflowTokens;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Agent Card */}
       <div className="rounded-xl overflow-hidden" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)'}` }}>
 
