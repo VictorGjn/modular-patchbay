@@ -208,6 +208,8 @@ export async function runTeam(config: TeamRunConfig, onProgress?: ProgressCallba
 
       return {
         ...agent,
+        model: agent.model || config.model,
+        providerId: agent.providerId || config.providerId,
         teamFacts: [...(agent.teamFacts ?? []), ...contractFacts],
         repoKnowledge: repoData ? `${repoDescriptor}${repoData.markdown}` : undefined,
         repoClonePath: repoData?.worktreePath,

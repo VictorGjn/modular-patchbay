@@ -101,6 +101,98 @@ router.get('/status/:runId', (req: Request, res: Response) => {
   res.json({ status: 'ok', data: runStatus });
 });
 
+/* ── Team-specific endpoints (POST /team, GET /team/:teamId/status, POST /team/:teamId/stop) ── */
+
+const teamAbortControllers = new Map<string, AbortController>();
+
+// POST /team — SSE stream for team execution
+router.post('/team', (req: Request, res: Response) => {
+  const config = req.body as TeamRunConfig;
+  if (!config.teamId || !config.providerId || !config.model || !config.agents) {
+    res.status(400).json({ status: 'error', error: 'Missing required fields' });
+    return;
+  }
+
+  const runId = config.teamId;
+  const runStatus: RunStatus = { id: runId, type: 'team', status: 'running', startedAt: Date.now() };
+  runs.set(runId, runStatus);
+
+  const abortController = new AbortController();
+  teamAbortControllers.set(runId, abortController);
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Team-Id', runId);
+
+  sendSSE(res, { type: 'start', teamId: runId });
+
+  const abortSignal = abortController.signal;
+
+  runTeam(config, (event) => {
+    if (abortSignal.aborted) return;
+    sendSSE(res, { ...event, eventType: 'progress' });
+  }).then((result) => {
+    runStatus.status = 'completed';
+    runStatus.result = result;
+    if (!abortSignal.aborted) {
+      sendSSE(res, { type: 'complete', result });
+    }
+    res.end();
+  }).catch((err) => {
+    runStatus.status = 'error';
+    if (!abortSignal.aborted) {
+      sendSSE(res, { type: 'error', error: err instanceof Error ? err.message : String(err) });
+    }
+    res.end();
+  }).finally(() => {
+    teamAbortControllers.delete(runId);
+  });
+
+  req.on('close', () => {
+    abortController.abort();
+    teamAbortControllers.delete(runId);
+  });
+});
+
+// GET /team/:teamId/status
+router.get('/team/:teamId/status', (req: Request, res: Response) => {
+  const teamId = req.params.teamId as string;
+  const runStatus = runs.get(teamId);
+  if (!runStatus) {
+    res.status(404).json({ status: 'error', error: 'Team run not found' });
+    return;
+  }
+  res.json({
+    status: 'ok',
+    data: {
+      teamId,
+      runStatus: runStatus.status,
+      startedAt: runStatus.startedAt,
+      result: runStatus.result,
+    },
+  });
+});
+
+// POST /team/:teamId/stop
+router.post('/team/:teamId/stop', (req: Request, res: Response) => {
+  const teamId = req.params.teamId as string;
+  const runStatus = runs.get(teamId);
+  if (!runStatus) {
+    res.status(404).json({ status: 'error', error: 'Team run not found' });
+    return;
+  }
+
+  const controller = teamAbortControllers.get(teamId);
+  if (controller) {
+    controller.abort();
+    teamAbortControllers.delete(teamId);
+  }
+
+  runStatus.status = 'error';
+  res.json({ status: 'ok', data: { teamId, stopped: true } });
+});
+
 // POST /extract-contracts
 router.post('/extract-contracts', async (req: Request, res: Response) => {
   const { featureSpec, providerId, model } = req.body as { featureSpec: string; providerId: string; model: string };
