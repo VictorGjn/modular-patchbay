@@ -1,45 +1,39 @@
 /**
- * Pipeline Chat — Wires the context engineering pipeline into the chat flow.
+ * Pipeline Chat — thin orchestrator that wires the context engineering pipeline into the chat flow.
  *
  * Replaces the old direct assembleContext() → LLM path with:
  *   ChannelConfig[] → PipelineSource[] → Tree Index → Agent Navigator → Compress → Assembly → LLM
  *
- * The agent identity/instructions/constraints/workflow/tools are still assembled by contextAssembler.
- * This module handles the knowledge section through the pipeline, then merges both.
+ * Each pipeline stage lives in its own module:
+ *   systemFrameBuilder  — identity / instructions / constraints / workflow / tool guide
+ *   sourceRouter        — file indexing, framework extraction
+ *   knowledgePipeline   — content compression, agent navigation, knowledge block
+ *   contextAssembler    — orientation block, system prompt assembly
+ *   executionRouter     — tool loop / streaming / agent SDK dispatch
+ *   postProcessor       — memory post-write, trace end, heatmap + stats
  */
 
 import type { ChannelConfig, Connector } from '../store/knowledgeBase';
-import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 import { useConsoleStore } from '../store/consoleStore';
 import { useProviderStore } from '../store/providerStore';
-import { useMcpStore, type McpTool } from '../store/mcpStore';
-import { compileWorkflow } from '../nodes/WorkflowNode';
-import {
-  startPipeline,
-  completePipeline,
-  type PipelineSource,
-  type PipelineResult,
-} from './pipeline';
 import { useTraceStore } from '../store/traceStore';
 import { useVersionStore } from '../store/versionStore';
 import { useTreeIndexStore } from '../store/treeIndexStore';
-import { estimateTokens, indexMarkdown, type TreeNode } from './treeIndexer';
-import { renderFilteredMarkdown, applyDepthFilter } from '../utils/depthFilter';
-import { streamCompletion, streamAgentSdk } from './llmService';
-import { runToolLoop, type ToolCallResult } from './toolRunner';
-import { getUnifiedTools, supportsToolCalling } from './toolRegistry';
-import { API_BASE } from '../config';
-import {
-  extractHeadlines,
-  buildNavigationPrompt,
-  parseNavigationResponse,
-} from './treeNavigator';
-import {
-  extractFramework,
-  compileFrameworkBlocks,
-} from './frameworkExtractor';
-import { preRecall, postWrite, clearScratchpad } from './memoryPipeline';
 import { useMemoryStore } from '../store/memoryStore';
+import { estimateTokens } from './treeIndexer';
+import { preRecall, clearScratchpad } from './memoryPipeline';
+import { buildSystemFrame, buildKnowledgeFormatGuide } from './systemFrameBuilder';
+import { routeSources } from './sourceRouter';
+import { compressKnowledge } from './knowledgePipeline';
+import { buildOrientationBlock, assemblePipelineContext } from './contextAssembler';
+import { executeChat } from './executionRouter';
+import { postProcess } from './postProcessor';
+import type { PipelineResult } from './pipeline';
+import type { ToolCallResult } from './toolRunner';
+
+// ── Re-export types from sub-modules so external consumers keep working ──
+export type { FrameworkSummary } from './sourceRouter';
+export type { SourceHeatmapEntry, MemoryStats } from './postProcessor';
 
 // ── Types ──
 
@@ -59,171 +53,15 @@ export interface PipelineChatOptions {
   onError: (err: Error) => void;
 }
 
-export interface SourceHeatmapEntry {
-  name: string;
-  path: string;
-  nodeCount: number;
-  totalTokens: number;
-  filteredTokens: number;
-  depth: number;
-  knowledgeType: string;
-  headings: { nodeId: string; title: string; depth: number; tokens: number }[];
-}
-
-export interface FrameworkSummary {
-  constraints: number;
-  workflowSteps: number;
-  personaHints: number;
-  toolHints: number;
-  outputRules: number;
-  namingPatterns: number;
-  sources: string[];
-}
-
-export interface MemoryStats {
-  recalledFacts: number;
-  writtenFacts: number;
-  recallMs: number;
-  writeMs: number;
-  recallTokens: number;
-  domains: string[];
-}
-
 export interface PipelineChatStats {
   pipeline: PipelineResult | null;
   systemTokens: number;
   totalContextTokens: number;
-  heatmap: SourceHeatmapEntry[];
-  frameworkSummary?: FrameworkSummary;
+  heatmap: import('./postProcessor').SourceHeatmapEntry[];
+  frameworkSummary?: import('./sourceRouter').FrameworkSummary;
   toolCalls?: ToolCallResult[];
   toolTurns?: number;
-  memory?: MemoryStats;
-}
-
-type TreeIndexLookup = ReturnType<typeof useTreeIndexStore.getState>['getIndex'];
-
-// ── Build non-knowledge system prompt (identity, instructions, constraints, workflow, tools) ──
-
-function buildSystemFrame(): string {
-  const state = useConsoleStore.getState();
-  const { instructionState, workflowSteps, agentMeta } = state;
-  const parts: string[] = [];
-
-  // Identity
-  if (agentMeta.name) {
-    const identity = [`Name: ${agentMeta.name}`];
-    if (agentMeta.description) identity.push(`Description: ${agentMeta.description}`);
-    if (agentMeta.avatar) identity.push(`Avatar: ${agentMeta.avatar}`);
-    if (agentMeta.tags?.length) identity.push(`Tags: ${agentMeta.tags.join(', ')}`);
-    parts.push(`<identity>\n${identity.join('\n')}\n</identity>`);
-  }
-
-  // Instructions
-  if (instructionState.persona || instructionState.objectives.primary) {
-    const lines = [];
-    if (instructionState.persona) lines.push(`Persona: ${instructionState.persona}`);
-    if (instructionState.tone !== 'neutral') lines.push(`Tone: ${instructionState.tone}`);
-    if (instructionState.expertise !== 3) {
-      const labels = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Expert'];
-      lines.push(`Expertise Level: ${labels[instructionState.expertise - 1]} (${instructionState.expertise}/5)`);
-    }
-    if (instructionState.objectives.primary) {
-      lines.push(`Primary Objective: ${instructionState.objectives.primary}`);
-      if (instructionState.objectives.successCriteria.length > 0)
-        lines.push(`Success Criteria:\n${instructionState.objectives.successCriteria.map(c => `- ${c}`).join('\n')}`);
-      if (instructionState.objectives.failureModes.length > 0)
-        lines.push(`Failure Modes to Avoid:\n${instructionState.objectives.failureModes.map(f => `- ${f}`).join('\n')}`);
-    }
-    parts.push(`<instructions>\n${lines.join('\n\n')}\n</instructions>`);
-  }
-
-  // Constraints
-  const constraints: string[] = [];
-  if (instructionState.constraints.neverMakeUp) constraints.push('Never fabricate information or make up facts');
-  if (instructionState.constraints.askBeforeActions) constraints.push('Ask for permission before taking significant actions');
-  if (instructionState.constraints.stayInScope)
-    constraints.push(`Stay within the defined scope: ${instructionState.constraints.scopeDefinition || 'as specified'}`);
-  if (instructionState.constraints.useOnlyTools) constraints.push('Only use tools and capabilities that are explicitly provided');
-  if (instructionState.constraints.limitWords)
-    constraints.push(`Keep responses under ${instructionState.constraints.wordLimit} words`);
-  if (instructionState.constraints.customConstraints)
-    constraints.push(`Additional constraints: ${instructionState.constraints.customConstraints}`);
-  if (constraints.length > 0) parts.push(`<constraints>\n${constraints.map(c => `- ${c}`).join('\n')}\n</constraints>`);
-
-  // Workflow
-  if (workflowSteps.length > 0) {
-    const compiled = compileWorkflow(workflowSteps as any);
-    parts.push(`<workflow>\n${compiled}\n</workflow>`);
-  }
-
-  // Tools — replaced by dynamic tool guide (Ticket B)
-  const toolGuide = buildToolGuide();
-  if (toolGuide) parts.push(toolGuide);
-
-  return parts.join('\n\n');
-}
-
-// ── Non-streaming LLM call for navigation ──
-
-async function callLlmForNavigation(prompt: string, providerId: string, model: string): Promise<string> {
-  const resp = await fetch(`${API_BASE}/llm/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      providerId, model,
-      messages: [
-        { role: 'system', content: 'You are a context navigation agent. Respond with ONLY a JSON array, no markdown, no explanation.' },
-        { role: 'user', content: prompt },
-      ],
-    }),
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!resp.ok) throw new Error(`Navigation LLM call failed: ${resp.status}`);
-
-  // Backend always streams SSE — collect chunks
-  const text = await resp.text();
-  const chunks = text.split('\n')
-    .filter(line => line.startsWith('data: '))
-    .map(line => line.slice(6))
-    .filter(data => data !== '[DONE]');
-
-  let content = '';
-  for (const chunk of chunks) {
-    try {
-      const parsed = JSON.parse(chunk);
-      const delta = parsed.choices?.[0]?.delta?.content;
-      if (delta) content += delta;
-    } catch { /* skip */ }
-  }
-  return content;
-}
-
-// ── Fallback: build knowledge section without pipeline (same as old assembleContext) ──
-
-function buildKnowledgeFallback(channels: ChannelConfig[]): string {
-  const active = channels.filter(ch => ch.enabled);
-  if (active.length === 0) return '';
-
-  const grouped: Record<string, ChannelConfig[]> = {};
-  const typeOrder = ['ground-truth', 'signal', 'evidence', 'framework', 'hypothesis', 'guideline'];
-  for (const ch of active) {
-    if (!grouped[ch.knowledgeType]) grouped[ch.knowledgeType] = [];
-    grouped[ch.knowledgeType].push(ch);
-  }
-
-  const knowledgeLines: string[] = [];
-  for (const type of typeOrder) {
-    const group = grouped[type];
-    if (!group?.length) continue;
-    const kt = KNOWLEDGE_TYPES[type as keyof typeof KNOWLEDGE_TYPES];
-    const sourceBlocks = group.map(ch => {
-      const depth = DEPTH_LEVELS[ch.depth];
-      return `- ${ch.name} (${depth.label}, ~${Math.round(ch.baseTokens * depth.pct).toLocaleString()} tokens) [${ch.path}]`;
-    });
-    knowledgeLines.push(`[${kt.label.toUpperCase()}] ${kt.instruction}\n${sourceBlocks.join('\n')}`);
-  }
-
-  return `<knowledge>\n${knowledgeLines.join('\n\n')}\n</knowledge>`;
+  memory?: import('./postProcessor').MemoryStats;
 }
 
 // ── Provider/model resolution (shared by all tester surfaces) ──
@@ -260,314 +98,7 @@ export function resolveProviderAndModel(): ResolvedProvider {
   };
 }
 
-// ── Orientation Block ──
-
-/**
- * Build a lightweight <orientation> block from channel metadata.
- * Lists codebases (channels with repoMeta) and documents (channels with content but no repoMeta).
- * Gives the LLM a map of what's available without including actual content.
- */
-const FILE_PATH_PATTERN = /(?:^|[\s`"'([<{])([A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)+\.[A-Za-z0-9._-]+)(?=$|[\s`"')\]}>:,;.!?])/g;
-
-function normalizePath(input: string): string {
-  return input.replace(/\\/g, '/').replace(/\/+/g, '/');
-}
-
-function parentDir(input: string): string {
-  const normalized = normalizePath(input);
-  const idx = normalized.lastIndexOf('/');
-  return idx > 0 ? normalized.slice(0, idx) : normalized;
-}
-
-function collectFilePathsFromText(text: string, out: Set<string>): void {
-  FILE_PATH_PATTERN.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = FILE_PATH_PATTERN.exec(text)) !== null) {
-    const path = match[1].replace(/^\.?\//, '');
-    if (path.includes('/')) out.add(path);
-  }
-}
-
-function collectFilePathsFromTree(node: TreeNode, out: Set<string>): void {
-  collectFilePathsFromText(node.title, out);
-  if (node.text) collectFilePathsFromText(node.text, out);
-  for (const child of node.children) collectFilePathsFromTree(child, out);
-}
-
-function buildCondensedTree(paths: string[]): string[] {
-  const groups = new Map<string, Set<string>>();
-
-  for (const rawPath of paths) {
-    const path = normalizePath(rawPath).replace(/^\.?\//, '');
-    if (!path.includes('/')) continue;
-    const parts = path.split('/').filter(Boolean);
-    if (parts.length < 2) continue;
-
-    const branch = parts.length >= 3 ? `${parts[0]}/${parts[1]}/` : `${parts[0]}/`;
-    const child = parts.length >= 3
-      ? `${parts[2]}${parts.length > 3 ? '/' : ''}`
-      : parts[1];
-
-    if (!groups.has(branch)) groups.set(branch, new Set());
-    groups.get(branch)!.add(child);
-  }
-
-  return [...groups.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .slice(0, 14)
-    .map(([branch, children]) => {
-      const sortedChildren = [...children].sort();
-      const visible = sortedChildren.slice(0, 8);
-      const suffix = sortedChildren.length > visible.length ? ', ...' : '';
-      return `  ${branch} -> ${visible.join(', ')}${suffix}`;
-    });
-}
-
-// ── Knowledge Format Guide (Ticket A) ──
-
-/**
- * Builds a <knowledge_format> block that teaches the agent how to read
- * the compressed knowledge docs produced by the indexing pipeline.
- * Only injected when at least one repo channel is connected.
- */
-function buildKnowledgeFormatGuide(): string {
-  return `<knowledge_format>
-The knowledge below is produced by an automated indexing pipeline. Here is how to read it:
-
-## Heading Hierarchy = Depth Levels
-- # (H1) = Feature name — top-level grouping
-- ## (H2) = Section: Architecture, Key Files, Data Flow, State Management, Components
-- ### (H3) = Individual file entry with metadata
-
-## How to Read a Key File Entry
-Each file under "Key Files" has structured metadata:
-- **Category**: What the file DOES (component=UI, store=state, service=logic, route=endpoint, util=helper, test=tests, config=settings, type=contracts)
-- **Exports**: The public API surface — function/class/constant names this file makes available
-- **Types**: TypeScript interfaces/types defined in this file
-- **Size/Tokens**: File size and estimated token count for budget decisions
-- **Imports**: Direct dependencies of this file
-
-## How to Use Data Flow (CRITICAL)
-The "Data Flow" section contains the import graph between files. Each line is:
-  source_file → imported_module
-This IS the dependency graph. You do NOT need to open files to trace dependencies.
-Example: if Data Flow shows \`App.tsx → ./providers/AuthProvider\`, you already know App depends on AuthProvider.
-
-## Escalation Strategy
-1. **Check the knowledge docs first** — most answers are already here (exports, types, data flow, architecture)
-2. **Use get_file_contents ONLY when you need actual implementation details** — the code itself, not its structure
-3. **Build exact file URLs** using the base URL from orientation + the file path from Key Files
-
-## What You Can Answer WITHOUT Reading Files
-- "What does X export?" → Check Exports field
-- "What depends on X?" → Check Data Flow
-- "What state does X manage?" → Check State Management section
-- "What type is X?" → Check Types field
-- "What stack/framework?" → Check Architecture section
-</knowledge_format>`;
-}
-
-// ── Dynamic Tool Guide (Ticket B) ──
-
-/**
- * Replaces the basic <tools> block with a <tool_guide> that includes
- * usage patterns and anti-patterns adapted to actually connected tools.
- */
-function buildToolGuide(): string {
-  const connectedTools: McpTool[] = useMcpStore.getState().getConnectedTools();
-  const { skills } = useConsoleStore.getState();
-  const enabledSkills = skills.filter(s => s.enabled);
-  const channels: ChannelConfig[] = useConsoleStore.getState().channels;
-  const hasRepos = channels.some(ch => ch.enabled && ch.repoMeta);
-
-  if (connectedTools.length === 0 && enabledSkills.length === 0) return '';
-
-  const lines: string[] = [];
-
-  // Tool inventory
-  if (connectedTools.length > 0) {
-    lines.push('## Available MCP Tools');
-    for (const t of connectedTools) {
-      lines.push(`- **${t.name}**: ${t.description || 'No description'}`);
-    }
-  }
-  if (enabledSkills.length > 0) {
-    if (lines.length > 0) lines.push('');
-    lines.push('## Available Skills');
-    for (const s of enabledSkills) {
-      lines.push(`- **${s.name}**: ${s.description || 'No description'}`);
-    }
-  }
-
-  // Usage patterns
-  lines.push('');
-  lines.push('## Tool Usage Patterns');
-
-  // File access tools
-  const fileTools = connectedTools.filter(t =>
-    /get_file|read_file|file_content/i.test(t.name),
-  );
-  if (fileTools.length > 0 && hasRepos) {
-    lines.push('### File Access');
-    lines.push('- **FIRST**: Check your loaded knowledge (Key Files, Data Flow, Exports) — most structural questions are answered there');
-    lines.push('- **THEN**: Use file tools ONLY for actual source code / implementation details');
-    lines.push(`- Tool: \`${fileTools[0].name}\` — pass a single file path, NOT a directory`);
-  }
-
-  // Search tools
-  const searchTools = connectedTools.filter(t =>
-    /search|find|grep|query/i.test(t.name) && !/search_nodes/i.test(t.name),
-  );
-  if (searchTools.length > 0) {
-    lines.push('### Search');
-    for (const st of searchTools) {
-      lines.push(`- \`${st.name}\`: Use for finding files or symbols not in loaded knowledge`);
-    }
-  }
-
-  // Graph tools (lower priority when knowledge is loaded)
-  const graphTools = connectedTools.filter(t =>
-    /search_nodes|read_graph|knowledge_graph/i.test(t.name),
-  );
-  if (graphTools.length > 0 && hasRepos) {
-    lines.push('### Knowledge Graph (Low Priority)');
-    lines.push('- Your loaded knowledge already contains structure, dependencies, and exports');
-    lines.push('- Do NOT use graph tools to find basic repo structure — it is already in your context');
-    lines.push('- Use graph tools ONLY for cross-repo relationship queries not covered by loaded knowledge');
-  }
-
-  // Anti-patterns
-  lines.push('');
-  lines.push('## Anti-Patterns (NEVER do these)');
-  if (fileTools.length > 0) {
-    lines.push(`- NEVER pass a directory path to \`${fileTools[0].name}\` — it only accepts single files`);
-  }
-  if (hasRepos) {
-    lines.push('- NEVER open a file just to check its exports or types — that information is in your loaded knowledge');
-    lines.push('- NEVER fabricate file URLs — use base URL from orientation + exact file path from Key Files');
-    lines.push('- NEVER call search_nodes/read_graph for structure already in your context');
-  }
-
-  // Workflow
-  if (hasRepos) {
-    lines.push('');
-    lines.push('## Recommended Workflow');
-    lines.push('1. Check orientation block → find which repo/feature is relevant');
-    lines.push('2. Check loaded knowledge → exports, data flow, types, architecture');
-    lines.push('3. Need implementation details? → `get_file_contents` with exact file path');
-    lines.push('4. Need something not indexed? → search tools');
-    lines.push('5. Need cross-repo relationships? → graph tools');
-  }
-
-  return `<tool_guide>\n${lines.join('\n')}\n</tool_guide>`;
-}
-
-// ── Worked Example in Orientation (Ticket C) ──
-
-/**
- * Build a worked example for each connected repo showing the
- * full knowledge escalation chain. Injected into the orientation block.
- */
-function buildWorkedExamples(channels: ChannelConfig[]): string {
-  const repoChannels = channels.filter(ch => ch.enabled && ch.repoMeta);
-  if (repoChannels.length === 0) return '';
-
-  const examples: string[] = [];
-
-  for (const ch of repoChannels) {
-    const meta = ch.repoMeta!;
-    // Pick the first feature name for the example
-    const featureNames = meta.features;
-    if (featureNames.length === 0) continue;
-
-    const featName = featureNames[0];
-    // Use a plausible file path pattern based on feature name
-    const featureSlug = featName.toLowerCase().replace(/\s+/g, '-');
-    const samplePath = `src/${featureSlug}/index.ts`;
-
-    const example = [
-      `### Example: answering a question about ${meta.name}`,
-      `Q: "How does ${featName} work?"`,
-      `1. Check Data Flow in "${featName}" section → see what files import/depend on each other`,
-      `2. Check Key Files → exports and types tell you the API surface without opening files`,
-      `3. Need actual implementation? → \`get_file_contents("${samplePath}")\``,
-    ];
-
-    if (meta.baseUrl) {
-      example.push(`4. Need to share a link? → \`${meta.baseUrl}{exact_file_path}\``);
-    }
-
-    examples.push(example.join('\n'));
-  }
-
-  if (examples.length === 0) return '';
-  return examples.join('\n\n');
-}
-
-function buildOrientationBlock(channels: ChannelConfig[], getTreeIndex: TreeIndexLookup): string {
-  const active = channels.filter(ch => ch.enabled);
-  const lines: string[] = [];
-
-  // Channels with repoMeta → codebase entries
-  const repoChannels = active.filter(ch => ch.repoMeta);
-  for (const ch of repoChannels) {
-    const meta = ch.repoMeta!;
-    const repoRoot = ch.path ? parentDir(ch.path) : '';
-    const related = repoRoot
-      ? active.filter(c => c.path && normalizePath(c.path).startsWith(`${repoRoot}/`))
-      : [ch];
-    const filePaths = new Set<string>();
-    for (const relatedChannel of related) {
-      if (relatedChannel.content) collectFilePathsFromText(relatedChannel.content, filePaths);
-      if (!relatedChannel.path) continue;
-      const index = getTreeIndex(relatedChannel.path);
-      if (index) collectFilePathsFromTree(index.root, filePaths);
-    }
-    const condensedTree = buildCondensedTree([...filePaths]);
-
-    lines.push(`## ${meta.name}`);
-    if (meta.stack.length > 0) lines.push(`- Stack: ${meta.stack.join(', ')}`);
-    if (meta.baseUrl) lines.push(`- Base URL: ${meta.baseUrl}`);
-    lines.push(`- ${meta.totalFiles} files, key features: ${meta.features.join(', ')}`);
-    if (meta.baseUrl && condensedTree.length > 0) {
-      lines.push(`- File lookup table (${filePaths.size} paths): use \`${meta.baseUrl}{filePath}\``);
-      lines.push(...condensedTree);
-    }
-    lines.push(`- You can explore this codebase in depth — read files, trace dependencies, check implementations.`);
-    lines.push('');
-  }
-
-  // Channels with content but no repoMeta → document entries
-  const docChannels = active.filter(ch => !ch.repoMeta && ch.content);
-  for (const ch of docChannels) {
-    const kt = KNOWLEDGE_TYPES[ch.knowledgeType as keyof typeof KNOWLEDGE_TYPES];
-    const label = kt ? kt.label : ch.knowledgeType;
-    lines.push(`## Document: ${ch.name}`);
-    lines.push(`- Type: ${label}`);
-    lines.push('');
-  }
-
-  if (lines.length === 0) return '';
-
-  const header = 'You have access to the following codebases and knowledge sources:\n';
-
-  // Ticket C: inject worked examples
-  const workedExamples = buildWorkedExamples(channels);
-  const exampleSection = workedExamples
-    ? `\n## How to Use This Knowledge\n${workedExamples}\n`
-    : '';
-
-  const footer = `Approach:
-- Your knowledge about these codebases is already loaded in your context below. Use it directly.
-- For file contents not in your context, use get_file_contents or read_file tools — NOT the knowledge graph.
-- Do NOT call search_nodes or read_graph to find basic structure — that information is already here.
-- Use each repo's base URL + file path from the lookup table to build exact file links.
-- Explore files and trace dependencies BEFORE asking the user for information.`;
-
-  return `<orientation>\n${header}\n${lines.join('\n')}\n${exampleSection}${footer}\n</orientation>`;
-}
-
-// ── Main pipeline chat ──
+// ── Main pipeline chat orchestrator ──
 
 export async function runPipelineChat(options: PipelineChatOptions): Promise<void> {
   const {
@@ -580,219 +111,24 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
   const agentVersion = versionStore.currentVersion || '0.0.0';
   const traceId = traceStore.startTrace(`chat-${Date.now()}`, agentVersion);
 
-  let pipelineResult: PipelineResult | null = null;
-
   try {
-    // 1. Build the non-knowledge system frame
+    // 1. Build the non-knowledge system frame (identity, instructions, constraints, workflow, tools)
     const systemFrame = buildSystemFrame();
 
-    // 2. Separate framework sources from regular knowledge
+    // 2. Route sources: index files + extract framework rules
     const activeChannels = channels.filter(ch => ch.enabled);
-    const extractableTypes = new Set(['framework', 'guideline']);
-    const frameworkChannels = activeChannels.filter(ch => extractableTypes.has(ch.knowledgeType));
-    const regularChannels = activeChannels.filter(ch => !extractableTypes.has(ch.knowledgeType));
-    let knowledgeBlock = '';
-    let frameworkBlock = '';
-    let frameworkSummary: FrameworkSummary | undefined;
+    const { frameworkBlock, frameworkSummary, regularChannels, residualKnowledgeBlock } =
+      activeChannels.length > 0
+        ? await routeSources(activeChannels, traceId)
+        : { frameworkBlock: '', frameworkSummary: undefined, regularChannels: [], residualKnowledgeBlock: '' };
 
-    if (activeChannels.length > 0) {
-      const treeStore = useTreeIndexStore.getState();
+    // 3. Compress knowledge: pipeline + optional agent navigation
+    let { knowledgeBlock, pipelineResult } =
+      activeChannels.length > 0
+        ? await compressKnowledge(channels, regularChannels, residualKnowledgeBlock, { userMessage, navigationMode: options.navigationMode, providerId, model }, traceId)
+        : { knowledgeBlock: '', pipelineResult: null };
 
-      // 2a. Index files that have paths (fetches content from backend, caches in treeIndexStore)
-      const pathChannels = activeChannels.filter(ch => ch.path);
-      if (pathChannels.length > 0) {
-        const indexStart = Date.now();
-        await treeStore.indexFiles(pathChannels.map(ch => ch.path));
-
-        traceStore.addEvent(traceId, {
-          kind: 'retrieval',
-          sourceName: 'pipeline:fetch',
-          query: `${pathChannels.length} sources`,
-          resultCount: pathChannels.filter(ch => treeStore.getIndex(ch.path) != null).length,
-          durationMs: Date.now() - indexStart,
-        });
-      }
-
-      // 2b. Extract framework sources → active agent shaping (constraints, workflow, persona)
-      if (frameworkChannels.length > 0) {
-        const frameworks = frameworkChannels
-          .map(ch => {
-            let treeIndex = ch.path ? treeStore.getIndex(ch.path) : null;
-            // Inline content fallback for framework channels
-            if (!treeIndex && ch.content) {
-              const virtualPath = `content://${ch.contentSourceId || ch.sourceId}`;
-              treeIndex = indexMarkdown(virtualPath, ch.content);
-            }
-            if (!treeIndex) return null;
-            const filtered = applyDepthFilter(treeIndex, 0); // Full depth for framework extraction
-            const content = renderFilteredMarkdown(filtered.filtered);
-            return content.trim() ? extractFramework(content, ch.name) : null;
-          })
-          .filter((f): f is NonNullable<typeof f> => f !== null);
-
-        if (frameworks.length > 0) {
-          const compiled = compileFrameworkBlocks(frameworks);
-          const blocks = [
-            compiled.constraintsBlock,
-            compiled.workflowBlock,
-            compiled.personaBlock,
-            compiled.toolHintsBlock,
-            compiled.outputBlock,
-          ].filter(Boolean);
-          frameworkBlock = blocks.join('\n\n');
-
-          // Build summary for UI visibility
-          frameworkSummary = {
-            constraints: frameworks.reduce((s, f) => s + f.constraints.length, 0),
-            workflowSteps: frameworks.reduce((s, f) => s + f.workflowSteps.length, 0),
-            personaHints: frameworks.reduce((s, f) => s + f.personaHints.length, 0),
-            toolHints: frameworks.reduce((s, f) => s + f.toolHints.length, 0),
-            outputRules: frameworks.reduce((s, f) => s + f.outputRules.length, 0),
-            namingPatterns: frameworks.reduce((s, f) => s + f.namingPatterns.length, 0),
-            sources: frameworks.map((f) => f.source),
-          };
-
-          // Residual content (sections that didn't match extraction rules) goes to knowledge
-          if (compiled.residualKnowledge.trim()) {
-            // Will be added to knowledgeBlock later
-            knowledgeBlock = `<knowledge type="framework-residual">\n${compiled.residualKnowledge}\n</knowledge>`;
-          }
-
-          traceStore.addEvent(traceId, {
-            kind: 'retrieval',
-            sourceName: 'pipeline:framework',
-            query: `${frameworks.length} framework sources`,
-            resultCount: frameworks.reduce((s, f) => s + f.constraints.length + f.workflowSteps.length, 0),
-            durationMs: 0,
-          });
-        }
-      }
-
-      // 2c. Build pipeline sources from indexed content (regular channels only)
-      //     Supports three paths: inline content, file-backed tree index, metadata-only fallback
-      const sourcesWithContent: PipelineSource[] = [];
-      for (const ch of regularChannels) {
-        if (ch.content) {
-          // Inline content path — index the markdown in-memory, then apply depth filter
-          const virtualPath = `content://${ch.contentSourceId || ch.sourceId}`;
-          const treeIndex = indexMarkdown(virtualPath, ch.content);
-          const filtered = applyDepthFilter(treeIndex, ch.depth);
-          const content = renderFilteredMarkdown(filtered.filtered);
-          if (content.trim()) {
-            sourcesWithContent.push({
-              name: ch.name,
-              type: 'markdown',
-              content,
-              sourceType: ch.knowledgeType,
-            });
-          }
-        } else if (ch.path) {
-          // File-backed path — use treeIndexStore as before
-          const treeIndex = treeStore.getIndex(ch.path);
-          if (treeIndex) {
-            const filtered = applyDepthFilter(treeIndex, ch.depth);
-            const content = renderFilteredMarkdown(filtered.filtered);
-            if (content.trim()) {
-              sourcesWithContent.push({
-                name: ch.name,
-                type: 'markdown',
-                content,
-                sourceType: ch.knowledgeType,
-              });
-            }
-          }
-        }
-        // else: metadata-only fallback — no content to add, handled by buildKnowledgeFallback
-      }
-
-      // 2d. Run pipeline if we have indexed content
-      if (sourcesWithContent.length > 0) {
-        const totalBudget = activeChannels.reduce((sum, ch) => sum + ch.baseTokens, 0);
-        const useAgentNav = options.navigationMode === 'agent-driven';
-
-        const pipelineStart = startPipeline({
-          task: userMessage,
-          sources: sourcesWithContent,
-          tokenBudget: totalBudget,
-        });
-
-        traceStore.addEvent(traceId, {
-          kind: 'retrieval',
-          sourceName: 'pipeline:index',
-          query: userMessage,
-          resultCount: pipelineStart.indexes.length,
-          durationMs: pipelineStart.indexMs,
-        });
-
-        let navigationResponse = '';
-        let manualSelections = activeChannels
-          .filter(ch => (ch.path && treeStore.getIndex(ch.path) != null) || ch.content)
-          .map(ch => ({
-            nodeId: ch.name,
-            depth: ch.depth,
-            priority: ch.knowledgeType === 'ground-truth' ? 0 : ch.knowledgeType === 'signal' ? 1 : 2,
-          }));
-
-        // Agent-driven navigation: LLM decides which branches at which depth
-        if (useAgentNav && pipelineStart.indexes.length > 0) {
-          const navStart = Date.now();
-          try {
-            const headlines = pipelineStart.indexes.map(extractHeadlines);
-            const navPrompt = buildNavigationPrompt(headlines, { task: userMessage, tokenBudget: totalBudget });
-            navigationResponse = await callLlmForNavigation(navPrompt, providerId, model);
-            const agentSelections = parseNavigationResponse(navigationResponse);
-            if (agentSelections.length > 0) manualSelections = agentSelections;
-
-            traceStore.addEvent(traceId, {
-              kind: 'llm_call',
-              model,
-              durationMs: Date.now() - navStart,
-              toolResult: `Agent selected ${agentSelections.length} branches`,
-            });
-          } catch (navErr) {
-            traceStore.addEvent(traceId, {
-              kind: 'error',
-              errorMessage: `Navigation failed: ${navErr instanceof Error ? navErr.message : 'Unknown'} — using manual depths`,
-              durationMs: Date.now() - navStart,
-            });
-          }
-        }
-
-        pipelineResult = completePipeline(
-          pipelineStart.indexes,
-          navigationResponse,
-          {
-            task: userMessage,
-            sources: sourcesWithContent,
-            tokenBudget: totalBudget,
-            manualSelections: navigationResponse ? undefined : manualSelections,
-            compression: { enabled: true, aggressiveness: 0.5 },
-          },
-          pipelineStart.indexMs,
-        );
-
-        traceStore.addEvent(traceId, {
-          kind: 'retrieval',
-          sourceName: 'pipeline:compress',
-          resultCount: pipelineResult.sources.length,
-          durationMs: pipelineResult.timing.compressionMs,
-        });
-
-        if (pipelineResult.context.trim()) {
-          const sourceAnnotations = pipelineResult.sources
-            .map(s => `${s.name} (${s.type}, ${s.totalTokens} tokens, ${s.indexedNodes} nodes)`)
-            .join(', ');
-          knowledgeBlock = `<knowledge sources="${sourceAnnotations}">\n${pipelineResult.context}\n</knowledge>`;
-        }
-      }
-
-      // Fallback to metadata references if pipeline produced nothing
-      if (!knowledgeBlock) {
-        knowledgeBlock = buildKnowledgeFallback(channels);
-      }
-    }
-
-    // 2e. Append connector references (services like Notion, Slack, HubSpot)
+    // 3a. Append connector references (services like Notion, Slack, HubSpot)
     const activeConnectors = (options.connectors || []).filter(c => c.enabled && c.direction !== 'write');
     if (activeConnectors.length > 0) {
       const connectorLines = activeConnectors.map(c => {
@@ -803,13 +139,12 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       knowledgeBlock = knowledgeBlock ? `${knowledgeBlock}\n\n${connectorBlock}` : connectorBlock;
     }
 
-    // 2f. Pre-recall: inject relevant memory facts into context
+    // 3b. Pre-recall: inject relevant memory facts into context
     const memoryConfig = useMemoryStore.getState();
     let memoryBlock = '';
-    let memoryStats: MemoryStats | undefined;
+    let memoryStats: import('./postProcessor').MemoryStats | undefined;
 
     if (memoryConfig.longTerm.enabled) {
-      // Clear scratchpad on new run if isolation requires it
       if (memoryConfig.sandbox.isolation === 'reset_each_run') {
         clearScratchpad();
       }
@@ -835,185 +170,55 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       };
     }
 
-    // 3. Assemble final system prompt
-    //    Order: identity/instructions/tools → orientation → knowledge format guide → framework rules → memory recall → knowledge → connectors
+    // 4. Assemble final system prompt
+    //    Order: frame → orientation → knowledge_format → framework → memory → knowledge
     const orientationBlock = buildOrientationBlock(channels, useTreeIndexStore.getState().getIndex);
     const hasRepos = channels.some(ch => ch.enabled && ch.repoMeta);
-    const systemParts = [systemFrame];
-    if (orientationBlock) systemParts.push(orientationBlock);
-    if (hasRepos) systemParts.push(buildKnowledgeFormatGuide());
-    if (frameworkBlock) systemParts.push(frameworkBlock);
-    if (memoryBlock) systemParts.push(memoryBlock);
-    if (knowledgeBlock) systemParts.push(knowledgeBlock);
-    const systemPrompt = systemParts.filter(Boolean).join('\n\n');
+    const systemPrompt = assemblePipelineContext({
+      frame: systemFrame,
+      orientationBlock,
+      hasRepos,
+      knowledgeFormatGuide: buildKnowledgeFormatGuide(),
+      frameworkBlock,
+      memoryBlock,
+      knowledgeBlock,
+    });
     const systemTokens = estimateTokens(systemPrompt);
 
-    // 4. Build messages array
+    // 5. Build messages array
     const msgs = [
       { role: 'system' as const, content: systemPrompt },
       ...history.map(m => ({ role: m.role as 'system' | 'user', content: m.content })),
       { role: 'user' as const, content: userMessage },
     ];
 
-    // 5. Check if we should use tool-calling loop
-    const unifiedTools = getUnifiedTools();
-    const providerState = useProviderStore.getState();
-    const currentProvider = providerState.providers.find((p: any) => p.id === providerId);
-    const providerType = currentProvider?.type ?? 'openai';
-    const useToolLoop = unifiedTools.length > 0
-      && supportsToolCalling(providerType)
-      && providerId !== 'claude-agent-sdk';
+    // 6. Execute: tool loop / text streaming / agent SDK
+    const { fullResponse, toolCallResults, toolTurns } = await executeChat({
+      providerId,
+      model,
+      messages: msgs,
+      userMessage,
+      systemPrompt,
+      traceId,
+      onChunk,
+    });
 
-    let toolCallResults: ToolCallResult[] = [];
-    let toolTurns = 0;
-    let fullResponse = '';
+    // 7–9. Post-process: memory write, end trace, heatmap + stats
+    const { heatmap, memoryStats: updatedMemoryStats } = await postProcess({
+      fullResponse,
+      userMessage,
+      agentId: options.agentId,
+      sandboxRunId: options.sandboxRunId,
+      traceId,
+      activeChannels,
+      memoryStats,
+    });
 
-    if (useToolLoop) {
-      // 6a. Agentic tool-calling loop (non-streaming per turn, streams text chunks)
-      const llmStart = Date.now();
-      traceStore.addEvent(traceId, {
-        kind: 'llm_call',
-        model,
-        inputTokens: msgs.reduce((sum, m) => sum + estimateTokens(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)), 0),
-      });
+    const totalContextTokens =
+      systemTokens +
+      history.reduce((s, m) => s + estimateTokens(m.content), 0) +
+      estimateTokens(userMessage);
 
-      await new Promise<void>((resolve, reject) => {
-        runToolLoop({
-          providerId,
-          model,
-          messages: msgs,
-          traceId,
-          maxTurns: 10,
-          callbacks: {
-            onChunk: (text) => { fullResponse += text; onChunk(text); },
-            onToolCallStart: (name, _args) => {
-              // Emit a visible chunk so user sees tool activity
-              onChunk(`\n\n🔧 Calling **${name}**...\n`);
-            },
-            onToolCallEnd: (result) => {
-              if (result.error) {
-                onChunk(`❌ ${result.name} failed: ${result.error}\n`);
-              } else {
-                onChunk(`✅ ${result.name} (${result.durationMs}ms)\n`);
-              }
-            },
-            onDone: (stats) => {
-              toolCallResults = stats.toolCalls;
-              toolTurns = stats.turns;
-              traceStore.addEvent(traceId, {
-                kind: 'llm_call',
-                model,
-                outputTokens: stats.totalOutputTokens,
-                durationMs: Date.now() - llmStart,
-              });
-              resolve();
-            },
-            onError: (err) => reject(err),
-          },
-        });
-      });
-    } else {
-      // 6b. Text-only streaming (no tools or unsupported provider)
-      const llmStart = Date.now();
-      traceStore.addEvent(traceId, {
-        kind: 'llm_call',
-        model,
-        inputTokens: msgs.reduce((sum, m) => sum + estimateTokens(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)), 0),
-      });
-
-      let accum = '';
-      await new Promise<void>((resolve, reject) => {
-        const callbacks = {
-          onChunk: (chunk: string) => { accum += chunk; fullResponse += chunk; onChunk(chunk); },
-          onDone: () => {
-            traceStore.addEvent(traceId, {
-              kind: 'llm_call',
-              model,
-              outputTokens: estimateTokens(accum),
-              durationMs: Date.now() - llmStart,
-            });
-            resolve();
-          },
-          onError: (err: Error) => reject(err),
-        };
-
-        if (providerId === 'claude-agent-sdk') {
-          streamAgentSdk({
-            prompt: userMessage,
-            model,
-            systemPrompt,
-            ...callbacks,
-          });
-        } else {
-          streamCompletion({
-            providerId,
-            model,
-            messages: msgs,
-            ...callbacks,
-          });
-        }
-      });
-    }
-
-    // 7. Post-write: extract facts from assistant response
-    if (memoryConfig.longTerm.enabled && fullResponse) {
-      const writeResult = postWrite({
-        userMessage,
-        assistantResponse: fullResponse,
-        agentId: options.agentId,
-        traceId,
-        sandboxRunId: options.sandboxRunId,
-      });
-
-      if (memoryStats) {
-        memoryStats.writtenFacts = writeResult.stored.length;
-        memoryStats.writeMs = writeResult.durationMs;
-        if (writeResult.stored.length > 0) {
-          const newDomains = [...new Set(writeResult.stored.map(f => f.domain))];
-          memoryStats.domains = [...new Set([...memoryStats.domains, ...newDomains])];
-        }
-      }
-    }
-
-    // 8. End trace
-    traceStore.endTrace(traceId);
-
-    // 9. Build heatmap from tree indexes
-    const heatmap: SourceHeatmapEntry[] = [];
-    const heatmapStore = useTreeIndexStore.getState();
-    for (const ch of activeChannels) {
-      let treeIdx = ch.path ? heatmapStore.getIndex(ch.path) : null;
-      // Generate in-memory index for inline content channels (for heatmap)
-      if (!treeIdx && ch.content) {
-        const virtualPath = `content://${ch.contentSourceId || ch.sourceId}`;
-        treeIdx = indexMarkdown(virtualPath, ch.content);
-      }
-      if (!treeIdx) continue;
-
-      const headings: SourceHeatmapEntry['headings'] = [];
-      function walkHeadings(node: TreeNode) {
-        if (node.depth > 0 && node.depth <= 2) {
-          headings.push({ nodeId: node.nodeId, title: node.title, depth: node.depth, tokens: node.totalTokens });
-        }
-        for (const child of node.children) walkHeadings(child);
-      }
-      walkHeadings(treeIdx.root);
-
-      const filtered = applyDepthFilter(treeIdx, ch.depth);
-      heatmap.push({
-        name: ch.name,
-        path: ch.path || `content://${ch.contentSourceId || ch.sourceId}`,
-        nodeCount: treeIdx.nodeCount,
-        totalTokens: treeIdx.totalTokens,
-        filteredTokens: filtered.totalTokens,
-        depth: ch.depth,
-        knowledgeType: ch.knowledgeType,
-        headings,
-      });
-    }
-
-    // 9. Report stats
-    const totalContextTokens = systemTokens + history.reduce((s, m) => s + estimateTokens(m.content), 0) + estimateTokens(userMessage);
     onDone({
       pipeline: pipelineResult,
       systemTokens,
@@ -1022,6 +227,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       frameworkSummary,
       toolCalls: toolCallResults.length > 0 ? toolCallResults : undefined,
       toolTurns: toolTurns > 0 ? toolTurns : undefined,
+      memory: updatedMemoryStats,
     });
 
   } catch (err) {
