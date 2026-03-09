@@ -67,7 +67,16 @@ export default function App() {
   }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, setShowConnectorPicker, setShowMarketplace, run, running]);
 
   return (
-    <div className="w-full h-full flex flex-col" data-theme={t.isDark ? 'dark' : 'light'} style={{ background: t.bg }}>
+    <div
+      data-theme={t.isDark ? 'dark' : 'light'}
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        background: t.bg
+      }}
+    >
       <input ref={importInputRef} type="file" accept=".md,.yaml,.yml,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
       <Topbar
         onImportClick={handleImportClick}
@@ -79,7 +88,21 @@ export default function App() {
       {workspaceMode === 'builder' ? <DashboardLayout /> : <RuntimeWorkspaceLayout />}
 
       {/* Accessibility: aria-live region for canvas state announcements */}
-      <div aria-live="polite" className="sr-only" id="canvas-announcements" />
+      <div
+        aria-live="polite"
+        id="canvas-announcements"
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: '0',
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: '0'
+        }}
+      />
       <TokenBudget />
       <FilePicker />
       <McpPicker />
