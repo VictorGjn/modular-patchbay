@@ -6,6 +6,7 @@ import { RegistryIcon } from './icons/SectionIcons';
 import { useTheme } from '../theme';
 import { X, Search, Check, Loader2, ChevronDown, Terminal, ExternalLink, Download, Zap } from 'lucide-react';
 import { API_BASE } from '../config';
+import { SecurityBadges } from './SecurityBadges';
 
 type Tab = 'skills' | 'mcp' | 'presets';
 type SkillSearchResult = {
@@ -14,6 +15,9 @@ type SkillSearchResult = {
   repo: string;
   installs: string;
   url: string;
+  gen?: string;
+  socket?: string;
+  snyk?: string;
 };
 
 export function Marketplace() {
@@ -113,6 +117,9 @@ export function Marketplace() {
         id: skill.id,
         name: skill.name,
         description: `Installed from skills.sh (${skill.repo})`,
+        gen: skill.gen,
+        socket: skill.socket,
+        snyk: skill.snyk,
       });
     } catch (err) {
       setRemoteError(err instanceof Error ? err.message : 'Install failed');
@@ -595,10 +602,11 @@ function RemoteSkillRow({ skill, installing, installed, onInstall, t }: {
             <span className="text-xs font-medium truncate" style={{ color: t.textPrimary }} spellCheck={false}>{skill.name}</span>
             <span className="text-[10px] truncate" style={{ color: t.textDim }}>{skill.repo}</span>
           </div>
-          <div className="flex gap-1 mt-0.5">
+          <div className="flex items-center gap-1.5 mt-0.5">
             <span className="text-[9px] px-1 rounded-sm" style={{ color: t.textMuted, background: t.badgeBg }}>
               {skill.installs} installs
             </span>
+            <SecurityBadges gen={skill.gen} socket={skill.socket} snyk={skill.snyk} />
           </div>
         </div>
 

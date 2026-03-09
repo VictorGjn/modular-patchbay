@@ -252,7 +252,7 @@ export interface ConsoleState {
   toggleSkill: (id: string) => void;
   addSkill: (id: string) => void;
   removeSkill: (id: string) => void;
-  upsertSkill: (skill: { id: string; name: string; description?: string }) => void;
+  upsertSkill: (skill: { id: string; name: string; description?: string; gen?: string; socket?: string; snyk?: string }) => void;
   loadAgent: (id: string) => void;
   restoreFullState: (state: Record<string, unknown>) => void;
   setInstructionState: (state: InstructionState) => void;
@@ -649,7 +649,14 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
     if (existing) {
       set({
         skills: get().skills.map((s) =>
-          s.id === skill.id ? { ...s, name: skill.name, description: skill.description ?? s.description } : s,
+          s.id === skill.id ? {
+            ...s,
+            name: skill.name,
+            description: skill.description ?? s.description,
+            gen: skill.gen ?? s.gen,
+            socket: skill.socket ?? s.socket,
+            snyk: skill.snyk ?? s.snyk,
+          } : s,
         ),
       });
       return;
@@ -664,6 +671,9 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         added: false,
         description: skill.description ?? 'Installed from skills.sh',
         category: 'development',
+        gen: skill.gen,
+        socket: skill.socket,
+        snyk: skill.snyk,
       }],
     });
   },

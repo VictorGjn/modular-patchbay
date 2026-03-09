@@ -6,6 +6,7 @@ import { Tabs } from './ds/Tabs';
 import { Spinner } from './ds/Spinner';
 import { API_BASE } from '../config';
 import { useConsoleStore } from '../store/consoleStore';
+import { SecurityBadges } from './SecurityBadges';
 
 export interface LibraryItem {
   id: string;
@@ -34,6 +35,9 @@ interface MarketplaceResult {
   repo: string;
   installs: string;
   url: string;
+  gen?: string;
+  socket?: string;
+  snyk?: string;
 }
 
 function getStatusColor(status: string | undefined, t: ReturnType<typeof useTheme>): string {
@@ -90,7 +94,7 @@ function useMarketplaceSearch(open: boolean) {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [query]);
 
-  const installSkill = useCallback(async (skillId: string, skillName?: string, repo?: string) => {
+  const installSkill = useCallback(async (skillId: string, skillName?: string, repo?: string, gen?: string, socket?: string, snyk?: string) => {
     setInstalling((prev) => new Set(prev).add(skillId));
     try {
       const res = await fetch(`${API_BASE}/skills/install`, {
@@ -104,6 +108,9 @@ function useMarketplaceSearch(open: boolean) {
         id: skillId,
         name: skillName || skillId,
         description: repo ? `Installed from skills.sh (${repo})` : 'Installed from skills.sh',
+        gen,
+        socket,
+        snyk,
       });
     } catch {
       // silent — button stays available for retry
@@ -188,6 +195,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
                   <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{ fontFamily: "'Space Mono', monospace", fontWeight: 600, background: t.badgeBg, color: t.textMuted }}>
                     {skill.installs}
                   </span>
+                  <SecurityBadges gen={skill.gen} socket={skill.socket} snyk={skill.snyk} />
                 </div>
                 <span className="text-xs truncate block" style={{ color: t.textDim }}>{skill.repo}</span>
               </div>
@@ -209,7 +217,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
               ) : (
                 <button
                   type="button"
-                  onClick={() => installSkill(skill.id, skill.name, skill.repo)}
+                  onClick={() => installSkill(skill.id, skill.name, skill.repo, skill.gen, skill.socket, skill.snyk)}
                   className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer border-none shrink-0"
                   style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", background: '#FE500020', color: '#FE5000' }}
                   aria-label={`Install ${skill.name}`}

@@ -295,6 +295,9 @@ export interface Skill {
   added: boolean;
   description: string;
   category: SkillCategory;
+  gen?: string;
+  socket?: string;
+  snyk?: string;
 }
 
 // MOCK_SKILLS removed — skills now derive from registry.ts installed state
