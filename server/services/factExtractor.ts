@@ -6,6 +6,10 @@ export interface ExtractedFact {
   epistemicType: 'observation' | 'inference' | 'decision' | 'hypothesis' | 'contract';
   confidence: number;
   source: string;
+  importance?: number;
+  created_at?: number;
+  accessed_at?: number;
+  access_count?: number;
 }
 
 interface PatternRule {
@@ -54,12 +58,17 @@ export function extractFacts(agentOutput: string, agentId: string): ExtractedFac
       if (seen.has(dedupKey)) continue;
       seen.add(dedupKey);
 
+      const now = Date.now();
       facts.push({
         key: makeKey(rule.keyPrefix, globalIdx++, value),
         value,
         epistemicType: rule.epistemicType,
         confidence: rule.confidence,
         source: agentId,
+        importance: rule.confidence * 0.8,
+        created_at: now,
+        accessed_at: now,
+        access_count: 0,
       });
     }
   }
@@ -139,11 +148,16 @@ ${agentOutput}`;
     confidence: number;
   }>;
 
+  const now = Date.now();
   return parsed.map((f) => ({
     key: f.key,
     value: f.value,
     epistemicType: f.epistemicType,
     confidence: f.confidence,
     source: agentId,
+    importance: f.confidence * 0.8,
+    created_at: now,
+    accessed_at: now,
+    access_count: 0,
   }));
 }
