@@ -45,10 +45,6 @@ function parseInstalls(installs: string): number {
   return parseFloat(s) || 0;
 }
 
-function stripTags(html: string): string {
-  return html.replace(/<[^>]+>/g, '').trim();
-}
-
 async function fetchCatalog(): Promise<CatalogEntry[]> {
   if (catalogCache && Date.now() - catalogCache.ts < CACHE_TTL_MS) {
     return catalogCache.data;
@@ -62,38 +58,61 @@ async function fetchCatalog(): Promise<CatalogEntry[]> {
   const html = await res.text();
 
   const entries: CatalogEntry[] = [];
-  // Parse leaderboard rows: [1find-skillsvercel-labs/skills462.7K]
-  // Each row is an <a> with href like /vercel-labs/skills/find-skills
-  // Content pattern: rank + skillName + repo + installs
-  const rowRegex = /\[(\d+)([a-z0-9_-]+?)([a-z0-9_-]+\/[a-z0-9_-]+)([\d.]+[KkMm]?)\]/gi;
+  // The readable text looks like: [1find-skillsvercel-labs/skills462.7K](/vercel-labs/skills/find-skills)
+  // Strategy: extract href paths (owner/repo/skill) and nearby install counts
+  // Each leaderboard link: href="/owner/repo/skillName" with install count in surrounding text
+  
+  // Step 1: Find all leaderboard links with their surrounding context
+  // Pattern: the markdown-extracted text has patterns like:
+  //   [<rank><skillName><repo><installs>](/<owner>/<repo>/<skill>)
+  // In raw HTML, it's <a href="/owner/repo/skill">...<rank>...<name>...<repo>...<installs>...</a>
+  
+  // Parse from the readable text format: number + text + number+K/M + (href)
+  // e.g. "[1find-skillsvercel-labs/skills462.7K](/vercel-labs/skills/find-skills)"
+  // Better approach: extract from href + match installs from text between entries
+  
+  // Extract all 3-segment paths from href attributes
+  const linkRegex = /href="\/([a-z0-9_.-]+\/[a-z0-9_.-]+\/([a-z0-9_.-]+))"/gi;
   let m: RegExpExecArray | null;
-  while ((m = rowRegex.exec(html)) !== null) {
-    const skillName = m[2];
-    const repo = m[3];
-    const installs = m[4];
-    entries.push({
-      name: skillName,
-      repo,
-      installs,
-      url: `https://skills.sh/${repo}/${skillName}`,
+  
+  // First pass: get all hrefs for skill pages (3-part paths, skip /docs/, /security/ etc.)
+  const links: { path: string; name: string; owner: string; repo: string }[] = [];
+  while ((m = linkRegex.exec(html)) !== null) {
+    const fullPath = m[1];
+    const parts = fullPath.split('/');
+    if (parts.length !== 3) continue;
+    // Skip non-skill pages
+    if (['docs', 'security', 'audits', 'trending', 'hot'].includes(parts[0])) continue;
+    if (parts[2] === 'security' || parts[2] === 'audits') continue;
+    // Deduplicate (each skill appears multiple times in HTML)
+    if (links.some((l) => l.path === fullPath)) continue;
+    links.push({
+      path: fullPath,
+      name: parts[2],
+      owner: parts[0],
+      repo: `${parts[0]}/${parts[1]}`,
     });
   }
-
-  // Fallback: try href-based parsing if regex above fails
-  if (entries.length === 0) {
-    const hrefRegex = /href="\/([^"]+?\/[^"]+?\/([^"]+))"/g;
-    while ((m = hrefRegex.exec(html)) !== null) {
-      const path = m[1];
-      const parts = path.split('/');
-      if (parts.length === 3) {
-        entries.push({
-          name: parts[2],
-          repo: `${parts[0]}/${parts[1]}`,
-          installs: '0',
-          url: `https://skills.sh/${path}`,
-        });
-      }
-    }
+  
+  // Second pass: extract install counts from visible text
+  // The readable text has patterns like "462.7K" near each skill entry
+  // Use the text between closing/opening tags to find numbers
+  const plainText = html.replace(/<[^>]+>/g, ' ');
+  const allInstalls: string[] = [];
+  const numRegex = /([\d,.]+)\s*([KkMm])(?:\s|$)/g;
+  while ((m = numRegex.exec(plainText)) !== null) {
+    allInstalls.push(m[1] + m[2]);
+  }
+  
+  // Match links to install counts by position (they appear in order on the leaderboard)
+  for (let i = 0; i < links.length; i++) {
+    const link = links[i];
+    entries.push({
+      name: link.name,
+      repo: link.repo,
+      installs: i < allInstalls.length ? allInstalls[i] : '0',
+      url: `https://skills.sh/${link.path}`,
+    });
   }
 
   catalogCache = { data: entries, ts: Date.now() };
@@ -114,30 +133,28 @@ async function fetchAudits(): Promise<AuditData> {
 
   const data: AuditData = {};
 
-  // Extract <tr> blocks (skip header row)
-  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  // Parse audit rows: each skill <a> contains 3 badge spans (gen, socket, snyk)
+  const rowSplitRegex = /<a[^>]+href="\/([a-z0-9_.-]+\/[a-z0-9_.-]+\/([a-z0-9_.-]+))"[^>]*>([\s\S]*?)(?=<\/a>)/gi;
   let rowMatch: RegExpExecArray | null;
-  while ((rowMatch = rowRegex.exec(html)) !== null) {
-    const rowHtml = rowMatch[1];
-    // Extract <td> cell contents
-    const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-    const cells: string[] = [];
-    let cellMatch: RegExpExecArray | null;
-    while ((cellMatch = cellRegex.exec(rowHtml)) !== null) {
-      cells.push(stripTags(cellMatch[1]).replace(/\s+/g, ' ').trim());
+  while ((rowMatch = rowSplitRegex.exec(html)) !== null) {
+    const parts = rowMatch[1].split('/');
+    if (parts.length !== 3) continue;
+    if (['docs', 'security', 'audits', 'trending', 'hot'].includes(parts[0])) continue;
+
+    const rowHtml = rowMatch[3];
+    const skillId = `${parts[0]}/${parts[1]}@${parts[2]}`;
+    if (data[skillId]) continue; // first occurrence wins
+
+    // Extract badge values from this row
+    const badgeRegex = />(Safe|Low Risk|Med Risk|High Risk|Critical|Pending|\d+ alerts?)<\/span>/g;
+    const badges: string[] = [];
+    let bm: RegExpExecArray | null;
+    while ((bm = badgeRegex.exec(rowHtml)) !== null) {
+      badges.push(bm[1]);
     }
-    // Expect: [number, skillName, repoName, gen, socket, snyk]
-    if (cells.length >= 6) {
-      const num = cells[0];
-      if (!/^\d+$/.test(num)) continue; // skip header rows
-      const skillName = cells[1];
-      const repoName = cells[2];
-      const gen = cells[3];
-      const socket = cells[4];
-      const snyk = cells[5];
-      if (!skillName || !repoName) continue;
-      const skillId = `${repoName}@${skillName}`;
-      data[skillId] = { gen, socket, snyk };
+
+    if (badges.length >= 3) {
+      data[skillId] = { gen: badges[0], socket: badges[1], snyk: badges[2] };
     }
   }
 
