@@ -21,6 +21,11 @@ import {
   extractHeadlines,
   buildNavigationPrompt,
   parseNavigationResponse,
+  buildCritiquePrompt,
+  parseCritiqueResponse,
+  buildHyDEPrompt,
+  shouldUseHyDE,
+  type BranchSelection,
 } from './treeNavigator';
 import { API_BASE } from '../config';
 
@@ -97,6 +102,59 @@ async function callLlmForNavigation(prompt: string, providerId: string, model: s
     } catch { /* skip */ }
   }
   return content;
+}
+
+// ── Re-navigation for gaps ──
+
+async function reNavigateForGaps(
+  gaps: string[],
+  pipelineStartIndexes: any[],
+  existingSelections: BranchSelection[],
+  options: { providerId: string; model: string; totalBudget: number },
+  traceId: string,
+): Promise<BranchSelection[]> {
+  const traceStore = useTraceStore.getState();
+  const navStart = Date.now();
+
+  try {
+    // Build combined gap query
+    const gapQuery = gaps.join('. ');
+
+    // Budget for gaps: 20% of total budget
+    const gapBudget = Math.floor(options.totalBudget * 0.2);
+
+    // Get already-selected nodeIds to filter out
+    const existingNodeIds = new Set(existingSelections.map(s => s.nodeId));
+
+    // Build navigation prompt for gaps
+    const headlines = pipelineStartIndexes.map(extractHeadlines);
+    const navPrompt = buildNavigationPrompt(headlines, {
+      task: gapQuery,
+      tokenBudget: gapBudget
+    });
+
+    const navigationResponse = await callLlmForNavigation(navPrompt, options.providerId, options.model);
+    const gapSelections = parseNavigationResponse(navigationResponse);
+
+    // Filter out already-selected nodes
+    const newSelections = gapSelections.filter(sel => !existingNodeIds.has(sel.nodeId));
+
+    traceStore.addEvent(traceId, {
+      kind: 'llm_call',
+      model: options.model,
+      durationMs: Date.now() - navStart,
+      toolResult: `Gap navigation selected ${newSelections.length} new branches for ${gaps.length} gaps`,
+    });
+
+    return newSelections;
+  } catch (err) {
+    traceStore.addEvent(traceId, {
+      kind: 'error',
+      errorMessage: `Gap navigation failed: ${err instanceof Error ? err.message : 'Unknown'}`,
+      durationMs: Date.now() - navStart,
+    });
+    return [];
+  }
 }
 
 // ── Main compression function ──
@@ -193,8 +251,34 @@ export async function compressKnowledge(
     if (useAgentNav && pipelineStart.indexes.length > 0) {
       const navStart = Date.now();
       try {
+        // ── HyDE Navigation ──
+        // Use hypothetical document embeddings for complex queries
+        let navigationQuery = userMessage;
+        if (shouldUseHyDE(userMessage)) {
+          try {
+            const hydePrompt = buildHyDEPrompt(userMessage);
+            const hydeResponse = await callLlmForNavigation(hydePrompt, providerId, model);
+            if (hydeResponse.length > 20) {
+              navigationQuery = hydeResponse;
+              traceStore.addEvent(traceId, {
+                kind: 'llm_call',
+                model,
+                durationMs: Date.now() - navStart,
+                toolResult: `HyDE generated ${hydeResponse.length} chars for navigation`,
+              });
+            }
+          } catch (hydeErr) {
+            // HyDE failure is silent - use original query
+            traceStore.addEvent(traceId, {
+              kind: 'error',
+              errorMessage: `HyDE failed: ${hydeErr instanceof Error ? hydeErr.message : 'Unknown'} — using original query`,
+              durationMs: 0,
+            });
+          }
+        }
+
         const headlines = pipelineStart.indexes.map(extractHeadlines);
-        const navPrompt = buildNavigationPrompt(headlines, { task: userMessage, tokenBudget: totalBudget });
+        const navPrompt = buildNavigationPrompt(headlines, { task: navigationQuery, tokenBudget: totalBudget });
         navigationResponse = await callLlmForNavigation(navPrompt, providerId, model);
         const agentSelections = parseNavigationResponse(navigationResponse);
         if (agentSelections.length > 0) manualSelections = agentSelections;
@@ -233,6 +317,62 @@ export async function compressKnowledge(
       resultCount: pipelineResult.sources.length,
       durationMs: pipelineResult.timing.compressionMs,
     });
+
+    // ── Corrective Re-Navigation ──
+    // Run AFTER initial pipeline completion but BEFORE final knowledge block assignment
+    const agentSelections = parseNavigationResponse(navigationResponse);
+    if (useAgentNav && agentSelections.length > 0 && pipelineResult.context.trim()) {
+      try {
+        // Ask LLM to critique the assembled context and identify gaps
+        const critiquePrompt = buildCritiquePrompt(userMessage, pipelineResult.context);
+        const critiqueResponse = await callLlmForNavigation(critiquePrompt, providerId, model);
+        const gaps = parseCritiqueResponse(critiqueResponse);
+
+        if (gaps.length > 0) {
+          // Re-navigate to fill gaps
+          const gapSelections = await reNavigateForGaps(
+            gaps,
+            pipelineStart.indexes,
+            agentSelections,
+            { providerId, model, totalBudget },
+            traceId
+          );
+
+          if (gapSelections.length > 0) {
+            // Merge new selections with existing and re-run pipeline
+            const allSelections = [...agentSelections, ...gapSelections];
+            const combinedNavigationResponse = JSON.stringify(allSelections);
+
+            pipelineResult = completePipeline(
+              pipelineStart.indexes,
+              combinedNavigationResponse,
+              {
+                task: userMessage,
+                sources: sourcesWithContent,
+                tokenBudget: totalBudget,
+                manualSelections: undefined,
+                compression: { enabled: true, aggressiveness: 0.5 },
+              },
+              pipelineStart.indexMs,
+            );
+
+            traceStore.addEvent(traceId, {
+              kind: 'retrieval',
+              sourceName: 'pipeline:re-navigation',
+              resultCount: gapSelections.length,
+              durationMs: 0, // Already tracked in reNavigateForGaps
+            });
+          }
+        }
+      } catch (err) {
+        // Re-navigation failure is silent - just trace it
+        traceStore.addEvent(traceId, {
+          kind: 'error',
+          errorMessage: `Corrective re-navigation failed: ${err instanceof Error ? err.message : 'Unknown'}`,
+          durationMs: 0,
+        });
+      }
+    }
 
     if (pipelineResult.context.trim()) {
       const sourceAnnotations = pipelineResult.sources

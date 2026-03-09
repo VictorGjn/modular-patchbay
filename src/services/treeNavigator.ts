@@ -244,3 +244,83 @@ export function parseNavigationResponse(response: string): BranchSelection[] {
     return [];
   }
 }
+
+// ── Corrective Re-Navigation ──
+
+/**
+ * Build a critique prompt that asks the LLM what information is missing.
+ * Truncates context to 4000 chars to fit in prompt.
+ */
+export function buildCritiquePrompt(task: string, assembledContext: string): string {
+  const truncatedContext = assembledContext.length > 4000
+    ? assembledContext.slice(0, 4000) + '...[truncated]'
+    : assembledContext;
+
+  return `You are auditing whether the provided context contains enough information to complete a coding task.
+
+TASK: ${task}
+
+CURRENT CONTEXT:
+${truncatedContext}
+
+YOUR JOB: Identify what critical information is MISSING from the context to complete this task. Look for:
+- Missing implementation details or code examples
+- Missing architectural context or relationships
+- Missing configuration or setup information
+- Missing error handling or edge case patterns
+
+Respond with a JSON array of missing information gaps (maximum 3):
+["Missing error handling patterns for API failures", "Missing database schema for user table", "Missing authentication flow details"]
+
+If the context appears complete for the task, respond with: []`;
+}
+
+/**
+ * Parse the critique response to extract gaps.
+ * Returns array of strings, filtered and limited to 3.
+ */
+export function parseCritiqueResponse(response: string): string[] {
+  // Extract JSON from the response
+  const jsonMatch = response.match(/\[[\s\S]*?\]/);
+  if (!jsonMatch) return [];
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .filter((gap: any) => typeof gap === 'string' && gap.trim().length > 0)
+      .slice(0, 3); // Limit to 3 gaps
+  } catch {
+    return [];
+  }
+}
+
+// ── HyDE Navigation ──
+
+/**
+ * Build a HyDE (Hypothetical Document Embeddings) prompt.
+ * Asks the LLM to write a hypothetical ideal documentation passage.
+ */
+export function buildHyDEPrompt(userQuery: string): string {
+  return `You are writing a hypothetical documentation passage that would perfectly answer this query.
+
+QUERY: ${userQuery}
+
+Write a comprehensive documentation passage that would ideally exist in a codebase to answer this question. Include:
+- Relevant code examples
+- Implementation details
+- Configuration options
+- Common patterns and best practices
+
+Write as if this documentation already exists and covers exactly what the user needs to know:`;
+}
+
+/**
+ * Determine if we should use HyDE for this query.
+ * Returns false for short queries (< 10 words).
+ */
+export function shouldUseHyDE(query: string): boolean {
+  const words = query.trim().split(/\s+/).length;
+  return words >= 10;
+}

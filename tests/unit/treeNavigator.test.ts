@@ -4,6 +4,8 @@ import {
   buildNavigationPrompt,
   assembleFromPlan,
   parseNavigationResponse,
+  buildHyDEPrompt,
+  shouldUseHyDE,
 } from '../../src/services/treeNavigator';
 import { indexMarkdown } from '../../src/services/treeIndexer';
 
@@ -190,5 +192,51 @@ describe('assembleFromPlan', () => {
       taskRelevance: 'test',
     });
     expect(result.breakdown).toHaveLength(0);
+  });
+});
+
+describe('buildHyDEPrompt', () => {
+  it('includes the user query', () => {
+    const query = 'How do I implement user authentication with JWT tokens?';
+    const prompt = buildHyDEPrompt(query);
+
+    expect(prompt).toContain('How do I implement user authentication with JWT tokens?');
+    expect(prompt).toContain('hypothetical');
+    expect(prompt).toContain('documentation');
+    expect(prompt).toContain('code examples');
+  });
+
+  it('asks for comprehensive documentation', () => {
+    const query = 'Database migration patterns';
+    const prompt = buildHyDEPrompt(query);
+
+    expect(prompt).toContain('Implementation details');
+    expect(prompt).toContain('Configuration options');
+    expect(prompt).toContain('best practices');
+  });
+});
+
+describe('shouldUseHyDE', () => {
+  it('returns false for short queries', () => {
+    expect(shouldUseHyDE('hello')).toBe(false);
+    expect(shouldUseHyDE('fix bug')).toBe(false);
+    expect(shouldUseHyDE('short query here')).toBe(false);
+    expect(shouldUseHyDE('this is a nine word query test')).toBe(false);
+  });
+
+  it('returns true for long queries', () => {
+    expect(shouldUseHyDE('this is a very long query that has more than ten words in it')).toBe(true);
+    expect(shouldUseHyDE('How do I implement user authentication with JWT tokens and refresh token rotation?')).toBe(true);
+    expect(shouldUseHyDE('I need to understand the complete database migration process including rollbacks and schema versioning')).toBe(true);
+  });
+
+  it('handles edge case of exactly 10 words', () => {
+    expect(shouldUseHyDE('this query has exactly ten words in it today now')).toBe(true);
+  });
+
+  it('handles empty and whitespace queries', () => {
+    expect(shouldUseHyDE('')).toBe(false);
+    expect(shouldUseHyDE('   ')).toBe(false);
+    expect(shouldUseHyDE('\n\t')).toBe(false);
   });
 });
