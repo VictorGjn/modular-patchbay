@@ -8,10 +8,12 @@ import { runTeam, extractContracts } from '../services/runtimeService';
 import { TextArea, Button, Card, EmptyState, Spinner, StatusDot } from '../components/ds';
 import { WorktreeGraphPanel, type AgentWorktreeStatus } from '../components/WorktreeGraphPanel';
 import { API_BASE } from '../config';
-import { Play, FileSearch, Users, GitBranch, UserPlus, X } from 'lucide-react';
+import { Play, FileSearch, Users, GitBranch, UserPlus, X, Brain, ChevronDown, ChevronRight } from 'lucide-react';
 import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
 import { CapabilityGate } from '../components/CapabilityGate';
 import { CapabilityMatrixDisplay } from '../components/CapabilityMatrix';
+import { KNOWLEDGE_TYPES } from '../store/knowledgeBase';
+import { TYPE_WEIGHTS } from '../services/budgetAllocator';
 
 /* ── Epistemic Colors ── */
 
@@ -38,19 +40,26 @@ function FactRow({ fact }: { fact: ExtractedFact }) {
   const color = EPISTEMIC_COLORS[fact.epistemicType];
 
   return (
-    <div className="flex items-start gap-2 py-1">
-      <span className="text-[10px] shrink-0 mt-0.5">{EPISTEMIC_ICONS[fact.epistemicType]}</span>
-      <div className="flex-1 min-w-0">
-        <span className="text-[11px] font-medium" style={{ color: t.textPrimary }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0' }}>
+      <span style={{ fontSize: 10, flexShrink: 0, marginTop: 2 }}>{EPISTEMIC_ICONS[fact.epistemicType]}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: 11, fontWeight: 500, color: t.textPrimary }}>
           {fact.key}
         </span>
-        <span className="text-[10px] ml-1.5" style={{ color: t.textDim, opacity: fact.confidence }}>
+        <span style={{ fontSize: 10, marginLeft: 6, color: t.textDim, opacity: fact.confidence }}>
           {fact.value.length > 60 ? fact.value.slice(0, 60) + '…' : fact.value}
         </span>
       </div>
       <span
-        className="text-[8px] px-1 py-0.5 rounded shrink-0"
-        style={{ background: color + '18', color, fontFamily: "'Space Mono', monospace" }}
+        style={{
+          fontSize: 8,
+          padding: '2px 4px',
+          borderRadius: 4,
+          flexShrink: 0,
+          background: color + '18',
+          color,
+          fontFamily: "'Space Mono', monospace"
+        }}
       >
         {fact.epistemicType}
       </span>
@@ -73,42 +82,79 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
   const s = statusMap[agent.status];
 
   return (
-    <Card className="flex-1 min-w-[200px]">
-      <div className="flex items-center gap-2 mb-2">
+    <div style={{ flex: 1, minWidth: 200 }}>
+      <Card>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <StatusDot status={s.dot} pulsing={agent.status === 'running'} />
-        <span className="text-[11px] font-semibold" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
           {agent.name}
         </span>
       </div>
-      <div className="text-[9px] mb-2" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
+      <div style={{ fontSize: 9, marginBottom: 8, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
         {s.label}
       </div>
 
-      {agent.currentMessage && (
-        <div
-          className="text-[10px] px-2 py-1.5 rounded mb-2"
-          style={{ background: t.inputBg, color: t.textSecondary, lineHeight: 1.4 }}
-        >
-          {agent.currentMessage.length > 120
-            ? agent.currentMessage.slice(0, 120) + '…'
-            : agent.currentMessage}
-        </div>
-      )}
-
-      {agent.facts.length > 0 && (
-        <div style={{ borderTop: `1px solid ${t.borderSubtle}`, paddingTop: 6, marginTop: 4 }}>
-          <div className="text-[8px] uppercase tracking-wider mb-1" style={{ color: t.textFaint, fontFamily: "'Space Mono', monospace" }}>
-            Facts
-          </div>
-          {agent.facts.map((f, i) => (
-            <div key={i} className="text-[9px] flex items-center gap-1 py-0.5" style={{ color: t.textDim }}>
-              <span style={{ color: EPISTEMIC_COLORS[f.epistemicType] }}>✓</span>
-              {f.key}
+        {agent.currentMessage && (
+          <div
+            style={{
+              fontSize: 10,
+              padding: '8px',
+              borderRadius: 6,
+              marginBottom: 8,
+              background: t.inputBg,
+              color: t.textSecondary,
+              lineHeight: 1.4,
+              border: `1px solid ${t.border}`
+            }}
+          >
+            <div style={{ fontSize: 8, color: t.textDim, marginBottom: 4, textTransform: 'uppercase', fontFamily: "'Space Mono', monospace" }}>
+              Current Message
             </div>
-          ))}
-        </div>
-      )}
-    </Card>
+            {agent.currentMessage.length > 150
+              ? agent.currentMessage.slice(0, 150) + '…'
+              : agent.currentMessage}
+          </div>
+        )}
+
+        {agent.facts.length > 0 && (
+          <div style={{ borderTop: `1px solid ${t.borderSubtle}`, paddingTop: 6, marginTop: 4 }}>
+            <div style={{
+              fontSize: 8,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: 6,
+              color: t.textFaint,
+              fontFamily: "'Space Mono', monospace"
+            }}>
+              Facts Extracted ({agent.facts.length})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 120, overflowY: 'auto' }}>
+              {agent.facts.map((f, i) => (
+                <div key={i} style={{
+                  fontSize: 9,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '2px 4px',
+                  borderRadius: 3,
+                  background: `${EPISTEMIC_COLORS[f.epistemicType]}10`,
+                  color: t.textDim
+                }}>
+                  <span style={{
+                    color: EPISTEMIC_COLORS[f.epistemicType],
+                    fontSize: 8,
+                    fontWeight: 600
+                  }}>
+                    {EPISTEMIC_ICONS[f.epistemicType]}
+                  </span>
+                  <span style={{ fontWeight: 500 }}>{f.key}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 }
 
@@ -134,24 +180,130 @@ function RuntimeStages({
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
       {stages.map((stage) => {
         const active = status !== 'idle' && !stage.done;
         return (
           <div
             key={stage.id}
-            className="px-3 py-2 rounded-lg"
             style={{
+              padding: '8px 12px',
+              borderRadius: 8,
               border: `1px solid ${stage.done ? '#FE500050' : t.border}`,
               background: stage.done ? '#FE500010' : active ? t.surfaceHover : t.surfaceOpaque,
             }}
           >
-            <div className="text-[9px] font-bold tracking-[0.12em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: stage.done ? '#FE5000' : t.textDim }}>
+            <div style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              fontFamily: "'Space Mono', monospace",
+              color: stage.done ? '#FE5000' : t.textDim
+            }}>
               {stage.label}
             </div>
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/* ── Context Intelligence Summary ── */
+function ContextIntelligence() {
+  const t = useTheme();
+  const [collapsed, setCollapsed] = useState(true);
+  const channels = useConsoleStore(s => s.channels);
+  const enabledChannels = channels.filter(c => c.enabled);
+
+  if (enabledChannels.length === 0) return null;
+
+  // Group by knowledge type
+  const typeGroups = new Map<string, { count: number; totalTokens: number }>();
+  for (const ch of enabledChannels) {
+    const key = ch.knowledgeType || 'evidence';
+    const prev = typeGroups.get(key) || { count: 0, totalTokens: 0 };
+    typeGroups.set(key, { count: prev.count + 1, totalTokens: prev.totalTokens + (ch.baseTokens || 0) });
+  }
+
+  // Calculate budget allocation bars
+  const totalWeight = Array.from(typeGroups.keys()).reduce((s, k) => s + (TYPE_WEIGHTS[k as keyof typeof TYPE_WEIGHTS] || 0), 0);
+
+  return (
+    <div style={{ borderRadius: 8, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+      <button type="button" onClick={() => setCollapsed(!collapsed)}
+        className="flex items-center gap-2 w-full px-3 py-2.5 border-none cursor-pointer select-none"
+        style={{ background: t.isDark ? '#1a1a1e' : '#f5f5f8' }}>
+        <Brain size={11} style={{ color: '#FE5000' }} />
+        {collapsed
+          ? <ChevronRight size={11} style={{ color: t.textDim }} />
+          : <ChevronDown size={11} style={{ color: t.textDim }} />}
+        <span className="text-[9px] font-bold tracking-[0.12em] uppercase flex-1 text-left"
+          style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}>
+          Context Intelligence
+        </span>
+        <span className="text-[8px] px-1.5 py-0.5 rounded-full"
+          style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>
+          {enabledChannels.length} sources
+        </span>
+      </button>
+
+      {!collapsed && (
+        <div className="px-3 pb-3 pt-1" style={{ background: t.isDark ? '#141416' : '#fafafa' }}>
+          {/* Budget allocation bars */}
+          <div className="mb-2">
+            <span className="text-[8px] tracking-[0.1em] uppercase block mb-1"
+              style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+              Budget Allocation
+            </span>
+            <div className="flex flex-col gap-1">
+              {Array.from(typeGroups.entries()).map(([key, val]) => {
+                const kt = KNOWLEDGE_TYPES[key as keyof typeof KNOWLEDGE_TYPES];
+                if (!kt) return null;
+                const weight = TYPE_WEIGHTS[key as keyof typeof TYPE_WEIGHTS] || 0;
+                const pct = totalWeight > 0 ? Math.round((weight / totalWeight) * 100) : 0;
+                return (
+                  <div key={key} className="flex items-center gap-1.5">
+                    <span className="text-[8px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: kt.color, width: 60 }}>
+                      {kt.label}
+                    </span>
+                    <div className="flex-1" style={{ height: 6, background: `${kt.color}12`, borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: kt.color, borderRadius: 3, transition: 'width 300ms' }} />
+                    </div>
+                    <span className="text-[8px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, width: 24, textAlign: 'right' }}>
+                      {pct}%
+                    </span>
+                    <span className="text-[7px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+                      ({val.count})
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Source list with types */}
+          <div className="mb-1">
+            <span className="text-[8px] tracking-[0.1em] uppercase block mb-1"
+              style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+              Sources
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {enabledChannels.map(ch => {
+                const kt = KNOWLEDGE_TYPES[ch.knowledgeType as keyof typeof KNOWLEDGE_TYPES] || KNOWLEDGE_TYPES.evidence;
+                return (
+                  <span key={ch.sourceId} className="text-[7px] px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
+                    style={{ fontFamily: "'Space Mono', monospace", background: `${kt.color}12`, color: kt.color, border: `1px solid ${kt.color}20` }}>
+                    <span style={{ width: 4, height: 4, borderRadius: 1, background: kt.color }} />
+                    {ch.name}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -164,6 +316,21 @@ export function RuntimePanel() {
   const [selectedLibraryId, setSelectedLibraryId] = useState('');
   const [worktreeRows, setWorktreeRows] = useState<AgentWorktreeStatus[]>([]);
   const [worktreeLoading, setWorktreeLoading] = useState(false);
+
+  // Responsive grid columns calculation
+  const getGridColumns = () => {
+    if (typeof window === 'undefined') return 1;
+    const width = window.innerWidth;
+    return width >= 768 ? 2 : 1;
+  };
+
+  const [gridColumns, setGridColumns] = useState(getGridColumns);
+
+  useEffect(() => {
+    const handleResize = () => setGridColumns(getGridColumns());
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const updateAgent = useTeamStore((s) => s.updateAgent);
   const [repoUrls, setRepoUrls] = useState<Record<string, string>>(() => {
     // Initialize from teamStore
@@ -333,18 +500,28 @@ export function RuntimePanel() {
 
   if (teamAgents.length === 0) {
     return (
-      <div className="p-4">
+      <div style={{ padding: 16 }}>
         <EmptyState
           icon={<Users size={32} />}
           title="No agents on runtime canvas"
           subtitle="Save agents from Builder, then add them here from the agent list."
         />
-        <div className="mt-3 flex items-center justify-center gap-2">
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <select
             value={selectedLibraryId}
             onChange={(e) => setSelectedLibraryId(e.target.value)}
-            className="nodrag nowheel text-xs px-3 py-2 rounded-lg outline-none min-w-[260px]"
-            style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, minHeight: 44 }}
+            style={{
+              fontSize: 12,
+              padding: '8px 12px',
+              borderRadius: 8,
+              outline: 'none',
+              minWidth: 260,
+              background: t.inputBg,
+              border: `1px solid ${t.border}`,
+              color: t.textPrimary,
+              minHeight: 44
+            }}
+            className="nodrag nowheel"
             aria-label="Select saved agent"
           >
             <option value="">Select a saved agent…</option>
@@ -380,13 +557,23 @@ export function RuntimePanel() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4 overflow-y-auto flex-1">
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 16,
+      padding: 16,
+      overflowY: 'auto',
+      flex: 1
+    }}>
       <RuntimeStages
         status={status}
         contractCount={contractFacts.length}
         agentCount={agents.length}
         sharedCount={sharedFacts.length}
       />
+
+      {/* Context Intelligence Summary */}
+      <ContextIntelligence />
 
       {/* Capability Matrix & Gating */}
       <CapabilityMatrixDisplay matrix={capabilityMatrix} />
@@ -401,17 +588,34 @@ export function RuntimePanel() {
       />
 
       <Card>
-        <div className="flex items-center gap-2 mb-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <Users size={12} style={{ color: '#FE5000' }} />
-          <span className="text-[10px] font-bold tracking-[0.12em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
+          <span style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontFamily: "'Space Mono', monospace",
+            color: t.textPrimary
+          }}>
             Runtime Canvas
           </span>
-          <div className="flex-1" />
+          <div style={{ flex: 1 }} />
           <select
             value={selectedLibraryId}
             onChange={(e) => setSelectedLibraryId(e.target.value)}
-            className="nodrag nowheel text-xs px-2 py-1.5 rounded-lg outline-none min-w-[220px]"
-            style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, minHeight: 36 }}
+            style={{
+              fontSize: 12,
+              padding: '6px 8px',
+              borderRadius: 8,
+              outline: 'none',
+              minWidth: 220,
+              background: t.inputBg,
+              border: `1px solid ${t.border}`,
+              color: t.textPrimary,
+              minHeight: 36
+            }}
+            className="nodrag nowheel"
             aria-label="Select saved agent for runtime canvas"
           >
             <option value="">Add saved agent…</option>
@@ -443,23 +647,35 @@ export function RuntimePanel() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
+          gap: 8
+        }}>
           {teamAgents.map((agent) => (
-            <div key={agent.id} className="px-3 py-2 rounded-lg" style={{ border: `1px solid ${t.border}` }}>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold" style={{ color: t.textPrimary }}>{agent.name}</span>
-                <div className="flex-1" />
+            <div key={agent.id} style={{ padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: t.textPrimary }}>{agent.name}</span>
+                <div style={{ flex: 1 }} />
                 <button
                   type="button"
                   onClick={() => removeAgent(agent.id)}
                   aria-label={`Remove ${agent.name} from runtime canvas`}
-                  className="border-none bg-transparent p-1 rounded cursor-pointer"
-                  style={{ color: t.textDim, minHeight: 28, minWidth: 28 }}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    padding: 4,
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    color: t.textDim,
+                    minHeight: 28,
+                    minWidth: 28
+                  }}
                 >
                   <X size={12} />
                 </button>
               </div>
-              <div className="text-[10px] mt-1" style={{ color: t.textDim }}>
+              <div style={{ fontSize: 10, marginTop: 4, color: t.textDim }}>
                 {agent.description || 'No description'}
               </div>
             </div>
@@ -468,7 +684,7 @@ export function RuntimePanel() {
       </Card>
 
       {/* Feature Spec */}
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <TextArea
           label="Feature Spec"
           placeholder="Describe the feature to build…"
@@ -487,7 +703,7 @@ export function RuntimePanel() {
             onChange={(e) => setGlobalInstruction(e.target.value)}
             aria-label="Global instruction"
           />
-          <div className="mt-2 flex flex-col gap-2">
+          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {teamAgents.map((agent) => (
               <TextArea
                 key={agent.id}
@@ -503,16 +719,35 @@ export function RuntimePanel() {
         </div>
 
         {/* Repo URL per agent */}
-        <div className="mt-3 mb-1">
+        <div style={{ marginTop: 12, marginBottom: 4 }}>
           <div
-            className="text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5 flex items-center gap-1.5"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              marginBottom: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontFamily: "'Space Mono', monospace",
+              color: t.textDim
+            }}
           >
             <GitBranch size={10} /> Agent Repositories
           </div>
           {teamAgents.map((a) => (
-            <div key={a.id} className="flex items-center gap-2 mb-1.5">
-              <span className="text-[10px] w-24 truncate shrink-0" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{
+                fontSize: 10,
+                width: 96,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                color: t.textPrimary,
+                fontFamily: "'Space Mono', monospace"
+              }}>
                 {a.name}
               </span>
               <input
@@ -524,8 +759,11 @@ export function RuntimePanel() {
                   setRepoUrls((prev) => ({ ...prev, [a.id]: url }));
                   updateAgent(a.id, { repoUrl: url || undefined });
                 }}
-                className="flex-1 text-[10px] px-2 rounded"
                 style={{
+                  flex: 1,
+                  fontSize: 10,
+                  padding: '0 8px',
+                  borderRadius: 4,
                   background: t.surfaceOpaque,
                   border: `1px solid ${t.border}`,
                   color: t.textPrimary,
@@ -538,7 +776,7 @@ export function RuntimePanel() {
           ))}
         </div>
 
-        <div className="flex gap-2 mt-2">
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           <Button
             variant="secondary"
             icon={<FileSearch size={12} />}
@@ -567,8 +805,14 @@ export function RuntimePanel() {
       {/* Error */}
       {error && (
         <div
-          className="px-3 py-2 rounded-lg text-[11px]"
-          style={{ background: t.statusErrorBg, color: t.statusError, border: `1px solid ${t.statusError}30` }}
+          style={{
+            padding: '8px 12px',
+            borderRadius: 8,
+            fontSize: 11,
+            background: t.statusErrorBg,
+            color: t.statusError,
+            border: `1px solid ${t.statusError}30`
+          }}
         >
           {error}
         </div>
@@ -578,8 +822,15 @@ export function RuntimePanel() {
       {contractFacts.length > 0 && (
         <div>
           <div
-            className="text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              marginBottom: 6,
+              fontFamily: "'Space Mono', monospace",
+              color: t.textDim
+            }}
           >
             Contract Facts
           </div>
@@ -595,13 +846,23 @@ export function RuntimePanel() {
       {agents.length > 0 && (
         <div>
           <div
-            className="text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5 flex items-center gap-2"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              marginBottom: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontFamily: "'Space Mono', monospace",
+              color: t.textDim
+            }}
           >
             Agent Execution
             {isRunning && <Spinner size="sm" />}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {agents.map((agent) => (
               <AgentCard key={agent.agentId} agent={agent} />
             ))}
@@ -612,8 +873,15 @@ export function RuntimePanel() {
       {/* Shared Facts */}
       <div>
         <div
-          className="text-[9px] font-bold tracking-[0.15em] uppercase mb-1.5"
-          style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+          style={{
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            marginBottom: 6,
+            fontFamily: "'Space Mono', monospace",
+            color: t.textDim
+          }}
         >
           Shared Facts (team scope)
         </div>
@@ -623,7 +891,7 @@ export function RuntimePanel() {
               <FactRow key={i} fact={f} />
             ))
           ) : (
-            <div className="text-[11px] py-2" style={{ color: t.textDim }}>
+            <div style={{ fontSize: 11, padding: '8px 0', color: t.textDim }}>
               No shared facts yet. Run team execution to see memory exchange between agents.
             </div>
           )}
