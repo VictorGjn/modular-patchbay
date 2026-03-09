@@ -51,8 +51,32 @@ Modular is positioned at a genuine gap in the AI agent ecosystem: **context engi
 | **AutoGen** | 40K+ | Multi-agent conversations | ⚠️ LLMLingua compression | Medium |
 | **Google ADK** | 5K+ | Production agent toolkit | ❌ None documented | Low |
 | **Semantic Kernel** | 22K+ | Enterprise AI services | ⚠️ Kernel Memory | Medium |
+| **OpenFang** | N/A | Agent OS (Rust) | ❌ None | Very Low (ideal partner) |
 | **Vibe Kanban** | 22.8K | Coding agent orchestrator | ❌ None | Very Low (ideal partner) |
 | **OpenHands** | 50K+ | AI dev platform | ❌ Basic file context | Low (ideal partner) |
+
+### OpenFang — The "Agent OS" in Rust
+
+**Site:** openfang.sh | **Stage:** Pre-launch (no public GitHub repo yet)
+
+OpenFang positions itself as "The Agent Operating System" — a Rust binary that runs autonomous agents.
+
+| Dimension | Detail |
+|-----------|--------|
+| **Architecture** | 14 Rust crates, 137K lines, WASM sandbox |
+| **Agents** | 30 pre-built templates, 7 "Hands" (autonomous scheduled agents) |
+| **Channels** | 40 adapters (Telegram, Discord, Slack, WhatsApp, etc.) |
+| **Providers** | 26 LLM providers |
+| **Security** | 16 systems (WASM sandbox, taint tracking, SSRF protection, audit trail) |
+| **Protocols** | MCP + A2A support |
+| **Positioning** | Benchmarks against OpenClaw, ZeroClaw, CrewAI, AutoGen, LangGraph |
+| **"Hands"** | Pre-built capability packages: Clip (video), Lead (sales), Collector (OSINT), Predictor (forecasting), Researcher, Twitter manager, Browser automation |
+
+**Context engineering:** ❌ ZERO. Like every other runtime, OpenFang focuses on HOW agents run (scheduling, channels, tools) not WHAT they know.
+
+**Integration opportunity:** OpenFang supports MCP → Modular as MCP server = instant context layer for all 30 agents and 7 Hands.
+
+**Key insight:** OpenFang's "Hands" are autonomous scheduled agents that run on cron, build knowledge graphs, and report to dashboards. They NEED structured context to be effective — a Lead generation Hand without context engineering is just doing blind web scraping. With Modular's knowledge pipeline, a Hand could maintain a tree-indexed knowledge base of its domain and make better decisions over time.
 
 ### Key Insight: The "Context Gap"
 
@@ -241,7 +265,88 @@ Every framework above handles context the same naive way:
 
 ---
 
-## 5. Integration Roadmap: OpenHands
+## 5. Integration Roadmap: OpenFang
+
+### Why OpenFang is a Natural Partner
+
+| Factor | Detail |
+|--------|--------|
+| **"Agent OS" positioning** | They ARE the runtime — we're the brain |
+| **MCP + A2A support** | Standard integration path, no custom work |
+| **"Hands" need knowledge** | Autonomous agents that run on schedules need GOOD context |
+| **Rust performance obsession** | They optimize HOW fast agents run — we optimize HOW SMART they are |
+| **No public repo yet** | Early enough to establish integration partnership |
+| **Benchmarks against OpenClaw** | They want to win the runtime war — we can be the differentiator |
+
+### Integration Architecture
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  OPENFANG — Agent Operating System                        │
+│                                                           │
+│  Hands (autonomous scheduled agents)                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐               │
+│  │ Lead Gen │  │ OSINT    │  │ Research │               │
+│  │ Hand     │  │ Collector│  │ Hand     │               │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘               │
+│       │              │              │                      │
+│       ▼              ▼              ▼                      │
+│  ┌──────────────────────────────────────────────────┐     │
+│  │  ★ MODULAR CONTEXT LAYER (via MCP) ★              │     │
+│  │                                                    │     │
+│  │  modular_context() — engineered knowledge brief    │     │
+│  │  modular_tree() — domain tree index                │     │
+│  │  modular_recall() — fact memory across runs        │     │
+│  │  modular_classify() — knowledge type tagging       │     │
+│  │                                                    │     │
+│  │  Result: Hands become SMARTER over time            │     │
+│  │  Lead Hand: ICP-aware, not blind scraping          │     │
+│  │  Collector: structured intel, not raw data dumps   │     │
+│  │  Researcher: fact-checked, depth-indexed reports   │     │
+│  └──────────────────────────────────────────────────┘     │
+│                                                           │
+│  38 Tools + 26 LLM Providers + 40 Channels               │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Phase 1: MCP Server for OpenFang (2 weeks)
+
+Same `modular-mcp-server` package as VK integration — works for both.
+
+**Extra tools for OpenFang Hands:**
+- `modular_recall(domain, query)` → recall facts from previous Hand runs
+- `modular_classify(content)` → classify content by knowledge type
+- `modular_compress(content, budget)` → compress to token budget
+
+**Value prop:** "Make your Hands 10x smarter. Same schedule, same tools, dramatically better decisions."
+
+### Phase 2: Hand Knowledge Persistence (4 weeks)
+
+**Goal:** Each Hand builds and maintains its own knowledge graph via Modular.
+
+**Deliverables:**
+- Persistent tree index per Hand (Lead Hand has ICP tree, Collector has intel tree)
+- Cross-run memory: Hand remembers what it learned in previous runs
+- Knowledge accumulation: each run refines the tree, not starts from scratch
+- Dashboard widget showing knowledge growth over time
+
+**Value prop:** "Hands that learn. Not just scheduled scripts that forget everything between runs."
+
+### Phase 3: Context-Aware Hand Builder (8 weeks)
+
+**Goal:** Build custom Hands with Modular's context engineering.
+
+**Deliverables:**
+- Modular Studio as the IDE for designing Hand knowledge pipelines
+- Export HAND.toml + knowledge config from Modular
+- Visual pipeline editor for Hand context assembly
+- "Context recipe" library: pre-built knowledge pipelines for common Hand types
+
+**Value prop:** "Design intelligent Hands, not just prompted scripts."
+
+---
+
+## 6. Integration Roadmap: OpenHands
 
 ### Why OpenHands
 
