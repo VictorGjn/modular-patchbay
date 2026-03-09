@@ -295,9 +295,7 @@ export interface Skill {
   added: boolean;
   description: string;
   category: SkillCategory;
-  gen?: string;
-  socket?: string;
-  snyk?: string;
+  skillUrl?: string; // origin URL e.g. https://skills.sh/owner/repo/skillname
 }
 
 // MOCK_SKILLS removed — skills now derive from registry.ts installed state

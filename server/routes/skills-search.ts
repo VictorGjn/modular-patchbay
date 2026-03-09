@@ -13,13 +13,6 @@ interface SkillResult {
   repo: string;
   installs: string;
   url: string;
-  gen?: string;
-  socket?: string;
-  snyk?: string;
-}
-
-interface AuditData {
-  [skillId: string]: { gen: string; socket: string; snyk: string };
 }
 
 interface CatalogEntry {
@@ -34,9 +27,12 @@ interface Cache<T> {
   ts: number;
 }
 
-let auditCache: Cache<AuditData> | null = null;
 let catalogCache: Cache<CatalogEntry[]> | null = null;
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CATALOG_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const AUDIT_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+// Per-skill audit cache
+const skillAuditCache = new Map<string, { gen: string; socket: string; snyk: string; ts: number }>();
 
 function parseInstalls(installs: string): number {
   const s = installs.trim().toUpperCase();
@@ -45,8 +41,14 @@ function parseInstalls(installs: string): number {
   return parseFloat(s) || 0;
 }
 
+function parseBadge(html: string, type: 'agent-trust-hub' | 'socket' | 'snyk'): string {
+  const regex = new RegExp(`href="[^"]*\\/security\\/${type}[^"]*"[\\s\\S]{0,1000}?>(Pass|Fail)<\\/span>`, 'i');
+  const m = regex.exec(html);
+  return m ? m[1] : 'Pending';
+}
+
 async function fetchCatalog(): Promise<CatalogEntry[]> {
-  if (catalogCache && Date.now() - catalogCache.ts < CACHE_TTL_MS) {
+  if (catalogCache && Date.now() - catalogCache.ts < CATALOG_CACHE_TTL_MS) {
     return catalogCache.data;
   }
 
@@ -61,20 +63,20 @@ async function fetchCatalog(): Promise<CatalogEntry[]> {
   // The readable text looks like: [1find-skillsvercel-labs/skills462.7K](/vercel-labs/skills/find-skills)
   // Strategy: extract href paths (owner/repo/skill) and nearby install counts
   // Each leaderboard link: href="/owner/repo/skillName" with install count in surrounding text
-  
+
   // Step 1: Find all leaderboard links with their surrounding context
   // Pattern: the markdown-extracted text has patterns like:
   //   [<rank><skillName><repo><installs>](/<owner>/<repo>/<skill>)
   // In raw HTML, it's <a href="/owner/repo/skill">...<rank>...<name>...<repo>...<installs>...</a>
-  
+
   // Parse from the readable text format: number + text + number+K/M + (href)
   // e.g. "[1find-skillsvercel-labs/skills462.7K](/vercel-labs/skills/find-skills)"
   // Better approach: extract from href + match installs from text between entries
-  
+
   // Extract all 3-segment paths from href attributes
   const linkRegex = /href="\/([a-z0-9_.-]+\/[a-z0-9_.-]+\/([a-z0-9_.-]+))"/gi;
   let m: RegExpExecArray | null;
-  
+
   // First pass: get all hrefs for skill pages (3-part paths, skip /docs/, /security/ etc.)
   const links: { path: string; name: string; owner: string; repo: string }[] = [];
   while ((m = linkRegex.exec(html)) !== null) {
@@ -93,7 +95,7 @@ async function fetchCatalog(): Promise<CatalogEntry[]> {
       repo: `${parts[0]}/${parts[1]}`,
     });
   }
-  
+
   // Second pass: extract install counts from visible text
   // The readable text has patterns like "462.7K" near each skill entry
   // Use the text between closing/opening tags to find numbers
@@ -103,7 +105,7 @@ async function fetchCatalog(): Promise<CatalogEntry[]> {
   while ((m = numRegex.exec(plainText)) !== null) {
     allInstalls.push(m[1] + m[2]);
   }
-  
+
   // Match links to install counts by position (they appear in order on the leaderboard)
   for (let i = 0; i < links.length; i++) {
     const link = links[i];
@@ -119,57 +121,35 @@ async function fetchCatalog(): Promise<CatalogEntry[]> {
   return entries;
 }
 
-async function fetchAudits(): Promise<AuditData> {
-  if (auditCache && Date.now() - auditCache.ts < CACHE_TTL_MS) {
-    return auditCache.data;
+// GET /api/skills/audit/:owner/:repo/:skill
+router.get('/audit/:owner/:repo/:skill', async (req: Request, res: Response) => {
+  const { owner, repo, skill } = req.params;
+  const cacheKey = `${owner}/${repo}/${skill}`;
+
+  const cached = skillAuditCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < AUDIT_CACHE_TTL_MS) {
+    res.json({ gen: cached.gen, socket: cached.socket, snyk: cached.snyk });
+    return;
   }
 
-  const res = await fetch('https://skills.sh/audits', {
-    headers: { 'User-Agent': 'modular-patchbay/1.0' },
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const html = await res.text();
-
-  const data: AuditData = {};
-
-  // Parse audit rows: each skill <a> contains 3 badge spans (gen, socket, snyk)
-  const rowSplitRegex = /<a[^>]+href="\/([a-z0-9_.-]+\/[a-z0-9_.-]+\/([a-z0-9_.-]+))"[^>]*>([\s\S]*?)(?=<\/a>)/gi;
-  let rowMatch: RegExpExecArray | null;
-  while ((rowMatch = rowSplitRegex.exec(html)) !== null) {
-    const parts = rowMatch[1].split('/');
-    if (parts.length !== 3) continue;
-    if (['docs', 'security', 'audits', 'trending', 'hot'].includes(parts[0])) continue;
-
-    const rowHtml = rowMatch[3];
-    const skillId = `${parts[0]}/${parts[1]}@${parts[2]}`;
-    if (data[skillId]) continue; // first occurrence wins
-
-    // Extract badge values from this row
-    const badgeRegex = />(Safe|Low Risk|Med Risk|High Risk|Critical|Pending|\d+ alerts?)<\/span>/g;
-    const badges: string[] = [];
-    let bm: RegExpExecArray | null;
-    while ((bm = badgeRegex.exec(rowHtml)) !== null) {
-      badges.push(bm[1]);
-    }
-
-    if (badges.length >= 3) {
-      data[skillId] = { gen: badges[0], socket: badges[1], snyk: badges[2] };
-    }
-  }
-
-  auditCache = { data, ts: Date.now() };
-  return data;
-}
-
-// GET /api/skills/audits
-router.get('/audits', async (_req: Request, res: Response) => {
   try {
-    const data = await fetchAudits();
-    res.json({ data });
+    const url = `https://skills.sh/${owner}/${repo}/${skill}`;
+    const fetchRes = await fetch(url, {
+      headers: { 'User-Agent': 'modular-patchbay/1.0' },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!fetchRes.ok) throw new Error(`HTTP ${fetchRes.status}`);
+    const html = await fetchRes.text();
+
+    const gen = parseBadge(html, 'agent-trust-hub');
+    const socket = parseBadge(html, 'socket');
+    const snyk = parseBadge(html, 'snyk');
+
+    skillAuditCache.set(cacheKey, { gen, socket, snyk, ts: Date.now() });
+    res.json({ gen, socket, snyk });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Fetch failed';
-    res.status(500).json({ error: message, data: {} });
+    res.status(500).json({ error: message, gen: 'Pending', socket: 'Pending', snyk: 'Pending' });
   }
 });
 
@@ -182,10 +162,7 @@ router.get('/search', async (req: Request, res: Response) => {
   }
 
   try {
-    const [catalog, auditData] = await Promise.all([
-      fetchCatalog(),
-      fetchAudits().catch(() => ({} as AuditData)),
-    ]);
+    const catalog = await fetchCatalog();
 
     const q = query.toLowerCase();
 
@@ -215,16 +192,12 @@ router.get('/search', async (req: Request, res: Response) => {
       .slice(0, 10)
       .map(({ entry }) => {
         const skillId = `${entry.repo}@${entry.name}`;
-        const audit = auditData[skillId];
         return {
           id: skillId,
           name: entry.name,
           repo: entry.repo,
           installs: entry.installs,
           url: entry.url,
-          gen: audit?.gen,
-          socket: audit?.socket,
-          snyk: audit?.snyk,
         };
       });
 
