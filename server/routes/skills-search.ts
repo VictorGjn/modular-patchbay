@@ -26,6 +26,7 @@ router.get('/search', async (req: Request, res: Response) => {
   try {
     const { stdout } = await exec('npx', ['skills', 'find', query], {
       timeout: 30000,
+      shell: true,
       env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
     });
 
@@ -72,7 +73,7 @@ router.post('/install', async (req: Request, res: Response) => {
   try {
     const args = ['skills', 'add', skillId, '-y'];
     if (scope === 'global') args.push('-g');
-    const { stdout, stderr } = await exec('npx', args, { timeout: 60000 });
+    const { stdout, stderr } = await exec('npx', args, { timeout: 60000, shell: true });
     res.json({ status: 'ok', output: stdout + stderr });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Install failed';
