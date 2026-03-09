@@ -4,7 +4,7 @@ import { useMcpStore } from '../store/mcpStore';
 import { MARKETPLACE_CATEGORIES, RUNTIME_INFO, REGISTRY_PRESETS, type MarketplaceCategory, type Runtime, type InstallScope, type ConfigField } from '../store/registry';
 import { RegistryIcon } from './icons/SectionIcons';
 import { useTheme } from '../theme';
-import { X, Search, Check, Loader2, ChevronDown, Terminal, ExternalLink, Download, Zap } from 'lucide-react';
+import { X, Search, Check, Loader2, ChevronDown, ChevronUp, Terminal, ExternalLink, Download, Zap } from 'lucide-react';
 import { API_BASE } from '../config';
 import { SecurityBadges } from './SecurityBadges';
 
@@ -26,6 +26,7 @@ export function Marketplace() {
   const installRegistrySkill = useConsoleStore((s) => s.installRegistrySkill);
   const installRegistryMcp = useConsoleStore((s) => s.installRegistryMcp);
   const upsertSkill = useConsoleStore((s) => s.upsertSkill);
+  const librarySkills = useConsoleStore((s) => s.skills);
 
   const [filter, setFilter] = useState('');
   const [category, setCategory] = useState<MarketplaceCategory>('all');
@@ -40,6 +41,12 @@ export function Marketplace() {
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const t = useTheme();
+
+  const librarySkillIds = new Set<string>(
+    Array.isArray(librarySkills)
+      ? (librarySkills as { id?: string; added?: boolean }[]).filter((s) => s.added).map((s) => s.id ?? '')
+      : []
+  );
 
   const handleFocusTrap = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.key !== 'Tab' || !modalRef.current) return;
@@ -106,9 +113,7 @@ export function Marketplace() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ skillId: skill.id }),
       });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setRemoteInstalledIds((prev) => new Set(prev).add(skill.id));
       upsertSkill({
         id: skill.id,
@@ -127,8 +132,6 @@ export function Marketplace() {
     setInstallingId(mcpId);
     const mcpEntry = registryMcpServers.find((m) => m.id === mcpId);
     if (!mcpEntry) { setInstallingId(null); return; }
-
-    // Add server via real MCP store
     const added = await useMcpStore.getState().addServer({
       id: mcpEntry.id,
       name: mcpEntry.name,
@@ -136,13 +139,7 @@ export function Marketplace() {
       args: mcpEntry.defaultArgs,
       env: envVars,
     });
-
-    // If backend succeeded, auto-connect
-    if (added) {
-      await useMcpStore.getState().connectServer(added.id);
-    }
-
-    // Mark as installed in registry display
+    if (added) await useMcpStore.getState().connectServer(added.id);
     installRegistryMcp(mcpId);
     setInstallingId(null);
     setConfiguring(null);
@@ -155,7 +152,6 @@ export function Marketplace() {
       setRemoteError(null);
       return;
     }
-
     const query = filter.trim();
     if (query.length < 2) {
       setRemoteLoading(false);
@@ -163,18 +159,13 @@ export function Marketplace() {
       setRemoteError(null);
       return;
     }
-
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       setRemoteLoading(true);
       setRemoteError(null);
       try {
-        const res = await fetch(`${API_BASE}/skills/search?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-        });
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
+        const res = await fetch(`${API_BASE}/skills/search?q=${encodeURIComponent(query)}`, { signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json() as { data?: SkillSearchResult[]; error?: string };
         setRemoteResults(Array.isArray(json.data) ? json.data : []);
         setRemoteError(json.error ?? null);
@@ -183,16 +174,10 @@ export function Marketplace() {
         setRemoteResults([]);
         setRemoteError(err instanceof Error ? err.message : 'Search failed');
       } finally {
-        if (!controller.signal.aborted) {
-          setRemoteLoading(false);
-        }
+        if (!controller.signal.aborted) setRemoteLoading(false);
       }
     }, 300);
-
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
+    return () => { controller.abort(); clearTimeout(timer); };
   }, [activeTab, filter, showMarketplace]);
 
   if (!showMarketplace) return null;
@@ -206,115 +191,163 @@ export function Marketplace() {
   const filteredSkills = registrySkills.filter((s) =>
     matchesFilter(s.name, s.description) && (category === 'all' || s.category === category)
   );
-
   const filteredMcp = registryMcpServers.filter((s) =>
     matchesFilter(s.name, s.description) && (category === 'all' || s.category === category)
   );
-
-  const filteredPresets = REGISTRY_PRESETS.filter((p) =>
-    matchesFilter(p.name, p.description)
-  );
+  const filteredPresets = REGISTRY_PRESETS.filter((p) => matchesFilter(p.name, p.description));
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={() => setShowMarketplace(false)}
-    >
-      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.90)', backdropFilter: 'blur(4px)' }} />
+    <>
+      <style>{`
+        .mp-skill-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          padding: 16px;
+          align-content: start;
+        }
+        @media (max-width: 1440px) {
+          .mp-skill-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 1024px) {
+          .mp-skill-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+      `}</style>
 
       <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Marketplace"
-        className="relative flex flex-col rounded-md overflow-hidden"
-        style={{
-          isolation: 'isolate',
-          zIndex: 1,
-          width: '90vw',
-          maxWidth: 1000,
-          height: '80vh',
-          background: t.surfaceOpaque,
-          border: `1px solid ${t.border}`,
-          boxShadow: '0 24px 48px rgba(0,0,0,0.6)',
-          animation: 'modal-in 0.2s ease-out',
-        }}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleFocusTrap}
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        onClick={() => setShowMarketplace(false)}
       >
-        {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
-          <span className="text-sm font-semibold" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
-            Marketplace
-          </span>
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.90)', backdropFilter: 'blur(4px)' }} />
 
-          {/* Search */}
-          <div className="flex-1 relative max-w-sm">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: t.textDim }} />
-            <input
-              ref={inputRef}
-              type="text"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="Search..."
-              className="w-full outline-none text-xs pl-8 pr-3 py-1.5 rounded-md"
-              style={{
-                background: t.inputBg,
-                border: `1px solid ${t.border}`,
-                color: t.textPrimary,
-                fontFamily: "'Inter', sans-serif",
-              }}
-            />
-          </div>
+        <div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Marketplace"
+          className="relative flex flex-col rounded-md overflow-hidden"
+          style={{
+            isolation: 'isolate',
+            zIndex: 1,
+            width: '90vw',
+            maxWidth: 1600,
+            height: '80vh',
+            background: t.surfaceOpaque,
+            border: `1px solid ${t.border}`,
+            boxShadow: '0 24px 48px rgba(0,0,0,0.6)',
+            animation: 'modal-in 0.2s ease-out',
+          }}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={handleFocusTrap}
+        >
+          {/* Header */}
+          <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
+            <span className="text-sm font-semibold shrink-0" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+              Marketplace
+            </span>
 
-          {/* Tabs — underline style */}
-          <div className="flex items-center gap-2 ml-auto" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-            {(['skills', 'mcp', 'presets'] as Tab[]).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setTab(tab)}
-                className="px-3 py-1.5 text-[11px] font-medium tracking-wide uppercase cursor-pointer border-none"
+            {/* Search */}
+            <div className="relative" style={{ width: 240, flexShrink: 0 }}>
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: t.textDim }} />
+              <input
+                ref={inputRef}
+                type="text"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Search..."
+                className="w-full outline-none text-xs pl-8 pr-3 py-1.5 rounded-md"
                 style={{
-                  color: activeTab === tab ? '#FE5000' : t.textDim,
-                  borderBottom: activeTab === tab ? '2px solid #FE5000' : '2px solid transparent',
-                  background: 'transparent',
-                  marginBottom: -1,
-                  transition: 'color 150ms ease',
+                  background: t.inputBg,
+                  border: `1px solid ${t.border}`,
+                  color: t.textPrimary,
+                  fontFamily: "'Inter', sans-serif",
                 }}
-              >
-                {tab === 'mcp' ? 'MCP Servers' : tab === 'presets' ? 'Presets' : 'Skills'}
-              </button>
-            ))}
+              />
+            </div>
+
+            {/* Main tabs */}
+            <div className="flex items-center ml-auto" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
+              {(['skills', 'mcp', 'presets'] as Tab[]).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setTab(tab)}
+                  className="px-3 py-1.5 text-[11px] font-medium tracking-wide uppercase cursor-pointer border-none"
+                  style={{
+                    color: activeTab === tab ? '#FE5000' : t.textDim,
+                    borderBottom: activeTab === tab ? '2px solid #FE5000' : '2px solid transparent',
+                    background: 'transparent',
+                    marginBottom: -1,
+                    transition: 'color 150ms ease',
+                  }}
+                >
+                  {tab === 'mcp' ? 'MCP Servers' : tab === 'presets' ? 'Presets' : 'Skills'}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowMarketplace(false)}
+              className="p-1 rounded-md cursor-pointer border-none bg-transparent shrink-0"
+              style={{ color: t.textDim }}
+              aria-label="Close marketplace"
+            >
+              <X size={16} />
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowMarketplace(false)}
-            className="p-1 rounded-md cursor-pointer border-none bg-transparent"
-            style={{ color: t.textDim }}
-            aria-label="Close marketplace"
-          >
-            <X size={16} />
-          </button>
-        </div>
+          {/* Sub-header: category pills + provider legend (skills) */}
+          {activeTab === 'skills' && (
+            <div
+              className="flex items-center px-4 py-2"
+              style={{ borderBottom: `1px solid ${t.borderSubtle}`, gap: 12, flexWrap: 'wrap' }}
+            >
+              <div className="flex items-center gap-1 flex-wrap flex-1">
+                {MARKETPLACE_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setCategory(cat.id)}
+                    className="text-[10px] px-2.5 py-0.5 rounded-full cursor-pointer border-none font-medium"
+                    style={{
+                      background: category === cat.id ? '#FE5000' : t.surfaceElevated,
+                      color: category === cat.id ? '#fff' : t.textSecondary,
+                      transition: 'background 150ms ease, color 150ms ease',
+                    }}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+              {/* Provider legend */}
+              <div className="flex items-center gap-3 shrink-0">
+                {(Object.entries(RUNTIME_INFO) as [Runtime, { label: string; color: string }][]).map(([rt, info]) => (
+                  <span key={rt} className="flex items-center gap-1" style={{ fontSize: 9, color: t.textDim }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: info.color, display: 'inline-block', flexShrink: 0 }} />
+                    {info.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
-        {/* Body */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Category sidebar (not for presets) — simple text list */}
-          {activeTab !== 'presets' && (
-            <div className="flex flex-col gap-0 py-2 overflow-y-auto" style={{ width: 150, borderRight: `1px solid ${t.borderSubtle}` }}>
+          {/* Sub-header: category pills only (mcp) */}
+          {activeTab === 'mcp' && (
+            <div
+              className="flex items-center px-4 py-2 gap-1 flex-wrap"
+              style={{ borderBottom: `1px solid ${t.borderSubtle}` }}
+            >
               {MARKETPLACE_CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
                   onClick={() => setCategory(cat.id)}
-                  className="text-left px-3 py-1.5 text-[11px] font-medium cursor-pointer border-none"
+                  className="text-[10px] px-2.5 py-0.5 rounded-full cursor-pointer border-none font-medium"
                   style={{
-                    background: 'transparent',
-                    color: category === cat.id ? '#FE5000' : t.textSecondary,
-                    borderLeft: category === cat.id ? '2px solid #FE5000' : '2px solid transparent',
-                    transition: 'color 150ms ease, border-color 150ms ease',
+                    background: category === cat.id ? '#FE5000' : t.surfaceElevated,
+                    color: category === cat.id ? '#fff' : t.textSecondary,
+                    transition: 'background 150ms ease, color 150ms ease',
                   }}
                 >
                   {cat.label}
@@ -323,26 +356,32 @@ export function Marketplace() {
             </div>
           )}
 
-          {/* List content */}
+          {/* Body */}
           <div className="flex-1 overflow-y-auto">
             {activeTab === 'skills' && (
-              <div className="flex flex-col">
-                {filteredSkills.map((skill) => (
-                  <SkillRow
-                    key={skill.id}
-                    skill={skill}
-                    installing={installingId === skill.id}
-                    dropdownOpen={installDropdown === skill.id}
-                    onToggleDropdown={() => setInstallDropdown(installDropdown === skill.id ? null : skill.id)}
-                    onInstall={handleInstall}
-                    t={t}
-                  />
-                ))}
+              <>
+                {filteredSkills.length > 0 && (
+                  <div className="mp-skill-grid">
+                    {filteredSkills.map((skill) => (
+                      <SkillCard
+                        key={skill.id}
+                        skill={skill}
+                        isInLibrary={librarySkillIds.has(skill.id)}
+                        installing={installingId === skill.id}
+                        dropdownOpen={installDropdown === skill.id}
+                        onToggleDropdown={() => setInstallDropdown(installDropdown === skill.id ? null : skill.id)}
+                        onInstall={handleInstall}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                )}
                 {filteredSkills.length === 0 && !remoteLoading && !remoteError && remoteResults.length === 0 && (
                   <div className="flex items-center justify-center py-12">
                     <span className="text-xs" style={{ color: t.textFaint }}>No skills match your search</span>
                   </div>
                 )}
+
                 {(filter.trim().length >= 2 || remoteLoading || remoteError || remoteResults.length > 0) && (
                   <div className="px-4 pt-4 pb-2" style={{ borderTop: `1px solid ${t.borderSubtle}` }}>
                     <span className="text-[10px] tracking-wider uppercase" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
@@ -365,24 +404,26 @@ export function Marketplace() {
                     </span>
                   </div>
                 )}
-                {!remoteLoading && !remoteError && remoteResults.map((skill) => (
-                  <RemoteSkillRow
-                    key={skill.id}
-                    skill={skill}
-                    installing={remoteInstallingId === skill.id}
-                    installed={remoteInstalledIds.has(skill.id)}
-                    onInstall={() => handleRemoteInstall(skill)}
-                    t={t}
-                  />
-                ))}
-                {!remoteLoading && !remoteError && filter.trim().length >= 2 && remoteResults.length === 0 && (
-                  <div className="flex items-center justify-center py-6 px-4">
-                    <span className="text-[11px]" style={{ color: t.textFaint }}>
-                      No results from skill.sh
-                    </span>
+                {!remoteLoading && !remoteError && remoteResults.length > 0 && (
+                  <div className="mp-skill-grid" style={{ paddingTop: 0 }}>
+                    {remoteResults.map((skill) => (
+                      <RemoteSkillCard
+                        key={skill.id}
+                        skill={skill}
+                        installing={remoteInstallingId === skill.id}
+                        installed={remoteInstalledIds.has(skill.id)}
+                        onInstall={() => handleRemoteInstall(skill)}
+                        t={t}
+                      />
+                    ))}
                   </div>
                 )}
-              </div>
+                {!remoteLoading && !remoteError && filter.trim().length >= 2 && remoteResults.length === 0 && (
+                  <div className="flex items-center justify-center py-6 px-4">
+                    <span className="text-[11px]" style={{ color: t.textFaint }}>No results from skill.sh</span>
+                  </div>
+                )}
+              </>
             )}
 
             {activeTab === 'mcp' && (
@@ -421,104 +462,187 @@ export function Marketplace() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-/* ──────── Skill Row (list item, 48px) ──────── */
+/* ──────── Skill Card ──────── */
 
-function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall, t }: {
+function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropdown, onInstall, t }: {
   skill: (typeof import('../store/registry'))['REGISTRY_SKILLS'][number];
+  isInLibrary: boolean;
   installing: boolean;
   dropdownOpen: boolean;
   onToggleDropdown: () => void;
   onInstall: (id: string, target: Runtime | 'all', scope: InstallScope) => void;
   t: ReturnType<typeof useTheme>;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<Runtime | 'all'>('claude');
   const [selectedScope, setSelectedScope] = useState<InstallScope>('project');
+  const isDisabled = isInLibrary || skill.installed;
 
   return (
     <div
-      className="relative"
-      style={{ borderBottom: `1px solid ${t.borderSubtle}` }}
+      style={{
+        background: t.surfaceElevated,
+        border: `1px solid ${isDisabled ? t.borderSubtle : t.border}`,
+        borderRadius: 6,
+        padding: '10px 12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 5,
+        opacity: isDisabled ? 0.55 : 1,
+        position: 'relative',
+        transition: 'border-color 150ms ease',
+        minHeight: 120,
+      }}
+      onMouseEnter={(e) => { if (!isDisabled) (e.currentTarget as HTMLDivElement).style.borderColor = '#FE500050'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = isDisabled ? t.borderSubtle : t.border; }}
     >
-      <div
-        className="flex items-center gap-3 px-4"
-        style={{ height: 48, transition: 'background 100ms ease' }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-      >
-        {/* Icon */}
-        <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ background: t.surfaceElevated }}>
-          <RegistryIcon icon={skill.icon} size={13} style={{ color: t.textSecondary }} />
-        </div>
+      {/* Row 1: name + installs */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <span style={{
+          fontSize: 11,
+          fontWeight: 600,
+          color: t.textPrimary,
+          fontFamily: "'Space Mono', monospace",
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          flex: 1,
+        }}>
+          {skill.name}
+        </span>
+        <span style={{
+          fontSize: 9,
+          color: t.textDim,
+          background: t.badgeBg,
+          borderRadius: 3,
+          padding: '1px 4px',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+          fontFamily: "'Space Mono', monospace",
+        }}>
+          {skill.installs >= 1000 ? `${(skill.installs / 1000).toFixed(1)}k` : skill.installs}↓
+        </span>
+      </div>
 
-        {/* Name + description */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium truncate" style={{ color: t.textPrimary }} spellCheck={false}>{skill.name}</span>
-            <span className="text-[10px] truncate" style={{ color: t.textDim }}>{skill.author}</span>
-          </div>
-          {/* Runtime bars */}
-          <div className="flex gap-0.5 mt-0.5">
-            {skill.runtimes.map((rt) => (
-              <div key={rt} className="rounded-sm" style={{ width: 16, height: 3, background: RUNTIME_INFO[rt].color }} title={RUNTIME_INFO[rt].label} />
-            ))}
-          </div>
-        </div>
+      {/* Row 2: author (dim) */}
+      <span style={{
+        fontSize: 10,
+        color: t.textDim,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        fontFamily: "'Inter', sans-serif",
+      }}>
+        {skill.author}
+      </span>
 
-        {/* Description */}
-        <span className="text-[11px] truncate shrink-0" style={{ color: t.textMuted, maxWidth: 200 }} title={skill.description} spellCheck={false}>
+      {/* Row 3: description with expand toggle */}
+      <div style={{ flex: 1 }}>
+        <span
+          style={{
+            fontSize: 10,
+            color: t.textMuted,
+            fontFamily: "'Inter', sans-serif",
+            lineHeight: 1.4,
+            display: expanded ? 'block' : '-webkit-box',
+            WebkitLineClamp: expanded ? 'unset' : 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: expanded ? 'visible' : 'hidden',
+          } as React.CSSProperties}
+        >
           {skill.description}
         </span>
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: t.textDim, display: 'inline-flex', alignItems: 'center', marginTop: 1 }}
+        >
+          {expanded ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+        </button>
+      </div>
 
-        {/* Install button */}
-        {skill.installed ? (
-          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
-            <Check size={10} /> Installed
+      {/* Row 4: SecurityBadges */}
+      <SecurityBadges skillPath={skill.id} />
+
+      {/* Row 5: runtime dots + install button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {skill.runtimes.map((rt) => (
+            <span
+              key={rt}
+              title={RUNTIME_INFO[rt].label}
+              style={{ width: 7, height: 7, borderRadius: '50%', background: RUNTIME_INFO[rt].color, display: 'inline-block', flexShrink: 0 }}
+            />
+          ))}
+        </div>
+
+        {isDisabled ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, color: t.statusSuccess, background: t.statusSuccessBg, borderRadius: 4, padding: '2px 6px' }}>
+            <Check size={9} /> In Library
           </span>
         ) : installing ? (
-          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#FE5000', background: '#FE500010' }}>
-            <Loader2 size={10} className="animate-spin" /> Installing
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, color: '#FE5000', background: '#FE500010', borderRadius: 4, padding: '2px 6px' }}>
+            <Loader2 size={9} className="animate-spin" /> Installing
           </span>
         ) : (
           <button
             type="button"
             onClick={onToggleDropdown}
-            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer shrink-0"
             style={{
+              fontSize: 9,
+              padding: '2px 8px',
+              borderRadius: 4,
+              cursor: 'pointer',
+              border: `1px solid ${dropdownOpen ? '#FE5000' : t.border}`,
+              color: dropdownOpen ? '#FE5000' : t.textSecondary,
               background: 'transparent',
-              border: `1px solid ${t.border}`,
-              color: t.textSecondary,
-              transition: 'border-color 150ms ease, color 150ms ease, background 150ms ease',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              transition: 'border-color 150ms ease, color 150ms ease',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
             onMouseLeave={(e) => { if (!dropdownOpen) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; } }}
           >
-            Install <ChevronDown size={9} />
+            Install <ChevronDown size={8} />
           </button>
         )}
       </div>
 
       {/* Install dropdown */}
       {dropdownOpen && (
-        <div
-          className="absolute right-4 mt-0 rounded-md p-3 z-10 flex flex-col gap-2"
-          style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', width: 260, top: 48 }}
-        >
+        <div style={{
+          position: 'absolute',
+          right: 0,
+          bottom: 'calc(100% + 4px)',
+          background: t.surfaceOpaque,
+          border: `1px solid ${t.border}`,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          borderRadius: 6,
+          padding: 10,
+          zIndex: 20,
+          width: 220,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}>
           <div>
-            <span className="text-[10px] font-semibold tracking-wider" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Target</span>
-            <div className="flex flex-wrap gap-1 mt-1">
+            <span style={{ fontSize: 9, fontWeight: 600, color: t.textDim, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
               {(['all', ...skill.runtimes] as (Runtime | 'all')[]).map((rt) => (
                 <button
                   key={rt}
                   type="button"
                   onClick={() => setSelectedTarget(rt)}
-                  className="text-[10px] px-2 py-0.5 rounded-md cursor-pointer border-none font-medium"
                   style={{
+                    fontSize: 9, padding: '2px 6px', borderRadius: 4, cursor: 'pointer', border: 'none',
                     background: selectedTarget === rt ? '#FE5000' : t.surfaceElevated,
                     color: selectedTarget === rt ? '#fff' : t.textSecondary,
+                    fontWeight: 500,
                   }}
                 >
                   {rt === 'all' ? 'All' : RUNTIME_INFO[rt].label}
@@ -528,17 +652,18 @@ function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall
           </div>
 
           <div>
-            <span className="text-[10px] font-semibold tracking-wider" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Scope</span>
-            <div className="flex gap-1 mt-1">
+            <span style={{ fontSize: 9, fontWeight: 600, color: t.textDim, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em' }}>Scope</span>
+            <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
               {(['project', 'global'] as InstallScope[]).map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setSelectedScope(s)}
-                  className="text-[10px] px-2 py-0.5 rounded-md cursor-pointer border-none font-medium capitalize"
                   style={{
+                    fontSize: 9, padding: '2px 6px', borderRadius: 4, cursor: 'pointer', border: 'none',
                     background: selectedScope === s ? '#FE5000' : t.surfaceElevated,
                     color: selectedScope === s ? '#fff' : t.textSecondary,
+                    fontWeight: 500, textTransform: 'capitalize',
                   }}
                 >
                   {s}
@@ -547,9 +672,9 @@ function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md" style={{ background: t.inputBg }}>
-            <Terminal size={9} style={{ color: t.textDim }} />
-            <code className="text-[9px]" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.inputBg, borderRadius: 4, padding: '4px 6px' }}>
+            <Terminal size={9} style={{ color: t.textDim, flexShrink: 0 }} />
+            <code style={{ fontSize: 8, color: t.textMuted, fontFamily: "'Space Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {skill.installCmd} --target {selectedTarget} --scope {selectedScope}
             </code>
           </div>
@@ -557,8 +682,7 @@ function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall
           <button
             type="button"
             onClick={() => onInstall(skill.id, selectedTarget, selectedScope)}
-            className="w-full py-1.5 rounded-md text-[11px] font-medium cursor-pointer border-none"
-            style={{ background: '#FE5000', color: '#fff' }}
+            style={{ width: '100%', padding: '6px', borderRadius: 4, border: 'none', background: '#FE5000', color: '#fff', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}
           >
             Confirm Install
           </button>
@@ -568,78 +692,111 @@ function SkillRow({ skill, installing, dropdownOpen, onToggleDropdown, onInstall
   );
 }
 
-/* ──────── Remote Skill Row (list item, 64px) ──────── */
+/* ──────── Remote Skill Card ──────── */
 
-function RemoteSkillRow({ skill, installing, installed, onInstall, t }: {
+function RemoteSkillCard({ skill, installing, installed, onInstall, t }: {
   skill: SkillSearchResult;
   installing: boolean;
   installed: boolean;
   onInstall: () => void;
   t: ReturnType<typeof useTheme>;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const skillPath = skill.url.replace('https://skills.sh/', '');
+
   return (
     <div
-      className="relative"
-      style={{ borderBottom: `1px solid ${t.borderSubtle}` }}
+      style={{
+        background: t.surfaceElevated,
+        border: `1px solid ${t.border}`,
+        borderRadius: 6,
+        padding: '10px 12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 5,
+        position: 'relative',
+        transition: 'border-color 150ms ease',
+        minHeight: 120,
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = '#FE500050'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = t.border; }}
     >
-      <div
-        className="flex items-center gap-3 px-4"
-        style={{ minHeight: 64, transition: 'background 100ms ease' }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-      >
-        <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ background: t.surfaceElevated }}>
-          <Zap size={13} style={{ color: t.textSecondary }} />
-        </div>
+      {/* Row 1: name + installs */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: t.textPrimary, fontFamily: "'Space Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          {skill.name}
+        </span>
+        <span style={{ fontSize: 9, color: t.textDim, background: t.badgeBg, borderRadius: 3, padding: '1px 4px', whiteSpace: 'nowrap', flexShrink: 0, fontFamily: "'Space Mono', monospace" }}>
+          {skill.installs}↓
+        </span>
+      </div>
 
-        <div className="flex-1 min-w-0 py-2">
-          {/* Line 1: skill name + repo */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold truncate" style={{ color: t.textPrimary }} spellCheck={false}>{skill.name}</span>
-            <span className="text-[10px] truncate" style={{ color: t.textDim }}>{skill.repo}</span>
-          </div>
-          {/* Line 2: installs + security badges + external link */}
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[9px] px-1 rounded-sm shrink-0" style={{ color: t.textMuted, background: t.badgeBg }}>
-              {skill.installs} installs
-            </span>
-            <SecurityBadges skillPath={skillPath} />
-            <a
-              href={skill.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-0.5 rounded shrink-0"
-              style={{ color: t.textDim }}
-              aria-label={`Open ${skill.name} on skills.sh`}
-              onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = t.textDim; }}
-            >
-              <ExternalLink size={10} />
-            </a>
-          </div>
-        </div>
+      {/* Row 2: repo (dim) + external link */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ fontSize: 10, color: t.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontFamily: "'Inter', sans-serif" }}>
+          {skill.repo}
+        </span>
+        <a
+          href={skill.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: t.textDim, flexShrink: 0, display: 'inline-flex' }}
+          aria-label={`Open ${skill.name} on skills.sh`}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = t.textDim; }}
+        >
+          <ExternalLink size={10} />
+        </a>
+      </div>
+
+      {/* Row 3: description with expand */}
+      <div style={{ flex: 1 }}>
+        <span
+          style={{
+            fontSize: 10, color: t.textMuted, fontFamily: "'Inter', sans-serif", lineHeight: 1.4,
+            display: expanded ? 'block' : '-webkit-box',
+            WebkitLineClamp: expanded ? 'unset' : 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: expanded ? 'visible' : 'hidden',
+          } as React.CSSProperties}
+        >
+          {skill.url}
+        </span>
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: t.textDim, display: 'inline-flex', alignItems: 'center', marginTop: 1 }}
+        >
+          {expanded ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+        </button>
+      </div>
+
+      {/* Row 4: SecurityBadges */}
+      <SecurityBadges skillPath={skillPath} />
+
+      {/* Row 5: zap icon + install button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+        <Zap size={10} style={{ color: t.textDim }} />
 
         {installed ? (
-          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
-            <Check size={10} /> Installed
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, color: t.statusSuccess, background: t.statusSuccessBg, borderRadius: 4, padding: '2px 6px' }}>
+            <Check size={9} /> Installed
           </span>
         ) : installing ? (
-          <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md shrink-0" style={{ color: '#FE5000', background: '#FE500010' }}>
-            <Loader2 size={10} className="animate-spin" /> Installing
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, color: '#FE5000', background: '#FE500010', borderRadius: 4, padding: '2px 6px' }}>
+            <Loader2 size={9} className="animate-spin" /> Installing
           </span>
         ) : (
           <button
             type="button"
             onClick={onInstall}
-            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer shrink-0 border-none"
             style={{
-              background: '#FE500010',
-              border: `1px solid ${t.border}`,
-              color: '#FE5000',
+              fontSize: 9, padding: '2px 8px', borderRadius: 4, cursor: 'pointer',
+              border: `1px solid ${t.border}`, color: '#FE5000', background: '#FE500010',
+              display: 'inline-flex', alignItems: 'center', gap: 3,
             }}
           >
-            <Download size={10} /> Install
+            <Download size={9} /> Install
           </button>
         )}
       </div>
