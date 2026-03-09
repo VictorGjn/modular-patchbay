@@ -122,18 +122,25 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
   const { query, setQuery, results, loading, error, installing, installed, installSkill } = search;
 
   return (
-    <div className="flex flex-col h-full">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Search input */}
-      <div className="px-5 py-3" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: t.textDim }} />
+      <div style={{ padding: '12px 20px', borderBottom: `1px solid ${t.borderSubtle}` }}>
+        <div style={{ position: 'relative' }}>
+          <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: t.textDim }} />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search skills.sh marketplace..."
-            className="w-full outline-none text-sm pl-9 pr-3 py-2 rounded-lg"
             style={{
+              width: '100%',
+              outline: 'none',
+              fontSize: 14,
+              paddingLeft: 36,
+              paddingRight: 12,
+              paddingTop: 8,
+              paddingBottom: 8,
+              borderRadius: 8,
               background: t.inputBg,
               border: `1px solid ${t.border}`,
               color: t.textPrimary,
@@ -145,28 +152,28 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
       </div>
 
       {/* Results */}
-      <div className="flex-1 overflow-y-auto py-2">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
         {loading && (
-          <div className="flex items-center justify-center py-8">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
             <Spinner size="sm" />
           </div>
         )}
 
         {!loading && query.length >= 2 && results.length === 0 && !error && (
-          <div className="flex items-center justify-center py-8">
-            <span className="text-sm" style={{ color: t.textFaint }}>No skills found for &ldquo;{query}&rdquo;</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
+            <span style={{ fontSize: 14, color: t.textFaint }}>No skills found for &ldquo;{query}&rdquo;</span>
           </div>
         )}
 
         {!loading && error && (
-          <div className="flex items-center justify-center py-8">
-            <span className="text-sm" style={{ color: t.statusError }}>Search unavailable</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
+            <span style={{ fontSize: 14, color: t.statusError }}>Search unavailable</span>
           </div>
         )}
 
         {!loading && query.length < 2 && (
-          <div className="flex items-center justify-center py-8">
-            <span className="text-sm" style={{ color: t.textFaint }}>Type at least 2 characters to search</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
+            <span style={{ fontSize: 14, color: t.textFaint }}>Type at least 2 characters to search</span>
           </div>
         )}
 
@@ -177,23 +184,66 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
           return (
             <div
               key={skill.id}
-              className="flex items-center gap-3 px-5 w-full"
-              style={{ minHeight: 64, transition: 'background 100ms ease' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '0 20px',
+                width: '100%',
+                minHeight: 64,
+                transition: 'background 100ms ease'
+              }}
               onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
             >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.badgeBg }}>
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                background: t.badgeBg
+              }}>
                 <Zap size={14} style={{ color: t.textDim }} />
               </div>
-              <div className="flex-1 min-w-0 py-2">
+              <div style={{ flex: 1, minWidth: 0, padding: '8px 0' }}>
                 {/* Line 1: skill name + repo */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold truncate" style={{ color: t.textPrimary }}>{skill.name}</span>
-                  <span className="text-xs truncate" style={{ color: t.textDim }}>{skill.repo}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    color: t.textPrimary
+                  }}>
+                    {skill.name}
+                  </span>
+                  <span style={{
+                    fontSize: 12,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    color: t.textDim
+                  }}>
+                    {skill.repo}
+                  </span>
                 </div>
                 {/* Line 2: installs badge + security badges + external link */}
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase shrink-0" style={{ fontFamily: "'Space Mono', monospace", fontWeight: 600, background: t.badgeBg, color: t.textMuted }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                  <span style={{
+                    fontSize: 8,
+                    padding: '2px 6px',
+                    borderRadius: 9999,
+                    textTransform: 'uppercase',
+                    flexShrink: 0,
+                    fontFamily: "'Space Mono', monospace",
+                    fontWeight: 600,
+                    background: t.badgeBg,
+                    color: t.textMuted
+                  }}>
                     {skill.installs}
                   </span>
                   <SecurityBadges skillPath={skillPath} />
@@ -201,8 +251,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
                     href={skill.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shrink-0 p-0.5"
-                    style={{ color: t.textDim }}
+                    style={{ flexShrink: 0, padding: 2, color: t.textDim }}
                     onClick={(e) => e.stopPropagation()}
                     aria-label={`View ${skill.name} on skills.sh`}
                   >
@@ -211,15 +260,27 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
                 </div>
               </div>
               {isInstalled ? (
-                <span className="shrink-0" style={{ color: t.statusSuccess }}><Check size={14} /></span>
+                <span style={{ flexShrink: 0, color: t.statusSuccess }}><Check size={14} /></span>
               ) : isInstalling ? (
                 <Spinner size="sm" />
               ) : (
                 <button
                   type="button"
                   onClick={() => installSkill(skill.id, skill.name, skill.repo, skill.url)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer border-none shrink-0"
-                  style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", background: '#FE500020', color: '#FE5000' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    border: 'none',
+                    flexShrink: 0,
+                    fontSize: 10,
+                    fontFamily: "'Space Mono', monospace",
+                    background: '#FE500020',
+                    color: '#FE5000'
+                  }}
                   aria-label={`Install ${skill.name}`}
                 >
                   <Download size={10} /> Install
@@ -231,8 +292,14 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
       </div>
 
       {/* Attribution */}
-      <div className="px-5 py-2 text-center shrink-0" style={{ borderTop: `1px solid ${t.borderSubtle}` }}>
-        <span className="text-[9px] tracking-wider uppercase" style={{ color: t.textFaint, fontFamily: "'Space Mono', monospace" }}>
+      <div style={{ padding: '8px 20px', textAlign: 'center', flexShrink: 0, borderTop: `1px solid ${t.borderSubtle}` }}>
+        <span style={{
+          fontSize: 9,
+          letterSpacing: '0.05em',
+          textTransform: 'uppercase',
+          color: t.textFaint,
+          fontFamily: "'Space Mono', monospace"
+        }}>
           Powered by skills.sh
         </span>
       </div>
@@ -252,8 +319,14 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
       key={item.id}
       type="button"
       onClick={() => onToggle(item.id)}
-      className="flex items-center gap-3 px-5 py-2.5 w-full border-none cursor-pointer"
       style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '10px 20px',
+        width: '100%',
+        border: 'none',
+        cursor: 'pointer',
         background: isActive ? (t.isDark ? 'rgba(0,255,136,0.06)' : 'rgba(0,200,100,0.06)') : 'transparent',
         transition: 'background 100ms ease',
         textAlign: 'left',
@@ -261,7 +334,16 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
       onMouseEnter={(e) => { e.currentTarget.style.background = isActive ? (t.isDark ? 'rgba(0,255,136,0.1)' : 'rgba(0,200,100,0.1)') : t.surfaceHover; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? (t.isDark ? 'rgba(0,255,136,0.06)' : 'rgba(0,200,100,0.06)') : 'transparent'; }}
     >
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.badgeBg }}>
+      <div style={{
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        background: t.badgeBg
+      }}>
         {isActive ? (
           <Check size={16} style={{ color: t.statusSuccess }} />
         ) : kind === 'mcp' ? (
@@ -270,17 +352,40 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
           <Zap size={14} style={{ color: t.textDim }} />
         )}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium truncate" style={{ color: t.textPrimary }}>{item.name}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            fontSize: 14,
+            fontWeight: 500,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            color: t.textPrimary
+          }}>
+            {item.name}
+          </span>
           {item.source && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{ fontFamily: "'Space Mono', monospace", fontWeight: 600, background: t.badgeBg, color: t.textMuted }}>
+            <span style={{
+              fontSize: 8,
+              padding: '2px 6px',
+              borderRadius: 9999,
+              textTransform: 'uppercase',
+              fontFamily: "'Space Mono', monospace",
+              fontWeight: 600,
+              background: t.badgeBg,
+              color: t.textMuted
+            }}>
               {item.source}
             </span>
           )}
           {item.mcpStatus && item.mcpStatus !== 'enabled' && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{
-              fontFamily: "'Space Mono', monospace", fontWeight: 600,
+            <span style={{
+              fontSize: 8,
+              padding: '2px 6px',
+              borderRadius: 9999,
+              textTransform: 'uppercase',
+              fontFamily: "'Space Mono', monospace",
+              fontWeight: 600,
               background: item.mcpStatus === 'deferred' ? t.statusWarningBg : t.statusErrorBg,
               color: item.mcpStatus === 'deferred' ? t.statusWarning : t.statusError,
             }}>
@@ -289,20 +394,39 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
           )}
         </div>
         {item.description && (
-          <span className="text-xs truncate block" style={{ color: t.textDim }}>{item.description}</span>
+          <span style={{
+            fontSize: 12,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            display: 'block',
+            color: t.textDim
+          }}>
+            {item.description}
+          </span>
         )}
       </div>
       {kind === 'mcp' && item.status && (
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="w-2 h-2 rounded-full" style={{ background: getStatusColor(item.status, t) }} />
-          <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: getStatusColor(item.status, t) }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: getStatusColor(item.status, t) }} />
+          <span style={{
+            fontSize: 10,
+            fontFamily: "'Space Mono', monospace",
+            color: getStatusColor(item.status, t)
+          }}>
             {item.status === 'connected' && item.toolCount ? `${item.toolCount} tools` : item.status}
           </span>
         </div>
       )}
       {kind === 'mcp' && item.type && (
-        <span className="text-[8px] px-1.5 py-0.5 rounded uppercase shrink-0" style={{
-          fontFamily: "'Space Mono', monospace", fontWeight: 600,
+        <span style={{
+          fontSize: 8,
+          padding: '2px 6px',
+          borderRadius: 4,
+          textTransform: 'uppercase',
+          flexShrink: 0,
+          fontFamily: "'Space Mono', monospace",
+          fontWeight: 600,
           background: item.type === 'stdio' ? '#3498db15' : item.type === 'http' ? '#9b59b615' : '#e67e2215',
           color: item.type === 'stdio' ? '#3498db' : item.type === 'http' ? '#9b59b6' : '#e67e22',
         }}>
@@ -340,8 +464,8 @@ export function LibraryPicker({ open, onClose, title, items, activeIds, onToggle
           });
           if (filtered.length === 0) {
             return (
-              <div className="flex items-center justify-center py-8">
-                <span className="text-sm" style={{ color: t.textFaint }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
+                <span style={{ fontSize: 14, color: t.textFaint }}>
                   {items.length === 0 ? 'No MCP servers found' : 'No matches'}
                 </span>
               </div>
@@ -375,8 +499,8 @@ export function LibraryPicker({ open, onClose, title, items, activeIds, onToggle
             });
             if (filtered.length === 0) {
               return (
-                <div className="flex items-center justify-center py-8">
-                  <span className="text-sm" style={{ color: t.textFaint }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
+                  <span style={{ fontSize: 14, color: t.textFaint }}>
                     {items.length === 0 ? 'No skills found' : 'No matches'}
                   </span>
                 </div>
