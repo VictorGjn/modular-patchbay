@@ -4,6 +4,7 @@ import { useConsoleStore } from '../store/consoleStore';
 import { compileWorkflow } from '../nodes/WorkflowNode';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { applyDepthFilter, renderFilteredMarkdown } from '../utils/depthFilter';
+import { type TreeNode } from './treeIndexer';
 
 export interface AssembledMessage {
   role: 'system' | 'user';
@@ -197,4 +198,192 @@ export function assembleContext(
   messages.push({ role: 'user', content: prompt || '(no prompt provided)' });
 
   return messages;
+}
+
+// ── Pipeline-specific orientation helpers (used by pipelineChat orchestrator) ──
+
+type TreeIndexLookup = ReturnType<typeof useTreeIndexStore.getState>['getIndex'];
+
+const FILE_PATH_PATTERN = /(?:^|[\s`"'([<{])([A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)+\.[A-Za-z0-9._-]+)(?=$|[\s`"')\]}>:,;.!?])/g;
+
+function normalizePath(input: string): string {
+  return input.replace(/\\/g, '/').replace(/\/+/g, '/');
+}
+
+function parentDir(input: string): string {
+  const normalized = normalizePath(input);
+  const idx = normalized.lastIndexOf('/');
+  return idx > 0 ? normalized.slice(0, idx) : normalized;
+}
+
+function collectFilePathsFromText(text: string, out: Set<string>): void {
+  FILE_PATH_PATTERN.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = FILE_PATH_PATTERN.exec(text)) !== null) {
+    const path = match[1].replace(/^\.?\//, '');
+    if (path.includes('/')) out.add(path);
+  }
+}
+
+function collectFilePathsFromTree(node: TreeNode, out: Set<string>): void {
+  collectFilePathsFromText(node.title, out);
+  if (node.text) collectFilePathsFromText(node.text, out);
+  for (const child of node.children) collectFilePathsFromTree(child, out);
+}
+
+function buildCondensedTree(paths: string[]): string[] {
+  const groups = new Map<string, Set<string>>();
+
+  for (const rawPath of paths) {
+    const path = normalizePath(rawPath).replace(/^\.?\//, '');
+    if (!path.includes('/')) continue;
+    const parts = path.split('/').filter(Boolean);
+    if (parts.length < 2) continue;
+
+    const branch = parts.length >= 3 ? `${parts[0]}/${parts[1]}/` : `${parts[0]}/`;
+    const child = parts.length >= 3
+      ? `${parts[2]}${parts.length > 3 ? '/' : ''}`
+      : parts[1];
+
+    if (!groups.has(branch)) groups.set(branch, new Set());
+    groups.get(branch)!.add(child);
+  }
+
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(0, 14)
+    .map(([branch, children]) => {
+      const sortedChildren = [...children].sort();
+      const visible = sortedChildren.slice(0, 8);
+      const suffix = sortedChildren.length > visible.length ? ', ...' : '';
+      return `  ${branch} -> ${visible.join(', ')}${suffix}`;
+    });
+}
+
+/**
+ * Build a worked example for each connected repo showing the
+ * full knowledge escalation chain. Injected into the orientation block.
+ */
+function buildWorkedExamples(channels: ChannelConfig[]): string {
+  const repoChannels = channels.filter(ch => ch.enabled && ch.repoMeta);
+  if (repoChannels.length === 0) return '';
+
+  const examples: string[] = [];
+
+  for (const ch of repoChannels) {
+    const meta = ch.repoMeta!;
+    const featureNames = meta.features;
+    if (featureNames.length === 0) continue;
+
+    const featName = featureNames[0];
+    const featureSlug = featName.toLowerCase().replace(/\s+/g, '-');
+    const samplePath = `src/${featureSlug}/index.ts`;
+
+    const example = [
+      `### Example: answering a question about ${meta.name}`,
+      `Q: "How does ${featName} work?"`,
+      `1. Check Data Flow in "${featName}" section → see what files import/depend on each other`,
+      `2. Check Key Files → exports and types tell you the API surface without opening files`,
+      `3. Need actual implementation? → \`get_file_contents("${samplePath}")\``,
+    ];
+
+    if (meta.baseUrl) {
+      example.push(`4. Need to share a link? → \`${meta.baseUrl}{exact_file_path}\``);
+    }
+
+    examples.push(example.join('\n'));
+  }
+
+  if (examples.length === 0) return '';
+  return examples.join('\n\n');
+}
+
+/**
+ * Build a lightweight <orientation> block from channel metadata.
+ * Lists codebases (channels with repoMeta) and documents (channels with content but no repoMeta).
+ * Gives the LLM a map of what's available without including actual content.
+ */
+export function buildOrientationBlock(channels: ChannelConfig[], getTreeIndex: TreeIndexLookup): string {
+  const active = channels.filter(ch => ch.enabled);
+  const lines: string[] = [];
+
+  // Channels with repoMeta → codebase entries
+  const repoChannels = active.filter(ch => ch.repoMeta);
+  for (const ch of repoChannels) {
+    const meta = ch.repoMeta!;
+    const repoRoot = ch.path ? parentDir(ch.path) : '';
+    const related = repoRoot
+      ? active.filter(c => c.path && normalizePath(c.path).startsWith(`${repoRoot}/`))
+      : [ch];
+    const filePaths = new Set<string>();
+    for (const relatedChannel of related) {
+      if (relatedChannel.content) collectFilePathsFromText(relatedChannel.content, filePaths);
+      if (!relatedChannel.path) continue;
+      const index = getTreeIndex(relatedChannel.path);
+      if (index) collectFilePathsFromTree(index.root, filePaths);
+    }
+    const condensedTree = buildCondensedTree([...filePaths]);
+
+    lines.push(`## ${meta.name}`);
+    if (meta.stack.length > 0) lines.push(`- Stack: ${meta.stack.join(', ')}`);
+    if (meta.baseUrl) lines.push(`- Base URL: ${meta.baseUrl}`);
+    lines.push(`- ${meta.totalFiles} files, key features: ${meta.features.join(', ')}`);
+    if (meta.baseUrl && condensedTree.length > 0) {
+      lines.push(`- File lookup table (${filePaths.size} paths): use \`${meta.baseUrl}{filePath}\``);
+      lines.push(...condensedTree);
+    }
+    lines.push(`- You can explore this codebase in depth — read files, trace dependencies, check implementations.`);
+    lines.push('');
+  }
+
+  // Channels with content but no repoMeta → document entries
+  const docChannels = active.filter(ch => !ch.repoMeta && ch.content);
+  for (const ch of docChannels) {
+    const kt = KNOWLEDGE_TYPES[ch.knowledgeType as keyof typeof KNOWLEDGE_TYPES];
+    const label = kt ? kt.label : ch.knowledgeType;
+    lines.push(`## Document: ${ch.name}`);
+    lines.push(`- Type: ${label}`);
+    lines.push('');
+  }
+
+  if (lines.length === 0) return '';
+
+  const header = 'You have access to the following codebases and knowledge sources:\n';
+
+  const workedExamples = buildWorkedExamples(channels);
+  const exampleSection = workedExamples
+    ? `\n## How to Use This Knowledge\n${workedExamples}\n`
+    : '';
+
+  const footer = `Approach:
+- Your knowledge about these codebases is already loaded in your context below. Use it directly.
+- For file contents not in your context, use get_file_contents or read_file tools — NOT the knowledge graph.
+- Do NOT call search_nodes or read_graph to find basic structure — that information is already here.
+- Use each repo's base URL + file path from the lookup table to build exact file links.
+- Explore files and trace dependencies BEFORE asking the user for information.`;
+
+  return `<orientation>\n${header}\n${lines.join('\n')}\n${exampleSection}${footer}\n</orientation>`;
+}
+
+/**
+ * Assemble the final system prompt from all pipeline parts.
+ * Order: frame → orientation → knowledge_format → framework → memory → knowledge
+ */
+export function assemblePipelineContext(parts: {
+  frame: string;
+  orientationBlock: string;
+  hasRepos: boolean;
+  knowledgeFormatGuide: string;
+  frameworkBlock: string;
+  memoryBlock: string;
+  knowledgeBlock: string;
+}): string {
+  const { frame, orientationBlock, hasRepos, knowledgeFormatGuide, frameworkBlock, memoryBlock, knowledgeBlock } = parts;
+  const systemParts = [frame];
+  if (orientationBlock) systemParts.push(orientationBlock);
+  if (hasRepos) systemParts.push(knowledgeFormatGuide);
+  if (frameworkBlock) systemParts.push(frameworkBlock);
+  if (memoryBlock) systemParts.push(memoryBlock);
+  if (knowledgeBlock) systemParts.push(knowledgeBlock);
+  return systemParts.filter(Boolean).join('\n\n');
 }
