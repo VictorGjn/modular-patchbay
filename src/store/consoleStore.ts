@@ -169,7 +169,7 @@ export interface ConsoleState {
   showMarketplace: boolean;
   activeMarketplaceTab: 'skills' | 'mcp' | 'presets';
   showSettings: boolean;
-  activeSettingsTab: 'providers' | 'mcp' | 'skills';
+  activeSettingsTab: 'providers' | 'mcp' | 'general';
   response: string;
   exportTarget: ExportTarget;
 
@@ -228,7 +228,7 @@ export interface ConsoleState {
   setShowSaveModal: (show: boolean) => void;
   setShowConnectorPicker: (show: boolean) => void;
   setShowMarketplace: (show: boolean, tab?: 'skills' | 'mcp' | 'presets') => void;
-  setShowSettings: (show: boolean, tab?: 'providers' | 'mcp' | 'skills') => void;
+  setShowSettings: (show: boolean, tab?: 'providers' | 'mcp' | 'general') => void;
   setAgentMeta: (meta: Partial<AgentMeta>) => void;
   setChannelKnowledgeType: (sourceId: string, typeIndex: number) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
@@ -252,7 +252,7 @@ export interface ConsoleState {
   toggleSkill: (id: string) => void;
   addSkill: (id: string) => void;
   removeSkill: (id: string) => void;
-  upsertSkill: (skill: { id: string; name: string; description?: string; skillUrl?: string }) => void;
+  upsertSkill: (skill: { id: string; name: string; description?: string; skillUrl?: string; installedFrom?: 'local' | 'skills.sh' | 'registry'; installs?: string }) => void;
   loadAgent: (id: string) => void;
   restoreFullState: (state: Record<string, unknown>) => void;
   setInstructionState: (state: InstructionState) => void;
@@ -489,7 +489,7 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   setShowSaveModal: (show: boolean) => set({ showSaveModal: show }),
   setShowConnectorPicker: (show: boolean) => set({ showConnectorPicker: show }),
   setShowMarketplace: (show: boolean, tab?: 'skills' | 'mcp' | 'presets') => set({ showMarketplace: show, ...(tab ? { activeMarketplaceTab: tab } : {}) }),
-  setShowSettings: (show: boolean, tab?: 'providers' | 'mcp' | 'skills') => set({ showSettings: show, ...(tab ? { activeSettingsTab: tab } : {}) }),
+  setShowSettings: (show: boolean, tab?: 'providers' | 'mcp' | 'general') => set({ showSettings: show, ...(tab ? { activeSettingsTab: tab } : {}) }),
   setAgentMeta: (meta: Partial<AgentMeta>) => set({ agentMeta: { ...get().agentMeta, ...meta } }),
 
   setChannelKnowledgeType: (sourceId: string, typeIndex: number) => {
@@ -651,9 +651,11 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         skills: get().skills.map((s) =>
           s.id === skill.id ? {
             ...s,
-            name: skill.name,
-            description: skill.description ?? s.description,
+            name: skill.name || s.name,
+            description: (skill.description && skill.description.length > 0) ? skill.description : s.description,
             skillUrl: skill.skillUrl ?? s.skillUrl,
+            installedFrom: skill.installedFrom ?? s.installedFrom,
+            installs: skill.installs ?? s.installs,
           } : s,
         ),
       });
@@ -670,6 +672,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         description: skill.description ?? 'Installed from skills.sh',
         category: 'development',
         skillUrl: skill.skillUrl,
+        installedFrom: skill.installedFrom,
+        installs: skill.installs,
       }],
     });
   },

@@ -296,6 +296,8 @@ export interface Skill {
   description: string;
   category: SkillCategory;
   skillUrl?: string; // origin URL e.g. https://skills.sh/owner/repo/skillname
+  installedFrom?: 'local' | 'skills.sh' | 'registry';
+  installs?: string; // download count string e.g. '134.8K'
 }
 
 // MOCK_SKILLS removed — skills now derive from registry.ts installed state

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, type KeyboardEvent as ReactKe
 import {
   X, Eye, EyeOff, ExternalLink, CheckCircle, XCircle, Loader2, Plus,
   Trash2, Server, Plug, PlugZap, Sun, Moon, Monitor, Grid3X3, Minimize2,
-  Waypoints, GitBranch, ArrowDownRight, Cpu, Wrench, Terminal,
+  Waypoints, GitBranch, ArrowDownRight, Cpu, Terminal,
   Settings,
 } from 'lucide-react';
 import { useTheme } from '../theme';
@@ -10,16 +10,13 @@ import { API_BASE } from '../config';
 import { useProviderStore, type ProviderConfig, type ProviderStatus } from '../store/providerStore';
 import { useThemeStore, type Theme } from '../store/themeStore';
 import { useMcpStore, type McpServerState } from '../store/mcpStore';
-import { useSkillsStore } from '../store/skillsStore';
 import { useConsoleStore } from '../store/consoleStore';
-import { SecurityBadges } from './SecurityBadges';
 
-type SettingsTab = 'providers' | 'mcp' | 'skills' | 'general';
+type SettingsTab = 'providers' | 'mcp' | 'general';
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'providers', label: 'Providers' },
   { id: 'mcp', label: 'MCP Servers' },
-  { id: 'skills', label: 'Skills' },
   { id: 'general', label: 'General' },
 ];
 
@@ -886,128 +883,6 @@ function McpServersTab() {
   );
 }
 
-// --- Skills Tab ---
-
-function SkillsTab() {
-  const t = useTheme();
-  const skills = useSkillsStore((s) => s.skills);
-  const loaded = useSkillsStore((s) => s.loaded);
-  const loading = useSkillsStore((s) => s.loading);
-  const loadSkills = useSkillsStore((s) => s.loadSkills);
-  const toggleSkill = useSkillsStore((s) => s.toggleSkill);
-  const error = useSkillsStore((s) => s.error);
-
-  useEffect(() => {
-    if (!loaded && !loading) {
-      loadSkills();
-    }
-  }, [loaded, loading, loadSkills]);
-
-  return (
-    <div className="flex flex-col">
-      {loading && (
-        <div className="px-4 py-8 text-center text-xs" style={{ color: t.textMuted }}>
-          <Loader2 size={16} className="animate-spin mx-auto mb-2" />
-          Loading skills...
-        </div>
-      )}
-
-      {error && (
-        <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-xs" style={{ background: t.statusErrorBg, color: t.statusError, border: `1px solid ${t.statusError}30` }}>
-          {error}
-        </div>
-      )}
-
-      {loaded && skills.map((skill) => {
-        // Detect skills.sh origin: id format is "owner/repo@skillname"
-        const skillsShPath = /^[a-z0-9_.-]+\/[a-z0-9_.-]+@[a-z0-9_.-]+$/.test(skill.id)
-          ? skill.id.replace('@', '/')
-          : null;
-        return (
-        <div
-          key={skill.id}
-          className="flex items-center gap-3 px-4"
-          style={{ minHeight: 64, borderBottom: `1px solid ${t.borderSubtle}` }}
-        >
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.badgeBg }}>
-            <Wrench size={14} style={{ color: t.textDim }} />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
-                {skill.name}
-              </span>
-              {skill.hasSkillMd && (
-                <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{
-                  fontFamily: "'Space Mono', monospace", fontWeight: 600,
-                  background: t.statusSuccessBg,
-                  color: t.statusSuccess,
-                }}>
-                  SKILL.md
-                </span>
-              )}
-              {skill.id.startsWith('global:') && (
-                <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{
-                  fontFamily: "'Space Mono', monospace", fontWeight: 600,
-                  background: t.badgeBg,
-                  color: t.textMuted,
-                }}>
-                  GLOBAL
-                </span>
-              )}
-              {skill.id.startsWith('user:') && (
-                <span className="text-[8px] px-1.5 py-0.5 rounded-full uppercase" style={{
-                  fontFamily: "'Space Mono', monospace", fontWeight: 600,
-                  background: t.statusWarningBg,
-                  color: t.statusWarning,
-                }}>
-                  USER
-                </span>
-              )}
-              {skillsShPath && <SecurityBadges skillPath={skillsShPath} />}
-            </div>
-            {skill.description && (
-              <div className="text-xs text-wrap" style={{ color: t.textDim }}>
-                {skill.description}
-              </div>
-            )}
-            <div className="text-[10px]" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
-              {skill.path}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => toggleSkill(skill.id)}
-            className="nodrag nowheel w-9 h-5 rounded-full cursor-pointer border-none relative transition-colors"
-            style={{ background: skill.enabled ? '#FE5000' : t.badgeBg }}
-          >
-            <div
-              className="absolute top-0.5 w-4 h-4 rounded-full transition-transform"
-              style={{
-                background: '#fff',
-                left: skill.enabled ? '18px' : '2px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-              }}
-            />
-          </button>
-        </div>
-        );
-      })}
-
-      {loaded && skills.length === 0 && (
-        <div className="px-4 py-8 text-center">
-          <Wrench size={24} style={{ color: t.textDim, margin: '0 auto 8px' }} />
-          <div className="text-xs" style={{ color: t.textMuted }}>
-            No skills found. Install skills using the skill marketplace or add them to ~/.claude/skills.
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // --- General Tab ---
 
 function GeneralTab() {
@@ -1266,7 +1141,6 @@ export function SettingsPage({ open, onClose }: { open: boolean; onClose: () => 
         <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
           {activeTab === 'providers' && <ProvidersTab />}
           {activeTab === 'mcp' && <McpServersTab />}
-          {activeTab === 'skills' && <SkillsTab />}
           {activeTab === 'general' && <GeneralTab />}
         </div>
       </div>
