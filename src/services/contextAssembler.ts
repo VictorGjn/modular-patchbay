@@ -144,8 +144,8 @@ export function assembleContext(
         const treeIndex = treeStore.getIndex(ch.path);
 
         if (treeIndex) {
-          // Tree-indexed: apply depth filter and include actual content
-          const filtered = applyDepthFilter(treeIndex, ch.depth);
+          // Tree-indexed: apply full depth filter (budget allocator handles sizing)
+          const filtered = applyDepthFilter(treeIndex, 0);
           const content = renderFilteredMarkdown(filtered.filtered);
           if (content.trim()) {
             sourceBlocks.push(
