@@ -6,6 +6,7 @@ import { SkillIcon } from './icons/SectionIcons';
 import { useTheme } from '../theme';
 import { Plus, Check } from 'lucide-react';
 import { PickerModal } from './PickerModal';
+import { SecurityBadges } from './SecurityBadges';
 
 const CATEGORY_LABELS: Record<SkillCategory, string> = {
   content: 'Content',
@@ -110,10 +111,11 @@ export function SkillPicker() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium" style={{ color: t.textPrimary }}>{skill.name}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs" style={{ color: t.textDim }}>{skill.description}</span>
+                    <span className="text-sm font-medium" style={{ color: t.textPrimary }}>{skill.name}</span>
+                    <SecurityBadges gen={skill.gen} socket={skill.socket} snyk={skill.snyk} />
                   </div>
+                  <span className="text-xs" style={{ color: t.textDim }}>{skill.description}</span>
                 </div>
 
                 {skill.added ? (

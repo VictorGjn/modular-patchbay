@@ -13,7 +13,89 @@ interface SkillResult {
   repo: string;
   installs: string;
   url: string;
+  gen?: string;
+  socket?: string;
+  snyk?: string;
 }
+
+interface AuditData {
+  [skillId: string]: { gen: string; socket: string; snyk: string };
+}
+
+interface AuditCache {
+  data: AuditData;
+  ts: number;
+}
+
+let auditCache: AuditCache | null = null;
+const AUDIT_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function parseInstalls(installs: string): number {
+  const s = installs.trim().toUpperCase();
+  if (s.endsWith('K')) return parseFloat(s.slice(0, -1)) * 1000;
+  if (s.endsWith('M')) return parseFloat(s.slice(0, -1)) * 1_000_000;
+  return parseFloat(s) || 0;
+}
+
+function stripTags(html: string): string {
+  return html.replace(/<[^>]+>/g, '').trim();
+}
+
+async function fetchAudits(): Promise<AuditData> {
+  if (auditCache && Date.now() - auditCache.ts < AUDIT_TTL_MS) {
+    return auditCache.data;
+  }
+
+  const res = await fetch('https://skills.sh/audits', {
+    headers: { 'User-Agent': 'modular-patchbay/1.0' },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const html = await res.text();
+
+  const data: AuditData = {};
+
+  // Extract <tr> blocks (skip header row)
+  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let rowMatch: RegExpExecArray | null;
+  while ((rowMatch = rowRegex.exec(html)) !== null) {
+    const rowHtml = rowMatch[1];
+    // Extract <td> cell contents
+    const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+    const cells: string[] = [];
+    let cellMatch: RegExpExecArray | null;
+    while ((cellMatch = cellRegex.exec(rowHtml)) !== null) {
+      cells.push(stripTags(cellMatch[1]).replace(/\s+/g, ' ').trim());
+    }
+    // Expect: [number, skillName, repoName, gen, socket, snyk]
+    if (cells.length >= 6) {
+      const num = cells[0];
+      if (!/^\d+$/.test(num)) continue; // skip header rows
+      const skillName = cells[1];
+      const repoName = cells[2];
+      const gen = cells[3];
+      const socket = cells[4];
+      const snyk = cells[5];
+      if (!skillName || !repoName) continue;
+      const skillId = `${repoName}@${skillName}`;
+      data[skillId] = { gen, socket, snyk };
+    }
+  }
+
+  auditCache = { data, ts: Date.now() };
+  return data;
+}
+
+// GET /api/skills/audits
+router.get('/audits', async (_req: Request, res: Response) => {
+  try {
+    const data = await fetchAudits();
+    res.json({ data });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Fetch failed';
+    res.status(500).json({ error: message, data: {} });
+  }
+});
 
 // GET /api/skills/search?q=react
 router.get('/search', async (req: Request, res: Response) => {
@@ -24,11 +106,14 @@ router.get('/search', async (req: Request, res: Response) => {
   }
 
   try {
-    const { stdout } = await exec('npx', ['skills', 'find', query], {
-      timeout: 30000,
-      shell: true,
-      env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
-    });
+    const [{ stdout }, auditData] = await Promise.all([
+      exec('npx', ['skills', 'find', query], {
+        timeout: 30000,
+        shell: true,
+        env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+      }),
+      fetchAudits().catch(() => ({} as AuditData)),
+    ]);
 
     // Parse the CLI output
     const results: SkillResult[] = [];
@@ -36,7 +121,7 @@ router.get('/search', async (req: Request, res: Response) => {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].replace(/\x1b\[[0-9;]*m/g, '').trim();
       // Lines like: vercel-labs/agent-skills@vercel-react-best-practices  176.5K installs
-      const match = line.match(/^(.+?)@(.+?)\s+([\d.]+K?)\s*installs?$/);
+      const match = line.match(/^(.+?)@(.+?)\s+([\d.]+[KkMm]?)\s*installs?$/);
       if (match) {
         const repo = match[1];
         const skillName = match[2];
@@ -44,15 +129,23 @@ router.get('/search', async (req: Request, res: Response) => {
         // Next line should be the URL
         const nextLine = (lines[i + 1] || '').replace(/\x1b\[[0-9;]*m/g, '').trim();
         const urlMatch = nextLine.match(/https:\/\/skills\.sh\/.+/);
+        const skillId = `${repo}@${skillName}`;
+        const audit = auditData[skillId];
         results.push({
-          id: `${repo}@${skillName}`,
+          id: skillId,
           name: skillName,
           repo,
           installs,
           url: urlMatch ? urlMatch[0] : `https://skills.sh/${repo}/${skillName}`,
+          gen: audit?.gen,
+          socket: audit?.socket,
+          snyk: audit?.snyk,
         });
       }
     }
+
+    // Sort by installs descending
+    results.sort((a, b) => parseInstalls(b.installs) - parseInstalls(a.installs));
 
     res.json({ data: results, query });
   } catch (err: unknown) {
