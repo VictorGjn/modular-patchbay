@@ -368,6 +368,7 @@ export function buildOrientationBlock(channels: ChannelConfig[], getTreeIndex: T
 /**
  * Assemble the final system prompt from all pipeline parts.
  * Order: frame → orientation → knowledge_format → framework → memory → knowledge
+ * Applies attention-aware ordering to knowledge sources by epistemic priority.
  */
 export function assemblePipelineContext(parts: {
   frame: string;
@@ -384,6 +385,106 @@ export function assemblePipelineContext(parts: {
   if (hasRepos) systemParts.push(knowledgeFormatGuide);
   if (frameworkBlock) systemParts.push(frameworkBlock);
   if (memoryBlock) systemParts.push(memoryBlock);
-  if (knowledgeBlock) systemParts.push(knowledgeBlock);
+
+  if (knowledgeBlock) {
+    // Apply attention-aware ordering to knowledge sources
+    const orderedKnowledgeBlock = applyAttentionOrdering(knowledgeBlock);
+    systemParts.push(orderedKnowledgeBlock);
+  }
+
   return systemParts.filter(Boolean).join('\n\n');
+}
+
+/**
+ * Apply attention-aware ordering to knowledge sources within a knowledge block.
+ * Sorts by epistemic priority: ground-truth → guideline → framework → hypothesis → signal → evidence
+ */
+function applyAttentionOrdering(knowledgeBlock: string): string {
+  // Check if this is a knowledge block with sources
+  if (!knowledgeBlock.includes('<knowledge>')) {
+    return knowledgeBlock;
+  }
+
+  // Extract the knowledge block content
+  const knowledgeMatch = knowledgeBlock.match(/<knowledge[^>]*>(.*?)<\/knowledge>/s);
+  if (!knowledgeMatch) {
+    return knowledgeBlock;
+  }
+
+  const knowledgeContent = knowledgeMatch[1];
+
+  // Extract source blocks using regex
+  const sourceRegex = /<source[^>]*type="([^"]*)"[^>]*>(.*?)<\/source>/gs;
+  const sources: Array<{ type: string; fullMatch: string; order: number }> = [];
+  const nonSourceContent: string[] = [];
+
+  // Type ordering: ground-truth=0, guideline=1, framework=2, hypothesis=3, signal=4, evidence=5
+  const typeOrder: Record<string, number> = {
+    'ground-truth': 0,
+    'Ground Truth': 0,
+    'guideline': 1,
+    'Guideline': 1,
+    'framework': 2,
+    'Framework': 2,
+    'hypothesis': 3,
+    'Hypothesis': 3,
+    'signal': 4,
+    'Signal': 4,
+    'evidence': 5,
+    'Evidence': 5,
+  };
+
+  let lastIndex = 0;
+  let match;
+
+  while ((match = sourceRegex.exec(knowledgeContent)) !== null) {
+    // Add any content before this source
+    if (match.index > lastIndex) {
+      const beforeContent = knowledgeContent.slice(lastIndex, match.index).trim();
+      if (beforeContent) {
+        nonSourceContent.push(beforeContent);
+      }
+    }
+
+    const type = match[1];
+    const order = typeOrder[type] ?? 3; // Default to hypothesis position if unknown
+
+    sources.push({
+      type,
+      fullMatch: match[0],
+      order,
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add any remaining content after the last source
+  if (lastIndex < knowledgeContent.length) {
+    const afterContent = knowledgeContent.slice(lastIndex).trim();
+    if (afterContent) {
+      nonSourceContent.push(afterContent);
+    }
+  }
+
+  // Sort sources by epistemic priority
+  sources.sort((a, b) => a.order - b.order);
+
+  // Rebuild knowledge content with ordered sources
+  const orderedContent = [];
+
+  // Add non-source content first
+  if (nonSourceContent.length > 0) {
+    orderedContent.push(...nonSourceContent);
+  }
+
+  // Add sorted sources
+  if (sources.length > 0) {
+    orderedContent.push(...sources.map(s => s.fullMatch));
+  }
+
+  // Rebuild the full knowledge block
+  const knowledgeTagMatch = knowledgeBlock.match(/<knowledge[^>]*>/);
+  const knowledgeTag = knowledgeTagMatch ? knowledgeTagMatch[0] : '<knowledge>';
+
+  return `${knowledgeTag}\n${orderedContent.join('\n\n')}\n</knowledge>`;
 }
