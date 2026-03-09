@@ -1,4 +1,4 @@
-import { type ConsoleState, type AgentMeta, type ExportTarget } from '../store/consoleStore';
+import { type ConsoleState, type AgentMeta, type ExportTarget, type InstructionState, type WorkflowStep } from '../store/consoleStore';
 import { type KnowledgeType, type Category, type OutputFormat, classifyKnowledgeType, type KnowledgeSource } from '../store/knowledgeBase';
 
 interface ModularChannel {
@@ -33,6 +33,14 @@ const VALID_OUTPUT_FORMATS = new Set<string>([
 export interface ImportResult extends Partial<ConsoleState> {
   agentMeta?: AgentMeta;
   detectedFormat?: ExportTarget;
+  instructionState?: InstructionState;
+  workflowSteps?: WorkflowStep[];
+}
+
+interface ParsedSystemPrompt {
+  persona: string;
+  constraints: string;
+  objective: string;
 }
 
 export function importAgent(text: string): ImportResult {
@@ -69,6 +77,8 @@ function importJSON(text: string): ImportResult {
       token_budget: agent.token_budget,
     });
     result.detectedFormat = 'generic';
+    if (agent.instructionState) result.instructionState = agent.instructionState as InstructionState;
+    if (agent.workflowSteps) result.workflowSteps = agent.workflowSteps as WorkflowStep[];
     return result;
   }
 
@@ -125,6 +135,35 @@ function importMarkdown(text: string): ImportResult {
     if (channels.length > 0) {
       result.channels = channels;
     }
+  }
+
+  // Parse instruction sections from markdown body
+  const personaMatch = body.match(/## Persona\n([\s\S]*?)(?=\n## |$)/);
+  const constraintsMatch = body.match(/## Constraints\n([\s\S]*?)(?=\n## |$)/);
+  const objectivesMatch = body.match(/## Objectives\n([\s\S]*?)(?=\n## |$)/);
+  if (personaMatch || constraintsMatch || objectivesMatch) {
+    result.instructionState = {
+      persona: personaMatch ? personaMatch[1].trim() : '',
+      tone: 'neutral',
+      expertise: 3,
+      constraints: {
+        neverMakeUp: false,
+        askBeforeActions: false,
+        stayInScope: false,
+        useOnlyTools: false,
+        limitWords: false,
+        wordLimit: 500,
+        customConstraints: constraintsMatch ? constraintsMatch[1].trim() : '',
+        scopeDefinition: '',
+      },
+      objectives: {
+        primary: objectivesMatch ? objectivesMatch[1].trim() : '',
+        successCriteria: [],
+        failureModes: [],
+      },
+      rawPrompt: '',
+      autoSync: true,
+    };
   }
 
   return result;
@@ -250,6 +289,33 @@ function mapDataToState(data: Record<string, unknown>): ImportResult {
 
   if (data.prompt) {
     result.prompt = asString(data.prompt);
+  }
+
+  const systemText = asString(data.system);
+  if (systemText) {
+    const parsed = parseSystemPrompt(systemText);
+    result.instructionState = {
+      persona: parsed.persona,
+      tone: 'neutral',
+      expertise: 3,
+      constraints: {
+        neverMakeUp: false,
+        askBeforeActions: false,
+        stayInScope: false,
+        useOnlyTools: false,
+        limitWords: false,
+        wordLimit: 500,
+        customConstraints: parsed.constraints,
+        scopeDefinition: '',
+      },
+      objectives: {
+        primary: parsed.objective,
+        successCriteria: [],
+        failureModes: [],
+      },
+      rawPrompt: '',
+      autoSync: true,
+    };
   }
 
   return result;
@@ -466,4 +532,71 @@ function parseChannelsFromBody(body: string): ConsoleState['channels'] {
     }
   }
   return channels;
+}
+
+function parseSystemPrompt(systemPrompt: string): ParsedSystemPrompt {
+  const normalized = systemPrompt.replace(/\r\n/g, '\n').trim();
+  if (!normalized) {
+    return { persona: '', constraints: '', objective: '' };
+  }
+
+  const paragraphs = normalized
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const lines = normalized.split('\n').map((line) => line.trim()).filter(Boolean);
+  const bulletLines = lines
+    .map((line) => {
+      const bulletMatch = line.match(/^[-*]\s+(.+)$/);
+      if (bulletMatch) return bulletMatch[1].trim();
+      const numberedMatch = line.match(/^\d+\.\s+(.+)$/);
+      if (numberedMatch) return numberedMatch[1].trim();
+      return '';
+    })
+    .filter(Boolean);
+
+  const constraintKeywords = /\b(never|always|must|must not|do not|don't|forbidden|required|only|avoid|without)\b/i;
+  const objectiveKeywords = /\b(objective|goal|task|deliver|ensure|help|outcome|success|mission)\b/i;
+
+  const constraintLines = bulletLines.filter((line) => constraintKeywords.test(line));
+  const objectiveLines = bulletLines.filter((line) => !constraintKeywords.test(line) && objectiveKeywords.test(line));
+
+  const objectiveHeadingMatch = normalized.match(/(?:^|\n)(?:#+\s*)?(?:objective|objectives|goal|goals|mission)\s*:?\s*\n?([\s\S]*?)(?=\n(?:#+\s*)?[A-Za-z][^\n]*:\s*|\n\s*\n|$)/i);
+  const constraintsHeadingMatch = normalized.match(/(?:^|\n)(?:#+\s*)?(?:constraint|constraints|guardrails|rules)\s*:?\s*\n?([\s\S]*?)(?=\n(?:#+\s*)?[A-Za-z][^\n]*:\s*|\n\s*\n|$)/i);
+
+  const objectiveFromHeading = objectiveHeadingMatch?.[1]
+    ?.split('\n')
+    .map((line) => line.replace(/^[-*]\s+/, '').trim())
+    .find(Boolean) ?? '';
+  const constraintsFromHeading = constraintsHeadingMatch?.[1]
+    ?.split('\n')
+    .map((line) => line.replace(/^[-*]\s+/, '').trim())
+    .filter(Boolean)
+    .join('\n') ?? '';
+
+  const personaParagraph = paragraphs.find((paragraph) => {
+    const lower = paragraph.toLowerCase();
+    if (/^(constraints?|guardrails?|rules|objectives?|goals?|mission)\s*:/.test(lower)) return false;
+    if (objectiveKeywords.test(paragraph) || constraintKeywords.test(paragraph)) return false;
+    return true;
+  }) ?? paragraphs[0] ?? '';
+
+  const personaSentence = personaParagraph
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .find(Boolean) ?? '';
+
+  const objective =
+    objectiveFromHeading ||
+    objectiveLines[0] ||
+    paragraphs.find((p) => objectiveKeywords.test(p)) ||
+    '';
+
+  const constraints = constraintsFromHeading || constraintLines.join('\n');
+
+  return {
+    persona: personaSentence,
+    constraints,
+    objective: typeof objective === 'string' ? objective.trim() : '',
+  };
 }

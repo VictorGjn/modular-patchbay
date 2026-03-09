@@ -6,6 +6,7 @@ export type ProviderStatus = 'disconnected' | 'connected' | 'configured' | 'erro
 export interface ProviderConfig {
   id: string;
   name: string;
+  type?: 'openai' | 'anthropic' | 'openrouter' | 'google' | 'custom';
   authMethod: AuthMethod;
   status: ProviderStatus;
   // OAuth fields (future-ready)
@@ -30,6 +31,9 @@ export interface ProviderConfig {
   headerNote?: string;
   // Test result
   lastError?: string;
+  // Backend key sentinels (key exists on server but not exposed to frontend)
+  _hasStoredKey?: boolean;
+  _hasStoredAccessToken?: boolean;
 }
 
 export const DEFAULT_PROVIDERS: ProviderConfig[] = [
@@ -169,17 +173,22 @@ async function syncProviderToBackend(provider: ProviderConfig): Promise<void> {
     provider.id.includes('openai') ? 'openai' :
     'custom';
 
+  // Don't overwrite real keys with sentinel/empty values
+  const isSentinel = (v?: string) => !v || /^[•]+$/.test(v);
+  const payload: Record<string, unknown> = {
+    baseUrl: provider.baseUrl,
+    authMethod: provider.authMethod,
+    name: provider.name,
+    type: backendType,
+  };
+  // Only include credentials if the user actually set a new value
+  if (!isSentinel(provider.apiKey)) payload.apiKey = provider.apiKey;
+  if (!isSentinel(provider.accessToken)) payload.accessToken = provider.accessToken;
+
   await fetch(`${API_BASE}/providers/${provider.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      apiKey: provider.apiKey,
-      accessToken: provider.accessToken,
-      baseUrl: provider.baseUrl,
-      authMethod: provider.authMethod,
-      name: provider.name,
-      type: backendType,
-    }),
+    body: JSON.stringify(payload),
   });
   pendingProviderSync.delete(provider.id);
 }
@@ -445,15 +454,23 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
           const info = data?.data;
           const authenticated = info?.authenticated === true;
           const displayInfo = authenticated && info?.email ? `${info.displayName || 'User'} (${info.email})` : undefined;
+          const sdkModels: { id: string; label: string }[] = Array.isArray(info?.models)
+            ? info.models.map((m: string) => ({ id: m, label: m }))
+            : [];
           set((state) => ({
             testing: { ...state.testing, [id]: false },
             providers: state.providers.map((p) =>
-              p.id === id ? { ...p, status: (authenticated ? 'connected' : 'error') as ProviderStatus, lastError: authenticated ? displayInfo : (info?.error || 'Not authenticated') } : p
+              p.id === id ? {
+                ...p,
+                status: (authenticated ? 'connected' : 'error') as ProviderStatus,
+                models: sdkModels.length > 0 ? sdkModels : p.models,
+                lastError: authenticated ? displayInfo : (info?.error || 'Not authenticated'),
+              } : p
             ),
           }));
           persistProviders(get().providers);
           return authenticated
-            ? { ok: true, models: provider.models.map((m) => m.id) }
+            ? { ok: true, models: sdkModels.map((m) => m.id) }
             : { ok: false, error: data?.data?.error || 'Not authenticated — run `claude` in your terminal first' };
         } catch (err) {
           const errorMsg = normalizeConnectionError(err);
@@ -472,17 +489,21 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
       if (backend) {
         // Save first, then test via backend
         const provider = get().providers.find((p) => p.id === id);
-        if (provider) {
+        const hasRealKey = provider?.apiKey && !/^[•]+$/.test(provider.apiKey);
+        if (provider && hasRealKey) {
           await fetch(`${API_BASE}/providers/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ apiKey: provider.apiKey, baseUrl: provider.baseUrl }),
           });
         }
+        // Don't send sentinel/empty keys — backend will use its stored key
+        const testBody: Record<string, string> = { baseUrl: provider?.baseUrl || '' };
+        if (hasRealKey) testBody.apiKey = provider!.apiKey!;
         const res = await fetch(`${API_BASE}/providers/${id}/test`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey: provider?.apiKey, baseUrl: provider?.baseUrl }),
+          body: JSON.stringify(testBody),
         });
         const data = await res.json();
         if (data.status === 'ok') {
@@ -598,14 +619,20 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         const merged = DEFAULT_PROVIDERS.map((def) => {
           const remote = data.find((d: ProviderConfig) => d.id === def.id);
           if (!remote) return def;
+          const hasBackendKey = !!(remote as any).hasStoredKey;
+          const hasBackendToken = !!(remote as any).hasStoredAccessToken;
           return {
             ...def,
             ...remote,
             // keep canonical UX labels for first-party providers
             name: def.id === 'anthropic' ? 'Claude' : (remote.name || def.name),
-            // credentials are never returned by backend GET /providers
-            apiKey: def.apiKey,
-            accessToken: def.accessToken,
+            // If backend has a stored key, mark provider as configured
+            // and use a sentinel so the frontend knows not to overwrite it
+            apiKey: hasBackendKey ? '' : def.apiKey,
+            accessToken: hasBackendToken ? '' : def.accessToken,
+            _hasStoredKey: hasBackendKey,
+            _hasStoredAccessToken: hasBackendToken,
+            status: hasBackendKey || hasBackendToken ? 'configured' as const : (remote.status || def.status),
             models: Array.isArray(remote.models) ? remote.models : def.models,
           };
         });

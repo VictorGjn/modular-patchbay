@@ -9,8 +9,7 @@
  * knows where to dispatch execution.
  */
 
-import { useMcpStore, type McpTool } from '../store/mcpStore';
-import { useConsoleStore } from '../store/consoleStore';
+import { useMcpStore } from '../store/mcpStore';
 
 // ── Canonical tool definition (provider-agnostic) ──
 
@@ -47,14 +46,14 @@ export interface OpenAIToolDef {
 // ── Registry ──
 
 export function getUnifiedTools(): UnifiedTool[] {
-  const tools: UnifiedTool[] = [];
+  const raw: UnifiedTool[] = [];
 
   // 1. MCP tools from connected servers
   const mcpState = useMcpStore.getState();
   for (const server of mcpState.servers) {
     if (server.status !== 'connected') continue;
     for (const tool of server.tools) {
-      tools.push({
+      raw.push({
         name: tool.name,
         description: tool.description || 'No description',
         inputSchema: (tool.inputSchema as Record<string, unknown>) || { type: 'object', properties: {} },
@@ -67,7 +66,17 @@ export function getUnifiedTools(): UnifiedTool[] {
   // — they don't have a tool-calling interface, just prompt injection.
   // If skills ever gain a callable API, add them here.
 
-  return tools;
+  // Disambiguate tool names that collide across servers
+  const nameCount = new Map<string, number>();
+  for (const t of raw) nameCount.set(t.name, (nameCount.get(t.name) ?? 0) + 1);
+
+  return raw.map(t => {
+    if ((nameCount.get(t.name) ?? 0) > 1 && t.origin.kind === 'mcp') {
+      // Namespace: "serverId__toolName" to make each tool uniquely addressable
+      return { ...t, name: `${t.origin.serverId}__${t.name}` };
+    }
+    return t;
+  });
 }
 
 /** Check if a provider supports native tool calling */
@@ -96,7 +105,13 @@ export function toOpenAITools(tools: UnifiedTool[]): OpenAIToolDef[] {
   }));
 }
 
-/** Resolve which server owns a tool by name */
+/** Resolve which server owns a tool by name (handles namespaced names too) */
 export function resolveToolOrigin(tools: UnifiedTool[], toolName: string): ToolOrigin | null {
-  return tools.find(t => t.name === toolName)?.origin ?? null;
+  // Direct match first (covers both namespaced and non-namespaced)
+  const direct = tools.find(t => t.name === toolName);
+  if (direct) return direct.origin;
+  // Fallback: strip namespace prefix if present (serverId__toolName)
+  const unnamespaced = toolName.includes('__') ? toolName.split('__').slice(1).join('__') : null;
+  if (unnamespaced) return tools.find(t => t.name === unnamespaced)?.origin ?? null;
+  return null;
 }

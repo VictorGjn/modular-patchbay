@@ -17,6 +17,7 @@ export interface McpServerState {
   command: string;
   args: string[];
   env: Record<string, string>;
+  autoConnect?: boolean;
   url?: string;
   headers?: Record<string, string>;
   status: McpServerStatus;
@@ -33,8 +34,8 @@ interface McpStore {
   error?: string;
 
   loadServers: () => Promise<void>;
-  addServer: (config: { id?: string; name: string; type?: 'stdio' | 'sse' | 'http'; command: string; args: string[]; env: Record<string, string>; url?: string; headers?: Record<string, string> }) => Promise<McpServerState | null>;
-  updateServer: (id: string, patch: Partial<Pick<McpServerState, 'name' | 'command' | 'args' | 'env' | 'url' | 'headers' | 'type'>>) => Promise<McpServerState | null>;
+  addServer: (config: { id?: string; name: string; type?: 'stdio' | 'sse' | 'http'; command: string; args: string[]; env: Record<string, string>; autoConnect?: boolean; url?: string; headers?: Record<string, string> }) => Promise<McpServerState | null>;
+  updateServer: (id: string, patch: Partial<Pick<McpServerState, 'name' | 'command' | 'args' | 'env' | 'autoConnect' | 'url' | 'headers' | 'type'>>) => Promise<McpServerState | null>;
   connectServer: (id: string) => Promise<void>;
   disconnectServer: (id: string) => Promise<void>;
   removeServer: (id: string) => Promise<void>;

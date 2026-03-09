@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { useConsoleStore, type ExportTarget } from '../store/consoleStore';
+import { useConsoleStore, type ExportTarget, collectFullState } from '../store/consoleStore';
 import { useTeamStore } from '../store/teamStore';
 import { useTheme } from '../theme';
 import {
@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { exportForTarget, downloadAgentFile, downloadAllTargets, TARGET_META, type ExportConfig } from '../utils/agentExport';
+import { API_BASE } from '../config';
 import { exportAgentYaml } from '../utils/agentExportYaml';
 
 const ICON_OPTIONS: { id: string; Icon: LucideIcon }[] = [
@@ -71,6 +72,8 @@ export function SaveAgentModal() {
   const setExportTarget = useConsoleStore((s) => s.setExportTarget);
   const agentConfig = useConsoleStore((s) => s.agentConfig);
   const connectors = useConsoleStore((s) => s.connectors);
+  const instructionState = useConsoleStore((s) => s.instructionState);
+  const workflowSteps = useConsoleStore((s) => s.workflowSteps);
   const upsertLibraryAgent = useTeamStore((s) => s.upsertLibraryAgent);
 
   const [copied, setCopied] = useState(false);
@@ -125,7 +128,9 @@ export function SaveAgentModal() {
     agentMeta,
     agentConfig,
     connectors,
-  }), [channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta, agentConfig, connectors]);
+    instructionState,
+    workflowSteps,
+  }), [channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta, agentConfig, connectors, instructionState, workflowSteps]);
 
   const preview = useMemo(() => {
     return exportForTarget(exportTarget, config);
@@ -142,6 +147,7 @@ export function SaveAgentModal() {
     const name = agentMeta.name || 'modular-agent';
     const safeName = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
+    // Backward compat: update teamStore library
     upsertLibraryAgent({
       id: safeName,
       name,
@@ -152,6 +158,17 @@ export function SaveAgentModal() {
       skillIds: skills.filter((s) => s.added).map((s) => s.id),
     });
 
+    // Persist full state to backend
+    const fullState = collectFullState();
+    fetch(`${API_BASE}/agents/${encodeURIComponent(safeName)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fullState),
+    }).catch(() => {
+      // silent — download still works as fallback
+    });
+
+    // Download file
     const meta = TARGET_META[exportTarget];
     downloadAgentFile(preview, safeName, meta.ext);
   };

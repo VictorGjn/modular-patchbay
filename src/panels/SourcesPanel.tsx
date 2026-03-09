@@ -177,7 +177,7 @@ function GeneratorSection() {
               <div key={i} className="flex items-start gap-1.5 text-[10px]" style={{ color: t.textSecondary }}>
                 <AlertCircle size={10} style={{ color: '#e74c3c', marginTop: 2, flexShrink: 0 }} />
                 <div>
-                  <span style={{ color: t.text, fontWeight: 600 }}>{gap.name}</span>
+                  <span style={{ color: t.textPrimary, fontWeight: 600 }}>{gap.name}</span>
                   <span style={{ color: t.textDim }}> ({gap.type})</span>
                   {gap.description && <div style={{ color: t.textDim, fontSize: 9, marginTop: 1 }}>{gap.description}</div>}
                 </div>
@@ -276,14 +276,36 @@ function KnowledgeSection() {
       });
       const json = await resp.json() as {
         status: string;
-        data?: { outputDir: string; files: string[]; scan?: { totalTokens?: number }; totalTokens?: number };
+        data?: {
+          outputDir: string;
+          files: string[];
+          scan?: {
+            totalTokens?: number;
+            totalFiles?: number;
+            baseUrl?: string;
+            stack?: string[] | Record<string, string>;
+            features?: { name: string }[];
+          };
+          totalTokens?: number;
+          overviewMarkdown?: string;
+          name?: string;
+          contentSourceId?: string;
+        };
         error?: string;
       };
 
       if (json.status === 'ok' && json.data) {
         const totalTokens = json.data.totalTokens ?? json.data.scan?.totalTokens ?? 5000;
+        const scan = json.data.scan;
+        const normalizedStack = Array.isArray(scan?.stack)
+          ? scan.stack
+          : scan?.stack && typeof scan.stack === 'object'
+            ? Object.values(scan.stack).filter((v): v is string => typeof v === 'string' && v !== 'unknown' && v !== 'none')
+            : [];
+
         for (const file of json.data.files) {
           const filePath = `${json.data.outputDir}/${file}`;
+          const isOverview = file.includes('overview');
           addChannel({
             sourceId: `repo-${file}-${Date.now()}`,
             name: file.replace('.compressed.md', '').replace('.md', '').replace(/^\d+-/, ''),
@@ -292,6 +314,17 @@ function KnowledgeSection() {
             knowledgeType: 'ground-truth',
             depth: isGitHub ? 2 : 1,
             baseTokens: Math.round(totalTokens / Math.max(json.data.files.length, 1)),
+            ...(isOverview && json.data.overviewMarkdown ? { content: json.data.overviewMarkdown } : {}),
+            ...(isOverview && scan ? {
+              repoMeta: {
+                name: json.data.name ?? '',
+                stack: normalizedStack,
+                totalFiles: scan.totalFiles ?? 0,
+                baseUrl: scan.baseUrl,
+                features: (scan.features ?? []).map(f => f.name),
+              },
+            } : {}),
+            ...(json.data.contentSourceId ? { contentSourceId: json.data.contentSourceId } : {}),
           });
         }
 
@@ -302,6 +335,13 @@ function KnowledgeSection() {
         await useTreeIndexStore.getState().indexFiles(
           json.data.files.map(f => `${json.data!.outputDir}/${f}`),
         );
+
+        // Auto-populate MCP knowledge graph if a memory server is connected
+        if (scan) {
+          import('../services/graphPopulator').then(({ populateGraphFromScan }) => {
+            populateGraphFromScan(json.data!.name ?? repoPath, scan as any).catch(() => {});
+          });
+        }
       }
     } catch {
       // user sees no change

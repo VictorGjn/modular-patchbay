@@ -89,6 +89,13 @@ router.get("/status", async (_req: Request, res: Response) => {
     const config = JSON.parse(readFileSync(configPath, "utf-8"));
     const account = config?.oauthAccount;
 
+    // Claude Agent SDK supports these models
+    const models = [
+      "claude-sonnet-4-20250514",
+      "claude-opus-4-20250514",
+      "claude-haiku-4-20250514",
+    ];
+
     res.json({
       status: "ok",
       data: {
@@ -96,6 +103,7 @@ router.get("/status", async (_req: Request, res: Response) => {
         email: account?.emailAddress,
         displayName: account?.displayName,
         organization: account?.organizationUuid,
+        models,
       },
     });
   } catch (error: unknown) {
