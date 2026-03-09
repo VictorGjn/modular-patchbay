@@ -161,7 +161,7 @@ export function QualificationPanel() {
           </Tooltip>
           <div className="flex-1" />
           {latestRun && <ScoreBadge score={latestRun.globalScore} threshold={suite.passThreshold} />}
-          <Badge variant={status === 'passed' ? 'success' : status === 'needs-work' ? 'warning' : status === 'error' ? 'error' : 'default'}>
+          <Badge variant={status === 'passed' ? 'success' : status === 'needs-work' ? 'warning' : status === 'error' ? 'error' : 'neutral'}>
             {status.replace('-', ' ')}
           </Badge>
         </div>
@@ -289,7 +289,7 @@ export function QualificationPanel() {
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>Global Score</span>
               <div className="flex-1">
-                <Progress value={latestRun.globalScore} max={100}
+                <Progress value={latestRun.globalScore}
                   color={latestRun.globalScore >= suite.passThreshold ? '#2ecc71' : '#e74c3c'} />
               </div>
               <ScoreBadge score={latestRun.globalScore} threshold={suite.passThreshold} />

@@ -9,8 +9,7 @@
  * knows where to dispatch execution.
  */
 
-import { useMcpStore, type McpTool } from '../store/mcpStore';
-import { useConsoleStore } from '../store/consoleStore';
+import { useMcpStore } from '../store/mcpStore';
 
 // ── Canonical tool definition (provider-agnostic) ──
 

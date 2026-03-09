@@ -6,6 +6,7 @@ export type ProviderStatus = 'disconnected' | 'connected' | 'configured' | 'erro
 export interface ProviderConfig {
   id: string;
   name: string;
+  type?: 'openai' | 'anthropic' | 'openrouter' | 'google' | 'custom';
   authMethod: AuthMethod;
   status: ProviderStatus;
   // OAuth fields (future-ready)

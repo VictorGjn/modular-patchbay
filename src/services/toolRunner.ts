@@ -23,7 +23,7 @@ import {
 import { useMcpStore } from '../store/mcpStore';
 import { useProviderStore } from '../store/providerStore';
 import { useTraceStore } from '../store/traceStore';
-import { estimateTokens } from './treeIndexer';
+// estimateTokens imported if needed for tracing
 
 // ── Types ──
 
