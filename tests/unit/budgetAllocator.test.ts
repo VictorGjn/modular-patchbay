@@ -173,6 +173,59 @@ describe('budgetAllocator', () => {
       expect(result[0].weight).toBe(0);
     });
 
+    it('handles sources with 0 rawTokens', () => {
+      const sources: BudgetSource[] = [
+        { name: 'empty-doc', knowledgeType: 'ground-truth', rawTokens: 0 },
+        { name: 'normal-doc', knowledgeType: 'evidence', rawTokens: 5000 },
+      ];
+      const totalBudget = 10000;
+
+      const result = allocateBudgets(sources, totalBudget);
+
+      expect(result).toHaveLength(2);
+
+      const emptyDoc = result.find(r => r.name === 'empty-doc')!;
+      const normalDoc = result.find(r => r.name === 'normal-doc')!;
+
+      // Empty doc should be capped at 0 tokens
+      expect(emptyDoc.allocatedTokens).toBe(0);
+      expect(emptyDoc.cappedBySize).toBe(true);
+
+      // Normal doc should get redistributed budget
+      expect(normalDoc.allocatedTokens).toBeGreaterThan(0);
+      expect(normalDoc.allocatedTokens).toBeLessThanOrEqual(totalBudget);
+    });
+
+    it('handles 1 vs 10 sources of same type', () => {
+      const sources1: BudgetSource[] = [
+        { name: 'single-evidence', knowledgeType: 'evidence', rawTokens: 10000 },
+      ];
+
+      const sources10: BudgetSource[] = Array.from({ length: 10 }, (_, i) => ({
+        name: `evidence-${i}`,
+        knowledgeType: 'evidence' as const,
+        rawTokens: 10000,
+      }));
+
+      const totalBudget = 10000;
+
+      const result1 = allocateBudgets(sources1, totalBudget);
+      const result10 = allocateBudgets(sources10, totalBudget);
+
+      // Single source should get entire budget (up to its cap)
+      expect(result1[0].allocatedTokens).toBeCloseTo(totalBudget, 50);
+
+      // 10 sources should split budget equally
+      for (const allocation of result10) {
+        expect(allocation.allocatedTokens).toBeCloseTo(totalBudget / 10, 50);
+      }
+
+      // Total allocations should be approximately equal
+      const total1 = result1.reduce((sum, r) => sum + r.allocatedTokens, 0);
+      const total10 = result10.reduce((sum, r) => sum + r.allocatedTokens, 0);
+      expect(Math.abs(total1 - total10)).toBeLessThan(100);
+    });
+
     it('handles all sources of same type', () => {
       const sources: BudgetSource[] = [
         { name: 'evidence-1', knowledgeType: 'evidence', rawTokens: 6000 },
@@ -198,6 +251,31 @@ describe('budgetAllocator', () => {
       // Total should equal budget
       const total = result.reduce((sum, r) => sum + r.allocatedTokens, 0);
       expect(Math.abs(total - totalBudget)).toBeLessThan(10);
+    });
+
+    it('handles all sources capped by size (all small)', () => {
+      const sources: BudgetSource[] = [
+        { name: 'tiny-ground-truth', knowledgeType: 'ground-truth', rawTokens: 50 },
+        { name: 'tiny-evidence', knowledgeType: 'evidence', rawTokens: 30 },
+        { name: 'tiny-framework', knowledgeType: 'framework', rawTokens: 40 },
+      ];
+      const totalBudget = 10000;
+
+      const result = allocateBudgets(sources, totalBudget);
+
+      expect(result).toHaveLength(3);
+
+      // All should be capped by their tiny sizes
+      for (const allocation of result) {
+        const source = sources.find(s => s.name === allocation.name)!;
+        expect(allocation.allocatedTokens).toBe(source.rawTokens);
+        expect(allocation.cappedBySize).toBe(true);
+      }
+
+      // Total allocated should be much less than budget
+      const totalAllocated = result.reduce((sum, r) => sum + r.allocatedTokens, 0);
+      expect(totalAllocated).toBe(50 + 30 + 40); // 120 tokens total
+      expect(totalAllocated).toBeLessThan(totalBudget);
     });
 
     it('converges after maximum redistribution rounds', () => {

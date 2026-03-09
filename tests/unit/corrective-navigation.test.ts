@@ -90,4 +90,50 @@ That's all!`;
     expect(gaps[0]).toBe('Missing API docs');
     expect(gaps[1]).toBe('Missing unit tests');
   });
+
+  it('handles nested JSON structures gracefully', () => {
+    const response = `Here are the complex gaps:
+["Missing config setup", "Missing array parsing support", "Missing nested json structure handling"]`;
+
+    const gaps = parseCritiqueResponse(response);
+    expect(gaps).toHaveLength(3);
+    expect(gaps[0]).toBe('Missing config setup');
+    expect(gaps[1]).toBe('Missing array parsing support');
+    expect(gaps[2]).toBe('Missing nested json structure handling');
+  });
+
+  it('handles malformed JSON arrays gracefully', () => {
+    const malformedResponses = [
+      '["unclosed array"',
+      '["missing comma" "another item"]',
+      '[invalid: json, structure]',
+      '{"not": "an", "array": "object"}',
+      '["valid item", , "invalid comma"]'
+    ];
+
+    malformedResponses.forEach(response => {
+      const gaps = parseCritiqueResponse(response);
+      expect(gaps).toEqual([]);
+    });
+  });
+
+  it('handles deeply nested JSON content within strings', () => {
+    const response = `["Need better API configuration with endpoints", "Missing validation for nested objects"]`;
+
+    const gaps = parseCritiqueResponse(response);
+    expect(gaps).toHaveLength(2);
+    expect(gaps[0]).toContain('API');
+    expect(gaps[0]).toContain('endpoints');
+    expect(gaps[1]).toBe('Missing validation for nested objects');
+  });
+
+  it('handles special characters and unicode in gap descriptions', () => {
+    const response = `["Missing 🔒 authentication with UTF-8 chars", "Need @mention & #hashtag support", "Add <XML> & >special< chars handling"]`;
+
+    const gaps = parseCritiqueResponse(response);
+    expect(gaps).toHaveLength(3);
+    expect(gaps[0]).toBe('Missing 🔒 authentication with UTF-8 chars');
+    expect(gaps[1]).toBe('Need @mention & #hashtag support');
+    expect(gaps[2]).toBe('Add <XML> & >special< chars handling');
+  });
 });
