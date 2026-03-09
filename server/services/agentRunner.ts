@@ -193,7 +193,7 @@ async function runAgentWithSdk(
         model: config.model || undefined,
         allowedTools: ['Read', 'Edit', 'Bash', 'Glob', 'Grep', 'WebSearch', 'WebFetch'],
         permissionMode: 'acceptEdits',
-        maxTurns: Math.min(config.maxTurns || 10, 25),
+        maxTurns: Math.min(config.maxTurns || 25, 100),
         systemPrompt: systemContent,
         ...(config.repoClonePath ? { cwd: config.repoClonePath } : {}),
       },
