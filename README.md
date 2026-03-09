@@ -1,82 +1,135 @@
 # Modular Studio
 
-> Context engineering IDE for AI agents. Design knowledge pipelines, not just prompts.
+> The Context Engineering Layer — an IDE for designing AI agent knowledge pipelines.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Tests: 509](https://img.shields.io/badge/tests-509_passing-green.svg)]()
+[![Version: 0.2.0](https://img.shields.io/badge/version-0.2.0-blue.svg)]()
 
 ## What is this?
 
-Modular Studio is a **context engineering IDE** — a 3-panel dashboard for building AI agents through structured knowledge pipelines rather than monolithic prompts.
+Modular Studio is a **context engineering IDE** — a visual workspace for building AI agents through structured knowledge pipelines rather than monolithic prompts.
 
 Instead of writing one massive system prompt and hoping for the best, you design a pipeline:
 
 ```
-Sources → Tree Index → Agent Navigator → Compress → Context Assembly → LLM
+Sources → Tree Index → Budget Allocator → Agent Navigator → Compress → Context Assembly → LLM
 ```
 
-Every source (markdown files, Notion pages, HubSpot records, Slack threads, GitHub repos) becomes a **tree of headings** that an agent navigates per-task, selecting branches at the right depth. The result is dense, relevant context assembled within a token budget.
+Every source (markdown files, Notion pages, HubSpot records, Slack threads, GitHub repos) becomes a **tree of headings** that an agent navigates per-task, selecting branches at the right depth. An epistemic budget allocator ensures ground-truth sources get priority over hypotheses. The result is dense, relevant context assembled within a token budget.
 
-## The Pipeline
+## Architecture
 
-### 1. Source Connectors
-Any source becomes a tree. Four connector types handle everything:
-
-- **`indexMarkdown()`** — Markdown files (heading hierarchy)
-- **`indexStructured()`** — Notion blocks, HubSpot fields, API responses
-- **`indexChronological()`** — Slack threads, Granola transcripts, logs
-- **`indexFlat()`** — Plain text, code files
-
-### 2. Tree Index
-Every source is parsed into a uniform tree: `{ nodeId, title, depth, text, tokens, totalTokens, children, meta }`. Meta carries `sourceType`, `sourceId`, `timestamp`, `fieldGroup` — supporting any connector.
-
-### 3. Agent Navigator
-Given a task, the navigator reads the tree headlines and decides which branches matter. It produces a navigation plan: branch IDs + target depth per branch. This is **agent-driven** — the LLM picks what's relevant, not the user.
-
-### 4. Context Compression
-Selected branches still contain noise. The compressor (inspired by [rtk-ai/rtk](https://github.com/rtk-ai/rtk)) reduces content through semantic dedup, filler removal, and code compression. Priority-aware budget allocation gives critical sources more room.
-
-### 5. Context Assembly
-Compressed branches are packed into `<source>` XML tags within the token budget, producing structured messages ready for any LLM.
-
-### 6. Depth Filtering
-Five depth levels control how much of each branch survives:
-
-| Level | Name | What's included |
-|-------|------|-----------------|
-| 0 | Full | All text |
-| 1 | Detail | Leaves → first paragraph |
-| 2 | Summary | First sentence per section |
-| 3 | Headlines | H1 + H2 titles only |
-| 4 | Mention | Document title only |
-
-Token budget enforcement auto-degrades depth when content exceeds the budget.
-
-## Dashboard Layout
-
-Three-panel IDE layout:
-
-| Left (340px) | Center (flex) | Right (380px) |
-|---|---|---|
-| **Sources Panel** | **Agent Builder** | **Test & Export** |
-| Generator, Knowledge (depth mixer), MCP servers, Skills, Memory, Fact Insights | Identity, Persona, Constraints, Objectives, System Prompt, Workflow, Context Budget | Chat testing + Export to Claude Code, Amp, Codex, Vibe Kanban, OpenClaw |
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Modular Studio IDE                              │
+│                                                                         │
+│  ┌──────────────┐   ┌──────────────────┐   ┌────────────────────────┐  │
+│  │ Sources Panel │   │  Agent Builder    │   │   Test & Export Panel   │  │
+│  │              │   │                  │   │                        │  │
+│  │ Knowledge    │   │ Identity         │   │ Chat Testing           │  │
+│  │ MCP Servers  │   │ Instructions     │   │ Execution Traces       │  │
+│  │ Skills       │   │ Constraints      │   │ Export (6 formats)     │  │
+│  │ Memory       │   │ Workflow         │   │ Security Badges        │  │
+│  │ Fact Insights│   │ Tools            │   │                        │  │
+│  └──────┬───────┘   └────────┬─────────┘   └──────────┬─────────────┘  │
+│         │                    │                         │                │
+│  ───────┴────────────────────┴─────────────────────────┴────────────── │
+│                                                                         │
+│  ┌─────────────────── Context Engineering Pipeline ──────────────────┐  │
+│  │                                                                   │  │
+│  │  Sources ──► Tree    ──► Budget     ──► Agent      ──► Compress  │  │
+│  │             Index       Allocator      Navigator               │  │
+│  │             (4 connectors) (epistemic   (LLM-driven   (semantic  │  │
+│  │                          weights)      branch sel.)   dedup)    │  │
+│  │                              │              │                     │  │
+│  │                              ▼              ▼                     │  │
+│  │                    Contradiction    Corrective Re-Nav             │  │
+│  │                     Detection       + HyDE                       │  │
+│  │                              │              │                     │  │
+│  │                              └──────┬───────┘                     │  │
+│  │                                     ▼                             │  │
+│  │                          Attention-Ordered                        │  │
+│  │                          Context Assembly                         │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  ┌─────────────────── Memory System ─────────────────────────────────┐  │
+│  │  Fact Extraction ──► Three-Factor Retrieval ──► Consolidation    │  │
+│  │  (pattern + LLM)    (relevance + recency       (prune, merge,    │  │
+│  │                      + importance)               promote)         │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  ┌─────────────────── Team Runtime ──────────────────────────────────┐  │
+│  │  POST /api/runtime/team ──► Parallel Agents ──► Shared Facts     │  │
+│  │  (SSE streaming)            (Claude Agent SDK)   (deduplicated)   │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  Backend: Express 5 + TypeScript        Frontend: React 19 + Zustand   │
+│  Port 4800                              Port 5173 (dev)                │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
 ## Features
 
-- **Knowledge Depth Mixer** — Per-source depth control with token budget visualization
-- **MCP Server Registry** — 100+ pre-built configurations with health probes (green/yellow/red)
-- **AI-Powered Generation** — Generate full agent configs from plain-language descriptions
-- **Context Compression** — Semantic dedup + filler removal + code compression (inspired by [rtk-ai/rtk](https://github.com/rtk-ai/rtk))
-- **Tree Navigator** — Agent-driven branch selection per task
-- **Execution Traces** — Timeline of LLM calls, tool invocations, retrievals, errors
-- **Team Knowledge Graph** — Multi-agent fact sharing with per-agent/per-team/global scoping
-- **Automatic Versioning** — Every agent change is tracked with semantic diffs
-- **Fact Insights** — Analyze extracted facts for promotion opportunities across agents
+### Pipeline
+- **Epistemic Budget Allocator** — Token budgets by knowledge type (ground-truth 30%, evidence 20%, framework 15%, guideline 15%, signal 12%, hypothesis 8%)
+- **4 Source Connectors** — Markdown, Structured, Chronological, Flat — normalize any source to a navigable tree
+- **Agent Navigator** — LLM reads tree headlines and selects relevant branches per task
+- **Attention-Aware Ordering** — Sources reordered to exploit LLM primacy/recency attention bias
+- **Contradiction Detection** — Heuristic entity extraction + epistemic priority resolution, no LLM calls
+- **Context Compression** — Semantic dedup, filler removal, code compression (inspired by [rtk-ai/rtk](https://github.com/rtk-ai/rtk))
+- **Corrective Re-Navigation** — Critique pass identifies gaps, re-navigates with 20% budget cap
+- **HyDE Navigation** — Hypothetical ideal answer improves heading matching for complex queries
+
+### Memory
+- **Fact Extraction** — Pattern-based + LLM-based fact extraction with epistemic typing
+- **Three-Factor Retrieval** — `score = relevance + 0.5×recency + 0.5×importance`
+- **Ebbinghaus Decay** — Strength = importance × e^(-days/halfLife), half-life extends with access frequency
+- **Consolidation** — Prune weak facts, merge similar ones, promote validated hypotheses
+
+### Runtime
+- **Team Execution** — Multi-agent parallel runs with SSE streaming and per-agent model override
+- **Cross-Agent Facts** — Extracted facts shared across team members, deduplicated by confidence
+- **Contract Extraction** — Automatic type/interface extraction from feature specs
+- **Claude Agent SDK** — Virtual provider for backend agent execution
+
+### IDE
+- **Knowledge Type System** — 6 types with classification rules and visual color coding
+- **MCP Server Registry** — 100+ pre-configured servers with live health probes
+- **Skills Marketplace** — Searchable catalog with security badges (GEN, Socket, Snyk)
 - **Universal Export** — Claude Code, Amp, Codex, Vibe Kanban, OpenClaw, Generic JSON
-- **Repository Indexer** — Scan codebases and generate feature-level documentation
+- **Execution Traces** — Timeline of LLM calls, tool invocations, retrievals
+- **Automatic Versioning** — Semantic diffs on every agent change
+- **AI-Powered Generation** — Generate full agent configs from plain-language descriptions
+
+## Quick Start
+
+```bash
+# Run directly
+npx modular-studio
+
+# Or install globally
+npm install -g modular-studio
+modular-studio
+
+# Development
+git clone https://github.com/VictorGjn/modular-patchbay.git
+cd modular-patchbay
+npm install --legacy-peer-deps
+npm run dev          # Frontend on :5173, backend on :4800
+npm run build:all    # Full production build
+npm test             # 509 tests
+```
+
+### First steps
+
+1. Add an LLM provider (Anthropic, OpenAI, OpenRouter, or Google)
+2. Create an agent — set identity, persona, objectives, constraints
+3. Add knowledge sources — assign knowledge types (ground-truth, evidence, framework, etc.)
+4. Test with the chat panel — the pipeline assembles context automatically
+5. Export to your preferred format (Claude Code, Amp, Codex, etc.)
 
 ## Agent Definition Format
-
-Modular Studio exports agents as standardized YAML:
 
 ```yaml
 version: '1.0'
@@ -116,8 +169,6 @@ context:
     - name: github
       transport: stdio
       command: npx @modelcontextprotocol/server-github
-      env:
-        GITHUB_TOKEN: "${GITHUB_TOKEN}"
 
 workflow:
   steps:
@@ -128,23 +179,6 @@ workflow:
       action: Compare against baseline performance
     - id: alert
       action: Flag anomalies with severity and recommended actions
-```
-
-## Quick Start
-
-```bash
-# Install and run
-npx modular-studio
-
-# Or install globally
-npm install -g modular-studio
-modular-studio
-
-# Development
-npm install --legacy-peer-deps
-npm run dev          # Frontend on :5173, backend on :4800
-npm run build:all    # Full production build
-npm test             # 241 tests
 ```
 
 ## Export Targets
@@ -160,17 +194,60 @@ npm test             # 241 tests
 
 ## Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Vite
+- **Frontend**: React 19 + TypeScript + Vite
 - **Styling**: Tailwind CSS + custom design system (18 DS primitives)
 - **State**: Zustand (12+ stores)
 - **Backend**: Express 5 + TypeScript (LLM proxy, MCP health, repo indexer)
-- **Testing**: Vitest (unit) + Playwright (E2E)
+- **Agent SDK**: @anthropic-ai/claude-agent-sdk
+- **Testing**: Vitest (unit) + Playwright (E2E) — 509 tests
 - **Fonts**: Space Mono (labels) + Inter (body)
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Release Notes v0.2.0](docs/RELEASE-v0.2.0.md) | What's new in v0.2.0 |
+| [Usage Guide](docs/USAGE-GUIDE.md) | Comprehensive usage guide |
+| [Hurricane Use Case](docs/USE-CASE-HURRICANE.md) | End-to-end maritime hurricane response validation |
+| [Dogfood Review](docs/DOGFOOD-REVIEW.md) | Can Modular Studio improve itself? |
+| [Agent Architecture](docs/AGENT-ARCHITECTURE.md) | Platform design and agent definition format |
+| [Context Engineering Vision](docs/CONTEXT-ENGINEERING-VISION.md) | Product vision and value proposition |
+| [Knowledge Pipeline v2](docs/KNOWLEDGE-PIPELINE-V2.md) | Pipeline architecture spec |
+| [Memory System](docs/MEMORY-SYSTEM-ANALYSIS.md) | Memory management design |
+
+## Contributing
+
+We use conventional commits:
+
+```
+feat: add embedding-based navigation
+fix: budget allocator overflow on empty sources
+docs: add hurricane use case validation
+refactor: simplify depth filter to budget multiplier
+test: add contradiction detector edge cases
+```
+
+### Development workflow
+
+1. Fork and clone the repository
+2. `npm install --legacy-peer-deps`
+3. `npm run dev` — starts frontend + backend
+4. Make changes, write tests
+5. `npm test` — ensure all 509 tests pass
+6. `npm run build:all` — verify production build
+7. Submit a PR with conventional commit title
+
+### Code quality
+
+- No dead code — if it's not used, delete it
+- DRY + KISS — prefer simplicity over abstraction
+- Continuous refactoring — leave code better than you found it
+- Squash-and-merge for PRs
 
 ## Acknowledgments
 
-- [rtk-ai/rtk](https://github.com/rtk-ai/rtk) — Rust Token Killer. Our context compression module is inspired by RTK's approach to minimizing LLM token consumption. RTK compresses CLI outputs; we apply similar principles to knowledge documents.
-- [ReactFlow](https://reactflow.dev) — Used for the visual test mode canvas.
+- [rtk-ai/rtk](https://github.com/rtk-ai/rtk) — Rust Token Killer. Our context compression module is inspired by RTK's approach to minimizing LLM token consumption.
+- [ReactFlow](https://reactflow.dev) — Used for the visual canvas mode.
 - [Anthropic](https://anthropic.com) — Claude Agent SDK for backend agent execution.
 
 ## License
