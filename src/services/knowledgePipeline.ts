@@ -9,8 +9,9 @@ import type { ChannelConfig } from '../store/knowledgeBase';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { useTraceStore } from '../store/traceStore';
-import { indexMarkdown } from './treeIndexer';
+import { indexMarkdown, estimateTokens } from './treeIndexer';
 import { renderFilteredMarkdown, applyDepthFilter } from '../utils/depthFilter';
+import { allocateBudgets, DEPTH_MULTIPLIERS, type BudgetSource } from './budgetAllocator';
 import {
   startPipeline,
   completePipeline,
@@ -187,11 +188,10 @@ export async function compressKnowledge(
   const sourcesWithContent: PipelineSource[] = [];
   for (const ch of regularChannels) {
     if (ch.content) {
-      // Inline content path — index the markdown in-memory, then apply depth filter
+      // Inline content path — index the markdown in-memory, then apply full depth filter
       const virtualPath = `content://${ch.contentSourceId || ch.sourceId}`;
       const treeIndex = indexMarkdown(virtualPath, ch.content);
-      const filtered = applyDepthFilter(treeIndex, ch.depth);
-      const content = renderFilteredMarkdown(filtered.filtered);
+      const content = renderFilteredMarkdown(applyDepthFilter(treeIndex, 0).filtered);
       if (content.trim()) {
         sourcesWithContent.push({
           name: ch.name,
@@ -201,11 +201,10 @@ export async function compressKnowledge(
         });
       }
     } else if (ch.path) {
-      // File-backed path — use treeIndexStore as before
+      // File-backed path — use treeIndexStore with full depth
       const treeIndex = treeStore.getIndex(ch.path);
       if (treeIndex) {
-        const filtered = applyDepthFilter(treeIndex, ch.depth);
-        const content = renderFilteredMarkdown(filtered.filtered);
+        const content = renderFilteredMarkdown(applyDepthFilter(treeIndex, 0).filtered);
         if (content.trim()) {
           sourcesWithContent.push({
             name: ch.name,
@@ -222,6 +221,35 @@ export async function compressKnowledge(
   // 2d. Run pipeline if we have indexed content
   if (sourcesWithContent.length > 0) {
     const totalBudget = activeChannels.reduce((sum, ch) => sum + ch.baseTokens, 0);
+
+    // Budget allocation - create BudgetSource[] from sourcesWithContent
+    const depthByName = new Map<string, number>();
+    for (const ch of regularChannels) {
+      depthByName.set(ch.name, ch.depth);
+    }
+
+    const budgetSources: BudgetSource[] = sourcesWithContent.map(source => ({
+      name: source.name,
+      knowledgeType: source.sourceType as any, // PipelineSource.sourceType maps to KnowledgeType
+      rawTokens: estimateTokens(source.content || ''),
+      depthMultiplier: DEPTH_MULTIPLIERS[depthByName.get(source.name) ?? 2] ?? 1.0,
+    }));
+
+    const budgetAllocations = allocateBudgets(budgetSources, totalBudget);
+    const budgetMap = new Map<string, number>();
+    for (const allocation of budgetAllocations) {
+      budgetMap.set(allocation.name, allocation.allocatedTokens);
+    }
+
+    // Truncate source content to budget caps (cap * 4 chars per token)
+    for (const source of sourcesWithContent) {
+      const budgetCap = budgetMap.get(source.name) ?? totalBudget;
+      const maxChars = budgetCap * 4;
+      if (source.content && source.content.length > maxChars) {
+        source.content = source.content.slice(0, maxChars);
+      }
+    }
+
     const useAgentNav = navigationMode === 'agent-driven';
 
     const pipelineStart = startPipeline({
