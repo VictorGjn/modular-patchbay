@@ -153,11 +153,11 @@ router.post('/index', async (req, res) => {
     const sid = localSourceId(resolved);
     saveContent(sid, {
       name: scan.name,
-      overviewMarkdown: docsObj['00-overview.md'] ?? docs[0]?.[1] ?? '',
+      overviewMarkdown: docsObj['00-overview.md'] ?? docs.values().next().value ?? '',
       knowledgeDocs: docsObj,
       repoMeta: {
         name: scan.name,
-        stack: scan.stack,
+        stack: scan.stack as any,
         totalFiles: scan.totalFiles,
         totalTokens: scan.totalTokens,
         features: scan.features.map((f: any) => ({
@@ -243,7 +243,7 @@ router.post('/index-github', async (req, res) => {
       knowledgeDocs: docsObj,
       repoMeta: {
         name: result.name,
-        stack: result.scan.stack,
+        stack: result.scan.stack as any,
         totalFiles: result.scan.totalFiles,
         totalTokens: result.scan.totalTokens,
         baseUrl: result.baseUrl,

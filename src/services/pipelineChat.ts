@@ -709,7 +709,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
           maxTurns: 10,
           callbacks: {
             onChunk: (text) => { fullResponse += text; onChunk(text); },
-            onToolCallStart: (name, args) => {
+            onToolCallStart: (name, _args) => {
               // Emit a visible chunk so user sees tool activity
               onChunk(`\n\n🔧 Calling **${name}**...\n`);
             },
@@ -717,9 +717,6 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
               if (result.error) {
                 onChunk(`❌ ${result.name} failed: ${result.error}\n`);
               } else {
-                const preview = result.result.length > 200
-                  ? result.result.slice(0, 200) + '…'
-                  : result.result;
                 onChunk(`✅ ${result.name} (${result.durationMs}ms)\n`);
               }
             },

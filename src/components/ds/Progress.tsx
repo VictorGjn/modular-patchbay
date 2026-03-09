@@ -4,9 +4,10 @@ export interface ProgressProps {
   value: number; // 0-100
   showLabel?: boolean;
   className?: string;
+  color?: string;
 }
 
-export function Progress({ value, showLabel = false, className = '' }: ProgressProps) {
+export function Progress({ value, showLabel = false, className = '', color }: ProgressProps) {
   const t = useTheme();
   const percentage = Math.max(0, Math.min(100, value));
 
@@ -44,7 +45,7 @@ export function Progress({ value, showLabel = false, className = '' }: ProgressP
           className="h-full transition-all duration-300 ease-out"
           style={{
             width: `${percentage}%`,
-            background: '#FE5000',
+            background: color || '#FE5000',
           }}
         />
       </div>

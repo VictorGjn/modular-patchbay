@@ -177,7 +177,7 @@ function GeneratorSection() {
               <div key={i} className="flex items-start gap-1.5 text-[10px]" style={{ color: t.textSecondary }}>
                 <AlertCircle size={10} style={{ color: '#e74c3c', marginTop: 2, flexShrink: 0 }} />
                 <div>
-                  <span style={{ color: t.text, fontWeight: 600 }}>{gap.name}</span>
+                  <span style={{ color: t.textPrimary, fontWeight: 600 }}>{gap.name}</span>
                   <span style={{ color: t.textDim }}> ({gap.type})</span>
                   {gap.description && <div style={{ color: t.textDim, fontSize: 9, marginTop: 1 }}>{gap.description}</div>}
                 </div>

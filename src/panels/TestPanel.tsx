@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useConversationStore } from '../store/conversationStore';
-import { exportAgentYaml } from '../utils/agentExportYaml';
 import { exportForTarget, downloadAgentFile } from '../utils/agentExport';
 import { runPipelineChat, resolveProviderAndModel } from '../services/pipelineChat';
 import {
