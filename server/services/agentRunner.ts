@@ -77,6 +77,51 @@ function buildToolsParam(tools: ToolDef[] | undefined, providerType: string): un
   }));
 }
 
+/* ── Agent SDK Call ── */
+
+async function callAgentSdk(
+  messages: LlmMessage[],
+  model: string,
+  _tools?: ToolDef[],
+): Promise<{ content: string; toolCalls: Array<{ id: string; name: string; args: Record<string, unknown>; serverId: string }>; inputTokens: number; outputTokens: number }> {
+  const { query } = await import('@anthropic-ai/claude-agent-sdk');
+
+  const systemMsg = messages.find((m) => m.role === 'system');
+  const userMsgs = messages.filter((m) => m.role === 'user');
+  const prompt = userMsgs.map((m) => typeof m.content === 'string' ? m.content : '').join('\n');
+
+  const texts: string[] = [];
+  let inputTokens = 0;
+  let outputTokens = 0;
+
+  for await (const message of query({
+    prompt,
+    options: {
+      model: model || undefined,
+      allowedTools: ['Read', 'Edit', 'Bash', 'Glob', 'Grep', 'WebSearch', 'WebFetch'],
+      permissionMode: 'acceptEdits',
+      maxTurns: 10,
+      systemPrompt: typeof systemMsg?.content === 'string' ? systemMsg.content : undefined,
+    },
+  })) {
+    if (message.type === 'assistant' && message.message?.content) {
+      for (const block of (message as { type: string; message: { content: Array<{ type: string; text?: string }> } }).message.content) {
+        if (block.type === 'text' && block.text) {
+          texts.push(block.text);
+        }
+      }
+      const usage = (message as { message?: { usage?: { input_tokens?: number; output_tokens?: number } } }).message?.usage;
+      if (usage) {
+        inputTokens += usage.input_tokens ?? 0;
+        outputTokens += usage.output_tokens ?? 0;
+      }
+    }
+  }
+
+  // Agent SDK handles tools internally — returns final output with no pending tool calls
+  return { content: texts.join('\n'), toolCalls: [], inputTokens, outputTokens };
+}
+
 /* ── LLM Call ── */
 
 async function callLlm(
@@ -88,6 +133,11 @@ async function callLlm(
   const config = readConfig();
   const provider = config.providers.find((p) => p.id === providerId);
   if (!provider) throw new Error(`Provider "${providerId}" not found`);
+
+  if (provider.authMethod === 'claude-agent-sdk') {
+    return callAgentSdk(messages, model, tools);
+  }
+
   if (!provider.baseUrl) throw new Error(`Provider "${providerId}" has no baseUrl`);
 
   const toolsParam = buildToolsParam(tools, provider.type);
