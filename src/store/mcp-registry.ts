@@ -16,6 +16,8 @@ export interface McpRegistryEntry {
   command: string;
   defaultArgs: string[];
   configFields: ConfigField[];
+  url?: string;
+  authMethod?: 'api-key' | 'oauth' | 'none';
   website?: string;
   repo?: string;
   tags: string[];
@@ -38,6 +40,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-memory'],
     configFields: [],
     repo: 'https://github.com/modelcontextprotocol/servers', tags: ['memory', 'knowledge-graph', 'state', 'persistence'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-fetch', name: 'Fetch', npmPackage: '@modelcontextprotocol/server-fetch',
@@ -46,6 +49,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-fetch'],
     configFields: [],
     repo: 'https://github.com/modelcontextprotocol/servers', tags: ['web', 'fetch', 'scrape', 'markdown'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-git', name: 'Git', npmPackage: '@modelcontextprotocol/server-git',
@@ -62,6 +66,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-sequential-thinking'],
     configFields: [],
     repo: 'https://github.com/modelcontextprotocol/servers', tags: ['thinking', 'reasoning', 'chain-of-thought'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-time', name: 'Time', npmPackage: '@modelcontextprotocol/server-time',

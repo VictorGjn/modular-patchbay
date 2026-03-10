@@ -2,7 +2,7 @@
 import { MCP_REGISTRY, type McpRegistryEntry } from './mcp-registry';
 
 export type MarketplaceCategory = 'all' | 'research' | 'coding' | 'data' | 'design' | 'writing' | 'domain';
-export type McpTransport = 'stdio' | 'sse';
+export type McpTransport = 'stdio' | 'sse' | 'streamable-http';
 export type Runtime = 'claude' | 'amp' | 'codex' | 'openai' | 'gemini';
 export type InstallScope = 'global' | 'project';
 
