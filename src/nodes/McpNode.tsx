@@ -29,11 +29,11 @@ function ToolList({ tools, t }: { tools: McpTool[]; t: ReturnType<typeof useThem
         <div key={tool.name} className="flex items-start gap-1.5 py-0.5">
           <Wrench size={9} style={{ color: t.textDim, marginTop: 2, flexShrink: 0 }} />
           <div className="min-w-0">
-            <span className="text-[10px] font-medium block truncate" style={{ color: t.textSecondary, fontFamily: "'Space Mono', monospace" }}>
+            <span className="text-[10px] font-medium block truncate" style={{ color: t.textSecondary, fontFamily: "'Geist Mono', monospace" }}>
               {tool.name}
             </span>
             {tool.description && (
-              <span className="text-[9px] block truncate" style={{ color: t.textDim }}>
+              <span className="text-[11px] block truncate" style={{ color: t.textDim }}>
                 {tool.description}
               </span>
             )}
@@ -95,16 +95,16 @@ function ServerRow({
         )}
 
         {/* Name */}
-        <span className="flex-1 truncate text-[11px]" style={{ color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}>
+        <span className="flex-1 truncate text-[11px]" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           {server.name}
         </span>
 
         {/* MCP config status badge (from Claude Code) */}
         {server.mcpStatus && server.mcpStatus !== 'enabled' && (
           <span
-            className="text-[8px] px-1 py-0.5 rounded uppercase"
+            className="text-[10px] px-1 py-0.5 rounded uppercase"
             style={{
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontWeight: 600,
               background: server.mcpStatus === 'deferred' ? t.statusWarningBg : t.statusErrorBg,
               color: server.mcpStatus === 'deferred' ? t.statusWarning : t.statusError,
@@ -117,8 +117,8 @@ function ServerRow({
         {/* Tool count badge */}
         {server.status === 'connected' && hasTools && (
           <span
-            className="text-[9px] px-1 py-0.5 rounded"
-            style={{ color: t.textDim, background: t.badgeBg, fontFamily: "'Space Mono', monospace" }}
+            className="text-[11px] px-1 py-0.5 rounded"
+            style={{ color: t.textDim, background: t.badgeBg, fontFamily: "'Geist Mono', monospace" }}
           >
             {server.tools.length}
           </span>
@@ -130,7 +130,7 @@ function ServerRow({
             type="button"
             onClick={() => connectServer(server.id)}
             aria-label={`Connect ${server.name}`}
-            className="text-[9px] px-1.5 py-0.5 rounded border-none cursor-pointer nodrag nowheel"
+            className="text-[11px] px-1.5 py-0.5 rounded border-none cursor-pointer nodrag nowheel"
             style={{
               background: 'transparent',
               border: `1px solid ${t.border}`,
@@ -147,7 +147,7 @@ function ServerRow({
             type="button"
             onClick={() => disconnectServer(server.id)}
             aria-label={`Disconnect ${server.name}`}
-            className="text-[9px] px-1.5 py-0.5 rounded border-none cursor-pointer nodrag nowheel"
+            className="text-[11px] px-1.5 py-0.5 rounded border-none cursor-pointer nodrag nowheel"
             style={{
               background: 'transparent',
               border: `1px solid ${t.borderSubtle}`,
@@ -266,11 +266,11 @@ export const McpNode = memo(function McpNode() {
         </button>
         <Plug size={14} style={{ color: '#2ecc71' }} />
         <Tooltip content="Connect Model Context Protocol servers to give your agent external tools and APIs">
-          <span className="font-bold uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.15em' }}>
+          <span className="font-bold uppercase flex-1" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.08em' }}>
             MCP
           </span>
         </Tooltip>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>
+        <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}>
           {connectedCount}
         </span>
         {!nodeCollapsed && (

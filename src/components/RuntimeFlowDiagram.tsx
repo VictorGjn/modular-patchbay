@@ -168,7 +168,7 @@ export function RuntimeFlowDiagram({ activeStage, stats, compact = false }: Runt
             fill: t.textPrimary,
             fontSize: compact ? 10 : 11,
             fontWeight: '600',
-            fontFamily: "'Space Mono', monospace"
+            fontFamily: "'Geist Mono', monospace"
           }}
         >
           {stage.name}
@@ -182,7 +182,7 @@ export function RuntimeFlowDiagram({ activeStage, stats, compact = false }: Runt
           style={{
             fill: t.textSecondary,
             fontSize: compact ? 8 : 9,
-            fontFamily: "'Space Mono', monospace"
+            fontFamily: "'Geist Mono', monospace"
           }}
         >
           {stage.description}
@@ -223,8 +223,8 @@ export function RuntimeFlowDiagram({ activeStage, stats, compact = false }: Runt
               y={y + 15}
               style={{
                 fill: t.textMuted,
-                fontSize: 8,
-                fontFamily: "'Space Mono', monospace"
+                fontSize: 10,
+                fontFamily: "'Geist Mono', monospace"
               }}
             >
               Framework
@@ -234,8 +234,8 @@ export function RuntimeFlowDiagram({ activeStage, stats, compact = false }: Runt
               y={y + nodeHeight - 5}
               style={{
                 fill: t.textMuted,
-                fontSize: 8,
-                fontFamily: "'Space Mono', monospace"
+                fontSize: 10,
+                fontFamily: "'Geist Mono', monospace"
               }}
             >
               Regular
@@ -338,7 +338,7 @@ export function RuntimeFlowDiagram({ activeStage, stats, compact = false }: Runt
           style={{
             fill: t.textMuted,
             fontSize: compact ? 7 : 8,
-            fontFamily: "'Space Mono', monospace"
+            fontFamily: "'Geist Mono', monospace"
           }}
         >
           {conn.label}
@@ -415,7 +415,7 @@ export function RuntimeFlowDiagram({ activeStage, stats, compact = false }: Runt
           style={{
             color: t.textSecondary,
             fontSize: compact ? 9 : 10,
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             textTransform: 'uppercase',
             letterSpacing: '0.05em'
           }}

@@ -31,7 +31,7 @@ export function Badge({ variant = 'neutral', children, dot, size = 'sm' }: Badge
         color: c.fg,
         fontSize,
         padding,
-        fontFamily: "'Space Mono', monospace",
+        fontFamily: "'Geist Mono', monospace",
       }}
     >
       {dot && <span className="w-1.5 h-1.5 rounded-full" style={{ background: c.fg }} />}

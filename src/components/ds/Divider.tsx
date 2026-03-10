@@ -19,7 +19,7 @@ export function Divider({ label, className = '' }: DividerProps) {
           className="text-xs uppercase tracking-wider font-semibold px-2"
           style={{
             color: t.textMuted,
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             fontSize: 10,
           }}
         >

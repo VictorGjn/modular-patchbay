@@ -134,7 +134,7 @@ export const ResponseNode = memo(function ResponseNode() {
           )}
 
           {response && !running && (
-            <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+            <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
               ~{responseTokens.toLocaleString()}t
             </span>
           )}
@@ -187,7 +187,7 @@ export const ResponseNode = memo(function ResponseNode() {
                   <div key={i} className="w-[3px] h-[14px] rounded-full" style={{ background: t.border, opacity: 0.5 + (i * 0.1) }} />
                 ))}
               </div>
-              <span className="text-[10px] tracking-widest uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>RUN YOUR AGENT TO SEE RESULTS</span>
+              <span className="text-[10px] tracking-widest uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>RUN YOUR AGENT TO SEE RESULTS</span>
             </div>
           )}
         </div>

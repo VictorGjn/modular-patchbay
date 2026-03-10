@@ -501,7 +501,7 @@ export const useConsoleStore = create<ConsoleState>()(
     const detected = detectOutputFormat(prompt);
     set({ prompt, outputFormat: detected });
   },
-  setModel: (model: string) => set({ selectedModel: model }),
+  setModel: (model: string) => set(state => ({ selectedModel: model, agentConfig: { ...state.agentConfig, model } })),
   setTokenBudget: (budget: number) => set({ tokenBudget: budget }),
   setNavigationMode: (mode: 'manual' | 'agent-driven') => set({ navigationMode: mode }),
   setShowFilePicker: (show: boolean) => set({ showFilePicker: show }),

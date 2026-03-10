@@ -19,7 +19,7 @@ export function Progress({ value, showLabel = false, className = '', color }: Pr
             className="text-xs font-semibold"
             style={{
               color: t.textSecondary,
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontSize: 10,
             }}
           >
@@ -29,7 +29,7 @@ export function Progress({ value, showLabel = false, className = '', color }: Pr
             className="text-xs"
             style={{
               color: t.textMuted,
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontSize: 10,
             }}
           >

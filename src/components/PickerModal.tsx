@@ -113,7 +113,7 @@ export function PickerModal({ open, onClose, title, searchPlaceholder, width = 5
                 background: t.inputBg,
                 border: `1px solid ${t.border}`,
                 color: t.textPrimary,
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Geist Sans', sans-serif",
               }}
               aria-label="Search"
             />

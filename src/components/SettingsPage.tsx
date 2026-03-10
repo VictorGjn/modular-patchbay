@@ -77,7 +77,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
     background: t.inputBg,
     border: `1px solid ${t.border}`,
     color: t.textPrimary,
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "'Geist Sans', sans-serif",
   };
 
   return (
@@ -101,7 +101,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
         >
           <Cpu size={14} style={{ color: provider.color }} />
         </div>
-        <span className="text-xs font-semibold flex-1" style={{ fontFamily: "'Space Mono', monospace" }}>
+        <span className="text-xs font-semibold flex-1" style={{ fontFamily: "'Geist Mono', monospace" }}>
           {displayName}
         </span>
         <span className="text-[10px]" style={{ color: t.textMuted }}>
@@ -114,7 +114,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
         <div className="px-4 pb-4 flex flex-col gap-3">
           {isOpenAiProvider && (
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Auth Mode
               </label>
               <select
@@ -161,7 +161,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
               )}
               {/* Models */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                   Available Models
                 </label>
                 <div className="flex flex-wrap gap-1">
@@ -169,7 +169,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                     <span
                       key={m.id}
                       className="text-[10px] px-2 py-0.5 rounded"
-                      style={{ background: provider.color + '15', color: provider.color, fontFamily: "'Space Mono', monospace" }}
+                      style={{ background: provider.color + '15', color: provider.color, fontFamily: "'Geist Mono', monospace" }}
                     >
                       {m.label}
                     </span>
@@ -252,7 +252,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                 </div>
               ) : (
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                  <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                     API Key
                   </label>
                   <div className="relative">
@@ -279,7 +279,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
 
               {/* Base URL */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                   Base URL
                 </label>
                 <input
@@ -481,7 +481,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
     background: t.inputBg,
     border: `1px solid ${t.border}`,
     color: t.textPrimary,
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "'Geist Sans', sans-serif",
   };
 
   return (
@@ -507,13 +507,13 @@ function McpServerRow({ server }: { server: McpServerState }) {
         />
         <Server size={14} style={{ color: t.textDim }} />
         <div className="flex-1">
-          <div className="text-xs font-semibold" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+          <div className="text-xs font-semibold" style={{ color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
             {server.name}
             {server.mcpStatus && server.mcpStatus !== 'enabled' && (
               <span
-                className="text-[8px] px-1.5 py-0.5 rounded ml-2 uppercase"
+                className="text-[10px] px-1.5 py-0.5 rounded ml-2 uppercase"
                 style={{
-                  fontFamily: "'Space Mono', monospace", fontWeight: 600,
+                  fontFamily: "'Geist Mono', monospace", fontWeight: 600,
                   background: server.mcpStatus === 'deferred' ? t.statusWarningBg : t.statusErrorBg,
                   color: server.mcpStatus === 'deferred' ? t.statusWarning : t.statusError,
                 }}
@@ -553,7 +553,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
         <div className="px-4 pb-4 flex flex-col gap-3">
           {/* Name */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
               Name
             </label>
             <input
@@ -567,7 +567,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
 
           {/* Command */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
               Command
             </label>
             <input
@@ -581,7 +581,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
 
           {/* Args */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
               Arguments (one per line)
             </label>
             <textarea
@@ -595,7 +595,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
 
           {/* Environment */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
               Environment (key=value, one per line)
             </label>
             <textarea
@@ -610,7 +610,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
           {/* Tools */}
           {server.tools.length > 0 && (
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Available Tools
               </label>
               <div className="flex flex-wrap gap-1">
@@ -621,7 +621,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
                     style={{
                       background: '#FE500015',
                       color: '#FE5000',
-                      fontFamily: "'Space Mono', monospace"
+                      fontFamily: "'Geist Mono', monospace"
                     }}
                   >
                     {tool.name}
@@ -740,7 +740,7 @@ function McpServersTab() {
     background: t.inputBg,
     border: `1px solid ${t.border}`,
     color: t.textPrimary,
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "'Geist Sans', sans-serif",
   };
 
   return (
@@ -771,14 +771,14 @@ function McpServersTab() {
       {/* Add Server Form */}
       {showAddForm && (
         <div className="p-4" style={{ borderTop: `1px solid ${t.borderSubtle}`, background: t.surfaceElevated }}>
-          <div className="text-xs font-semibold mb-3" style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+          <div className="text-xs font-semibold mb-3" style={{ color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
             Add MCP Server
           </div>
 
           <div className="flex flex-col gap-3">
             {/* Name */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Name
               </label>
               <input
@@ -793,7 +793,7 @@ function McpServersTab() {
 
             {/* Command */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Command
               </label>
               <input
@@ -808,7 +808,7 @@ function McpServersTab() {
 
             {/* Args */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Arguments (one per line)
               </label>
               <textarea
@@ -823,7 +823,7 @@ function McpServersTab() {
 
             {/* Environment */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Environment (key=value, one per line)
               </label>
               <textarea
@@ -918,7 +918,7 @@ function GeneralTab() {
     { id: 'none', label: 'None' },
   ];
 
-  const labelStyle = { color: t.textMuted, fontFamily: "'Space Mono', monospace" } as const;
+  const labelStyle = { color: t.textMuted, fontFamily: "'Geist Mono', monospace" } as const;
   const rowStyle = { borderBottom: `1px solid ${t.borderSubtle}` };
 
   const handleThemeChange = (id: string) => {
@@ -1102,7 +1102,7 @@ export function SettingsPage({ open, onClose }: { open: boolean; onClose: () => 
         <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: t.borderSubtle }}>
           <span
             className="text-xs tracking-wider uppercase flex-1 font-bold"
-            style={{ color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}
+            style={{ color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
           >
             Settings
           </span>
@@ -1128,7 +1128,7 @@ export function SettingsPage({ open, onClose }: { open: boolean; onClose: () => 
               style={{
                 color: activeTab === tab.id ? '#FE5000' : t.textDim,
                 borderBottom: activeTab === tab.id ? '2px solid #FE5000' : '2px solid transparent',
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "'Geist Mono', monospace",
                 marginBottom: '-1px',
               }}
             >

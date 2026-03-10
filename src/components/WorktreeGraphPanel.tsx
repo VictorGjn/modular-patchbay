@@ -32,7 +32,7 @@ export function WorktreeGraphPanel({
     <div className="rounded-xl p-3" style={{ border: `1px solid ${t.border}`, background: t.surfaceOpaque }}>
       <div className="flex items-center gap-2 mb-2">
         <GitBranch size={13} style={{ color: '#FE5000' }} />
-        <span className="text-[10px] font-bold tracking-[0.12em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
+        <span className="text-[10px] font-bold tracking-[0.12em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>
           Worktree Graph
         </span>
         <div className="flex-1" />

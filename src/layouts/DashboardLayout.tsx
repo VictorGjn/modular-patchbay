@@ -63,9 +63,9 @@ export function DashboardLayout() {
               textOrientation: 'mixed',
               fontSize: 11,
               fontWeight: 700,
-              letterSpacing: '0.15em',
+              letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               color: t.textDim,
             }}>
               Test ▶

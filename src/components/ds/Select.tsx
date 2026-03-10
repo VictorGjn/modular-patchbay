@@ -43,7 +43,7 @@ export function Select({ options, value, onChange, label, placeholder = 'Select.
 
   return (
     <div className="flex flex-col gap-1">
-      {label && <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>{label}</label>}
+      {label && <label className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>{label}</label>}
       <button
         ref={triggerRef}
         type="button"
@@ -53,7 +53,7 @@ export function Select({ options, value, onChange, label, placeholder = 'Select.
           height: heights[size],
           padding: '0 10px',
           fontSize: 11,
-          fontFamily: "'Space Mono', monospace",
+          fontFamily: "'Geist Mono', monospace",
           background: t.inputBg,
           borderColor: t.border,
           color: selected ? t.textPrimary : t.textMuted,
@@ -85,7 +85,7 @@ export function Select({ options, value, onChange, label, placeholder = 'Select.
               onClick={() => { onChange(opt.value); setOpen(false); }}
               className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] text-left cursor-pointer border-none bg-transparent"
               style={{
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "'Geist Mono', monospace",
                 color: opt.value === value ? '#FE5000' : t.textSecondary,
                 background: opt.value === value ? '#FE500008' : 'transparent',
               }}

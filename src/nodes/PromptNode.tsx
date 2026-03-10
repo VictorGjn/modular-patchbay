@@ -128,14 +128,14 @@ export const PromptNode = memo(function PromptNode() {
           <Tooltip content="Compose the user prompt, select model, and run your agent">
             <span
               className="font-bold uppercase"
-              style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.15em' }}
+              style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.08em' }}
             >
               PROMPT
             </span>
           </Tooltip>
           <span
             className="text-[10px]"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
           >
             {modelLabel}
           </span>
@@ -177,10 +177,10 @@ export const PromptNode = memo(function PromptNode() {
             </span>
           )}
           <div className="flex-1" />
-          <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+          <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
             {prompt.length} chars
           </span>
-          <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textMuted }}>
+          <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textMuted }}>
             · {tokenCount === 0 ? '0' : `~${tokenCount.toLocaleString()}`} tokens
           </span>
         </div>
@@ -202,7 +202,7 @@ export const PromptNode = memo(function PromptNode() {
           <Settings size={11} style={{ color: t.textDim }} />
           <span
             className="text-[11px] font-semibold tracking-wide"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}
           >
             {settingsOpen ? '▾' : '▸'} Advanced
           </span>
@@ -237,7 +237,7 @@ export const PromptNode = memo(function PromptNode() {
             <div className="flex flex-col gap-1" style={{ opacity: thinkingSupported ? 1 : 0.4 }}>
               <label
                 className="text-[10px] font-semibold tracking-wide"
-                style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+                style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
               >
                 Thinking Depth {!thinkingSupported && <span style={{ color: t.textMuted, fontWeight: 400 }}>(not available)</span>}
               </label>
@@ -253,7 +253,7 @@ export const PromptNode = memo(function PromptNode() {
                       aria-label={`Set thinking depth to ${depth}`}
                       className="flex-1 text-[10px] py-1 rounded-md tracking-wide nodrag"
                       style={{
-                        fontFamily: "'Space Mono', monospace",
+                        fontFamily: "'Geist Mono', monospace",
                         background: isActive && supported ? '#FE500018' : 'transparent',
                         border: `1px solid ${isActive && supported ? '#FE5000' : t.border}`,
                         color: isActive && supported ? '#FE5000' : t.textDim,
@@ -273,7 +273,7 @@ export const PromptNode = memo(function PromptNode() {
             <div className="flex flex-col gap-1">
               <label
                 className="text-[10px] font-semibold tracking-wide flex items-center justify-between"
-                style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+                style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
               >
                 <span>Max Output Tokens</span>
                 <span style={{ color: t.textMuted, fontWeight: 400 }}>
@@ -291,7 +291,7 @@ export const PromptNode = memo(function PromptNode() {
                 className="w-full nodrag nowheel"
                 style={{ accentColor: '#FE5000' }}
               />
-              <div className="flex justify-between text-[9px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textMuted }}>
+              <div className="flex justify-between text-[11px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textMuted }}>
                 <span>256</span>
                 <span style={{ color: t.textPrimary, fontWeight: 600 }}>{(Math.min(agentConfig.maxTokens, currentMeta.maxOutput) / 1000).toFixed(1)}K</span>
                 <span>{(currentMeta.maxOutput / 1000).toFixed(0)}K</span>

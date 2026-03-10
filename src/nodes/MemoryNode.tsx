@@ -28,8 +28,8 @@ function SectionHeader({ label, icon, collapsed, onToggle, t }: {
         : <ChevronDown size={11} style={{ color: t.textDim }} />}
       {icon}
       <span
-        className="text-[9px] font-semibold tracking-wider uppercase"
-        style={{ fontFamily: "'Space Mono', monospace", color: t.textMuted }}
+        className="text-[11px] font-semibold tracking-wider uppercase"
+        style={{ fontFamily: "'Geist Mono', monospace", color: t.textMuted }}
       >
         {label}
       </span>
@@ -113,7 +113,7 @@ export const MemoryNode = memo(function MemoryNode() {
           <Brain size={13} style={{ color: '#e74c3c' }} />
           <span
             className="text-[10px] font-bold tracking-widest uppercase"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
           >
             Memory
           </span>
@@ -122,11 +122,11 @@ export const MemoryNode = memo(function MemoryNode() {
             type="button"
             onClick={handleGenerate}
             disabled={generating}
-            className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded cursor-pointer border-none nodrag"
+            className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded cursor-pointer border-none nodrag"
             style={{
               background: '#FE500015',
               color: '#FE5000',
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               opacity: generating ? 0.6 : 1,
             }}
           >
@@ -134,8 +134,8 @@ export const MemoryNode = memo(function MemoryNode() {
             Generate
           </button>
           <span
-            className="text-[9px] px-1.5 py-0.5 rounded"
-            style={{ background: '#e74c3c15', color: '#e74c3c', fontFamily: "'Space Mono', monospace" }}
+            className="text-[11px] px-1.5 py-0.5 rounded"
+            style={{ background: '#e74c3c15', color: '#e74c3c', fontFamily: "'Geist Mono', monospace" }}
           >
             {longTermMemory.length} facts
           </span>
@@ -158,14 +158,14 @@ export const MemoryNode = memo(function MemoryNode() {
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <label
-                    className="text-[9px] tracking-wider uppercase font-semibold"
-                    style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}
+                    className="text-[11px] tracking-wider uppercase font-semibold"
+                    style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}
                   >
                     Max Messages
                   </label>
                   <span
                     className="text-[10px] px-1.5 py-0.5 rounded"
-                    style={{ background: t.surfaceElevated, color: t.textSecondary, fontFamily: "'Space Mono', monospace" }}
+                    style={{ background: t.surfaceElevated, color: t.textSecondary, fontFamily: "'Geist Mono', monospace" }}
                   >
                     {sessionMemory.maxMessages}
                   </span>
@@ -192,8 +192,8 @@ export const MemoryNode = memo(function MemoryNode() {
               {sessionMemory.summarizeEnabled && (
                 <div className="flex flex-col gap-1">
                   <label
-                    className="text-[9px] tracking-wider uppercase font-semibold"
-                    style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}
+                    className="text-[11px] tracking-wider uppercase font-semibold"
+                    style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}
                   >
                     Summarize After
                   </label>
@@ -232,7 +232,7 @@ export const MemoryNode = memo(function MemoryNode() {
                   <div className="flex-1 min-w-0">
                     <p
                       className="text-[11px] m-0 leading-snug"
-                      style={{ color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}
+                      style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}
                     >
                       {fact.content}
                     </p>
@@ -241,11 +241,11 @@ export const MemoryNode = memo(function MemoryNode() {
                         {fact.tags.map((tag) => (
                           <span
                             key={tag}
-                            className="text-[8px] px-1.5 py-0.5 rounded-full"
+                            className="text-[10px] px-1.5 py-0.5 rounded-full"
                             style={{
                               background: '#2ecc7118',
                               color: '#2ecc71',
-                              fontFamily: "'Space Mono', monospace",
+                              fontFamily: "'Geist Mono', monospace",
                             }}
                           >
                             {tag}
@@ -288,7 +288,7 @@ export const MemoryNode = memo(function MemoryNode() {
                   type="button"
                   onClick={handleAddFact}
                   className="flex items-center justify-center gap-1 text-[10px] px-2 py-1 rounded-md cursor-pointer border-none nodrag"
-                  style={{ background: t.surfaceElevated, color: t.textSecondary, fontFamily: "'Space Mono', monospace" }}
+                  style={{ background: t.surfaceElevated, color: t.textSecondary, fontFamily: "'Geist Mono', monospace" }}
                 >
                   <Plus size={10} /> Add Fact
                 </button>

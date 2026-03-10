@@ -81,7 +81,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
               <Wand2 size={13} style={{ color: '#FE5000' }} />
               <span
                 className="font-bold uppercase"
-                style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.15em' }}
+                style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.08em' }}
               >
                 GENERATOR
               </span>
@@ -115,9 +115,9 @@ export const GeneratorNode = memo(function GeneratorNode() {
               ].map(s => (
                 <span
                   key={s.label}
-                  className="text-[9px] px-1.5 py-0.5 rounded"
+                  className="text-[11px] px-1.5 py-0.5 rounded"
                   style={{
-                    fontFamily: "'Space Mono', monospace",
+                    fontFamily: "'Geist Mono', monospace",
                     background: `${s.color}15`,
                     color: s.color,
                     border: `1px solid ${s.color}30`,
@@ -141,7 +141,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
               background: generating ? '#CC4000' : '#FE5000',
               color: '#fff',
               opacity: generating || !brainDump.trim() ? 0.6 : 1,
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
             }}
           >
             {generating ? <Loader2 size={11} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={11} />}
@@ -157,7 +157,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
                 border: `1px solid ${t.border}`,
                 color: t.textDim,
                 cursor: 'pointer',
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "'Geist Mono', monospace",
               }}
             >
               <RotateCcw size={10} />

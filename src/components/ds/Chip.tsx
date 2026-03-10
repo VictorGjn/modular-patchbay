@@ -27,7 +27,7 @@ export function Chip({ children, variant = 'default', onRemove, className = '' }
       style={{
         background: v.bg,
         color: v.color,
-        fontFamily: "'Space Mono', monospace",
+        fontFamily: "'Geist Mono', monospace",
         fontSize: 10,
         fontWeight: 500,
       }}

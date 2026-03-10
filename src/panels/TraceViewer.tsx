@@ -36,7 +36,7 @@ function EventRow({ event }: { event: TraceEvent }) {
 
         {/* Icon + label */}
         <Icon size={10} style={{ color: meta.color, flexShrink: 0 }} />
-        <span className="text-[10px] flex-1 truncate" style={{ fontFamily: "'Inter', sans-serif", color: t.textPrimary }}>
+        <span className="text-[10px] flex-1 truncate" style={{ fontFamily: "'Geist Sans', sans-serif", color: t.textPrimary }}>
           {event.kind === 'tool_call' && `${event.mcpServerName || event.mcpServerId}.${event.toolName}`}
           {event.kind === 'llm_call' && `${event.model || 'LLM'} — ${event.inputTokens || '?'}→${event.outputTokens || '?'} tokens`}
           {event.kind === 'retrieval' && `${event.sourceName || event.sourceId} (${event.resultCount || 0} results)`}
@@ -48,14 +48,14 @@ function EventRow({ event }: { event: TraceEvent }) {
 
         {/* Duration */}
         {event.durationMs != null && (
-          <span className="text-[8px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: event.durationMs > 2000 ? '#e74c3c' : t.textFaint }}>
+          <span className="text-[10px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: event.durationMs > 2000 ? '#e74c3c' : t.textFaint }}>
             {event.durationMs}ms
           </span>
         )}
 
         {/* Cost */}
         {event.costUsd != null && event.costUsd > 0 && (
-          <span className="text-[8px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+          <span className="text-[10px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
             ${event.costUsd.toFixed(4)}
           </span>
         )}
@@ -65,8 +65,8 @@ function EventRow({ event }: { event: TraceEvent }) {
 
       {/* Expanded details */}
       {expanded && (
-        <div className="px-3 pb-2 ml-6 text-[9px] flex flex-col gap-1"
-          style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+        <div className="px-3 pb-2 ml-6 text-[11px] flex flex-col gap-1"
+          style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
           {event.toolArgs && (
             <div>
               <span style={{ color: t.textFaint }}>Args:</span>
@@ -119,7 +119,7 @@ function TraceSummary({ trace }: { trace: ConversationTrace }) {
   if (!s) return null;
 
   return (
-    <div className="flex gap-3 px-3 py-1.5 text-[8px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#f0f0f5'}` }}>
+    <div className="flex gap-3 px-3 py-1.5 text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#f0f0f5'}` }}>
       <span>{s.totalTokens.toLocaleString()} tokens</span>
       {s.totalCostUsd > 0 && <span>${s.totalCostUsd.toFixed(4)}</span>}
       <span>{s.toolCalls} tools</span>
@@ -144,7 +144,7 @@ export function TraceViewer() {
       <div className="flex flex-col items-center justify-center py-8 gap-2">
         <Activity size={20} style={{ color: t.textFaint }} />
         <div className="text-[11px]" style={{ color: t.textDim }}>No traces yet</div>
-        <div className="text-[9px] text-center px-4" style={{ color: t.textFaint }}>
+        <div className="text-[11px] text-center px-4" style={{ color: t.textFaint }}>
           Run a conversation to capture execution traces — tool calls, retrievals, errors, and token usage.
         </div>
       </div>
@@ -158,18 +158,18 @@ export function TraceViewer() {
         <div className="flex items-center gap-2">
           <Activity size={11} style={{ color: '#FE5000' }} />
           <span className="text-[10px] uppercase tracking-wider font-bold"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>
             Traces
           </span>
-          <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Space Mono', monospace" }}>
+          <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Geist Mono', monospace" }}>
             {traces.length}
           </span>
         </div>
         <div className="flex items-center gap-1">
           {traces.length > 1 && (
             <select value={selectedTrace?.id || ''} onChange={e => setSelectedTraceId(e.target.value)}
-              className="text-[9px] px-1 py-0.5 rounded border-none outline-none cursor-pointer"
-              style={{ background: t.surfaceElevated, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
+              className="text-[11px] px-1 py-0.5 rounded border-none outline-none cursor-pointer"
+              style={{ background: t.surfaceElevated, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
               {traces.map((tr, i) => (
                 <option key={tr.id} value={tr.id}>
                   Run #{i + 1} ({tr.events.length} events)

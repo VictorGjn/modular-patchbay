@@ -101,11 +101,11 @@ export function ConnectorPicker() {
                     {ac.directions.map((dir) => (
                       <span
                         key={dir}
-                        className="text-[8px] px-1.5 py-0.5 rounded-full uppercase"
+                        className="text-[10px] px-1.5 py-0.5 rounded-full uppercase"
                         style={{
                           background: DIR_COLORS[dir].bg,
                           color: DIR_COLORS[dir].color,
-                          fontFamily: "'Space Mono', monospace",
+                          fontFamily: "'Geist Mono', monospace",
                           fontWeight: 600,
                         }}
                       >
@@ -128,7 +128,7 @@ export function ConnectorPicker() {
                       key={dir}
                       type="button"
                       onClick={() => handleAdd(ac, dir)}
-                      className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
+                      className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
                       style={{
                         color: DIR_COLORS[dir].color,
                         background: DIR_COLORS[dir].bg,
@@ -147,7 +147,7 @@ export function ConnectorPicker() {
                     <button
                       type="button"
                       onClick={() => handleAdd(ac, 'both')}
-                      className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
+                      className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
                       style={{
                         color: DIR_COLORS.both.color,
                         background: DIR_COLORS.both.bg,

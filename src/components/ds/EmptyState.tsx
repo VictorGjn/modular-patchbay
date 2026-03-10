@@ -24,7 +24,7 @@ export function EmptyState({ icon, title, subtitle, action, className = '' }: Em
         className="text-sm font-semibold mb-1"
         style={{
           color: t.textPrimary,
-          fontFamily: "'Space Mono', monospace",
+          fontFamily: "'Geist Mono', monospace",
           fontSize: 11,
         }}
       >

@@ -38,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         height: heights[size],
         padding: paddings[size],
         fontSize: fontSizes[size],
-        fontFamily: "'Space Mono', monospace",
+        fontFamily: "'Geist Mono', monospace",
         background: v.bg,
         color: v.color,
         borderColor: v.border,

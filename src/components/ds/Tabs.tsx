@@ -32,7 +32,7 @@ export function Tabs({ tabs, active, onChange, size = 'sm' }: TabsProps) {
             paddingTop: py,
             paddingBottom: py,
             fontSize,
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             color: active === tab.id ? '#FE5000' : t.textDim,
             borderBottom: active === tab.id ? '2px solid #FE5000' : '2px solid transparent',
             transition: 'color 0.15s',
@@ -41,7 +41,7 @@ export function Tabs({ tabs, active, onChange, size = 'sm' }: TabsProps) {
           {tab.icon}
           {tab.label}
           {tab.count !== undefined && (
-            <span className="text-[8px] px-1 rounded-full" style={{
+            <span className="text-[10px] px-1 rounded-full" style={{
               background: active === tab.id ? '#FE500020' : t.badgeBg,
               color: active === tab.id ? '#FE5000' : t.textMuted,
             }}>

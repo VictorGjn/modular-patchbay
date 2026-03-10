@@ -63,7 +63,7 @@ export function ContextualHint() {
     >
       <span
         className="flex-1 text-[10px]"
-        style={{ fontFamily: "'Space Mono', monospace", color: '#FE5000cc' }}
+        style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000cc' }}
       >
         {hint}
       </span>

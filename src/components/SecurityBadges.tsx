@@ -93,8 +93,8 @@ export function SecurityBadges({ skillPath }: SecurityBadgesProps) {
             )}
             <span
               style={{
-                fontSize: 8,
-                fontFamily: "'Space Mono', monospace",
+                fontSize: 10,
+                fontFamily: "'Geist Mono', monospace",
                 fontWeight: 600,
                 color,
                 lineHeight: 1,

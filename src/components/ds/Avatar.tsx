@@ -44,7 +44,7 @@ export function Avatar({ size = 'md', src, alt, emoji, initials, className = '' 
         background: t.surfaceElevated,
         border: `1px solid ${t.border}`,
         fontSize: textSize,
-        fontFamily: "'Space Mono', monospace",
+        fontFamily: "'Geist Mono', monospace",
         color: t.textSecondary,
       }}
     >

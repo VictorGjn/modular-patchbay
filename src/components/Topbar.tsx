@@ -15,7 +15,7 @@ function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: stri
       aria-label={ariaLabel}
       className="appearance-none cursor-pointer outline-none text-xs h-8 pl-3 pr-7 rounded-lg"
       style={{
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "'Geist Sans', sans-serif",
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
         color: t.isDark ? t.textSecondary : '#1a1a20',
@@ -60,7 +60,7 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
         />
         <span
           className="text-sm font-bold tracking-[3px] uppercase"
-          style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}
+          style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
         >
           MODULAR
         </span>
@@ -73,7 +73,7 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
           onClick={() => onWorkspaceModeChange('builder')}
           className="px-3 py-1.5 rounded-md border-none text-[10px] font-bold tracking-[0.12em] uppercase cursor-pointer focus-visible:outline focus-visible:outline-2"
           style={{
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             background: workspaceMode === 'builder' ? '#FE5000' : 'transparent',
             color: workspaceMode === 'builder' ? '#fff' : t.textDim,
           }}
@@ -86,7 +86,7 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
           onClick={() => onWorkspaceModeChange('runtime')}
           className="px-3 py-1.5 rounded-md border-none text-[10px] font-bold tracking-[0.12em] uppercase cursor-pointer focus-visible:outline focus-visible:outline-2"
           style={{
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             background: workspaceMode === 'runtime' ? '#FE5000' : 'transparent',
             color: workspaceMode === 'runtime' ? '#fff' : t.textDim,
           }}
@@ -182,7 +182,7 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
       >
         {running ? <Square size={12} fill="white" /> : <Play size={12} fill="white" />}
         {running ? 'Stop' : 'Run'}
-        <span className="text-[9px] opacity-60 tracking-normal font-normal ml-1">{running ? 'click to cancel' : 'Ctrl+Enter'}</span>
+        <span className="text-[11px] opacity-60 tracking-normal font-normal ml-1">{running ? 'click to cancel' : 'Ctrl+Enter'}</span>
       </button>
     </div>
   );

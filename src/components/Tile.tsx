@@ -75,7 +75,7 @@ export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, o
       <span
         className="text-[10px] leading-tight block px-1"
         style={{
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "'Geist Sans', sans-serif",
           fontWeight: 500,
           color: active ? t.textPrimary : t.textSecondary,
           maxWidth: '100%',
@@ -100,7 +100,7 @@ export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, o
       {subtitle && (
         <span
           className="text-[11px] tracking-wide font-semibold block mt-auto truncate w-full"
-          style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}
+          style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}
           title={subtitle}
         >
           {subtitle}

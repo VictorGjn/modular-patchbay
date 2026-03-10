@@ -24,8 +24,8 @@ export function RuntimeWorkspaceLayout() {
       >
         <div className="px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
           <h2
-            className="text-[10px] font-bold tracking-[0.15em] uppercase"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}
+            className="text-[10px] font-bold tracking-[0.08em] uppercase"
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}
           >
             Team Snapshot
           </h2>
@@ -42,8 +42,8 @@ export function RuntimeWorkspaceLayout() {
       >
         <div className="px-6 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
           <h1
-            className="text-[12px] font-bold tracking-[0.15em] uppercase"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}
+            className="text-[12px] font-bold tracking-[0.08em] uppercase"
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
           >
             Runtime Workspace
           </h1>

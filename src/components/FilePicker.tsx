@@ -50,15 +50,15 @@ function TreeNode({ node, depth, onAdd, filter }: { node: FileNode; depth: numbe
 
         <span
           className="flex-1 text-[11px] truncate"
-          style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}
+          style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
         >
           {node.name}
         </span>
 
         {node.tokenEstimate && (
           <span
-            className="text-[9px] shrink-0"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+            className="text-[11px] shrink-0"
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
           >
             {formatTokens(node.tokenEstimate)}
           </span>
@@ -68,8 +68,8 @@ function TreeNode({ node, depth, onAdd, filter }: { node: FileNode; depth: numbe
           <button
             type="button"
             onClick={() => onAdd(node)}
-            className="px-2 py-0.5 rounded text-[8px] tracking-[1px] uppercase cursor-pointer border transition-colors shrink-0"
-            style={{ fontFamily: "'Space Mono', monospace", background: 'transparent', borderColor: t.border, color: t.textMuted }}
+            className="px-2 py-0.5 rounded text-[10px] tracking-[1px] uppercase cursor-pointer border transition-colors shrink-0"
+            style={{ fontFamily: "'Geist Mono', monospace", background: 'transparent', borderColor: t.border, color: t.textMuted }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textMuted; }}
             aria-label={`Add ${node.name}`}
@@ -169,7 +169,7 @@ export function FilePicker() {
         <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: t.border }}>
           <span
             className="text-[11px] font-bold tracking-[3px] uppercase"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
           >
             ADD KNOWLEDGE SOURCE
           </span>
@@ -199,7 +199,7 @@ export function FilePicker() {
               border: `1px solid ${t.border}`,
               borderRadius: 4,
               color: t.textPrimary,
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               padding: '6px 10px',
             }}
             aria-label="Directory path to scan"
@@ -229,7 +229,7 @@ export function FilePicker() {
               border: `1px solid ${t.border}`,
               borderRadius: 4,
               color: t.textPrimary,
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               padding: '6px 10px',
             }}
             onFocus={(e) => { e.currentTarget.style.borderColor = '#FE500050'; }}
