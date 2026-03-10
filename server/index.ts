@@ -21,6 +21,7 @@ import authCodexRoutes from './routes/auth-codex.js';
 import capabilitiesRoutes from './routes/capabilities.js';
 import qualificationRoutes from './routes/qualification.js';
 import agentRoutes from './routes/agents.js';
+import mcpOAuthRoutes from './routes/mcp-oauth.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -85,6 +86,7 @@ export function createApp() {
   app.use('/api/capabilities', capabilitiesRoutes);
   app.use('/api/qualification', qualificationRoutes);
   app.use('/api/agents', agentRoutes);
+  app.use('/api/mcp/oauth', mcpOAuthRoutes(4800));
 
   // Global error handler — prevent server crashes
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
