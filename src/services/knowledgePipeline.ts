@@ -65,38 +65,70 @@ function extractChunksWithProvenance(
   sourceChannels: ChannelConfig[],
 ): ChunkWithMetadata[] {
   const chunks: ChunkWithMetadata[] = [];
-  
+
   if (!pipelineResult.context) return chunks;
 
-  // For simplicity, treat the entire context as chunks
-  // In a more sophisticated implementation, we could parse the tree structure
-  // to extract individual sections/nodes
-  
   const sourceMap = new Map<string, ChannelConfig>();
   for (const ch of sourceChannels) {
     sourceMap.set(ch.name, ch);
+    if (ch.path) sourceMap.set(ch.path, ch);
   }
 
-  // Parse the context to extract individual sections if possible
-  // For now, create one chunk per source
-  for (const sourceInfo of pipelineResult.sources) {
-    const channel = sourceMap.get(sourceInfo.name);
-    if (!channel) continue;
+  // Split context into sections by markdown headings
+  const sections = splitByHeadings(pipelineResult.context);
 
-    const depth = DEPTH_LEVELS[channel.depth];
-    
+  for (const section of sections) {
+    // Try to match section to a source channel
+    let channel: ChannelConfig | undefined;
+    for (const sourceInfo of pipelineResult.sources) {
+      if (section.content.length > 0 && sourceMap.has(sourceInfo.name)) {
+        channel = sourceMap.get(sourceInfo.name);
+        break;
+      }
+    }
+
+    const depth = channel ? DEPTH_LEVELS[channel.depth]?.label ?? 'full' : 'full';
+
     chunks.push({
-      content: pipelineResult.context, // TODO: extract source-specific content
-      source: channel.path || channel.name,
-      section: 'main',
-      type: channel.knowledgeType,
-      depth: depth.label,
+      content: section.content,
+      source: channel?.path || channel?.name || 'unknown',
+      section: section.heading || 'main',
+      type: (channel?.knowledgeType || 'signal') as KnowledgeType,
+      depth,
       method: 'tree-index-pipeline',
-      node: {} as TreeNode, // placeholder
+      node: {} as TreeNode,
     });
   }
 
   return chunks;
+}
+
+function splitByHeadings(text: string): Array<{ heading: string; content: string }> {
+  const lines = text.split('\n');
+  const sections: Array<{ heading: string; content: string }> = [];
+  let currentHeading = '';
+  let currentLines: string[] = [];
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^#{1,4}\s+(.+)/);
+    if (headingMatch) {
+      if (currentLines.length > 0) {
+        const content = currentLines.join('\n').trim();
+        if (content) sections.push({ heading: currentHeading, content });
+      }
+      currentHeading = headingMatch[1];
+      currentLines = [];
+    } else {
+      currentLines.push(line);
+    }
+  }
+
+  if (currentLines.length > 0) {
+    const content = currentLines.join('\n').trim();
+    if (content) sections.push({ heading: currentHeading, content });
+  }
+
+  return sections;
 }
 
 /**
