@@ -39,15 +39,32 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
   };
 
   const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState('');
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
+    setGenerateError('');
     try {
-      const steps = await generateWorkflow();
-      if (steps) updateWorkflowSteps(steps as any);
-    } catch {}
+      // If steps exist with labels, refine them; otherwise generate from scratch
+      const existingLabels = workflowSteps
+        .filter(s => s.label.trim())
+        .map(s => s.label.trim());
+
+      if (existingLabels.length > 0) {
+        // Refine: generate proper steps based on what the user typed
+        const { refineWorkflowSteps } = await import('../utils/generateSection');
+        const refined = await refineWorkflowSteps(existingLabels);
+        if (refined) updateWorkflowSteps(refined as any);
+      } else {
+        // Generate from scratch based on agent identity
+        const steps = await generateWorkflow();
+        if (steps) updateWorkflowSteps(steps as any);
+      }
+    } catch (err) {
+      setGenerateError(err instanceof Error ? err.message : 'Generation failed');
+    }
     setGenerating(false);
-  }, [updateWorkflowSteps]);
+  }, [updateWorkflowSteps, workflowSteps]);
 
   if (!open) return null;
 
@@ -222,6 +239,15 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
             </div>
           )}
         </div>
+
+        {/* Error */}
+        {generateError && (
+          <div style={{ padding: '0 24px 12px' }}>
+            <div className="text-[13px] px-3 py-2 rounded" style={{ background: '#ff000012', color: '#e74c3c', border: '1px solid #e74c3c20' }}>
+              {generateError}
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div

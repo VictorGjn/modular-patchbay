@@ -98,6 +98,31 @@ function parseJSON<T>(text: string): T {
   throw new Error('Could not parse LLM response as JSON');
 }
 
+export async function refineWorkflowSteps(existingLabels: string[]): Promise<{ label: string; action: string; condition: boolean; loop: boolean }[]> {
+  const context = getAgentContext();
+  const labelsText = existingLabels.map((l, i) => `${i + 1}. ${l}`).join('\n');
+  const prompt = `You are an expert AI agent architect. The user has sketched out workflow steps for their agent. Refine them into proper, actionable workflow steps.
+
+User's draft steps:
+${labelsText}
+
+Agent context:
+${context || '(no agent identity set yet)'}
+
+Output ONLY a JSON array:
+[{"label": "<clear step name>", "action": "<specific what the agent does>", "condition": false, "loop": false}]
+
+Rules:
+- Keep the user's intent and ordering — don't add unrelated steps
+- Make labels concise and action-oriented
+- Fill in the "action" field with specific details about HOW the step works
+- You may split or merge steps if it makes the flow clearer
+- Add verification/output steps if the user forgot them`;
+
+  const text = await callLLM(prompt, labelsText);
+  return parseJSON(text);
+}
+
 export async function generateWorkflow(): Promise<{ label: string; action: string; condition: boolean; loop: boolean }[]> {
   const context = getAgentContext();
   if (!context) throw new Error('Add agent identity/persona first — the generator needs context');
