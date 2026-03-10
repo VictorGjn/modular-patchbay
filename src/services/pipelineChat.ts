@@ -113,7 +113,8 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
 
   try {
     // 1. Build the non-knowledge system frame (identity, instructions, constraints, workflow, tools)
-    const systemFrame = buildSystemFrame();
+    // Note: buildSystemFrame will be called again after provenance is available
+    let systemFrame = buildSystemFrame();
 
     // 2. Route sources: index files + extract framework rules
     const activeChannels = channels.filter(ch => ch.enabled);
@@ -123,10 +124,10 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         : { frameworkBlock: '', frameworkSummary: undefined, regularChannels: [], residualKnowledgeBlock: '' };
 
     // 3. Compress knowledge: pipeline + optional agent navigation
-    let { knowledgeBlock, pipelineResult } =
+    let { knowledgeBlock, pipelineResult, provenance } =
       activeChannels.length > 0
         ? await compressKnowledge(channels, regularChannels, residualKnowledgeBlock, { userMessage, navigationMode: options.navigationMode, providerId, model }, traceId)
-        : { knowledgeBlock: '', pipelineResult: null };
+        : { knowledgeBlock: '', pipelineResult: null, provenance: null };
 
     // 3a. Append connector references (services like Notion, Slack, HubSpot)
     const activeConnectors = (options.connectors || []).filter(c => c.enabled && c.direction !== 'write');
@@ -168,6 +169,11 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         recallTokens: recallResult.tokenEstimate,
         domains: [...new Set(recallResult.facts.map(f => f.domain))],
       };
+    }
+
+    // 3c. Rebuild system frame with provenance data
+    if (provenance) {
+      systemFrame = buildSystemFrame(provenance);
     }
 
     // 4. Assemble final system prompt

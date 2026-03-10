@@ -25,6 +25,8 @@ export interface RuntimeAgentState {
   facts: ExtractedFact[];
   toolCalls: RuntimeToolCall[];
   output?: string;
+  tokens?: { input: number; output: number };
+  isAgentSdk?: boolean;
 }
 
 export interface RuntimeRun {
@@ -39,7 +41,7 @@ export interface RuntimeRun {
 }
 
 export interface RuntimeStore extends RuntimeRun {
-  startRun: (agents: { agentId: string; name: string }[], teamId?: string) => void;
+  startRun: (agents: { agentId: string; name: string; isAgentSdk?: boolean }[], teamId?: string) => void;
   updateAgent: (agentId: string, patch: Partial<RuntimeAgentState>) => void;
   addFact: (fact: ExtractedFact, target: 'shared' | { agentId: string }) => void;
   setStatus: (status: RuntimeRun['status'], error?: string) => void;
@@ -72,6 +74,7 @@ export const useRuntimeStore = create<RuntimeStore>((set) => ({
         turns: 0,
         facts: [],
         toolCalls: [],
+        isAgentSdk: a.isAgentSdk,
       })),
       sharedFacts: [],
       startedAt: Date.now(),

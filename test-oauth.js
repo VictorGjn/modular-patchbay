@@ -1,4 +1,4 @@
-import { discoverOAuth, startOAuthFlow, getToken } from './server/services/mcpOAuth.js';
+import { discoverOAuth, startOAuthFlow, getToken } from './dist-server/server/services/mcpOAuth.js';
 
 const NOTION_MCP_URL = 'https://mcp.notion.com/mcp';
 const REDIRECT_URI = 'http://localhost:4800/api/mcp/oauth/callback';

@@ -55,6 +55,22 @@ function AgentCard({ agent, expanded: forceExpanded }: { agent: RuntimeAgentStat
         <span style={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
           {agent.name}
         </span>
+        {agent.isAgentSdk && (
+          <span
+            style={{
+              fontSize: 10,
+              padding: '2px 6px',
+              borderRadius: 4,
+              background: '#FE500015',
+              color: '#FE5000',
+              fontFamily: "'Geist Mono', monospace",
+              fontWeight: 600,
+              border: '1px solid #FE500030',
+            }}
+          >
+            Agent SDK
+          </span>
+        )}
         <span style={{ fontSize: 12, color: t.textDim, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
           {agent.status === 'running' ? `Turn ${agent.turns}` : agent.status}
           {agent.tokens && (agent.tokens.input > 0 || agent.tokens.output > 0) && (
@@ -182,4 +198,47 @@ export function RuntimeResults() {
         {status === 'running' && <Loader2 size={14} className="animate-spin" style={{ color: '#FE5000' }} />}
         {status === 'completed' && <CheckCircle size={14} style={{ color: '#2ecc71' }} />}
         {status === 'error' && <XCircle size={14} style={{ color: '#dc2626' }} />}
-        <span style={{ fontSize: 13, fontWe
+        <span style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary }}>
+          {status === 'running' ? 'Running...' : status === 'completed' ? 'Completed' : 'Error'}
+        </span>
+        <span style={{ fontSize: 12, color: t.textDim }}>{elapsed}s</span>
+        <button
+          type="button"
+          onClick={() => setMaximized(!maximized)}
+          style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: t.textDim }}
+          title={maximized ? 'Minimize' : 'Maximize results'}
+        >
+          {maximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+        </button>
+      </div>
+
+      {error && (
+        <div style={{ fontSize: 13, color: '#dc2626', padding: 8, borderRadius: 6, background: '#dc262610' }}>{error}</div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, overflowY: 'auto' }}>
+        {agents.map((a) => <AgentCard key={a.agentId} agent={a} expanded={maximized} />)}
+      </div>
+
+      <SharedFacts facts={sharedFacts} />
+    </div>
+  );
+
+  if (maximized) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: t.background, padding: 24, overflowY: 'auto',
+      }}>
+        {content}
+      </div>
+    );
+  }
+
+  return content;
+}
+
+/** @deprecated — use RuntimeResults embedded in TestPanel instead */
+export function RuntimePanel() {
+  return <RuntimeResults />;
+}
