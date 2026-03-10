@@ -118,7 +118,7 @@ export class McpManager {
         env: { ...process.env, ...conn.config.env } as Record<string, string>,
       });
 
-      const client = new Client({ name: 'modular-studio', version: '1.0.0' });
+      client = new Client({ name: 'modular-studio', version: '1.0.0' });
 
       // Handle process exit
       transport.onclose = () => {

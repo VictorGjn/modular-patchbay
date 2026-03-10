@@ -958,7 +958,12 @@ export const useConsoleStore = create<ConsoleState>()(
     set({ instructionState: { ...get().instructionState, ...patch } });
   },
   updateWorkflowSteps: (steps: WorkflowStep[]) => {
-    set({ workflowSteps: steps });
+    // Ensure all steps have unique IDs (generated steps may lack them)
+    const withIds = steps.map((s, i) => ({
+      ...s,
+      id: s.id || `step-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 5)}`,
+    }));
+    set({ workflowSteps: withIds });
   },
 
   // Phase 2 actions
