@@ -183,12 +183,22 @@ interface RuntimeEvent {
   result?: string;
   error?: string;
   tokens?: { input: number; output: number };
+  isAgentSdk?: boolean;
 }
 
 function handleRuntimeEvent(event: RuntimeEvent): void {
   const store = useRuntimeStore.getState();
 
   switch (event.type) {
+    case 'start':
+      // Update all agents with isAgentSdk flag if provided
+      if (event.isAgentSdk !== undefined) {
+        store.agents.forEach(agent => {
+          store.updateAgent(agent.agentId, { isAgentSdk: event.isAgentSdk });
+        });
+      }
+      break;
+
     case 'turn':
       if (event.agentId) {
         store.updateAgent(event.agentId, {

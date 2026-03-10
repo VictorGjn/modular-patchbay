@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { runAgent } from '../services/agentRunner.js';
 import { runTeam } from '../services/teamRunner.js';
+import { readConfig } from '../config.js';
 import type { AgentRunConfig, AgentRunResult } from '../services/agentRunner.js';
 import type { TeamRunConfig, TeamRunResult } from '../services/teamRunner.js';
 import type { Request, Response } from 'express';
@@ -40,7 +41,11 @@ router.post('/run-agent', (req: Request, res: Response) => {
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Run-Id', runId);
 
-  sendSSE(res, { type: 'start', runId });
+  const configData = readConfig();
+  const provider = configData.providers.find((p) => p.id === config.providerId);
+  const isAgentSdk = provider?.authMethod === 'claude-agent-sdk';
+  
+  sendSSE(res, { type: 'start', runId, isAgentSdk });
 
   runAgent(config, (event) => sendSSE(res, event))
     .then((result) => {
@@ -76,7 +81,11 @@ router.post('/run-team', (req: Request, res: Response) => {
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Team-Id', runId);
 
-  sendSSE(res, { type: 'start', teamId: runId });
+  const configData = readConfig();
+  const provider = configData.providers.find((p) => p.id === config.providerId);
+  const isAgentSdk = provider?.authMethod === 'claude-agent-sdk';
+  
+  sendSSE(res, { type: 'start', teamId: runId, isAgentSdk });
 
   const signal = abortController.signal;
 

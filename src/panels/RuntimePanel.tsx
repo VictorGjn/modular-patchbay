@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTheme } from '../theme';
 import { useRuntimeStore, type ExtractedFact, type RuntimeAgentState } from '../store/runtimeStore';
-import { Loader2, CheckCircle, XCircle, Clock, Brain, Maximize2, Minimize2, ChevronDown, ChevronRight, Copy, Check } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Clock, Brain, Maximize2, Minimize2, ChevronDown, ChevronRight, Copy, Check, Zap } from 'lucide-react';
 
 const FACT_COLORS: Record<string, string> = {
   observation: '#3498db',

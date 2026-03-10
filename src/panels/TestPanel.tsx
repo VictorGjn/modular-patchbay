@@ -5,6 +5,7 @@ import { useConversationStore } from '../store/conversationStore';
 import { exportForTarget, downloadAgentFile } from '../utils/agentExport';
 import { importAgentFromZip } from '../utils/agentDirectory';
 import { runPipelineChat, resolveProviderAndModel } from '../services/pipelineChat';
+import { useProviderStore } from '../store/providerStore';
 import {
   Send, Download, Check, FolderOpen, Upload, AlertCircle,
   FileText, FileCode, Zap, ChevronDown, ChevronRight, Users, Plus, X, Play, Square,
@@ -344,7 +345,12 @@ function TeamSection() {
       return;
     }
 
-    console.log('[TeamRunner] Starting team run with provider:', providerId, 'model:', model);
+    // Determine if using Agent SDK
+    const providerStore = useProviderStore.getState();
+    const provider = providerStore.providers.find(p => p.id === providerId);
+    const isAgentSdk = provider?.authMethod === 'claude-agent-sdk';
+
+    console.log('[TeamRunner] Starting team run with provider:', providerId, 'model:', model, 'Agent SDK:', isAgentSdk);
 
     // Fallback system prompt from current builder config
     const fallbackSystemPrompt = buildSystemFrame();
@@ -355,6 +361,7 @@ function TeamSection() {
       task: task.trim(),
       providerId,
       model,
+      isAgentSdk,
       agents: agents.map(a => ({
         agentId: a.id,
         name: a.name,
