@@ -330,11 +330,20 @@ function TeamSection() {
     setAgents(agents.map(a => a.id === id ? { ...a, ...patch } : a));
   };
 
+  const [runError, setRunError] = useState<string | null>(null);
+
   const handleRun = useCallback(() => {
     if (!task.trim() || isRunning) return;
+    setRunError(null);
 
     const { providerId, model, error } = resolveProviderAndModel();
-    if (error) return;
+    if (error) {
+      setRunError(error);
+      console.error('[TeamRunner] Provider error:', error);
+      return;
+    }
+
+    console.log('[TeamRunner] Starting team run with provider:', providerId, 'model:', model);
 
     // Fallback system prompt from current builder config
     const fallbackSystemPrompt = buildSystemFrame();
@@ -477,6 +486,11 @@ function TeamSection() {
           className="w-full text-[13px] px-3 py-2.5 rounded-lg outline-none resize-none"
           style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, lineHeight: 1.5 }}
         />
+        {runError && (
+          <div className="text-[12px] px-3 py-2 rounded mb-2" style={{ background: '#dc262615', color: '#dc2626', border: '1px solid #dc262630' }}>
+            {runError}
+          </div>
+        )}
         <div className="flex gap-2 mt-2">
           {!isRunning ? (
             <button
