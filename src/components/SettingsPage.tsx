@@ -85,8 +85,9 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
       style={{ background: expanded ? t.surfaceElevated : 'transparent', borderBottom: `1px solid ${t.borderSubtle}` }}
     >
       {/* Header row */}
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         className="nodrag nowheel w-full flex items-center gap-3 px-4 py-3 cursor-pointer border-none bg-transparent text-left"
         onClick={() => setExpanded(!expanded)}
         style={{ color: t.textPrimary }}
@@ -107,7 +108,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
         <span className="text-[12px]" style={{ color: t.textMuted }}>
           {provider.status === 'connected' ? `${models.length} models` : provider.status}
         </span>
-      </button>
+      </div>
 
       {/* Expanded config */}
       {expanded && (
@@ -492,8 +493,9 @@ function McpServerRow({ server }: { server: McpServerState }) {
       }}
     >
       {/* Header row */}
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         className="nodrag nowheel w-full flex items-center gap-3 px-4 py-3 cursor-pointer border-none bg-transparent text-left"
         onClick={() => setExpanded(!expanded)}
         style={{ color: t.textPrimary }}
@@ -546,7 +548,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
             : server.status === 'connected' ? 'Disconnect' : 'Connect'}
         </button>
         <Settings size={12} style={{ color: t.textDim }} />
-      </button>
+      </div>
 
       {/* Expanded config */}
       {expanded && (
