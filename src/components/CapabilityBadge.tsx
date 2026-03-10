@@ -17,7 +17,7 @@ export function CapabilityBadge({ label, status, note }: CapabilityBadgeProps) {
   const config = STATUS_CONFIG[status];
   const badge = (
     <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[12px] font-semibold uppercase tracking-wider"
       style={{ background: config.bg, color: config.color, fontFamily: "'Geist Mono', monospace", border: `1px solid ${config.color}25` }}
       aria-label={`${label}: ${status}${note ? ` — ${note}` : ''}`}
     >

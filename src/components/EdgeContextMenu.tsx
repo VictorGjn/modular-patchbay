@@ -27,7 +27,7 @@ export function EdgeContextMenu({ x, y, onDelete, onClose }: EdgeContextMenuProp
         }}
       >
         <button
-          className="nodrag nowheel flex items-center gap-2 w-full px-3 py-2 text-xs transition-colors"
+          className="nodrag nowheel flex items-center gap-2 w-full px-3 py-2 text-[14px] transition-colors"
           style={{ color: t.textPrimary }}
           onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}

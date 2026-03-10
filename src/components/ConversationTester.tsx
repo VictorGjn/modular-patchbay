@@ -178,7 +178,7 @@ export function ConversationTester() {
           color: panelOpen ? '#FE5000' : t.textDim,
           borderTop: `1px solid ${t.border}`,
           fontFamily: "'Geist Mono', monospace",
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: 600,
           letterSpacing: '0.1em',
         }}
@@ -218,10 +218,10 @@ export function ConversationTester() {
                 {messages.length === 0 && (
                   <div className="flex-1 flex flex-col items-center justify-center gap-2" style={{ color: t.textFaint }}>
                     <MessageSquare size={24} style={{ opacity: 0.3 }} />
-                    <span className="text-[10px] tracking-wider uppercase" style={{ fontFamily: "'Geist Mono', monospace" }}>
+                    <span className="text-[12px] tracking-wider uppercase" style={{ fontFamily: "'Geist Mono', monospace" }}>
                       Test your agent with a conversation
                     </span>
-                    <span className="text-[10px]" style={{ color: t.textMuted }}>
+                    <span className="text-[12px]" style={{ color: t.textMuted }}>
                       Uses assembled context: instructions + workflow + knowledge + skills + tools
                     </span>
                   </div>
@@ -232,7 +232,7 @@ export function ConversationTester() {
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className="max-w-[75%] rounded-xl px-3 py-2 text-[12px] leading-relaxed"
+                      className="max-w-[75%] rounded-xl px-3 py-2 text-[14px] leading-relaxed"
                       style={{
                         background: msg.role === 'user' ? '#FE5000' : t.surfaceElevated,
                         color: msg.role === 'user' ? '#fff' : t.textPrimary,
@@ -266,13 +266,13 @@ export function ConversationTester() {
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                   placeholder="Type a message to test your agent..."
-                  className="flex-1 text-xs px-3 py-2 rounded-lg outline-none"
+                  className="flex-1 text-[14px] px-3 py-2 rounded-lg outline-none"
                   style={{
                     background: t.inputBg,
                     border: `1px solid ${t.border}`,
                     color: t.textPrimary,
                     fontFamily: "'Geist Mono', monospace",
-                    fontSize: 11,
+                    fontSize: 13,
                   }}
                   disabled={streaming}
                 />
@@ -315,7 +315,7 @@ export function ConversationTester() {
 
               {/* Add test form */}
               <div className="flex flex-col gap-2 p-3 rounded-lg" style={{ background: t.surfaceElevated, border: `1px solid ${t.borderSubtle}` }}>
-                <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+                <span className="text-[13px] font-semibold tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                   Add Test Case
                 </span>
                 <Input placeholder="Test name" value={testName} onChange={(e) => setTestName(e.target.value)} />
@@ -349,9 +349,9 @@ export function ConversationTester() {
                     {tc.passed === null && <Minus size={14} style={{ color: t.textDim }} />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[11px] font-semibold" style={{ color: t.textPrimary }}>{tc.name}</div>
-                    <div className="text-[10px] truncate" style={{ color: t.textMuted }}>{tc.input}</div>
-                    {tc.lastResult && <div className="text-[10px] mt-1 truncate" style={{ color: t.textSecondary }}>{tc.lastResult}</div>}
+                    <div className="text-[13px] font-semibold" style={{ color: t.textPrimary }}>{tc.name}</div>
+                    <div className="text-[12px] truncate" style={{ color: t.textMuted }}>{tc.input}</div>
+                    {tc.lastResult && <div className="text-[12px] mt-1 truncate" style={{ color: t.textSecondary }}>{tc.lastResult}</div>}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <IconButton
@@ -378,7 +378,7 @@ export function ConversationTester() {
               ))}
 
               {testCases.length === 0 && (
-                <div className="py-6 text-center text-[10px]" style={{ color: t.textFaint }}>
+                <div className="py-6 text-center text-[12px]" style={{ color: t.textFaint }}>
                   <FlaskConical size={20} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
                   <div>No test cases yet</div>
                   <div className="mt-1" style={{ color: t.textMuted }}>Save conversations as tests to build a regression suite</div>
@@ -390,7 +390,7 @@ export function ConversationTester() {
           {/* History tab */}
           {activeTab === 'history' && (
             <div className="flex-1 overflow-y-auto px-4 py-3">
-              <div className="py-6 text-center text-[10px]" style={{ color: t.textFaint }}>
+              <div className="py-6 text-center text-[12px]" style={{ color: t.textFaint }}>
                 <History size={20} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
                 <div>Conversation history will appear here</div>
                 <div className="mt-1" style={{ color: t.textMuted }}>Every test run is logged for comparison</div>
@@ -409,7 +409,7 @@ export function ConversationTester() {
             className="relative flex flex-col gap-3 p-4 rounded-xl"
             style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, width: 360 }}
           >
-            <span className="text-xs font-bold" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>Save as Test Case</span>
+            <span className="text-[14px] font-bold" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>Save as Test Case</span>
             <Input label="Name" placeholder="e.g., catches-missing-key-prop" value={testName} onChange={(e) => setTestName(e.target.value)} />
             <Input label="Expected Behavior" placeholder="Should flag missing key prop..." value={testExpected} onChange={(e) => setTestExpected(e.target.value)} />
             <div className="flex justify-end gap-2">

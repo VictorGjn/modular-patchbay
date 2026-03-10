@@ -101,10 +101,10 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
         >
           <Cpu size={14} style={{ color: provider.color }} />
         </div>
-        <span className="text-xs font-semibold flex-1" style={{ fontFamily: "'Geist Mono', monospace" }}>
+        <span className="text-[14px] font-semibold flex-1" style={{ fontFamily: "'Geist Mono', monospace" }}>
           {displayName}
         </span>
-        <span className="text-[10px]" style={{ color: t.textMuted }}>
+        <span className="text-[12px]" style={{ color: t.textMuted }}>
           {provider.status === 'connected' ? `${models.length} models` : provider.status}
         </span>
       </button>
@@ -114,13 +114,13 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
         <div className="px-4 pb-4 flex flex-col gap-3">
           {isOpenAiProvider && (
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+              <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Auth Mode
               </label>
               <select
                 value={provider.authMethod}
                 onChange={(e) => setProviderAuthMethod(provider.id, e.target.value as 'api-key' | 'oauth')}
-                className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+                className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none"
                 style={inputStyle}
               >
                 <option value="api-key">API Key</option>
@@ -133,7 +133,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
           {provider.authMethod === 'claude-agent-sdk' ? (
             <>
               <div
-                className="flex items-center gap-2 text-xs px-3 py-2.5 rounded-lg"
+                className="flex items-center gap-2 text-[14px] px-3 py-2.5 rounded-lg"
                 style={{ background: t.badgeBg, border: `1px solid ${t.borderSubtle}` }}
               >
                 <Terminal size={14} style={{ color: provider.color }} />
@@ -143,7 +143,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
               </div>
               {provider.status === 'connected' && (
                 <div
-                  className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
+                  className="flex items-center gap-2 text-[14px] px-3 py-2 rounded-lg"
                   style={{ background: t.statusSuccessBg, border: `1px solid ${t.statusSuccess}30`, color: t.statusSuccess }}
                 >
                   <CheckCircle size={14} />
@@ -152,7 +152,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
               )}
               {provider.status === 'error' && (
                 <div
-                  className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
+                  className="flex items-center gap-2 text-[14px] px-3 py-2 rounded-lg"
                   style={{ background: t.statusErrorBg, border: `1px solid ${t.statusError}30`, color: t.statusError }}
                 >
                   <XCircle size={14} />
@@ -161,14 +161,14 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
               )}
               {/* Models */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+                <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                   Available Models
                 </label>
                 <div className="flex flex-wrap gap-1">
                   {models.map((m) => (
                     <span
                       key={m.id}
-                      className="text-[10px] px-2 py-0.5 rounded"
+                      className="text-[12px] px-2 py-0.5 rounded"
                       style={{ background: provider.color + '15', color: provider.color, fontFamily: "'Geist Mono', monospace" }}
                     >
                       {m.label}
@@ -182,7 +182,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   type="button"
                   onClick={handleTest}
                   disabled={testing}
-                  className="nodrag nowheel flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg cursor-pointer font-semibold border-none"
+                  className="nodrag nowheel flex items-center gap-1.5 text-[14px] px-3 py-1.5 rounded-lg cursor-pointer font-semibold border-none"
                   style={{ background: '#FE5000', color: '#fff', opacity: testing ? 0.6 : 1 }}
                 >
                   {testing ? <Loader2 size={12} className="animate-spin" /> : <PlugZap size={12} />}
@@ -192,7 +192,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   type="button"
                   onClick={handleTest}
                   disabled={testing}
-                  className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
+                  className="nodrag nowheel flex items-center gap-1 text-[13px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
                   style={{ color: t.textSecondary, background: t.badgeBg, opacity: testing ? 0.6 : 1 }}
                 >
                   Refresh Models
@@ -204,7 +204,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
               {isCodexOAuth ? (
                 <div className="flex flex-col gap-2">
                   <div
-                    className="flex items-start gap-2 text-xs px-3 py-2.5 rounded-lg"
+                    className="flex items-start gap-2 text-[14px] px-3 py-2.5 rounded-lg"
                     style={{ background: t.badgeBg, border: `1px solid ${t.borderSubtle}` }}
                   >
                     <Terminal size={14} style={{ color: provider.color, marginTop: 1 }} />
@@ -244,7 +244,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                         // no-op
                       }
                     }}
-                    className="nodrag nowheel flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg cursor-pointer font-semibold border-none"
+                    className="nodrag nowheel flex items-center justify-center gap-1.5 text-[14px] px-3 py-2 rounded-lg cursor-pointer font-semibold border-none"
                     style={{ background: '#FE5000', color: '#fff' }}
                   >
                     Sign in with Codex
@@ -252,7 +252,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                 </div>
               ) : (
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+                  <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                     API Key
                   </label>
                   <div className="relative">
@@ -262,7 +262,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                       onChange={(e) => setLocalKey(e.target.value)}
                       onBlur={handleSave}
                       placeholder={provider._hasStoredKey ? 'Key stored on server' : 'sk-...'}
-                      className="nodrag nowheel w-full text-xs px-3 py-2 pr-9 rounded-lg outline-none"
+                      className="nodrag nowheel w-full text-[14px] px-3 py-2 pr-9 rounded-lg outline-none"
                       style={inputStyle}
                     />
                     <button
@@ -279,7 +279,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
 
               {/* Base URL */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+                <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                   Base URL
                 </label>
                 <input
@@ -287,7 +287,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   value={localUrl}
                   onChange={(e) => setLocalUrl(e.target.value)}
                   onBlur={handleSave}
-                  className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+                  className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none"
                   style={inputStyle}
                 />
               </div>
@@ -298,7 +298,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   type="button"
                   onClick={handleTest}
                   disabled={testing}
-                  className="nodrag nowheel flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg cursor-pointer font-semibold border-none"
+                  className="nodrag nowheel flex items-center gap-1.5 text-[14px] px-3 py-1.5 rounded-lg cursor-pointer font-semibold border-none"
                   style={{ background: '#FE5000', color: '#fff', opacity: testing ? 0.6 : 1 }}
                 >
                   {testing ? <Loader2 size={12} className="animate-spin" /> : <Plug size={12} />}
@@ -309,7 +309,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   type="button"
                   onClick={handleTest}
                   disabled={testing}
-                  className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
+                  className="nodrag nowheel flex items-center gap-1 text-[13px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
                   style={{ color: t.textSecondary, background: t.badgeBg, opacity: testing ? 0.6 : 1 }}
                 >
                   Refresh Models
@@ -320,7 +320,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                     href={provider.keyPageUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="nodrag nowheel flex items-center gap-1 text-[11px] px-2 py-1.5 rounded-lg no-underline"
+                    className="nodrag nowheel flex items-center gap-1 text-[13px] px-2 py-1.5 rounded-lg no-underline"
                     style={{ color: t.textSecondary, background: t.badgeBg }}
                   >
                     <ExternalLink size={10} />
@@ -332,7 +332,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   <button
                     type="button"
                     onClick={() => deleteProvider(provider.id)}
-                    className="nodrag nowheel flex items-center gap-1 text-[11px] px-2 py-1.5 rounded-lg cursor-pointer border-none ml-auto"
+                    className="nodrag nowheel flex items-center gap-1 text-[13px] px-2 py-1.5 rounded-lg cursor-pointer border-none ml-auto"
                     style={{ color: t.statusError, background: t.statusErrorBg }}
                   >
                     <Trash2 size={10} />
@@ -344,7 +344,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
               {/* Test result */}
               {testResult && (
                 <div
-                  className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
+                  className="flex items-center gap-2 text-[14px] px-3 py-2 rounded-lg"
                   style={{
                     background: testResult.ok ? t.statusSuccessBg : t.statusErrorBg,
                     border: `1px solid ${testResult.ok ? t.statusSuccess + '30' : t.statusError + '30'}`,
@@ -363,7 +363,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
 
           {/* Header note */}
           {provider.headerNote && (
-            <span className="text-[10px]" style={{ color: t.textFaint }}>
+            <span className="text-[12px]" style={{ color: t.textFaint }}>
               {provider.headerNote}
             </span>
           )}
@@ -389,7 +389,7 @@ function ProvidersTab() {
         <button
           type="button"
           onClick={addCustomProvider}
-          className="nodrag nowheel flex items-center gap-2 text-xs px-3 py-2 rounded-lg cursor-pointer w-full justify-center"
+          className="nodrag nowheel flex items-center gap-2 text-[14px] px-3 py-2 rounded-lg cursor-pointer w-full justify-center"
           style={{ border: `1px dashed ${t.border}`, background: 'transparent', color: t.textMuted }}
         >
           <Plus size={12} />
@@ -507,11 +507,11 @@ function McpServerRow({ server }: { server: McpServerState }) {
         />
         <Server size={14} style={{ color: t.textDim }} />
         <div className="flex-1">
-          <div className="text-xs font-semibold" style={{ color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
+          <div className="text-[14px] font-semibold" style={{ color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
             {server.name}
             {server.mcpStatus && server.mcpStatus !== 'enabled' && (
               <span
-                className="text-[10px] px-1.5 py-0.5 rounded ml-2 uppercase"
+                className="text-[12px] px-1.5 py-0.5 rounded ml-2 uppercase"
                 style={{
                   fontFamily: "'Geist Mono', monospace", fontWeight: 600,
                   background: server.mcpStatus === 'deferred' ? t.statusWarningBg : t.statusErrorBg,
@@ -522,7 +522,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
               </span>
             )}
           </div>
-          <div className="text-[10px]" style={{ color: t.textMuted }}>
+          <div className="text-[12px]" style={{ color: t.textMuted }}>
             {server.status === 'connected'
               ? `${server.tools.length} tools available`
               : server.status === 'error'
@@ -534,7 +534,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); handleConnect(); }}
-          className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg cursor-pointer border-none"
+          className="nodrag nowheel flex items-center gap-1 text-[13px] px-2.5 py-1 rounded-lg cursor-pointer border-none"
           style={{
             background: server.status === 'connected' ? t.statusErrorBg : t.statusSuccessBg,
             color: server.status === 'connected' ? t.statusError : t.statusSuccess,
@@ -553,41 +553,41 @@ function McpServerRow({ server }: { server: McpServerState }) {
         <div className="px-4 pb-4 flex flex-col gap-3">
           {/* Name */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+            <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
               Name
             </label>
             <input
               type="text"
               value={localName}
               onChange={(e) => setLocalName(e.target.value)}
-              className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+              className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none"
               style={inputStyle}
             />
           </div>
 
           {/* Command */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+            <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
               Command
             </label>
             <input
               type="text"
               value={localCommand}
               onChange={(e) => setLocalCommand(e.target.value)}
-              className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+              className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none"
               style={inputStyle}
             />
           </div>
 
           {/* Args */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+            <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
               Arguments (one per line)
             </label>
             <textarea
               value={localArgs}
               onChange={(e) => setLocalArgs(e.target.value)}
-              className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none resize-none"
+              className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none resize-none"
               style={{ ...inputStyle, minHeight: '60px' }}
               rows={3}
             />
@@ -595,13 +595,13 @@ function McpServerRow({ server }: { server: McpServerState }) {
 
           {/* Environment */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+            <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
               Environment (key=value, one per line)
             </label>
             <textarea
               value={localEnv}
               onChange={(e) => setLocalEnv(e.target.value)}
-              className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none resize-none"
+              className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none resize-none"
               style={{ ...inputStyle, minHeight: '60px' }}
               rows={3}
             />
@@ -610,14 +610,14 @@ function McpServerRow({ server }: { server: McpServerState }) {
           {/* Tools */}
           {server.tools.length > 0 && (
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+              <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Available Tools
               </label>
               <div className="flex flex-wrap gap-1">
                 {server.tools.map((tool) => (
                   <span
                     key={tool.name}
-                    className="text-[10px] px-2 py-0.5 rounded"
+                    className="text-[12px] px-2 py-0.5 rounded"
                     style={{
                       background: '#FE500015',
                       color: '#FE5000',
@@ -637,7 +637,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
+              className="nodrag nowheel flex items-center gap-1 text-[13px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
               style={{ color: '#fff', background: '#FE5000', opacity: saving ? 0.7 : 1 }}
             >
               {saving ? 'Saving...' : saved ? 'Saved' : 'Save'}
@@ -648,7 +648,7 @@ function McpServerRow({ server }: { server: McpServerState }) {
                 removeServer(server.id);
                 removeMcpServer(server.id);
               }}
-              className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
+              className="nodrag nowheel flex items-center gap-1 text-[13px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
               style={{ color: t.statusError, background: t.statusErrorBg }}
             >
               <Trash2 size={10} />
@@ -746,14 +746,14 @@ function McpServersTab() {
   return (
     <div className="flex flex-col">
       {loading && (
-        <div className="px-4 py-8 text-center text-xs" style={{ color: t.textMuted }}>
+        <div className="px-4 py-8 text-center text-[14px]" style={{ color: t.textMuted }}>
           <Loader2 size={16} className="animate-spin mx-auto mb-2" />
           Loading MCP servers...
         </div>
       )}
 
       {error && (
-        <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-xs" style={{ background: t.statusErrorBg, color: t.statusError, border: `1px solid ${t.statusError}30` }}>
+        <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-[14px]" style={{ background: t.statusErrorBg, color: t.statusError, border: `1px solid ${t.statusError}30` }}>
           {error}
         </div>
       )}
@@ -763,7 +763,7 @@ function McpServersTab() {
       ))}
 
       {loaded && servers.length === 0 && !showAddForm && (
-        <div className="px-4 py-8 text-center text-xs" style={{ color: t.textMuted }}>
+        <div className="px-4 py-8 text-center text-[14px]" style={{ color: t.textMuted }}>
           No MCP servers configured. Add a server below.
         </div>
       )}
@@ -771,14 +771,14 @@ function McpServersTab() {
       {/* Add Server Form */}
       {showAddForm && (
         <div className="p-4" style={{ borderTop: `1px solid ${t.borderSubtle}`, background: t.surfaceElevated }}>
-          <div className="text-xs font-semibold mb-3" style={{ color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
+          <div className="text-[14px] font-semibold mb-3" style={{ color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
             Add MCP Server
           </div>
 
           <div className="flex flex-col gap-3">
             {/* Name */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+              <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Name
               </label>
               <input
@@ -786,14 +786,14 @@ function McpServersTab() {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="My MCP Server"
-                className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+                className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none"
                 style={inputStyle}
               />
             </div>
 
             {/* Command */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+              <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Command
               </label>
               <input
@@ -801,21 +801,21 @@ function McpServersTab() {
                 value={newCommand}
                 onChange={(e) => setNewCommand(e.target.value)}
                 placeholder="uv"
-                className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none"
+                className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none"
                 style={inputStyle}
               />
             </div>
 
             {/* Args */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+              <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Arguments (one per line)
               </label>
               <textarea
                 value={newArgs}
                 onChange={(e) => setNewArgs(e.target.value)}
                 placeholder="tool&#10;run&#10;--python&#10;/path/to/server.py"
-                className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none resize-none"
+                className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none resize-none"
                 style={{ ...inputStyle, minHeight: '60px' }}
                 rows={3}
               />
@@ -823,14 +823,14 @@ function McpServersTab() {
 
             {/* Environment */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+              <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                 Environment (key=value, one per line)
               </label>
               <textarea
                 value={newEnv}
                 onChange={(e) => setNewEnv(e.target.value)}
                 placeholder="API_KEY=your_key&#10;DEBUG=1"
-                className="nodrag nowheel w-full text-xs px-3 py-2 rounded-lg outline-none resize-none"
+                className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none resize-none"
                 style={{ ...inputStyle, minHeight: '60px' }}
                 rows={3}
               />
@@ -842,7 +842,7 @@ function McpServersTab() {
                 type="button"
                 onClick={handleAddServer}
                 disabled={adding || !newName.trim() || !newCommand.trim()}
-                className="nodrag nowheel flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg cursor-pointer font-semibold border-none"
+                className="nodrag nowheel flex items-center gap-1.5 text-[14px] px-3 py-1.5 rounded-lg cursor-pointer font-semibold border-none"
                 style={{
                   background: '#FE5000',
                   color: '#fff',
@@ -855,7 +855,7 @@ function McpServersTab() {
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="nodrag nowheel text-xs px-3 py-1.5 rounded-lg cursor-pointer border-none"
+                className="nodrag nowheel text-[14px] px-3 py-1.5 rounded-lg cursor-pointer border-none"
                 style={{ color: t.textMuted, background: t.badgeBg }}
               >
                 Cancel
@@ -871,7 +871,7 @@ function McpServersTab() {
           <button
             type="button"
             onClick={() => setShowAddForm(true)}
-            className="nodrag nowheel flex items-center gap-2 text-xs px-3 py-2 rounded-lg cursor-pointer w-full justify-center"
+            className="nodrag nowheel flex items-center gap-2 text-[14px] px-3 py-2 rounded-lg cursor-pointer w-full justify-center"
             style={{ border: `1px dashed ${t.border}`, background: 'transparent', color: t.textMuted }}
           >
             <Plus size={12} />
@@ -932,7 +932,7 @@ function GeneralTab() {
     <div className="flex flex-col">
       {/* Theme */}
       <div className="flex items-center justify-between px-4 py-3" style={rowStyle}>
-        <span className="text-[10px] tracking-wider uppercase" style={labelStyle}>Theme</span>
+        <span className="text-[12px] tracking-wider uppercase" style={labelStyle}>Theme</span>
         <div className="flex gap-1">
           {themeOptions.map((opt) => {
             const active = (opt.id === 'system' && theme === 'dark' && localStorage.getItem('modular-theme') === 'system')
@@ -942,7 +942,7 @@ function GeneralTab() {
                 key={opt.id}
                 type="button"
                 onClick={() => handleThemeChange(opt.id)}
-                className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md cursor-pointer border-none"
+                className="nodrag nowheel flex items-center gap-1 text-[13px] px-2.5 py-1 rounded-md cursor-pointer border-none"
                 style={{
                   background: active ? '#FE500020' : t.badgeBg,
                   color: active ? '#FE5000' : t.textDim,
@@ -958,14 +958,14 @@ function GeneralTab() {
 
       {/* Edge routing */}
       <div className="flex items-center justify-between px-4 py-3" style={rowStyle}>
-        <span className="text-[10px] tracking-wider uppercase" style={labelStyle}>Edge Routing</span>
+        <span className="text-[12px] tracking-wider uppercase" style={labelStyle}>Edge Routing</span>
         <div className="flex gap-1">
           {edgeOptions.map((opt) => (
             <button
               key={opt.id}
               type="button"
               onClick={() => { setEdgeStyle(opt.id); persist('modular-edge-style', opt.id); }}
-              className="nodrag nowheel flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md cursor-pointer border-none"
+              className="nodrag nowheel flex items-center gap-1 text-[13px] px-2.5 py-1 rounded-md cursor-pointer border-none"
               style={{
                 background: edgeStyle === opt.id ? '#FE500020' : t.badgeBg,
                 color: edgeStyle === opt.id ? '#FE5000' : t.textDim,
@@ -980,7 +980,7 @@ function GeneralTab() {
 
       {/* Grid snap */}
       <div className="flex items-center justify-between px-4 py-3" style={rowStyle}>
-        <span className="text-[10px] tracking-wider uppercase" style={labelStyle}>Grid Snap</span>
+        <span className="text-[12px] tracking-wider uppercase" style={labelStyle}>Grid Snap</span>
         <button
           type="button"
           onClick={() => { const v = !gridSnap; setGridSnap(v); persist('modular-grid-snap', String(v)); }}
@@ -1000,7 +1000,7 @@ function GeneralTab() {
 
       {/* Minimap */}
       <div className="flex items-center justify-between px-4 py-3" style={rowStyle}>
-        <span className="text-[10px] tracking-wider uppercase" style={labelStyle}>
+        <span className="text-[12px] tracking-wider uppercase" style={labelStyle}>
           <span className="flex items-center gap-1.5"><Minimize2 size={11} /> Minimap</span>
         </span>
         <button
@@ -1022,7 +1022,7 @@ function GeneralTab() {
 
       {/* Canvas background */}
       <div className="flex items-center justify-between px-4 py-3" style={rowStyle}>
-        <span className="text-[10px] tracking-wider uppercase" style={labelStyle}>
+        <span className="text-[12px] tracking-wider uppercase" style={labelStyle}>
           <span className="flex items-center gap-1.5"><Grid3X3 size={11} /> Background</span>
         </span>
         <div className="flex gap-1">
@@ -1031,7 +1031,7 @@ function GeneralTab() {
               key={opt.id}
               type="button"
               onClick={() => { setBgStyle(opt.id); persist('modular-bg-style', opt.id); }}
-              className="nodrag nowheel text-[11px] px-2.5 py-1 rounded-md cursor-pointer border-none"
+              className="nodrag nowheel text-[13px] px-2.5 py-1 rounded-md cursor-pointer border-none"
               style={{
                 background: bgStyle === opt.id ? '#FE500020' : t.badgeBg,
                 color: bgStyle === opt.id ? '#FE5000' : t.textDim,
@@ -1101,7 +1101,7 @@ export function SettingsPage({ open, onClose }: { open: boolean; onClose: () => 
         {/* Header */}
         <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: t.borderSubtle }}>
           <span
-            className="text-xs tracking-wider uppercase flex-1 font-bold"
+            className="text-[14px] tracking-wider uppercase flex-1 font-bold"
             style={{ color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
           >
             Settings
@@ -1124,7 +1124,7 @@ export function SettingsPage({ open, onClose }: { open: boolean; onClose: () => 
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className="nodrag nowheel text-[11px] tracking-wider uppercase px-3 py-2 cursor-pointer border-none bg-transparent font-semibold"
+              className="nodrag nowheel text-[13px] tracking-wider uppercase px-3 py-2 cursor-pointer border-none bg-transparent font-semibold"
               style={{
                 color: activeTab === tab.id ? '#FE5000' : t.textDim,
                 borderBottom: activeTab === tab.id ? '2px solid #FE5000' : '2px solid transparent',

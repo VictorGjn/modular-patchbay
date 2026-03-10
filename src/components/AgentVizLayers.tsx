@@ -36,9 +36,9 @@ function Layer({ icon, title, color, summary, widthPct, defaultOpen, children }:
         className="w-full flex items-center gap-2.5 px-4 py-2.5 cursor-pointer border-none bg-transparent text-left"
       >
         <ChevronRight size={10} style={{ color: `${color}80`, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }} />
-        <span style={{ fontSize: 14, flexShrink: 0 }}>{icon}</span>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color, flexShrink: 0 }}>{title}</span>
-        <span style={{ fontSize: 10, color: t.textMuted, flex: 1, textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{summary}</span>
+        <span style={{ fontSize: 17, flexShrink: 0 }}>{icon}</span>
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color, flexShrink: 0 }}>{title}</span>
+        <span style={{ fontSize: 12, color: t.textMuted, flex: 1, textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{summary}</span>
       </button>
       {open && <div className="px-4 pb-3">{children}</div>}
       {/* Width indicator */}
@@ -93,16 +93,16 @@ export function AgentVizLayers() {
         <Layer icon={agentMeta.icon || '🧠'} title="Identity" color="#FE5000"
           summary={`${agentMeta.name || 'Untitled'} · v${currentVersion} · ${selectedModel.split('/').pop()?.split('-').slice(0, 2).join('-')}`}
           widthPct={100} defaultOpen>
-          <div style={{ fontSize: 12, color: t.textPrimary, fontWeight: 500 }}>
+          <div style={{ fontSize: 14, color: t.textPrimary, fontWeight: 500 }}>
             {instructionState.objectives.primary || agentMeta.description || 'No objective defined'}
           </div>
           <div className="flex gap-4 mt-2">
             <div className="flex items-center gap-1.5">
-              <span style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>TONE</span>
-              <span style={{ fontSize: 10, color: t.textSecondary }}>{instructionState.tone}</span>
+              <span style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>TONE</span>
+              <span style={{ fontSize: 12, color: t.textSecondary }}>{instructionState.tone}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>EXP</span>
+              <span style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>EXP</span>
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} style={{ width: 7, height: 7, borderRadius: 2, background: i <= instructionState.expertise ? '#FE5000' : '#FE500020' }} />
@@ -110,8 +110,8 @@ export function AgentVizLayers() {
               </div>
             </div>
             <div className="flex items-center gap-1.5">
-              <span style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>TEMP</span>
-              <span style={{ fontSize: 10, color: '#FE5000', fontFamily: "'Geist Mono', monospace" }}>{agentConfig.temperature ?? 0.7}</span>
+              <span style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>TEMP</span>
+              <span style={{ fontSize: 12, color: '#FE5000', fontFamily: "'Geist Mono', monospace" }}>{agentConfig.temperature ?? 0.7}</span>
             </div>
           </div>
         </Layer>
@@ -121,7 +121,7 @@ export function AgentVizLayers() {
           summary={`${activeChannels.length} sources · ${totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(0)}K` : totalTokens} tokens`}
           widthPct={100} defaultOpen>
           <div className="flex flex-col gap-1">
-            {activeChannels.length === 0 && <span style={{ fontSize: 10, color: t.textFaint }}>No knowledge loaded</span>}
+            {activeChannels.length === 0 && <span style={{ fontSize: 12, color: t.textFaint }}>No knowledge loaded</span>}
             {[...activeChannels].sort((a, b) => TYPE_ORDER.indexOf(a.knowledgeType) - TYPE_ORDER.indexOf(b.knowledgeType)).map((ch) => {
               const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
               const pct = (DEPTH_LEVELS[ch.depth]?.pct ?? 0.5) * 100;
@@ -129,14 +129,14 @@ export function AgentVizLayers() {
               return (
                 <div key={ch.sourceId} className="flex items-center gap-2">
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: kt.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 10, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{ch.name}</span>
+                  <span style={{ fontSize: 12, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{ch.name}</span>
                   <div style={{ width: 50, height: 4, background: `${kt.color}12`, borderRadius: 2, flexShrink: 0, overflow: 'hidden' }}>
                     <div style={{ width: `${pct}%`, height: '100%', background: kt.color, opacity: 0.6, borderRadius: 2 }} />
                   </div>
-                  <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: kt.color, width: 55, flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace", color: kt.color, width: 55, flexShrink: 0 }}>
                     {kt.label.split(' ')[0].slice(0, 5).toUpperCase()} · {DEPTH_SHORT[ch.depth] || 'Sum'}
                   </span>
-                  <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 30, textAlign: 'right', flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 30, textAlign: 'right', flexShrink: 0 }}>
                     {tokens >= 1000 ? `${(tokens / 1000).toFixed(0)}K` : tokens}
                   </span>
                 </div>
@@ -149,7 +149,7 @@ export function AgentVizLayers() {
         <Layer icon="📋" title="Instructions" color="#f1c40f"
           summary={`${[constraints.neverMakeUp, constraints.askBeforeActions, constraints.stayInScope, constraints.useOnlyTools, constraints.limitWords].filter(Boolean).length} constraints · ${instructionState.objectives.successCriteria.length} criteria`}
           widthPct={82}>
-          <div style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Constraints</div>
+          <div style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Constraints</div>
           <div className="flex gap-1.5 flex-wrap">
             {[
               { label: 'No fabrication', on: constraints.neverMakeUp },
@@ -159,7 +159,7 @@ export function AgentVizLayers() {
               { label: `≤${constraints.wordLimit}w`, on: constraints.limitWords },
             ].map((c) => (
               <span key={c.label} style={{
-                fontSize: 10, fontFamily: "'Geist Mono', monospace", padding: '2px 7px', borderRadius: 4,
+                fontSize: 12, fontFamily: "'Geist Mono', monospace", padding: '2px 7px', borderRadius: 4,
                 background: c.on ? '#2ecc7112' : '#ffffff06', color: c.on ? '#2ecc71' : '#444',
               }}>
                 {c.on ? '✓' : '✗'} {c.label}
@@ -168,11 +168,11 @@ export function AgentVizLayers() {
           </div>
           {instructionState.objectives.successCriteria.length > 0 && (
             <>
-              <div style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 8, marginBottom: 4 }}>Success Criteria</div>
+              <div style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 8, marginBottom: 4 }}>Success Criteria</div>
               {instructionState.objectives.successCriteria.map((sc, i) => (
                 <div key={i} className="flex items-center gap-1.5" style={{ padding: '2px 0' }}>
                   <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#2ecc71', flexShrink: 0 }} />
-                  <span style={{ fontSize: 10, color: t.textSecondary }}>{sc}</span>
+                  <span style={{ fontSize: 12, color: t.textSecondary }}>{sc}</span>
                 </div>
               ))}
             </>
@@ -184,7 +184,7 @@ export function AgentVizLayers() {
           summary={`${workflowSteps.length} steps${workflowSteps.some((s) => s.condition !== 'always') ? ' · has loops' : ''}`}
           widthPct={65}>
           <div className="flex items-center gap-0 flex-wrap">
-            {workflowSteps.length === 0 && <span style={{ fontSize: 10, color: t.textFaint }}>No workflow defined</span>}
+            {workflowSteps.length === 0 && <span style={{ fontSize: 12, color: t.textFaint }}>No workflow defined</span>}
             {workflowSteps.map((step, i) => {
               const isLoop = step.condition !== 'always';
               return (
@@ -193,11 +193,11 @@ export function AgentVizLayers() {
                     <div style={{
                       width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       border: `1.5px solid ${isLoop ? '#f1c40f50' : '#e74c3c40'}`, background: isLoop ? '#f1c40f08' : '#e74c3c08',
-                      fontFamily: "'Geist Mono', monospace", fontSize: 11, fontWeight: 700, color: isLoop ? '#f1c40f' : '#e74c3c',
+                      fontFamily: "'Geist Mono', monospace", fontSize: 13, fontWeight: 700, color: isLoop ? '#f1c40f' : '#e74c3c',
                     }}>
                       {i + 1}
                     </div>
-                    <span style={{ fontSize: 7, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                    <span style={{ fontSize: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
                       {step.label || step.action || 'Step'}
                     </span>
                   </div>
@@ -214,27 +214,27 @@ export function AgentVizLayers() {
           widthPct={48}>
           <div className="flex gap-2 flex-wrap">
             {enabledConnectors.length + addedMcp.length + addedSkills.length === 0 && (
-              <span style={{ fontSize: 10, color: t.textFaint }}>None configured</span>
+              <span style={{ fontSize: 12, color: t.textFaint }}>None configured</span>
             )}
             {enabledConnectors.map((c) => (
               <div key={c.id} className="flex items-center gap-1.5 px-2 py-1 rounded" style={{ background: '#ffffff04', border: '1px solid #ffffff06' }}>
-                <span style={{ fontSize: 10 }}>📄</span>
-                <span style={{ fontSize: 11, color: t.textSecondary }}>{c.name}</span>
-                <span style={{ fontSize: 7, fontFamily: "'Geist Mono', monospace", padding: '1px 4px', borderRadius: 3, background: '#FE500012', color: '#ff8c55' }}>
+                <span style={{ fontSize: 12 }}>📄</span>
+                <span style={{ fontSize: 13, color: t.textSecondary }}>{c.name}</span>
+                <span style={{ fontSize: 8, fontFamily: "'Geist Mono', monospace", padding: '1px 4px', borderRadius: 3, background: '#FE500012', color: '#ff8c55' }}>
                   {c.direction === 'both' ? 'R/W' : c.direction.toUpperCase()}
                 </span>
               </div>
             ))}
             {addedMcp.map((m) => (
               <div key={m.id} className="flex items-center gap-1.5 px-2 py-1 rounded" style={{ background: '#ffffff04', border: '1px solid #ffffff06' }}>
-                <span style={{ fontSize: 10 }}>🔌</span>
-                <span style={{ fontSize: 11, color: t.textSecondary }}>{m.name}</span>
+                <span style={{ fontSize: 12 }}>🔌</span>
+                <span style={{ fontSize: 13, color: t.textSecondary }}>{m.name}</span>
               </div>
             ))}
             {addedSkills.map((s) => (
               <div key={s.id} className="flex items-center gap-1.5 px-2 py-1 rounded" style={{ background: '#ffffff04', border: '1px solid #ffffff06' }}>
-                <span style={{ fontSize: 10 }}>⚡</span>
-                <span style={{ fontSize: 11, color: t.textSecondary }}>{s.name}</span>
+                <span style={{ fontSize: 12 }}>⚡</span>
+                <span style={{ fontSize: 13, color: t.textSecondary }}>{s.name}</span>
               </div>
             ))}
           </div>
@@ -254,7 +254,7 @@ export function AgentVizLayers() {
                 return <div key={type} style={{ width: `${pct}%`, height: '100%', background: KNOWLEDGE_TYPES[type].color, opacity: 0.6 }} />;
               })}
             </div>
-            <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: '#FE5000', fontWeight: 700, flexShrink: 0 }}>
+            <span style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace", color: '#FE5000', fontWeight: 700, flexShrink: 0 }}>
               {totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(0)}K` : totalTokens}
             </span>
           </div>
@@ -264,7 +264,7 @@ export function AgentVizLayers() {
               const tokens = tokensByType[type] || 0;
               if (tokens === 0) return null;
               return (
-                <span key={type} className="flex items-center gap-1" style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+                <span key={type} className="flex items-center gap-1" style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
                   <span style={{ width: 6, height: 6, borderRadius: 2, background: KNOWLEDGE_TYPES[type].color, display: 'inline-block' }} />
                   {KNOWLEDGE_TYPES[type].label.split(' ')[0]} {tokens >= 1000 ? `${(tokens / 1000).toFixed(0)}K` : tokens}
                 </span>

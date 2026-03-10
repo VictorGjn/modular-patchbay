@@ -21,21 +21,21 @@ export function EmptyState({ icon, title, subtitle, action, className = '' }: Em
         {icon}
       </div>
       <h3
-        className="text-sm font-semibold mb-1"
+        className="text-[17px] font-semibold mb-1"
         style={{
           color: t.textPrimary,
           fontFamily: "'Geist Mono', monospace",
-          fontSize: 11,
+          fontSize: 13,
         }}
       >
         {title}
       </h3>
       {subtitle && (
         <p
-          className="text-xs max-w-xs mb-4"
+          className="text-[14px] max-w-xs mb-4"
           style={{
             color: t.textMuted,
-            fontSize: 10,
+            fontSize: 12,
             lineHeight: 1.4,
           }}
         >

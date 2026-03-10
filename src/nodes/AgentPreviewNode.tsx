@@ -144,7 +144,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <Tooltip content="Preview of your assembled agent configuration, readiness score, and export">
-              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, fontWeight: 700, color: t.textPrimary, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 16, fontWeight: 700, color: t.textPrimary, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 {agentMeta.name || 'Untitled Agent'}
               </span>
             </Tooltip>
@@ -165,7 +165,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
               strokeDasharray={`${completeness * 1.005} 100.5`} strokeLinecap="round"
               transform="rotate(-90 20 20)" style={{ transition: 'stroke-dasharray 0.5s' }} />
           </svg>
-          <span style={{ position: 'absolute', fontSize: 11, fontFamily: "'Geist Mono', monospace", fontWeight: 700, color: completenessColor }}>
+          <span style={{ position: 'absolute', fontSize: 13, fontFamily: "'Geist Mono', monospace", fontWeight: 700, color: completenessColor }}>
             {completeness}
           </span>
         </div>
@@ -184,7 +184,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
           size="sm"
         />
         <div className="flex-1" />
-        <span style={{ fontSize: 11, color: t.textMuted, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <span style={{ fontSize: 13, color: t.textMuted, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {instructionState.objectives.primary || 'No objective set'}
         </span>
       </div>
@@ -201,7 +201,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
         <Tooltip content={verification.enabled ? `Verification: ${VERIFY_LABELS[verification.strategy]}` : 'No verification configured'}>
           <div className="flex items-center gap-1">
             <StatusDot status={verification.enabled ? 'success' : 'info'} />
-            <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: verification.enabled ? t.statusSuccess : t.textDim }}>
+            <span style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace", color: verification.enabled ? t.statusSuccess : t.textDim }}>
               {verification.enabled ? VERIFY_LABELS[verification.strategy] : 'No verify'}
             </span>
           </div>
@@ -210,7 +210,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
         <Tooltip content={errorHandling.onStepFailure === 'abort' ? 'No error recovery' : `On failure: ${errorHandling.onStepFailure}`}>
           <div className="flex items-center gap-1">
             <StatusDot status={errorHandling.onStepFailure !== 'abort' ? 'warning' : 'info'} />
-            <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: errorHandling.onStepFailure !== 'abort' ? t.statusWarning : t.textDim }}>
+            <span style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace", color: errorHandling.onStepFailure !== 'abort' ? t.statusWarning : t.textDim }}>
               {errorHandling.onStepFailure === 'abort' ? 'No recovery' : `On fail: ${errorHandling.onStepFailure}`}
             </span>
           </div>
@@ -219,7 +219,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
         <Tooltip content={evaluation.enabled ? `${evaluation.criteria.length} evaluation criteria` : 'No evaluation configured'}>
           <div className="flex items-center gap-1">
             <StatusDot status={evaluation.enabled ? 'success' : 'info'} />
-            <span style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: evaluation.enabled ? '#3498db' : t.textDim }}>
+            <span style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace", color: evaluation.enabled ? '#3498db' : t.textDim }}>
               {evaluation.enabled ? `${evaluation.criteria.length} criteria` : 'No eval'}
             </span>
           </div>
@@ -230,7 +230,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
         {/* Context gauge */}
         <div className="flex items-center gap-2" style={{ width: 80 }}>
           <Progress value={budgetPct} className="flex-1" />
-          <span style={{ fontSize: 11, fontFamily: "'Geist Mono', monospace", color: '#FE5000', fontWeight: 700 }}>
+          <span style={{ fontSize: 13, fontFamily: "'Geist Mono', monospace", color: '#FE5000', fontWeight: 700 }}>
             {totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(0)}K` : totalTokens}
           </span>
         </div>
@@ -260,11 +260,11 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
       <div className="flex flex-col items-center justify-center px-5 shrink-0" style={{ width: 150, borderRight: `1px solid ${t.borderSubtle}` }}>
         <Radar axes={radarAxes} size={120} />
         <div className="flex items-center gap-1 mt-1">
-          <span style={{ fontSize: 7, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>EXP</span>
+          <span style={{ fontSize: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>EXP</span>
           <div className="flex gap-0.5">
             {[1, 2, 3, 4, 5].map((i) => <div key={i} style={{ width: 6, height: 6, borderRadius: 2, background: i <= instructionState.expertise ? '#FE5000' : '#FE500020' }} />)}
           </div>
-          <span style={{ fontSize: 7, color: t.textDim, fontFamily: "'Geist Mono', monospace", marginLeft: 4 }}>{instructionState.tone}</span>
+          <span style={{ fontSize: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace", marginLeft: 4 }}>{instructionState.tone}</span>
         </div>
       </div>
 
@@ -272,16 +272,16 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
       <div className="flex-1 flex flex-col overflow-visible">
         {/* Knowledge */}
         <div className="flex-1 p-2" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-          <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Knowledge</div>
-          {activeChannels.length === 0 ? <span style={{ fontSize: 11, color: t.textFaint }}>None</span> : (
+          <div style={{ fontSize: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Knowledge</div>
+          {activeChannels.length === 0 ? <span style={{ fontSize: 13, color: t.textFaint }}>None</span> : (
             <div className="flex flex-col gap-0.5">
               {activeChannels.map((ch) => {
                 const kt = KNOWLEDGE_TYPES[ch.knowledgeType] ?? KNOWLEDGE_TYPES['evidence'];
                 const pct = DEPTH_BAR_PCT[ch.depth] ?? 50;
                 return (
                   <div key={ch.sourceId} className="flex items-center gap-1.5">
-                    <span style={{ fontSize: 10 }}>{kt.icon}</span>
-                    <span style={{ fontSize: 10, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{ch.name}</span>
+                    <span style={{ fontSize: 12 }}>{kt.icon}</span>
+                    <span style={{ fontSize: 12, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{ch.name}</span>
                     <div style={{ width: 30, height: 3, background: `${kt.color}15`, borderRadius: 2, flexShrink: 0, overflow: 'hidden' }}>
                       <div style={{ width: `${pct}%`, height: '100%', background: kt.color, opacity: 0.7, borderRadius: 2 }} />
                     </div>
@@ -294,11 +294,11 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
 
         {/* Workflow */}
         <div className="p-2" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-          <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Workflow</div>
+          <div style={{ fontSize: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Workflow</div>
           <div className="flex items-center gap-0 flex-wrap">
-            {workflowSteps.length === 0 ? <span style={{ fontSize: 11, color: t.textFaint }}>None</span> : workflowSteps.map((step, i) => (
+            {workflowSteps.length === 0 ? <span style={{ fontSize: 13, color: t.textFaint }}>None</span> : workflowSteps.map((step, i) => (
               <div key={step.id} className="flex items-center">
-                <div style={{ width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #FE500040', background: '#FE500008', fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 700, color: '#FE5000' }}>
+                <div style={{ width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #FE500040', background: '#FE500008', fontFamily: "'Geist Mono', monospace", fontSize: 12, fontWeight: 700, color: '#FE5000' }}>
                   {i + 1}
                 </div>
                 {i < workflowSteps.length - 1 && <div style={{ width: 12, height: 1, background: '#ffffff10' }} />}
@@ -310,20 +310,20 @@ function CardView({ radarAxes }: { radarAxes: { label: string; value: number; co
         {/* Tools + Constraints */}
         <div className="flex">
           <div className="flex-1 p-2">
-            <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Tools</div>
+            <div style={{ fontSize: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Tools</div>
             <div className="flex gap-1 flex-wrap">
               {([...connectors.filter((c) => c.enabled), ...mcpServers.filter((m) => m.added), ...skills.filter((s) => s.added)] as { id: string; name: string }[]).slice(0, 6).map((item) => (
-                <span key={item.id} style={{ fontSize: 7, fontFamily: "'Geist Mono', monospace", padding: '1px 4px', borderRadius: 3, background: '#FE500010', color: '#ff8c55' }}>
+                <span key={item.id} style={{ fontSize: 8, fontFamily: "'Geist Mono', monospace", padding: '1px 4px', borderRadius: 3, background: '#FE500010', color: '#ff8c55' }}>
                   {item.name}
                 </span>
               ))}
-              {connectors.filter((c) => c.enabled).length + mcpServers.filter((m) => m.added).length + skills.filter((s) => s.added).length === 0 && <span style={{ fontSize: 10, color: t.textFaint }}>None</span>}
+              {connectors.filter((c) => c.enabled).length + mcpServers.filter((m) => m.added).length + skills.filter((s) => s.added).length === 0 && <span style={{ fontSize: 12, color: t.textFaint }}>None</span>}
             </div>
           </div>
           <div className="p-2 shrink-0" style={{ borderLeft: `1px solid ${t.borderSubtle}`, width: 100 }}>
-            <div style={{ fontSize: 7, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Guard</div>
+            <div style={{ fontSize: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Guard</div>
             {[{ l: 'No fabricate', on: constraints.neverMakeUp }, { l: 'Ask first', on: constraints.askBeforeActions }, { l: 'In scope', on: constraints.stayInScope }].map((c) => (
-              <div key={c.l} style={{ fontSize: 7, color: c.on ? '#2ecc71' : '#333', fontFamily: "'Geist Mono', monospace" }}>{c.on ? '✓' : '✗'} {c.l}</div>
+              <div key={c.l} style={{ fontSize: 8, color: c.on ? '#2ecc71' : '#333', fontFamily: "'Geist Mono', monospace" }}>{c.on ? '✓' : '✗'} {c.l}</div>
             ))}
           </div>
         </div>
@@ -362,11 +362,11 @@ function CircuitView() {
           return (
             <div key={ch.sourceId} className="flex items-center gap-1.5 px-1.5 py-0.5 rounded" style={{ background: '#ffffff04' }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: kt.color, boxShadow: `0 0 3px ${kt.color}60` }} />
-              <span style={{ fontSize: 10, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ch.name}</span>
+              <span style={{ fontSize: 12, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ch.name}</span>
             </div>
           );
         })}
-        {left.length === 0 && <span style={{ fontSize: 10, color: t.textFaint, padding: 4 }}>No inputs</span>}
+        {left.length === 0 && <span style={{ fontSize: 12, color: t.textFaint, padding: 4 }}>No inputs</span>}
       </div>
 
       {/* Traces */}
@@ -397,11 +397,11 @@ function CircuitView() {
       <div className="flex flex-col gap-1 shrink-0" style={{ width: 120 }}>
         {right.map((pin) => (
           <div key={pin.name} className="flex items-center gap-1.5 px-1.5 py-0.5 rounded justify-end" style={{ background: '#ffffff04' }}>
-            <span style={{ fontSize: 10, color: t.textSecondary }}>{pin.name}</span>
+            <span style={{ fontSize: 12, color: t.textSecondary }}>{pin.name}</span>
             <div style={{ width: 5, height: 5, borderRadius: '50%', background: pin.color, boxShadow: `0 0 3px ${pin.color}60` }} />
           </div>
         ))}
-        {right.length === 0 && <span style={{ fontSize: 10, color: t.textFaint, padding: 4, textAlign: 'right' }}>No tools</span>}
+        {right.length === 0 && <span style={{ fontSize: 12, color: t.textFaint, padding: 4, textAlign: 'right' }}>No tools</span>}
       </div>
     </div>
   );
@@ -502,9 +502,9 @@ function LayersView() {
             style={{ background: 'transparent' }}
           >
             {expanded[l.key] ? <ChevronDown size={9} style={{ color: l.color, flexShrink: 0 }} /> : <ChevronRight size={9} style={{ color: l.color, flexShrink: 0 }} />}
-            <span style={{ fontSize: 12 }}>{l.icon}</span>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: l.color }}>{l.title}</span>
-            <span style={{ fontSize: 11, color: t.textMuted, flex: 1, textAlign: 'right' }}>{l.count}</span>
+            <span style={{ fontSize: 14 }}>{l.icon}</span>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: l.color }}>{l.title}</span>
+            <span style={{ fontSize: 13, color: t.textMuted, flex: 1, textAlign: 'right' }}>{l.count}</span>
           </button>
           <div style={{ height: 2, background: `${l.color}10` }}>
             <div style={{ width: `${l.pct}%`, height: '100%', background: l.color, opacity: 0.4, transition: 'width 0.4s' }} />
@@ -513,15 +513,15 @@ function LayersView() {
             <div className="px-5 py-1.5 flex flex-col gap-0.5" style={{ borderTop: `1px solid ${l.color}10` }}>
               {l.items.map((item, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span style={{ fontSize: 10, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
-                  <span style={{ fontSize: 10, color: t.textDim, flexShrink: 0 }}>{item.value}</span>
+                  <span style={{ fontSize: 12, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
+                  <span style={{ fontSize: 12, color: t.textDim, flexShrink: 0 }}>{item.value}</span>
                 </div>
               ))}
             </div>
           )}
           {expanded[l.key] && l.items.length === 0 && (
             <div className="px-5 py-1" style={{ borderTop: `1px solid ${l.color}10` }}>
-              <span style={{ fontSize: 10, color: t.textFaint }}>None configured</span>
+              <span style={{ fontSize: 12, color: t.textFaint }}>None configured</span>
             </div>
           )}
         </div>

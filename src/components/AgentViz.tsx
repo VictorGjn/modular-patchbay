@@ -21,7 +21,7 @@ export function AgentViz() {
     <div className="w-full">
       {/* Style picker */}
       <div className="flex items-center justify-end gap-1 px-4 py-1" style={{ background: t.surfaceElevated, borderTop: `1px solid ${t.border}` }}>
-        <span style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginRight: 4 }}>
+        <span style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginRight: 4 }}>
           VIEW
         </span>
         {VIZ_OPTIONS.map((opt) => {
@@ -37,7 +37,7 @@ export function AgentViz() {
                 background: active ? '#FE500018' : 'transparent',
                 color: active ? '#FE5000' : t.textDim,
                 fontFamily: "'Geist Mono', monospace",
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: active ? 700 : 400,
                 letterSpacing: '0.05em',
                 transition: 'background 0.15s, color 0.15s',

@@ -61,7 +61,7 @@ export function DashboardLayout() {
             <span style={{
               writingMode: 'vertical-rl',
               textOrientation: 'mixed',
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: 700,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',

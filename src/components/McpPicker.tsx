@@ -44,7 +44,7 @@ export function McpPicker() {
         return grouped.map((group) => (
           <div key={group.category}>
             <div className="px-5 py-1.5">
-              <span className="text-[10px] font-medium tracking-wider uppercase" style={{ color: t.textDim }}>
+              <span className="text-[12px] font-medium tracking-wider uppercase" style={{ color: t.textDim }}>
                 {group.label}
               </span>
             </div>
@@ -62,7 +62,7 @@ export function McpPicker() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium" style={{ color: t.textPrimary }}>{server.name}</span>
+                    <span className="text-[17px] font-medium" style={{ color: t.textPrimary }}>{server.name}</span>
                     <div
                       className="w-1.5 h-1.5 rounded-full shrink-0"
                       style={{
@@ -71,18 +71,18 @@ export function McpPicker() {
                       }}
                     />
                   </div>
-                  <span className="text-xs" style={{ color: t.textDim }}>{server.description}</span>
+                  <span className="text-[14px]" style={{ color: t.textDim }}>{server.description}</span>
                 </div>
 
                 {server.added ? (
-                  <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
+                  <span className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
                     <Check size={12} /> Added
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => addMcp(server.id)}
-                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md cursor-pointer border-none"
+                    className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md cursor-pointer border-none"
                     style={{
                       color: '#FE5000',
                       background: '#FE500012',

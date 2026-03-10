@@ -85,7 +85,7 @@ export function ConstraintModal({
           className="flex items-center justify-between px-6 py-4"
           style={{ borderBottom: `1px solid ${t.border}` }}
         >
-          <span style={{ color: t.textPrimary, fontSize: 14, fontWeight: 600 }}>
+          <span style={{ color: t.textPrimary, fontSize: 17, fontWeight: 600 }}>
             {title}
           </span>
           <button
@@ -120,7 +120,7 @@ export function ConstraintModal({
             <button
               type="button"
               onClick={onDelete}
-              className="text-[13px] px-4 py-2 rounded cursor-pointer border-none"
+              className="text-[16px] px-4 py-2 rounded cursor-pointer border-none"
               style={{
                 color: '#e74c3c',
                 background: 'transparent',
@@ -137,7 +137,7 @@ export function ConstraintModal({
             <button
               type="button"
               onClick={onClose}
-              className="text-[13px] px-4 py-2 rounded cursor-pointer border-none"
+              className="text-[16px] px-4 py-2 rounded cursor-pointer border-none"
               style={{
                 color: t.textPrimary,
                 background: 'transparent',
@@ -149,7 +149,7 @@ export function ConstraintModal({
             <button
               type="button"
               onClick={handleSave}
-              className="text-[13px] px-5 py-2 rounded cursor-pointer border-none"
+              className="text-[16px] px-5 py-2 rounded cursor-pointer border-none"
               style={{
                 background: '#FE5000',
                 color: 'white',

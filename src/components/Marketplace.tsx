@@ -277,7 +277,7 @@ export function Marketplace() {
         >
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: `1px solid ${t.border}` }}>
-            <span style={{ fontSize: 14, fontWeight: 600, flexShrink: 0, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
+            <span style={{ fontSize: 17, fontWeight: 600, flexShrink: 0, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
               Marketplace
             </span>
 
@@ -293,7 +293,7 @@ export function Marketplace() {
                 style={{
                   width: '100%',
                   outline: 'none',
-                  fontSize: 12,
+                  fontSize: 14,
                   paddingLeft: 32,
                   paddingRight: 12,
                   paddingTop: 6,
@@ -316,7 +316,7 @@ export function Marketplace() {
                   onClick={() => setTab(tab)}
                   style={{
                     padding: '6px 12px',
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: 500,
                     letterSpacing: '0.025em',
                     textTransform: 'uppercase',
@@ -373,7 +373,7 @@ export function Marketplace() {
                     type="button"
                     onClick={() => setCategory(cat.id)}
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       padding: '2px 10px',
                       borderRadius: 9999,
                       cursor: 'pointer',
@@ -391,7 +391,7 @@ export function Marketplace() {
               {/* Provider legend */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                 {(Object.entries(RUNTIME_INFO) as [Runtime, { label: string; color: string }][]).map(([rt, info]) => (
-                  <span key={rt} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: t.textDim }}>
+                  <span key={rt} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: t.textDim }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: info.color, display: 'inline-block', flexShrink: 0 }} />
                     {info.label}
                   </span>
@@ -418,7 +418,7 @@ export function Marketplace() {
                   type="button"
                   onClick={() => setCategory(cat.id)}
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     padding: '2px 10px',
                     borderRadius: 9999,
                     cursor: 'pointer',
@@ -457,20 +457,20 @@ export function Marketplace() {
                 )}
                 {filteredSkills.length === 0 && !remoteLoading && !remoteError && remoteResults.length === 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
-                    <span style={{ fontSize: 12, color: t.textFaint }}>No skills match your search</span>
+                    <span style={{ fontSize: 14, color: t.textFaint }}>No skills match your search</span>
                   </div>
                 )}
 
                 {(filter.trim().length >= 2 || remoteLoading || remoteError || remoteResults.length > 0) && (
                   <div style={{ padding: '16px 16px 8px', borderTop: `1px solid ${t.borderSubtle}` }}>
-                    <span style={{ fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                    <span style={{ fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase', color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
                       From skill.sh
                     </span>
                   </div>
                 )}
                 {remoteLoading && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 0' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: t.textDim }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: t.textDim }}>
                       <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
                       Searching skill.sh...
                     </span>
@@ -478,7 +478,7 @@ export function Marketplace() {
                 )}
                 {!remoteLoading && remoteError && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-                    <span style={{ fontSize: 11, color: t.statusError }}>
+                    <span style={{ fontSize: 13, color: t.statusError }}>
                       skill.sh search unavailable
                     </span>
                   </div>
@@ -499,7 +499,7 @@ export function Marketplace() {
                 )}
                 {!remoteLoading && !remoteError && filter.trim().length >= 2 && remoteResults.length === 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-                    <span style={{ fontSize: 11, color: t.textFaint }}>No results from skill.sh</span>
+                    <span style={{ fontSize: 13, color: t.textFaint }}>No results from skill.sh</span>
                   </div>
                 )}
               </>
@@ -520,7 +520,7 @@ export function Marketplace() {
                 ))}
                 {filteredMcp.length === 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
-                    <span style={{ fontSize: 12, color: t.textFaint }}>No MCP servers match your search</span>
+                    <span style={{ fontSize: 14, color: t.textFaint }}>No MCP servers match your search</span>
                   </div>
                 )}
               </div>
@@ -533,7 +533,7 @@ export function Marketplace() {
                 ))}
                 {filteredPresets.length === 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
-                    <span style={{ fontSize: 12, color: t.textFaint }}>No presets match your search</span>
+                    <span style={{ fontSize: 14, color: t.textFaint }}>No presets match your search</span>
                   </div>
                 )}
               </div>
@@ -582,7 +582,7 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
       {/* Row 1: name + installs */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
         <span style={{
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: 600,
           color: t.textPrimary,
           fontFamily: "'Geist Mono', monospace",
@@ -594,7 +594,7 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
           {skill.name}
         </span>
         <span style={{
-          fontSize: 11,
+          fontSize: 13,
           color: t.textDim,
           background: t.badgeBg,
           borderRadius: 3,
@@ -609,7 +609,7 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
 
       {/* Row 2: author (dim) */}
       <span style={{
-        fontSize: 10,
+        fontSize: 12,
         color: t.textDim,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
@@ -623,7 +623,7 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
       <div style={{ flex: 1 }}>
         <span
           style={{
-            fontSize: 10,
+            fontSize: 12,
             color: t.textMuted,
             fontFamily: "'Geist Sans', sans-serif",
             lineHeight: 1.4,
@@ -660,11 +660,11 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
         </div>
 
         {isDisabled ? (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: t.statusSuccess, background: t.statusSuccessBg, borderRadius: 4, padding: '2px 6px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 13, color: t.statusSuccess, background: t.statusSuccessBg, borderRadius: 4, padding: '2px 6px' }}>
             <Check size={9} /> In Library
           </span>
         ) : installing ? (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#FE5000', background: '#FE500010', borderRadius: 4, padding: '2px 6px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 13, color: '#FE5000', background: '#FE500010', borderRadius: 4, padding: '2px 6px' }}>
             <Loader2 size={9} className="animate-spin" /> Installing
           </span>
         ) : (
@@ -672,7 +672,7 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
             type="button"
             onClick={onToggleDropdown}
             style={{
-              fontSize: 11,
+              fontSize: 13,
               padding: '2px 8px',
               borderRadius: 4,
               cursor: 'pointer',
@@ -710,7 +710,7 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
           gap: 8,
         }}>
           <div>
-            <span style={{ fontSize: 11, fontWeight: 600, color: t.textDim, fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: t.textDim, fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
               {(['all', ...skill.runtimes] as (Runtime | 'all')[]).map((rt) => (
                 <button
@@ -718,7 +718,7 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
                   type="button"
                   onClick={() => setSelectedTarget(rt)}
                   style={{
-                    fontSize: 11, padding: '2px 6px', borderRadius: 4, cursor: 'pointer', border: 'none',
+                    fontSize: 13, padding: '2px 6px', borderRadius: 4, cursor: 'pointer', border: 'none',
                     background: selectedTarget === rt ? '#FE5000' : t.surfaceElevated,
                     color: selectedTarget === rt ? '#fff' : t.textSecondary,
                     fontWeight: 500,
@@ -731,7 +731,7 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
           </div>
 
           <div>
-            <span style={{ fontSize: 11, fontWeight: 600, color: t.textDim, fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em' }}>Scope</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: t.textDim, fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em' }}>Scope</span>
             <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
               {(['project', 'global'] as InstallScope[]).map((s) => (
                 <button
@@ -739,7 +739,7 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
                   type="button"
                   onClick={() => setSelectedScope(s)}
                   style={{
-                    fontSize: 11, padding: '2px 6px', borderRadius: 4, cursor: 'pointer', border: 'none',
+                    fontSize: 13, padding: '2px 6px', borderRadius: 4, cursor: 'pointer', border: 'none',
                     background: selectedScope === s ? '#FE5000' : t.surfaceElevated,
                     color: selectedScope === s ? '#fff' : t.textSecondary,
                     fontWeight: 500, textTransform: 'capitalize',
@@ -753,7 +753,7 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: t.inputBg, borderRadius: 4, padding: '4px 6px' }}>
             <Terminal size={9} style={{ color: t.textDim, flexShrink: 0 }} />
-            <code style={{ fontSize: 10, color: t.textMuted, fontFamily: "'Geist Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <code style={{ fontSize: 12, color: t.textMuted, fontFamily: "'Geist Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {skill.installCmd} --target {selectedTarget} --scope {selectedScope}
             </code>
           </div>
@@ -761,7 +761,7 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
           <button
             type="button"
             onClick={() => onInstall(skill.id, selectedTarget, selectedScope)}
-            style={{ width: '100%', padding: '6px', borderRadius: 4, border: 'none', background: '#FE5000', color: '#fff', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}
+            style={{ width: '100%', padding: '6px', borderRadius: 4, border: 'none', background: '#FE5000', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
           >
             Confirm Install
           </button>
@@ -802,17 +802,17 @@ function RemoteSkillCard({ skill, installing, installed, onInstall, t }: {
     >
       {/* Row 1: name + installs */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: t.textPrimary, fontFamily: "'Geist Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, fontFamily: "'Geist Mono', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {skill.name}
         </span>
-        <span style={{ fontSize: 11, color: t.textDim, background: t.badgeBg, borderRadius: 3, padding: '1px 4px', whiteSpace: 'nowrap', flexShrink: 0, fontFamily: "'Geist Mono', monospace" }}>
+        <span style={{ fontSize: 13, color: t.textDim, background: t.badgeBg, borderRadius: 3, padding: '1px 4px', whiteSpace: 'nowrap', flexShrink: 0, fontFamily: "'Geist Mono', monospace" }}>
           {skill.installs}↓
         </span>
       </div>
 
       {/* Row 2: repo (dim) + external link */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ fontSize: 10, color: t.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontFamily: "'Geist Sans', sans-serif" }}>
+        <span style={{ fontSize: 12, color: t.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontFamily: "'Geist Sans', sans-serif" }}>
           {skill.repo}
         </span>
         <Tooltip content="View on skills.sh">
@@ -834,7 +834,7 @@ function RemoteSkillCard({ skill, installing, installed, onInstall, t }: {
       <div style={{ flex: 1 }}>
         <span
           style={{
-            fontSize: 10, color: t.textMuted, fontFamily: "'Geist Sans', sans-serif", lineHeight: 1.4,
+            fontSize: 12, color: t.textMuted, fontFamily: "'Geist Sans', sans-serif", lineHeight: 1.4,
             display: expanded ? 'block' : '-webkit-box',
             WebkitLineClamp: expanded ? 'unset' : 2,
             WebkitBoxOrient: 'vertical',
@@ -860,11 +860,11 @@ function RemoteSkillCard({ skill, installing, installed, onInstall, t }: {
         <Zap size={10} style={{ color: t.textDim }} />
 
         {installed ? (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: t.statusSuccess, background: t.statusSuccessBg, borderRadius: 4, padding: '2px 6px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 13, color: t.statusSuccess, background: t.statusSuccessBg, borderRadius: 4, padding: '2px 6px' }}>
             <Check size={9} /> Installed
           </span>
         ) : installing ? (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#FE5000', background: '#FE500010', borderRadius: 4, padding: '2px 6px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 13, color: '#FE5000', background: '#FE500010', borderRadius: 4, padding: '2px 6px' }}>
             <Loader2 size={9} className="animate-spin" /> Installing
           </span>
         ) : (
@@ -872,7 +872,7 @@ function RemoteSkillCard({ skill, installing, installed, onInstall, t }: {
             type="button"
             onClick={onInstall}
             style={{
-              fontSize: 11, padding: '2px 8px', borderRadius: 4, cursor: 'pointer',
+              fontSize: 13, padding: '2px 8px', borderRadius: 4, cursor: 'pointer',
               border: `1px solid ${t.border}`, color: '#FE5000', background: '#FE500010',
               display: 'inline-flex', alignItems: 'center', gap: 3,
             }}
@@ -933,10 +933,10 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
         {/* Name + transport */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.textPrimary }} spellCheck={false}>
+            <span style={{ fontSize: 14, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.textPrimary }} spellCheck={false}>
               {mcp.name}
             </span>
-            <span style={{ fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.textDim }}>
+            <span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.textDim }}>
               {mcp.author}
             </span>
           </div>
@@ -945,7 +945,7 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
               <div key={rt} style={{ borderRadius: 2, width: 16, height: 3, background: RUNTIME_INFO[rt].color }} title={RUNTIME_INFO[rt].label} />
             ))}
             <span style={{
-              fontSize: 10,
+              fontSize: 12,
               marginLeft: 4,
               textTransform: 'uppercase',
               color: mcp.transport === 'stdio' ? t.statusInfo : t.statusWarning,
@@ -958,7 +958,7 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
 
         {/* Description */}
         <span style={{
-          fontSize: 11,
+          fontSize: 13,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -975,7 +975,7 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
             display: 'flex',
             alignItems: 'center',
             gap: 4,
-            fontSize: 10,
+            fontSize: 12,
             padding: '4px 8px',
             borderRadius: 6,
             flexShrink: 0,
@@ -989,7 +989,7 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
             display: 'flex',
             alignItems: 'center',
             gap: 4,
-            fontSize: 10,
+            fontSize: 12,
             padding: '4px 8px',
             borderRadius: 6,
             flexShrink: 0,
@@ -1003,7 +1003,7 @@ function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall
             type="button"
             onClick={onToggleConfigure}
             style={{
-              fontSize: 10,
+              fontSize: 12,
               padding: '4px 8px',
               borderRadius: 6,
               cursor: 'pointer',
@@ -1060,7 +1060,7 @@ function McpConfigForm({ mcp, onInstall, t }: {
       {mcp.configFields.length > 0 ? (
         mcp.configFields.map((field) => (
           <div key={field.key}>
-            <label style={{ fontSize: 10, fontWeight: 500, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+            <label style={{ fontSize: 12, fontWeight: 500, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
               {field.label}
             </label>
             <input
@@ -1070,7 +1070,7 @@ function McpConfigForm({ mcp, onInstall, t }: {
               onChange={(e) => setEnvValues({ ...envValues, [field.key]: e.target.value })}
               style={{
                 width: '100%',
-                fontSize: 11,
+                fontSize: 13,
                 padding: '4px 8px',
                 borderRadius: 6,
                 outline: 'none',
@@ -1083,12 +1083,12 @@ function McpConfigForm({ mcp, onInstall, t }: {
           </div>
         ))
       ) : (
-        <span style={{ fontSize: 11, color: t.textMuted }}>No configuration needed</span>
+        <span style={{ fontSize: 13, color: t.textMuted }}>No configuration needed</span>
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 6, background: t.inputBg }}>
         <Terminal size={9} style={{ color: t.textDim }} />
-        <code style={{ fontSize: 11, color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
+        <code style={{ fontSize: 13, color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
           {mcp.installCmd}
         </code>
       </div>
@@ -1100,7 +1100,7 @@ function McpConfigForm({ mcp, onInstall, t }: {
           width: '100%',
           padding: '6px 0',
           borderRadius: 6,
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: 500,
           cursor: 'pointer',
           border: 'none',
@@ -1151,9 +1151,9 @@ function PresetRow({ preset, t, onLoad }: {
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 500, color: t.textPrimary }}>{preset.name}</div>
+        <div style={{ fontSize: 14, fontWeight: 500, color: t.textPrimary }}>{preset.name}</div>
         <div style={{
-          fontSize: 10,
+          fontSize: 12,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -1165,7 +1165,7 @@ function PresetRow({ preset, t, onLoad }: {
         <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
           {preset.skills.slice(0, 3).map((s) => (
             <span key={s} style={{
-              fontSize: 10,
+              fontSize: 12,
               padding: '0 4px',
               borderRadius: 2,
               color: t.cableSkills,
@@ -1176,7 +1176,7 @@ function PresetRow({ preset, t, onLoad }: {
           ))}
           {preset.mcpServers.slice(0, 2).map((m) => (
             <span key={m} style={{
-              fontSize: 10,
+              fontSize: 12,
               padding: '0 4px',
               borderRadius: 2,
               color: t.cableMcp,
@@ -1193,7 +1193,7 @@ function PresetRow({ preset, t, onLoad }: {
         type="button"
         onClick={onLoad}
         style={{
-          fontSize: 10,
+          fontSize: 12,
           padding: '4px 8px',
           borderRadius: 6,
           cursor: 'pointer',

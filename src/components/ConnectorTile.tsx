@@ -68,7 +68,7 @@ export function ConnectorTile({ service, name, mcpServerId, status, enabled, sho
       <div className="flex items-center gap-2 px-2" style={{ height: 28, opacity: enabled ? 1 : 0.5 }}>
         <ConnectorIcon service={service} size={13} style={{ color: enabled ? t.textSecondary : t.textDim, flexShrink: 0 }} />
 
-        <span className="text-[10px] flex-1 truncate" style={{ color: enabled ? t.textPrimary : t.textSecondary, fontFamily: "'Geist Sans', sans-serif", fontWeight: enabled ? 500 : 400 }}>
+        <span className="text-[12px] flex-1 truncate" style={{ color: enabled ? t.textPrimary : t.textSecondary, fontFamily: "'Geist Sans', sans-serif", fontWeight: enabled ? 500 : 400 }}>
           {name}
         </span>
 
@@ -124,7 +124,7 @@ export function ConnectorTile({ service, name, mcpServerId, status, enabled, sho
               onBlur={commitScope}
               onKeyDown={(e) => { if (e.key === 'Enter') commitScope(); if (e.key === 'Escape') { setLocalScope(scope || ''); setEditing(false); } }}
               placeholder={placeholder}
-              className="flex-1 text-[11px] px-1.5 py-0.5 rounded outline-none nodrag nowheel"
+              className="flex-1 text-[13px] px-1.5 py-0.5 rounded outline-none nodrag nowheel"
               style={{
                 background: t.inputBg,
                 border: `1px solid #FE500040`,
@@ -136,7 +136,7 @@ export function ConnectorTile({ service, name, mcpServerId, status, enabled, sho
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="flex-1 text-left text-[11px] px-1.5 py-0.5 rounded cursor-text border-none nodrag nowheel truncate"
+              className="flex-1 text-left text-[13px] px-1.5 py-0.5 rounded cursor-text border-none nodrag nowheel truncate"
               style={{
                 background: 'transparent',
                 color: localScope ? t.textSecondary : t.textFaint,

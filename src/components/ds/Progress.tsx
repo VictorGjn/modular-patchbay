@@ -16,21 +16,21 @@ export function Progress({ value, showLabel = false, className = '', color }: Pr
       {showLabel && (
         <div className="flex justify-between items-center">
           <span
-            className="text-xs font-semibold"
+            className="text-[14px] font-semibold"
             style={{
               color: t.textSecondary,
               fontFamily: "'Geist Mono', monospace",
-              fontSize: 10,
+              fontSize: 12,
             }}
           >
             Progress
           </span>
           <span
-            className="text-xs"
+            className="text-[14px]"
             style={{
               color: t.textMuted,
               fontFamily: "'Geist Mono', monospace",
-              fontSize: 10,
+              fontSize: 12,
             }}
           >
             {Math.round(percentage)}%

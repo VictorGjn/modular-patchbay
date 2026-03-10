@@ -42,7 +42,7 @@ export function Tooltip({ content, children, position = 'top', delay = 300 }: To
       </span>
       {show && createPortal(
         <div
-          className="fixed z-[300] pointer-events-none px-2.5 py-1.5 rounded text-[10px]"
+          className="fixed z-[300] pointer-events-none px-2.5 py-1.5 rounded text-[12px]"
           style={{
             left: coords.x,
             top: coords.y,

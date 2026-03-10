@@ -122,7 +122,7 @@ export function MultiPhaseStatus({ phases, className = '' }: MultiPhaseStatusPro
             }}
           />
           <span style={{
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: phase.status === 'active' ? 600 : 400,
             color: getStatusColor(phase.status),
             fontFamily: "'Geist Mono', monospace"

@@ -73,7 +73,7 @@ export function PromptArea() {
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Describe what you need -- analysis, slides, email, code..."
-          className="w-full resize-none outline-none text-sm"
+          className="w-full resize-none outline-none text-[17px]"
           rows={2}
           style={{
             background: '#141417',
@@ -96,7 +96,7 @@ export function PromptArea() {
         <div className="absolute bottom-2 left-4 right-4 flex items-center gap-2">
           {detectedTag && prompt.length > 3 && (
             <span
-              className="flex items-center gap-1 text-[10px] tracking-wide uppercase px-2 py-0.5 rounded-md"
+              className="flex items-center gap-1 text-[12px] tracking-wide uppercase px-2 py-0.5 rounded-md"
               style={{
                 color: '#FE5000',
                 background: '#FE500010',
@@ -111,14 +111,14 @@ export function PromptArea() {
           <div className="flex-1" />
 
           <span
-            className="text-[10px]"
+            className="text-[12px]"
             style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#444' }}
           >
             {prompt.length} chars
           </span>
 
           <span
-            className="text-[10px]"
+            className="text-[12px]"
             style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#555' }}
           >
             · ~{tokenCount.toLocaleString()} tokens

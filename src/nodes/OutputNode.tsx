@@ -56,10 +56,10 @@ function NotionConfig({ config, onChange }: { config: NotionTemplateConfig; onCh
 
       {/* Property mapper */}
       <div className="flex flex-col gap-1 mt-1">
-        <span className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Properties</span>
+        <span className="text-[13px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Properties</span>
         {Object.entries(config.properties).map(([name, prop]) => (
           <div key={name} className="flex items-center gap-1 nodrag nowheel">
-            <span className="text-[10px] truncate flex-1" style={{ color: t.textSecondary, fontFamily: "'Geist Mono', monospace" }}>{name}</span>
+            <span className="text-[12px] truncate flex-1" style={{ color: t.textSecondary, fontFamily: "'Geist Mono', monospace" }}>{name}</span>
             <Select
               options={NOTION_PROPERTY_TYPES.map((pt) => ({ value: pt.id, label: pt.label }))}
               value={prop.type}
@@ -95,7 +95,7 @@ function NotionConfig({ config, onChange }: { config: NotionTemplateConfig; onCh
               onChange={(e) => setNewPropName(e.target.value)}
               placeholder="Add property..."
               className="nowheel"
-              style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace" }}
+              style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace" }}
             />
           </div>
           <button
@@ -118,7 +118,7 @@ function NotionConfig({ config, onChange }: { config: NotionTemplateConfig; onCh
 
       {/* Content mode */}
       <div className="flex items-center gap-2 mt-1">
-        <span className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Content</span>
+        <span className="text-[13px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Content</span>
         <Toggle
           checked={config.content === 'agent'}
           onChange={(v) => onChange({ ...config, content: v ? 'agent' : 'template' })}
@@ -136,7 +136,7 @@ function HtmlSlidesConfig({ config, onChange }: { config: HtmlSlidesTemplateConf
   return (
     <div className="flex flex-col gap-2 nodrag nowheel">
       <div className="flex items-center gap-2">
-        <span className="text-[11px] tracking-wider uppercase font-semibold flex-1" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Slides</span>
+        <span className="text-[13px] tracking-wider uppercase font-semibold flex-1" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Slides</span>
         <Badge>{config.slideCount}</Badge>
         <input
           type="range"
@@ -167,7 +167,7 @@ function HtmlSlidesConfig({ config, onChange }: { config: HtmlSlidesTemplateConf
 
       {/* Brand colors */}
       <div className="flex flex-col gap-1">
-        <span className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Brand Colors</span>
+        <span className="text-[13px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Brand Colors</span>
         <div className="flex items-center gap-2">
           {(['primary', 'secondary', 'accent'] as const).map((key) => (
             <div key={key} className="flex items-center gap-1 nodrag nowheel">
@@ -178,7 +178,7 @@ function HtmlSlidesConfig({ config, onChange }: { config: HtmlSlidesTemplateConf
                 className="w-5 h-5 border-none cursor-pointer rounded nodrag nowheel"
                 style={{ padding: 0 }}
               />
-              <span className="text-[10px] uppercase" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>{key.slice(0, 3)}</span>
+              <span className="text-[12px] uppercase" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>{key.slice(0, 3)}</span>
             </div>
           ))}
         </div>
@@ -186,7 +186,7 @@ function HtmlSlidesConfig({ config, onChange }: { config: HtmlSlidesTemplateConf
 
       {/* Sections */}
       <div className="flex flex-col gap-1">
-        <span className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Sections</span>
+        <span className="text-[13px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Sections</span>
         {config.sections.map((sec, i) => (
           <div key={i} className="flex items-center gap-1 nodrag nowheel">
             <Select
@@ -208,7 +208,7 @@ function HtmlSlidesConfig({ config, onChange }: { config: HtmlSlidesTemplateConf
                   onChange({ ...config, sections });
                 }}
                 className="nowheel"
-                style={{ fontSize: 10 }}
+                style={{ fontSize: 12 }}
               />
             </div>
             <button
@@ -228,7 +228,7 @@ function HtmlSlidesConfig({ config, onChange }: { config: HtmlSlidesTemplateConf
         <button
           type="button"
           onClick={() => onChange({ ...config, sections: [...config.sections, { type: 'content', title: 'New Slide' }] })}
-          className="text-[11px] px-2 py-1 rounded border-none cursor-pointer nodrag nowheel"
+          className="text-[13px] px-2 py-1 rounded border-none cursor-pointer nodrag nowheel"
           style={{ background: '#FE500010', color: '#FE5000', fontFamily: "'Geist Mono', monospace" }}
         >
           + Add Section
@@ -331,10 +331,10 @@ function TemplateConfigPanel({ target }: { target: OutputTarget }) {
         style={{ color: t.textSecondary }}
       >
         {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-        <span className="text-[11px] tracking-wider uppercase font-semibold" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>
+        <span className="text-[13px] tracking-wider uppercase font-semibold" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>
           {targetLabels[target]} Config
         </span>
-        {config && <span className="text-[10px] px-1 py-0.5 rounded" style={{ background: '#22c55e15', color: '#22c55e', fontFamily: "'Geist Mono', monospace" }}>configured</span>}
+        {config && <span className="text-[12px] px-1 py-0.5 rounded" style={{ background: '#22c55e15', color: '#22c55e', fontFamily: "'Geist Mono', monospace" }}>configured</span>}
       </button>
       {expanded && (
         <div className="px-5 pb-2 flex flex-col gap-2">
@@ -346,13 +346,13 @@ function TemplateConfigPanel({ target }: { target: OutputTarget }) {
                 onChange={(e) => setBrainDump(e.target.value)}
                 placeholder={placeholders[target]}
                 rows={2}
-                style={{ fontSize: 10, minHeight: 40, lineHeight: 1.4 }}
+                style={{ fontSize: 12, minHeight: 40, lineHeight: 1.4 }}
               />
               <button
                 type="button"
                 onClick={handleGenerate}
                 disabled={generating}
-                className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[10px] font-semibold tracking-wide uppercase cursor-pointer border-none nodrag nowheel"
+                className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[12px] font-semibold tracking-wide uppercase cursor-pointer border-none nodrag nowheel"
                 style={{
                   background: generating ? '#FE500030' : '#FE500018',
                   color: '#FE5000',
@@ -367,7 +367,7 @@ function TemplateConfigPanel({ target }: { target: OutputTarget }) {
                 {generating ? 'Generating...' : 'Generate ✨'}
               </button>
               {genError && (
-                <span className="text-[11px]" style={{ color: t.statusError }}>{genError}</span>
+                <span className="text-[13px]" style={{ color: t.statusError }}>{genError}</span>
               )}
             </div>
           )}
@@ -384,7 +384,7 @@ function TemplateConfigPanel({ target }: { target: OutputTarget }) {
                 <button
                   type="button"
                   onClick={() => { setHasGenerated(false); }}
-                  className="text-[11px] px-2 py-1 rounded border-none cursor-pointer nodrag nowheel"
+                  className="text-[13px] px-2 py-1 rounded border-none cursor-pointer nodrag nowheel"
                   style={{ background: 'transparent', color: t.textDim, fontFamily: "'Geist Mono', monospace" }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = t.textDim; }}
@@ -398,7 +398,7 @@ function TemplateConfigPanel({ target }: { target: OutputTarget }) {
                     setHasGenerated(false);
                     setBrainDump('');
                   }}
-                  className="text-[11px] px-2 py-1 rounded border-none cursor-pointer nodrag nowheel"
+                  className="text-[13px] px-2 py-1 rounded border-none cursor-pointer nodrag nowheel"
                   style={{ background: 'transparent', color: t.textFaint, fontFamily: "'Geist Mono', monospace" }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = t.statusError; }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = t.textFaint; }}
@@ -493,11 +493,11 @@ export const OutputNode = memo(function OutputNode() {
         </button>
         <ArrowUpRight size={14} style={{ color: t.textSecondary }} />
         <Tooltip content="Choose output format and destination connectors for your agent's responses">
-          <span className="font-bold uppercase flex-1" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.08em' }}>
+          <span className="font-bold uppercase flex-1" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, fontSize: 12, letterSpacing: '0.08em' }}>
             Output
           </span>
         </Tooltip>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}>
+        <span className="text-[12px] px-1.5 py-0.5 rounded-md" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}>
           {outputFormats.length}
         </span>
         {!nodeCollapsed && (
@@ -562,7 +562,7 @@ export const OutputNode = memo(function OutputNode() {
                     <OutputIcon formatId={fmt.id} size={13} />
                   </div>
                   <span
-                    className="text-[11px]"
+                    className="text-[13px]"
                     style={{
                       color: active ? t.textPrimary : t.textSecondary,
                       fontFamily: "'Geist Sans', sans-serif",
@@ -595,7 +595,7 @@ export const OutputNode = memo(function OutputNode() {
                   <div style={{ color: active ? '#FE5000' : t.textDim }}>
                     <OutputIcon formatId={fmt.id} size={16} />
                   </div>
-                  <span className="text-[10px]" style={{ color: active ? t.textPrimary : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                  <span className="text-[12px]" style={{ color: active ? t.textPrimary : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
                     {fmt.label}
                   </span>
                 </button>
@@ -619,7 +619,7 @@ export const OutputNode = memo(function OutputNode() {
         <div className="px-5 pt-1 pb-2">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
-            <span className="text-[11px] tracking-wider font-semibold" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>Destinations</span>
+            <span className="text-[13px] tracking-wider font-semibold" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>Destinations</span>
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
           </div>
           <div className="flex flex-col gap-0.5">
@@ -648,7 +648,7 @@ export const OutputNode = memo(function OutputNode() {
           type="button"
           onClick={() => setShowConnectorPicker(true)}
           aria-label="Add output connector"
-          className="w-full min-h-[36px] px-5 py-3 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel"
+          className="w-full min-h-[36px] px-5 py-3 rounded text-[14px] tracking-wide uppercase cursor-pointer nodrag nowheel"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}

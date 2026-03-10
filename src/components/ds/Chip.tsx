@@ -23,12 +23,12 @@ export function Chip({ children, variant = 'default', onRemove, className = '' }
 
   return (
     <div
-      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs nodrag ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[14px] nodrag ${className}`}
       style={{
         background: v.bg,
         color: v.color,
         fontFamily: "'Geist Mono', monospace",
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 500,
       }}
     >

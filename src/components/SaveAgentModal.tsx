@@ -243,7 +243,7 @@ export function SaveAgentModal() {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
           <span
-            className="text-xs font-bold tracking-[3px] uppercase"
+            className="text-[14px] font-bold tracking-[3px] uppercase"
             style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
           >
             SAVE AS AGENT
@@ -279,7 +279,7 @@ export function SaveAgentModal() {
               >
                 <target.Icon size={18} style={{ color: isActive ? '#FE5000' : t.textMuted }} />
                 <span
-                  className="text-[10px] font-semibold leading-tight text-center"
+                  className="text-[12px] font-semibold leading-tight text-center"
                   style={{
                     fontFamily: "'Geist Mono', monospace",
                     color: isActive ? '#FE5000' : t.textSecondary,
@@ -288,7 +288,7 @@ export function SaveAgentModal() {
                   {target.name}
                 </span>
                 <span
-                  className="text-[11px] px-1.5 py-0.5 rounded"
+                  className="text-[13px] px-1.5 py-0.5 rounded"
                   style={{
                     fontFamily: "'Geist Mono', monospace",
                     background: isActive ? '#FE500020' : t.badgeBg,
@@ -310,7 +310,7 @@ export function SaveAgentModal() {
               {/* Agent Name */}
               <div className="flex flex-col gap-1.5">
                 <label
-                  className="text-[11px] font-semibold uppercase tracking-wider"
+                  className="text-[13px] font-semibold uppercase tracking-wider"
                   style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}
                 >
                   Agent Name
@@ -321,7 +321,7 @@ export function SaveAgentModal() {
                   value={agentMeta.name}
                   onChange={(e) => setAgentMeta({ name: e.target.value })}
                   placeholder="my-analysis-agent"
-                  className="w-full outline-none text-sm rounded-lg px-3 py-2 nodrag"
+                  className="w-full outline-none text-[17px] rounded-lg px-3 py-2 nodrag"
                   style={{
                     background: t.inputBg,
                     border: `1px solid ${t.border}`,
@@ -334,7 +334,7 @@ export function SaveAgentModal() {
               {/* Description */}
               <div className="flex flex-col gap-1.5">
                 <label
-                  className="text-[11px] font-semibold uppercase tracking-wider"
+                  className="text-[13px] font-semibold uppercase tracking-wider"
                   style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}
                 >
                   Description
@@ -343,7 +343,7 @@ export function SaveAgentModal() {
                   value={agentMeta.description}
                   onChange={(e) => setAgentMeta({ description: e.target.value })}
                   placeholder="Deep research and synthesis agent..."
-                  className="w-full outline-none text-sm rounded-lg px-3 py-2 resize-none"
+                  className="w-full outline-none text-[17px] rounded-lg px-3 py-2 resize-none"
                   rows={3}
                   style={{
                     background: t.inputBg,
@@ -358,7 +358,7 @@ export function SaveAgentModal() {
               {/* Icon picker */}
               <div className="flex flex-col gap-1.5">
                 <label
-                  className="text-[11px] font-semibold uppercase tracking-wider"
+                  className="text-[13px] font-semibold uppercase tracking-wider"
                   style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}
                 >
                   Icon
@@ -386,7 +386,7 @@ export function SaveAgentModal() {
               {/* Category */}
               <div className="flex flex-col gap-1.5">
                 <label
-                  className="text-[11px] font-semibold uppercase tracking-wider"
+                  className="text-[13px] font-semibold uppercase tracking-wider"
                   style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}
                 >
                   Category
@@ -394,7 +394,7 @@ export function SaveAgentModal() {
                 <select
                   value={agentMeta.category}
                   onChange={(e) => setAgentMeta({ category: e.target.value })}
-                  className="w-full outline-none text-sm rounded-lg px-3 py-2 cursor-pointer"
+                  className="w-full outline-none text-[17px] rounded-lg px-3 py-2 cursor-pointer"
                   style={{
                     background: t.inputBg,
                     border: `1px solid ${t.border}`,
@@ -417,7 +417,7 @@ export function SaveAgentModal() {
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="flex items-center justify-center gap-1.5 flex-1 py-2 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer border-none"
+                  className="flex items-center justify-center gap-1.5 flex-1 py-2 rounded-lg text-[14px] font-semibold tracking-wider uppercase cursor-pointer border-none"
                   style={{
                     background: '#FE5000',
                     color: '#fff',
@@ -430,7 +430,7 @@ export function SaveAgentModal() {
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="flex items-center justify-center gap-1.5 flex-1 py-2 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer"
+                  className="flex items-center justify-center gap-1.5 flex-1 py-2 rounded-lg text-[14px] font-semibold tracking-wider uppercase cursor-pointer"
                   style={{
                     background: 'transparent',
                     border: `1px solid ${t.border}`,
@@ -445,7 +445,7 @@ export function SaveAgentModal() {
               <button
                 type="button"
                 onClick={handleExportAll}
-                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer"
+                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg text-[14px] font-semibold tracking-wider uppercase cursor-pointer"
                 style={{
                   background: 'transparent',
                   border: `1px solid ${t.borderSubtle}`,
@@ -458,7 +458,7 @@ export function SaveAgentModal() {
               <button
                 type="button"
                 onClick={handleExportYaml}
-                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer"
+                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg text-[14px] font-semibold tracking-wider uppercase cursor-pointer"
                 style={{
                   background: 'transparent',
                   border: `1px solid ${t.borderSubtle}`,
@@ -477,13 +477,13 @@ export function SaveAgentModal() {
               <div className="flex items-center gap-2">
                 {selectedIcon && <selectedIcon.Icon size={14} style={{ color: '#FE5000' }} />}
                 <span
-                  className="text-xs font-bold tracking-[2px] uppercase"
+                  className="text-[14px] font-bold tracking-[2px] uppercase"
                   style={{ fontFamily: "'Geist Mono', monospace", color: t.textMuted }}
                 >
                   Preview
                 </span>
                 <span
-                  className="text-[11px] px-1.5 py-0.5 rounded"
+                  className="text-[13px] px-1.5 py-0.5 rounded"
                   style={{
                     fontFamily: "'Geist Mono', monospace",
                     background: '#FE500018',
@@ -494,7 +494,7 @@ export function SaveAgentModal() {
                 </span>
               </div>
               <span
-                className="text-[10px]"
+                className="text-[12px]"
                 style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
               >
                 {preview.split('\n').length} lines
@@ -509,7 +509,7 @@ export function SaveAgentModal() {
               }}
             >
               <pre
-                className="text-xs leading-relaxed whitespace-pre-wrap break-all m-0"
+                className="text-[14px] leading-relaxed whitespace-pre-wrap break-all m-0"
                 style={{
                   fontFamily: "'Geist Mono', monospace",
                   color: t.textSecondary,

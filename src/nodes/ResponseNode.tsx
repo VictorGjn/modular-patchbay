@@ -16,9 +16,9 @@ function renderMarkdown(text: string, t: { textPrimary: string; border: string; 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.startsWith('## ')) {
-      nodes.push(<h2 key={i} style={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, margin: '12px 0 4px' }}>{renderInline(line.slice(3))}</h2>);
+      nodes.push(<h2 key={i} style={{ fontSize: 17, fontWeight: 600, color: t.textPrimary, margin: '12px 0 4px' }}>{renderInline(line.slice(3))}</h2>);
     } else if (line.startsWith('# ')) {
-      nodes.push(<h1 key={i} style={{ fontSize: 16, fontWeight: 600, color: t.textPrimary, margin: '12px 0 4px' }}>{renderInline(line.slice(2))}</h1>);
+      nodes.push(<h1 key={i} style={{ fontSize: 19, fontWeight: 600, color: t.textPrimary, margin: '12px 0 4px' }}>{renderInline(line.slice(2))}</h1>);
     } else if (line.match(/^---+$/)) {
       nodes.push(<hr key={i} style={{ border: 'none', borderTop: `1px solid ${t.border}`, margin: '8px 0' }} />);
     } else if (line.match(/^\s*[-*]\s/)) {
@@ -28,7 +28,7 @@ function renderMarkdown(text: string, t: { textPrimary: string; border: string; 
       const codeLines: string[] = [];
       i++;
       while (i < lines.length && !lines[i].startsWith('```')) { codeLines.push(lines[i]); i++; }
-      nodes.push(<pre key={`code-${i}`} style={{ background: 'rgba(0,0,0,0.15)', border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 10px', margin: '6px 0', fontSize: 11, color: t.statusSuccess, overflow: 'auto' }}>{codeLines.join('\n')}</pre>);
+      nodes.push(<pre key={`code-${i}`} style={{ background: 'rgba(0,0,0,0.15)', border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 10px', margin: '6px 0', fontSize: 13, color: t.statusSuccess, overflow: 'auto' }}>{codeLines.join('\n')}</pre>);
     } else if (!line.trim()) {
       nodes.push(<div key={i} style={{ height: 8 }} />);
     } else {
@@ -121,20 +121,20 @@ export const ResponseNode = memo(function ResponseNode() {
             }}
           />
           <Tooltip content="Live streaming output from your agent's response">
-            <span className="text-xs tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>
+            <span className="text-[14px] tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>
               {running ? 'Processing...' : response ? 'Response' : 'Output'}
             </span>
           </Tooltip>
 
           {formatInfo && response && (
-            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md" style={{ color: t.textDim, background: t.badgeBg }}>
+            <span className="flex items-center gap-1 text-[12px] px-2 py-0.5 rounded-md" style={{ color: t.textDim, background: t.badgeBg }}>
               <OutputIcon formatId={outputFormat} size={10} />
               {formatInfo.label}
             </span>
           )}
 
           {response && !running && (
-            <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
+            <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
               ~{responseTokens.toLocaleString()}t
             </span>
           )}
@@ -144,7 +144,7 @@ export const ResponseNode = memo(function ResponseNode() {
               type="button"
               onClick={handleCopy}
               aria-label={copied ? 'Copied to clipboard' : 'Copy response'}
-              className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-1.5 py-0.5 rounded-md hover-accent-text nodrag nowheel"
+              className="flex items-center gap-1 text-[14px] cursor-pointer border-none bg-transparent px-1.5 py-0.5 rounded-md hover-accent-text nodrag nowheel"
               style={{ color: copied ? t.statusSuccess : t.textDim }}
             >
               {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
@@ -166,7 +166,7 @@ export const ResponseNode = memo(function ResponseNode() {
 
         {/* Content */}
         <div
-          className="px-5 py-3 text-sm leading-relaxed overflow-y-auto nowheel flex-1 min-h-0"
+          className="px-5 py-3 text-[17px] leading-relaxed overflow-y-auto nowheel flex-1 min-h-0"
           style={{ color: t.responseText, minHeight: 40 }}
         >
           {running && !displayedText ? (
@@ -187,7 +187,7 @@ export const ResponseNode = memo(function ResponseNode() {
                   <div key={i} className="w-[3px] h-[14px] rounded-full" style={{ background: t.border, opacity: 0.5 + (i * 0.1) }} />
                 ))}
               </div>
-              <span className="text-[10px] tracking-widest uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>RUN YOUR AGENT TO SEE RESULTS</span>
+              <span className="text-[12px] tracking-widest uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>RUN YOUR AGENT TO SEE RESULTS</span>
             </div>
           )}
         </div>
@@ -195,11 +195,11 @@ export const ResponseNode = memo(function ResponseNode() {
         {/* Source list */}
         {response && !running && activeChannels.length > 0 && (
           <div className="px-5 pb-3 pt-1 border-t flex flex-wrap gap-1.5 shrink-0" style={{ borderColor: t.borderSubtle }}>
-            <span className="text-[11px] tracking-wider font-semibold self-center mr-1" style={{ color: t.textFaint }}>Sources:</span>
+            <span className="text-[13px] tracking-wider font-semibold self-center mr-1" style={{ color: t.textFaint }}>Sources:</span>
             {activeChannels.map((ch) => {
               const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
               return (
-                <span key={ch.sourceId} className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full" style={{ color: kt.color, background: `${kt.color}10`, border: `1px solid ${kt.color}20` }}>
+                <span key={ch.sourceId} className="flex items-center gap-1 text-[12px] px-2 py-0.5 rounded-full" style={{ color: kt.color, background: `${kt.color}10`, border: `1px solid ${kt.color}20` }}>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: kt.color }} />
                   {ch.name}
                 </span>
@@ -221,15 +221,15 @@ export const ResponseNode = memo(function ResponseNode() {
           >
             <div className="flex items-center gap-2 px-5 py-3 border-b shrink-0" style={{ borderColor: t.borderSubtle, background: t.surfaceOpaque }}>
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: t.statusSuccess, boxShadow: t.statusSuccessGlow }} />
-              <span className="text-xs tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>Response -- Expanded</span>
-              <button type="button" onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy response'} className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text" style={{ color: copied ? t.statusSuccess : t.textDim }}>
+              <span className="text-[14px] tracking-wider uppercase flex-1" style={{ color: t.textSecondary }}>Response -- Expanded</span>
+              <button type="button" onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy response'} className="flex items-center gap-1 text-[14px] cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text" style={{ color: copied ? t.statusSuccess : t.textDim }}>
                 {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
               </button>
               <button type="button" onClick={() => setExpanded(false)} aria-label="Close expanded view" className="cursor-pointer border-none bg-transparent p-1 hover-accent-text" style={{ color: t.textDim }}>
                 <X size={16} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto nowheel px-6 py-4 text-sm leading-relaxed" style={{ color: t.responseText }}>
+            <div className="flex-1 overflow-y-auto nowheel px-6 py-4 text-[17px] leading-relaxed" style={{ color: t.responseText }}>
               {renderMarkdown(displayedText, t)}
             </div>
           </div>

@@ -128,13 +128,13 @@ export const PromptNode = memo(function PromptNode() {
           <Tooltip content="Compose the user prompt, select model, and run your agent">
             <span
               className="font-bold uppercase"
-              style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.08em' }}
+              style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, fontSize: 12, letterSpacing: '0.08em' }}
             >
               PROMPT
             </span>
           </Tooltip>
           <span
-            className="text-[10px]"
+            className="text-[12px]"
             style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
           >
             {modelLabel}
@@ -169,7 +169,7 @@ export const PromptNode = memo(function PromptNode() {
         <div className="absolute bottom-4 left-6 right-6 flex items-center gap-2">
           {detectedTag && prompt.length > 3 && (
             <span
-              className="flex items-center gap-1 text-[10px] tracking-wide uppercase px-2 py-0.5 rounded-md"
+              className="flex items-center gap-1 text-[12px] tracking-wide uppercase px-2 py-0.5 rounded-md"
               style={{ color: '#FE5000', background: '#FE500010', border: '1px solid #FE500020' }}
             >
               <OutputIcon formatId={outputFormat} size={10} />
@@ -177,10 +177,10 @@ export const PromptNode = memo(function PromptNode() {
             </span>
           )}
           <div className="flex-1" />
-          <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+          <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
             {prompt.length} chars
           </span>
-          <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textMuted }}>
+          <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textMuted }}>
             · {tokenCount === 0 ? '0' : `~${tokenCount.toLocaleString()}`} tokens
           </span>
         </div>
@@ -201,7 +201,7 @@ export const PromptNode = memo(function PromptNode() {
         >
           <Settings size={11} style={{ color: t.textDim }} />
           <span
-            className="text-[11px] font-semibold tracking-wide"
+            className="text-[13px] font-semibold tracking-wide"
             style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}
           >
             {settingsOpen ? '▾' : '▸'} Advanced
@@ -236,7 +236,7 @@ export const PromptNode = memo(function PromptNode() {
             {/* Thinking depth — only for models that support it */}
             <div className="flex flex-col gap-1" style={{ opacity: thinkingSupported ? 1 : 0.4 }}>
               <label
-                className="text-[10px] font-semibold tracking-wide"
+                className="text-[12px] font-semibold tracking-wide"
                 style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
               >
                 Thinking Depth {!thinkingSupported && <span style={{ color: t.textMuted, fontWeight: 400 }}>(not available)</span>}
@@ -251,7 +251,7 @@ export const PromptNode = memo(function PromptNode() {
                       type="button"
                       onClick={() => supported && setThinkingDepth(depth)}
                       aria-label={`Set thinking depth to ${depth}`}
-                      className="flex-1 text-[10px] py-1 rounded-md tracking-wide nodrag"
+                      className="flex-1 text-[12px] py-1 rounded-md tracking-wide nodrag"
                       style={{
                         fontFamily: "'Geist Mono', monospace",
                         background: isActive && supported ? '#FE500018' : 'transparent',
@@ -272,7 +272,7 @@ export const PromptNode = memo(function PromptNode() {
             {/* Context window — adapts to model */}
             <div className="flex flex-col gap-1">
               <label
-                className="text-[10px] font-semibold tracking-wide flex items-center justify-between"
+                className="text-[12px] font-semibold tracking-wide flex items-center justify-between"
                 style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
               >
                 <span>Max Output Tokens</span>
@@ -291,7 +291,7 @@ export const PromptNode = memo(function PromptNode() {
                 className="w-full nodrag nowheel"
                 style={{ accentColor: '#FE5000' }}
               />
-              <div className="flex justify-between text-[11px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textMuted }}>
+              <div className="flex justify-between text-[13px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textMuted }}>
                 <span>256</span>
                 <span style={{ color: t.textPrimary, fontWeight: 600 }}>{(Math.min(agentConfig.maxTokens, currentMeta.maxOutput) / 1000).toFixed(1)}K</span>
                 <span>{(currentMeta.maxOutput / 1000).toFixed(0)}K</span>
@@ -309,7 +309,7 @@ export const PromptNode = memo(function PromptNode() {
           onClick={() => { if (!running) run(); }}
           disabled={running}
           aria-label={running ? 'Running preview' : 'Run preview'}
-          className="flex items-center gap-2 px-5 py-2.5 rounded text-[13px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center nodrag"
+          className="flex items-center gap-2 px-5 py-2.5 rounded text-[16px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center nodrag"
           style={{
             background: running ? '#CC4000' : '#FE5000',
             color: '#fff',
@@ -326,7 +326,7 @@ export const PromptNode = memo(function PromptNode() {
           type="button"
           onClick={() => setShowSaveModal(true)}
           aria-label="Save as agent"
-          className="flex items-center gap-2 px-5 py-2.5 rounded text-[13px] font-semibold tracking-wider uppercase cursor-pointer flex-1 justify-center nodrag"
+          className="flex items-center gap-2 px-5 py-2.5 rounded text-[16px] font-semibold tracking-wider uppercase cursor-pointer flex-1 justify-center nodrag"
           style={{
             background: 'transparent',
             border: `1px solid ${t.border}`,

@@ -13,11 +13,11 @@ function renderMarkdown(text: string, t: ThemePalette): React.ReactNode[] {
     const line = lines[i];
 
     if (line.startsWith('## ')) {
-      nodes.push(<h2 key={i} style={{ fontSize: 14, fontWeight: 600, color: '#f0f0f0', margin: '12px 0 4px' }}>{renderInline(line.slice(3))}</h2>);
+      nodes.push(<h2 key={i} style={{ fontSize: 17, fontWeight: 600, color: '#f0f0f0', margin: '12px 0 4px' }}>{renderInline(line.slice(3))}</h2>);
       continue;
     }
     if (line.startsWith('# ')) {
-      nodes.push(<h1 key={i} style={{ fontSize: 16, fontWeight: 600, color: '#f0f0f0', margin: '12px 0 4px' }}>{renderInline(line.slice(2))}</h1>);
+      nodes.push(<h1 key={i} style={{ fontSize: 19, fontWeight: 600, color: '#f0f0f0', margin: '12px 0 4px' }}>{renderInline(line.slice(2))}</h1>);
       continue;
     }
     if (line.match(/^---+$/)) {
@@ -42,7 +42,7 @@ function renderMarkdown(text: string, t: ThemePalette): React.ReactNode[] {
         i++;
       }
       nodes.push(
-        <pre key={`code-${i}`} style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 10px', margin: '6px 0', fontSize: 11, color: t.statusSuccess, overflow: 'auto' }}>
+        <pre key={`code-${i}`} style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: '8px 10px', margin: '6px 0', fontSize: 13, color: t.statusSuccess, overflow: 'auto' }}>
           {codeLines.join('\n')}
         </pre>
       );
@@ -97,10 +97,10 @@ function EmptyState() {
           />
         ))}
       </div>
-      <span className="text-xs tracking-widest uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: '#444' }}>
+      <span className="text-[14px] tracking-widest uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: '#444' }}>
         AWAITING SIGNAL
       </span>
-      <span className="text-[11px]" style={{ color: '#333' }}>
+      <span className="text-[13px]" style={{ color: '#333' }}>
         Load channels and run to generate output
       </span>
     </div>
@@ -177,19 +177,19 @@ export function ResponseArea() {
             animation: running ? 'pulse-glow 1s ease infinite' : 'none',
           }}
         />
-        <span className="text-xs tracking-wider uppercase flex-1" style={{ color: '#888' }}>
+        <span className="text-[14px] tracking-wider uppercase flex-1" style={{ color: '#888' }}>
           {running ? 'Processing...' : response ? 'Response' : 'Output'}
         </span>
 
         {formatInfo && response && (
-          <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md" style={{ color: '#555', background: '#25252a' }}>
+          <span className="flex items-center gap-1 text-[12px] px-2 py-0.5 rounded-md" style={{ color: '#555', background: '#25252a' }}>
             <OutputIcon formatId={outputFormat} size={10} />
             {formatInfo.label}
           </span>
         )}
 
         {response && !running && (
-          <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#444' }}>
+          <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#444' }}>
             ~{responseTokens.toLocaleString()}t
           </span>
         )}
@@ -198,7 +198,7 @@ export function ResponseArea() {
           <button
             type="button"
             onClick={handleCopy}
-            className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-1.5 py-0.5 rounded-md hover-accent-text"
+            className="flex items-center gap-1 text-[14px] cursor-pointer border-none bg-transparent px-1.5 py-0.5 rounded-md hover-accent-text"
             style={{ color: copied ? t.statusSuccess : t.textDim }}
           >
             {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
@@ -219,7 +219,7 @@ export function ResponseArea() {
 
       {/* Content */}
       <div
-        className="px-4 py-3 text-sm leading-relaxed overflow-y-auto"
+        className="px-4 py-3 text-[17px] leading-relaxed overflow-y-auto"
         style={{ color: '#bbb', minHeight: 60, maxHeight: expanded ? 'none' : 240 }}
       >
         {running ? (
@@ -241,7 +241,7 @@ export function ResponseArea() {
       {/* Source list */}
       {response && !running && activeChannels.length > 0 && (
         <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5" style={{ borderColor: '#222226' }}>
-          <span className="text-[11px] tracking-wider uppercase self-center mr-1" style={{ color: '#444' }}>
+          <span className="text-[13px] tracking-wider uppercase self-center mr-1" style={{ color: '#444' }}>
             Sources:
           </span>
           {activeChannels.map((ch) => {
@@ -249,7 +249,7 @@ export function ResponseArea() {
             return (
               <span
                 key={ch.sourceId}
-                className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
+                className="flex items-center gap-1 text-[12px] px-2 py-0.5 rounded-full"
                 style={{
                   color: kt.color,
                   background: `${kt.color}10`,
@@ -290,13 +290,13 @@ export function ResponseArea() {
           >
             <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor: '#222226', background: '#1c1c20' }}>
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: t.statusSuccess, boxShadow: t.statusSuccessGlow }} />
-              <span className="text-xs tracking-wider uppercase flex-1" style={{ color: '#888' }}>
+              <span className="text-[14px] tracking-wider uppercase flex-1" style={{ color: '#888' }}>
                 Response -- Expanded
               </span>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="flex items-center gap-1 text-xs cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text"
+                className="flex items-center gap-1 text-[14px] cursor-pointer border-none bg-transparent px-2 py-1 rounded-md hover-accent-text"
                 style={{ color: copied ? t.statusSuccess : t.textDim }}
               >
                 {copied ? <><Check size={12} /> copied</> : <><Copy size={12} /> copy</>}
@@ -311,7 +311,7 @@ export function ResponseArea() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-4 text-sm leading-relaxed" style={{ color: '#bbb' }}>
+            <div className="flex-1 overflow-y-auto px-6 py-4 text-[17px] leading-relaxed" style={{ color: '#bbb' }}>
               {renderMarkdown(displayedText, t)}
             </div>
           </div>

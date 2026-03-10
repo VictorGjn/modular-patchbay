@@ -82,7 +82,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
     border: `1px solid ${t.border}`,
     color: t.textPrimary,
     fontFamily: "'Geist Sans', sans-serif",
-    fontSize: 12,
+    fontSize: 14,
     padding: '6px 10px',
     borderRadius: 8,
     outline: 'none',
@@ -124,7 +124,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
         <span
           style={{
             fontFamily: "'Geist Mono', monospace",
-            fontSize: 12,
+            fontSize: 14,
             fontWeight: 600,
             flex: 1,
             textAlign: 'left',
@@ -151,7 +151,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
             <label
               style={{
                 fontFamily: "'Geist Mono', monospace",
-                fontSize: 10,
+                fontSize: 12,
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 color: t.textMuted,
@@ -194,7 +194,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
             <label
               style={{
                 fontFamily: "'Geist Mono', monospace",
-                fontSize: 10,
+                fontSize: 12,
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 color: t.textMuted,
@@ -216,7 +216,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
             <label
               style={{
                 fontFamily: "'Geist Mono', monospace",
-                fontSize: 10,
+                fontSize: 12,
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 color: t.textMuted,
@@ -230,7 +230,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   key={m.id}
                   style={{
                     fontFamily: "'Geist Sans', sans-serif",
-                    fontSize: 10,
+                    fontSize: 12,
                     padding: '2px 8px',
                     borderRadius: 6,
                     background: t.badgeBg,
@@ -248,7 +248,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
             <span
               style={{
                 fontFamily: "'Geist Sans', sans-serif",
-                fontSize: 10,
+                fontSize: 12,
                 color: t.textFaint,
                 fontStyle: 'italic',
               }}
@@ -275,7 +275,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                 alignItems: 'center',
                 gap: 6,
                 fontFamily: "'Geist Mono', monospace",
-                fontSize: 11,
+                fontSize: 13,
                 padding: '5px 12px',
                 borderRadius: 8,
                 border: `1px solid ${t.border}`,
@@ -307,7 +307,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  fontSize: 10,
+                  fontSize: 12,
                   color: t.textDim,
                   textDecoration: 'none',
                 }}
@@ -326,7 +326,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  fontSize: 10,
+                  fontSize: 12,
                   color: t.textDim,
                   textDecoration: 'none',
                 }}
@@ -375,7 +375,7 @@ export function ProviderPanel() {
       <div
         style={{
           fontFamily: "'Geist Mono', monospace",
-          fontSize: 11,
+          fontSize: 13,
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
           color: t.textMuted,
@@ -408,7 +408,7 @@ export function ProviderPanel() {
           color: t.textDim,
           cursor: 'pointer',
           fontFamily: "'Geist Mono', monospace",
-          fontSize: 11,
+          fontSize: 13,
         }}
       >
         <Plus size={12} />

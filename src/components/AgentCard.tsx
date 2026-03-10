@@ -75,7 +75,7 @@ function RadarChart({ axes, size = 140 }: { axes: RadarAxis[]; size?: number }) 
 
 function MiniWorkflow({ steps }: { steps: { label: string; hasLoop: boolean }[] }) {
   const t = useTheme();
-  if (steps.length === 0) return <span style={{ color: t.textFaint, fontSize: 10 }}>No workflow defined</span>;
+  if (steps.length === 0) return <span style={{ color: t.textFaint, fontSize: 12 }}>No workflow defined</span>;
 
   return (
     <div className="flex items-center gap-0 flex-wrap">
@@ -89,13 +89,13 @@ function MiniWorkflow({ steps }: { steps: { label: string; hasLoop: boolean }[] 
                 border: `1.5px solid ${s.hasLoop ? '#f1c40f50' : '#FE500040'}`,
                 background: s.hasLoop ? '#f1c40f08' : '#FE500008',
                 fontFamily: "'Geist Mono', monospace",
-                fontSize: 11, fontWeight: 700,
+                fontSize: 13, fontWeight: 700,
                 color: s.hasLoop ? '#f1c40f' : '#FE5000',
               }}
             >
               {i + 1}
             </div>
-            <span style={{ fontSize: 7, color: t.textDim, fontFamily: "'Geist Mono', monospace", maxWidth: 48, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ fontSize: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace", maxWidth: 48, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {s.label}
             </span>
           </div>
@@ -116,7 +116,7 @@ const DEPTH_BAR_PCT = [100, 75, 50, 25, 10];
 function KnowledgeBars({ channels }: { channels: { name: string; knowledgeType: KnowledgeType; depth: number; baseTokens: number; enabled: boolean }[] }) {
   const t = useTheme();
   const active = channels.filter((c) => c.enabled);
-  if (active.length === 0) return <span style={{ color: t.textFaint, fontSize: 10 }}>No knowledge loaded</span>;
+  if (active.length === 0) return <span style={{ color: t.textFaint, fontSize: 12 }}>No knowledge loaded</span>;
 
   // Group and sort by type priority
   const sorted = [...active].sort((a, b) => TYPE_ORDER.indexOf(a.knowledgeType) - TYPE_ORDER.indexOf(b.knowledgeType));
@@ -129,19 +129,19 @@ function KnowledgeBars({ channels }: { channels: { name: string; knowledgeType: 
         const tokens = Math.round(ch.baseTokens * (DEPTH_LEVELS[ch.depth]?.pct ?? 0.5));
         return (
           <div key={ch.name} className="flex items-center gap-2">
-            <span style={{ fontSize: 10, width: 14, textAlign: 'center', flexShrink: 0 }}>{kt.icon}</span>
-            <span style={{ fontSize: 11, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{ch.name}</span>
+            <span style={{ fontSize: 12, width: 14, textAlign: 'center', flexShrink: 0 }}>{kt.icon}</span>
+            <span style={{ fontSize: 13, color: t.textSecondary, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{ch.name}</span>
             <div style={{ width: 40, height: 4, background: `${kt.color}15`, borderRadius: 2, flexShrink: 0, overflow: 'hidden' }}>
               <div style={{ width: `${pct}%`, height: '100%', background: kt.color, borderRadius: 2, opacity: 0.7 }} />
             </div>
-            <span style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace", width: 28, textAlign: 'right', flexShrink: 0 }}>
+            <span style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace", width: 28, textAlign: 'right', flexShrink: 0 }}>
               {tokens >= 1000 ? `${(tokens / 1000).toFixed(0)}K` : tokens}
             </span>
           </div>
         );
       })}
       {active.length > 6 && (
-        <span style={{ fontSize: 10, color: t.textFaint, paddingLeft: 22 }}>+{active.length - 6} more</span>
+        <span style={{ fontSize: 12, color: t.textFaint, paddingLeft: 22 }}>+{active.length - 6} more</span>
       )}
     </div>
   );
@@ -239,16 +239,16 @@ export function AgentCard() {
         {/* Left: Radar + Identity */}
         <div className="flex flex-col items-center py-4 px-4 shrink-0" style={{ width: 180, borderRight: `1px solid ${t.borderSubtle}` }}>
           {/* Identity */}
-          <span style={{ fontSize: 20 }}>{agentMeta.icon || '🤖'}</span>
+          <span style={{ fontSize: 24 }}>{agentMeta.icon || '🤖'}</span>
           <span
             className="mt-1 text-center"
-            style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, fontWeight: 700, color: t.textPrimary, letterSpacing: '0.08em', textTransform: 'uppercase' }}
+            style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, fontWeight: 700, color: t.textPrimary, letterSpacing: '0.08em', textTransform: 'uppercase' }}
           >
             {agentMeta.name || 'Untitled Agent'}
           </span>
           <div className="flex items-center gap-2 mt-1">
-            <span style={{ fontSize: 10, color: '#FE5000', fontFamily: "'Geist Mono', monospace" }}>v{currentVersion}</span>
-            <span style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>{selectedModel.split('/').pop()?.split('-').slice(0, 2).join('-') || selectedModel}</span>
+            <span style={{ fontSize: 12, color: '#FE5000', fontFamily: "'Geist Mono', monospace" }}>v{currentVersion}</span>
+            <span style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>{selectedModel.split('/').pop()?.split('-').slice(0, 2).join('-') || selectedModel}</span>
           </div>
 
           {/* Radar */}
@@ -258,7 +258,7 @@ export function AgentCard() {
 
           {/* Expertise bar */}
           <div className="flex items-center gap-2 mt-1">
-            <span style={{ fontSize: 7, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.08em' }}>EXP</span>
+            <span style={{ fontSize: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.08em' }}>EXP</span>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((i) => (
                 <div
@@ -270,7 +270,7 @@ export function AgentCard() {
                 />
               ))}
             </div>
-            <span style={{ fontSize: 7, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+            <span style={{ fontSize: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
               {instructionState.tone}
             </span>
           </div>
@@ -283,7 +283,7 @@ export function AgentCard() {
           <div className="flex flex-1 overflow-hidden">
             {/* Knowledge */}
             <div className="flex-1 p-3 overflow-hidden" style={{ borderRight: `1px solid ${t.borderSubtle}`, borderBottom: `1px solid ${t.borderSubtle}` }}>
-              <div style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
                 Knowledge
               </div>
               <KnowledgeBars channels={channels} />
@@ -291,14 +291,14 @@ export function AgentCard() {
 
             {/* Constraints */}
             <div className="shrink-0 p-3" style={{ width: 150, borderBottom: `1px solid ${t.borderSubtle}` }}>
-              <div style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
                 Constraints
               </div>
               <div className="flex flex-col gap-1">
                 {constraints.map((c) => (
                   <div key={c.key} className="flex items-center gap-1.5">
-                    <span style={{ fontSize: 11, color: c.on ? '#2ecc71' : '#333' }}>{c.on ? '✓' : '✗'}</span>
-                    <span style={{ fontSize: 11, color: c.on ? t.textSecondary : '#333', fontFamily: "'Geist Mono', monospace" }}>{c.label}</span>
+                    <span style={{ fontSize: 13, color: c.on ? '#2ecc71' : '#333' }}>{c.on ? '✓' : '✗'}</span>
+                    <span style={{ fontSize: 13, color: c.on ? t.textSecondary : '#333', fontFamily: "'Geist Mono', monospace" }}>{c.label}</span>
                   </div>
                 ))}
               </div>
@@ -307,7 +307,7 @@ export function AgentCard() {
 
           {/* Row 2: Workflow */}
           <div className="px-3 py-2" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-            <div style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+            <div style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
               Workflow
             </div>
             <MiniWorkflow steps={wfSteps} />
@@ -317,16 +317,16 @@ export function AgentCard() {
           <div className="flex">
             {/* Tools */}
             <div className="flex-1 px-3 py-2">
-              <div style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+              <div style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
                 Tools & Skills
               </div>
               <div className="flex gap-1 flex-wrap">
-                {toolChips.length === 0 && <span style={{ fontSize: 11, color: t.textFaint }}>None configured</span>}
+                {toolChips.length === 0 && <span style={{ fontSize: 13, color: t.textFaint }}>None configured</span>}
                 {toolChips.slice(0, 8).map((tc) => (
                   <span
                     key={tc.name}
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontFamily: "'Geist Mono', monospace",
                       padding: '2px 6px',
                       borderRadius: 4,
@@ -338,13 +338,13 @@ export function AgentCard() {
                     {tc.name}
                   </span>
                 ))}
-                {toolChips.length > 8 && <span style={{ fontSize: 10, color: t.textFaint }}>+{toolChips.length - 8}</span>}
+                {toolChips.length > 8 && <span style={{ fontSize: 12, color: t.textFaint }}>+{toolChips.length - 8}</span>}
               </div>
             </div>
 
             {/* Context gauge */}
             <div className="shrink-0 px-3 py-2 flex flex-col justify-center" style={{ width: 150 }}>
-              <div style={{ fontSize: 10, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+              <div style={{ fontSize: 12, color: t.textDim, fontFamily: "'Geist Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
                 Context
               </div>
               <div className="flex items-center gap-2">
@@ -357,7 +357,7 @@ export function AgentCard() {
                     transition: 'width 0.3s ease',
                   }} />
                 </div>
-                <span style={{ fontSize: 11, fontFamily: "'Geist Mono', monospace", color: '#FE5000', fontWeight: 700, flexShrink: 0 }}>
+                <span style={{ fontSize: 13, fontFamily: "'Geist Mono', monospace", color: '#FE5000', fontWeight: 700, flexShrink: 0 }}>
                   {totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(0)}K` : totalTokens}
                 </span>
               </div>

@@ -83,7 +83,7 @@ export function PickerModal({ open, onClose, title, searchPlaceholder, width = 5
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
-          <span className="text-sm font-semibold" style={{ color: t.textPrimary }}>
+          <span className="text-[17px] font-semibold" style={{ color: t.textPrimary }}>
             {title}
           </span>
           <button
@@ -108,7 +108,7 @@ export function PickerModal({ open, onClose, title, searchPlaceholder, width = 5
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder={searchPlaceholder ?? 'Search...'}
-              className="w-full outline-none text-sm pl-9 pr-3 py-2 rounded-lg"
+              className="w-full outline-none text-[17px] pl-9 pr-3 py-2 rounded-lg"
               style={{
                 background: t.inputBg,
                 border: `1px solid ${t.border}`,

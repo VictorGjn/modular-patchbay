@@ -73,7 +73,7 @@ export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, o
 
       {/* Name */}
       <span
-        className="text-[10px] leading-tight block px-1"
+        className="text-[12px] leading-tight block px-1"
         style={{
           fontFamily: "'Geist Sans', sans-serif",
           fontWeight: 500,
@@ -99,7 +99,7 @@ export function Tile({ name, active, icon, subtitle, colorStripe, statusColor, o
       {/* Subtitle */}
       {subtitle && (
         <span
-          className="text-[11px] tracking-wide font-semibold block mt-auto truncate w-full"
+          className="text-[13px] tracking-wide font-semibold block mt-auto truncate w-full"
           style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}
           title={subtitle}
         >

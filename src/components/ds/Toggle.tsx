@@ -39,7 +39,7 @@ export function Toggle({ checked, onChange, label, size = 'md', disabled }: Togg
           }}
         />
       </div>
-      {label && <span className="text-[11px]" style={{ color: t.textSecondary }}>{label}</span>}
+      {label && <span className="text-[13px]" style={{ color: t.textSecondary }}>{label}</span>}
     </button>
   );
 }

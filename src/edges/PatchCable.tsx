@@ -154,7 +154,7 @@ export function PatchCable({
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               pointerEvents: 'none',
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 500,
               color: t.textMuted,
               background: t.surfaceOpaque,
