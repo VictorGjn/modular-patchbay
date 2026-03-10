@@ -34,6 +34,7 @@ interface McpStore {
   error?: string;
 
   loadServers: () => Promise<void>;
+  syncFromConfig: () => Promise<void>;
   addServer: (config: { id?: string; name: string; type?: 'stdio' | 'sse' | 'http'; command: string; args: string[]; env: Record<string, string>; autoConnect?: boolean; url?: string; headers?: Record<string, string> }) => Promise<McpServerState | null>;
   updateServer: (id: string, patch: Partial<Pick<McpServerState, 'name' | 'command' | 'args' | 'env' | 'autoConnect' | 'url' | 'headers' | 'type'>>) => Promise<McpServerState | null>;
   connectServer: (id: string) => Promise<void>;
@@ -121,9 +122,44 @@ export const useMcpStore = create<McpStore>((set, get) => ({
       loaded: true,
       loading: false,
     });
+
+    // Sync from consoleStore config
+    await get().syncFromConfig();
+  },
+
+  syncFromConfig: async () => {
+    // Get consoleStore mcpServers config
+    const { useConsoleStore } = await import('./consoleStore');
+    const configServers = useConsoleStore.getState().mcpServers;
+    
+    const currentServers = get().servers;
+    const existingIds = new Set(currentServers.map((s) => s.id));
+    
+    // Add configured servers that don't exist in mcpStore
+    for (const configServer of configServers) {
+      if (!existingIds.has(configServer.id)) {
+        await get().addServer({
+          id: configServer.id,
+          name: configServer.name,
+          type: configServer.type,
+          command: configServer.command,
+          args: configServer.args,
+          env: configServer.env,
+          autoConnect: configServer.autoConnect,
+          url: configServer.url,
+          headers: configServer.headers,
+        });
+      }
+    }
   },
 
   addServer: async (config) => {
+    // Deduplication: check if server with same ID already exists
+    const existingServer = get().servers.find((s) => s.id === config.id);
+    if (existingServer) {
+      return existingServer;
+    }
+
     const data = await apiFetch<McpServerState>(API_BASE, {
       method: 'POST',
       body: JSON.stringify(config),

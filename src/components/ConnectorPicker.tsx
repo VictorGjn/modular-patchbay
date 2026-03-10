@@ -155,6 +155,20 @@ export function ConnectorPicker() {
       await startMcpOAuth(entry.url);
       setOauthStatuses((prev) => ({ ...prev, [entry.url]: true }));
       const svc = entry.id as ConnectorService;
+      
+      // Register MCP server with mcpStore
+      await useMcpStore.getState().addServer({
+        id: entry.id,
+        name: entry.name,
+        type: 'http',
+        command: '',
+        args: [],
+        env: {},
+        url: entry.url,
+        headers: {},
+        autoConnect: true,
+      });
+      
       if (!connectors.some((c) => c.service === svc)) {
         addConnector({
           id: `conn-${entry.id}-oauth-${Date.now()}`,

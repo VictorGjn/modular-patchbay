@@ -5,7 +5,7 @@
  * Also owns the LLM navigation helper and the metadata-only fallback.
  */
 
-import type { ChannelConfig } from '../store/knowledgeBase';
+import type { ChannelConfig, KnowledgeType } from '../store/knowledgeBase';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { useTraceStore } from '../store/traceStore';
@@ -18,6 +18,12 @@ import {
   type PipelineSource,
   type PipelineResult,
 } from './pipeline';
+import {
+  findContrastingChunks,
+  shouldActivateContrastiveRetrieval,
+  type ChunkWithMetadata,
+  type ContrastiveResult,
+} from './contrastiveRetrieval';
 import {
   extractHeadlines,
   buildNavigationPrompt,
@@ -33,6 +39,142 @@ import { API_BASE } from '../config';
 export interface KnowledgeResult {
   knowledgeBlock: string;
   pipelineResult: PipelineResult | null;
+}
+
+// ── Provenance metadata helpers ──
+
+/**
+ * Wrap content with provenance tags
+ */
+function wrapWithProvenance(
+  content: string,
+  source: string,
+  section: string,
+  type: KnowledgeType,
+  depth: string,
+  method: string,
+): string {
+  return `<chunk source="${source}" section="${section}" type="${type}" depth="${depth}" method="${method}">\n${content}\n</chunk>`;
+}
+
+/**
+ * Extract chunks from pipeline result and add provenance metadata
+ */
+function extractChunksWithProvenance(
+  pipelineResult: PipelineResult,
+  sourceChannels: ChannelConfig[],
+): ChunkWithMetadata[] {
+  const chunks: ChunkWithMetadata[] = [];
+  
+  if (!pipelineResult.context) return chunks;
+
+  // For simplicity, treat the entire context as chunks
+  // In a more sophisticated implementation, we could parse the tree structure
+  // to extract individual sections/nodes
+  
+  const sourceMap = new Map<string, ChannelConfig>();
+  for (const ch of sourceChannels) {
+    sourceMap.set(ch.name, ch);
+  }
+
+  // Parse the context to extract individual sections if possible
+  // For now, create one chunk per source
+  for (const sourceInfo of pipelineResult.sources) {
+    const channel = sourceMap.get(sourceInfo.name);
+    if (!channel) continue;
+
+    const depth = DEPTH_LEVELS[channel.depth];
+    
+    chunks.push({
+      content: pipelineResult.context, // TODO: extract source-specific content
+      source: channel.path || channel.name,
+      section: 'main',
+      type: channel.knowledgeType,
+      depth: depth.label,
+      method: 'tree-index-pipeline',
+      node: {} as TreeNode, // placeholder
+    });
+  }
+
+  return chunks;
+}
+
+/**
+ * Apply contrastive retrieval and format knowledge block with provenance
+ */
+function enhanceWithContrastiveRetrieval(
+  pipelineResult: PipelineResult,
+  sourceChannels: ChannelConfig[],
+  userMessage: string,
+): string {
+  // Check if contrastive retrieval should be activated
+  if (!shouldActivateContrastiveRetrieval(userMessage)) {
+    // Just add provenance tags to the regular context
+    const sourceAnnotations = pipelineResult.sources
+      .map(s => `${s.name} (${s.type}, ${s.totalTokens} tokens, ${s.indexedNodes} nodes)`)
+      .join(', ');
+    
+    return `<knowledge sources="${sourceAnnotations}">\n${pipelineResult.context}\n</knowledge>`;
+  }
+
+  // Extract chunks with provenance metadata
+  const chunks = extractChunksWithProvenance(pipelineResult, sourceChannels);
+  
+  if (chunks.length === 0) {
+    const sourceAnnotations = pipelineResult.sources
+      .map(s => `${s.name} (${s.type}, ${s.totalTokens} tokens, ${s.indexedNodes} nodes)`)
+      .join(', ');
+    
+    return `<knowledge sources="${sourceAnnotations}">\n${pipelineResult.context}\n</knowledge>`;
+  }
+
+  // Find contrasting chunks
+  const contrastiveResult = findContrastingChunks(chunks, chunks);
+  
+  // Format with supporting and contrasting sections
+  const supportingChunks = contrastiveResult.supporting.map(chunk =>
+    wrapWithProvenance(
+      chunk.content,
+      chunk.source,
+      chunk.section,
+      chunk.type,
+      chunk.depth,
+      chunk.method,
+    )
+  );
+
+  const contrastingChunks = contrastiveResult.contrasting.map(chunk =>
+    wrapWithProvenance(
+      chunk.content,
+      chunk.source,
+      chunk.section,
+      chunk.type,
+      chunk.depth,
+      chunk.method,
+    )
+  );
+
+  let knowledgeContent = '';
+  
+  if (supportingChunks.length > 0) {
+    knowledgeContent += `<supporting>\n${supportingChunks.join('\n\n')}\n</supporting>`;
+  }
+  
+  if (contrastingChunks.length > 0) {
+    if (knowledgeContent) knowledgeContent += '\n\n';
+    knowledgeContent += `<contrasting>\n${contrastingChunks.join('\n\n')}\n</contrasting>`;
+  }
+  
+  // If no supporting/contrasting structure, fall back to regular format
+  if (!knowledgeContent) {
+    knowledgeContent = pipelineResult.context;
+  }
+
+  const sourceAnnotations = pipelineResult.sources
+    .map(s => `${s.name} (${s.type}, ${s.totalTokens} tokens, ${s.indexedNodes} nodes)`)
+    .join(', ');
+
+  return `<knowledge sources="${sourceAnnotations}">\n${knowledgeContent}\n</knowledge>`;
 }
 
 interface KnowledgePipelineOptions {
@@ -403,11 +545,12 @@ export async function compressKnowledge(
     }
 
     if (pipelineResult.context.trim()) {
-      const sourceAnnotations = pipelineResult.sources
-        .map(s => `${s.name} (${s.type}, ${s.totalTokens} tokens, ${s.indexedNodes} nodes)`)
-        .join(', ');
-      // Pipeline content takes priority — residual is discarded (original behaviour)
-      knowledgeBlock = `<knowledge sources="${sourceAnnotations}">\n${pipelineResult.context}\n</knowledge>`;
+      // Apply contrastive retrieval and provenance enhancement
+      knowledgeBlock = enhanceWithContrastiveRetrieval(
+        pipelineResult,
+        regularChannels,
+        userMessage,
+      );
     }
   }
 

@@ -1,4 +1,5 @@
 import { useConsoleStore } from '../store/consoleStore';
+import { useMcpStore } from '../store/mcpStore';
 import { type McpCategory } from '../store/knowledgeBase';
 import { McpIcon } from './icons/SectionIcons';
 import { useTheme } from '../theme';
@@ -19,7 +20,29 @@ export function McpPicker() {
   const setShowMcpPicker = useConsoleStore((s) => s.setShowMcpPicker);
   const mcpServers = useConsoleStore((s) => s.mcpServers);
   const addMcp = useConsoleStore((s) => s.addMcp);
+  const mcpStoreAddServer = useMcpStore((s) => s.addServer);
   const t = useTheme();
+
+  const handleAddMcp = async (serverId: string) => {
+    // Add to consoleStore (persistent config)
+    addMcp(serverId);
+    
+    // Also add to mcpStore (runtime connection)
+    const server = mcpServers.find((s) => s.id === serverId);
+    if (server) {
+      await mcpStoreAddServer({
+        id: server.id,
+        name: server.name,
+        type: server.type,
+        command: server.command,
+        args: server.args,
+        env: server.env,
+        autoConnect: server.autoConnect,
+        url: server.url,
+        headers: server.headers,
+      });
+    }
+  };
 
   return (
     <PickerModal
@@ -81,7 +104,7 @@ export function McpPicker() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => addMcp(server.id)}
+                    onClick={() => handleAddMcp(server.id)}
                     className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md cursor-pointer border-none"
                     style={{
                       color: '#FE5000',
