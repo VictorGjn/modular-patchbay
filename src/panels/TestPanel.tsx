@@ -6,6 +6,10 @@ import { exportForTarget, downloadAgentFile } from '../utils/agentExport';
 import { importAgentFromZip } from '../utils/agentDirectory';
 import { runPipelineChat, resolveProviderAndModel } from '../services/pipelineChat';
 import { useProviderStore } from '../store/providerStore';
+import { useTraceStore } from '../store/traceStore';
+import { useVersionStore } from '../store/versionStore';
+import { useTreeIndexStore } from '../store/treeIndexStore';
+import { useMemoryStore } from '../store/memoryStore';
 import {
   Send, Download, Check, FolderOpen, Upload, AlertCircle,
   FileText, FileCode, Zap, ChevronDown, ChevronRight, Users, Plus, X, Play, Square,
@@ -17,7 +21,11 @@ import { RuntimeResults } from './RuntimePanel';
 import { API_BASE } from '../config';
 import { runTeam as runTeamService, type RunTeamConfig } from '../services/runtimeService';
 import { useRuntimeStore } from '../store/runtimeStore';
-import { buildSystemFrame } from '../services/systemFrameBuilder';
+import { buildSystemFrame, buildKnowledgeFormatGuide } from '../services/systemFrameBuilder';
+import { routeSources } from '../services/sourceRouter';
+import { compressKnowledge } from '../services/knowledgePipeline';
+import { buildOrientationBlock, assemblePipelineContext } from '../services/contextAssembler';
+import { preRecall } from '../services/memoryPipeline';
 
 /* ── Pipeline Stats Bar ── */
 function PipelineStatsBar() {
@@ -333,10 +341,12 @@ function TeamSection() {
   };
 
   const [runError, setRunError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  const handleRun = useCallback(() => {
+  const handleRun = useCallback(async () => {
     if (!task.trim() || isRunning) return;
     setRunError(null);
+    setStatusMessage(null);
 
     const { providerId, model, error } = resolveProviderAndModel();
     if (error) {
@@ -351,27 +361,144 @@ function TeamSection() {
     const isAgentSdk = provider?.authMethod === 'claude-agent-sdk';
 
     console.log('[TeamRunner] Starting team run with provider:', providerId, 'model:', model, 'Agent SDK:', isAgentSdk);
+    
+    try {
+      // Start trace for pipeline
+      const traceStore = useTraceStore.getState();
+      const versionStore = useVersionStore.getState();
+      const agentVersion = versionStore.currentVersion || '0.0.0';
+      const traceId = traceStore.startTrace(`team-${Date.now()}`, agentVersion);
 
-    // Fallback system prompt from current builder config
-    const fallbackSystemPrompt = buildSystemFrame();
+      // 1. Build system frame (identity, constraints, workflow)
+      let systemFrame = buildSystemFrame();
 
-    const config: RunTeamConfig = {
-      teamId: `team-${Date.now()}`,
-      systemPrompt: fallbackSystemPrompt,
-      task: task.trim(),
-      providerId,
-      model,
-      isAgentSdk,
-      agents: agents.map(a => ({
-        agentId: a.id,
-        name: a.name,
-        systemPrompt: a.savedSystemPrompt || undefined,
-        rolePrompt: a.rolePrompt || undefined,
-        repoUrl: a.repoUrl || undefined,
-      })),
-    };
+      // 2. Run knowledge pipeline (same as Chat tab does)
+      const consoleStore = useConsoleStore.getState();
+      const channels = consoleStore.channels;
+      const activeChannels = channels.filter(ch => ch.enabled);
+      
+      let knowledgeBlock = '';
+      let frameworkBlock = '';
+      let provenance = null;
+      
+      if (activeChannels.length > 0) {
+        console.log('[TeamRunner] Preparing knowledge...');
+        setStatusMessage('Preparing knowledge...');
+        
+        const routeResult = await routeSources(activeChannels, traceId);
+        frameworkBlock = routeResult.frameworkBlock;
+        
+        const result = await compressKnowledge(channels, routeResult.regularChannels, routeResult.residualKnowledgeBlock, { 
+          userMessage: task, 
+          navigationMode: 'manual', 
+          providerId, 
+          model 
+        }, traceId);
+        knowledgeBlock = result.knowledgeBlock;
+        provenance = result.provenance;
+      }
 
-    abortRef.current = runTeamService(config);
+      // 3. Add connector references (services like Notion, Slack, HubSpot)
+      const activeConnectors = consoleStore.connectors.filter(c => c.enabled && c.direction !== 'write');
+      if (activeConnectors.length > 0) {
+        const connectorLines = activeConnectors.map(c => {
+          const scope = c.hint ? ` (scope: ${c.hint})` : '';
+          return `- ${c.name} [${c.service}] — ${c.direction}${scope}`;
+        });
+        const connectorBlock = `<connectors>\nAvailable data connectors (use via MCP tools):\n${connectorLines.join('\n')}\n</connectors>`;
+        knowledgeBlock = knowledgeBlock ? `${knowledgeBlock}\n\n${connectorBlock}` : connectorBlock;
+      }
+      
+      // 4. Run memory recall
+      const memoryConfig = useMemoryStore.getState();
+      let memoryBlock = '';
+      
+      if (memoryConfig.longTerm.enabled) {
+        console.log('[TeamRunner] Recalling memory...');
+        setStatusMessage('Recalling memory...');
+        const memoryResult = await preRecall({ 
+          userMessage: task, 
+          agentId: 'team', 
+          traceId 
+        });
+        if (memoryResult.contextBlock) {
+          memoryBlock = memoryResult.contextBlock;
+        }
+      }
+      
+      // 5. Rebuild system frame with provenance data
+      if (provenance) {
+        systemFrame = buildSystemFrame(provenance);
+      }
+      
+      // 6. Assemble full system prompt with knowledge
+      if (activeChannels.length > 0 || knowledgeBlock || memoryBlock) {
+        const orientationBlock = buildOrientationBlock(channels, useTreeIndexStore.getState().getIndex);
+        const hasRepos = channels.some(ch => ch.enabled && ch.repoMeta);
+        
+        const fullSystemPrompt = assemblePipelineContext({
+          frame: systemFrame,
+          orientationBlock,
+          hasRepos,
+          knowledgeFormatGuide: buildKnowledgeFormatGuide(),
+          frameworkBlock,
+          memoryBlock,
+          knowledgeBlock,
+        });
+        
+        systemFrame = fullSystemPrompt;
+      }
+
+      console.log('[TeamRunner] Running team...');
+      setStatusMessage('Running team...');
+      setRunError(null);
+
+      // 7. Send to team runner
+      const config: RunTeamConfig = {
+        teamId: `team-${Date.now()}`,
+        systemPrompt: systemFrame,
+        task: task.trim(),
+        providerId,
+        model,
+        isAgentSdk,
+        agents: agents.map(a => ({
+          agentId: a.id,
+          name: a.name,
+          systemPrompt: a.savedSystemPrompt || undefined,
+          rolePrompt: a.rolePrompt || undefined,
+          repoUrl: a.repoUrl || undefined,
+        })),
+      };
+
+      abortRef.current = runTeamService(config);
+      setStatusMessage(null); // Clear status message when team starts running
+      
+    } catch (err) {
+      console.error('[TeamRunner] Knowledge pipeline error:', err);
+      setStatusMessage(null);
+      setRunError(`Knowledge pipeline error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      
+      // Fall back to basic system frame if knowledge pipeline fails
+      const fallbackSystemPrompt = buildSystemFrame();
+      const config: RunTeamConfig = {
+        teamId: `team-${Date.now()}`,
+        systemPrompt: fallbackSystemPrompt,
+        task: task.trim(),
+        providerId,
+        model,
+        isAgentSdk,
+        agents: agents.map(a => ({
+          agentId: a.id,
+          name: a.name,
+          systemPrompt: a.savedSystemPrompt || undefined,
+          rolePrompt: a.rolePrompt || undefined,
+          repoUrl: a.repoUrl || undefined,
+        })),
+      };
+      
+      abortRef.current = runTeamService(config);
+      setStatusMessage(null); // Clear status message for fallback run
+    }
   }, [task, agents, isRunning]);
 
   const handleStop = () => {
@@ -494,6 +621,11 @@ function TeamSection() {
           className="w-full text-[13px] px-3 py-2.5 rounded-lg outline-none resize-none"
           style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, lineHeight: 1.5 }}
         />
+        {statusMessage && (
+          <div className="text-[12px] px-3 py-2 rounded mb-2" style={{ background: '#10b98115', color: '#10b981', border: '1px solid #10b98130' }}>
+            {statusMessage}
+          </div>
+        )}
         {runError && (
           <div className="text-[12px] px-3 py-2 rounded mb-2" style={{ background: '#dc262615', color: '#dc2626', border: '1px solid #dc262630' }}>
             {runError}
