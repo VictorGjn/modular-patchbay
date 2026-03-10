@@ -342,7 +342,7 @@ export function parseAgentDirectory(files: Record<string, string>): ParsedAgentD
   return result;
 }
 
-function parseSimpleYaml(text: string): Record<string, unknown> {
+export function parseSimpleYaml(text: string): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   let currentList: string[] | null = null;
   let currentKey = '';

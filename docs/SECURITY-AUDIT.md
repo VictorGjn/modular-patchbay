@@ -1,132 +1,200 @@
-# Security Audit Report — Modular Studio
+# Security Audit Report - Modular Patchbay
 
-**Date:** 2026-02-28  
-**Auditor:** Automated (Claude)  
-**Scope:** Backend (`server/`), Frontend (`src/`), MCP/LLM integration  
-**npm audit:** 0 known vulnerabilities
+**Date:** March 11, 2026  
+**Auditor:** AI Security Audit Agent  
+**Codebase:** Modular Patchbay (Context Engineering IDE for AI Agents)  
+**Version:** 0.1.0  
 
----
+## Executive Summary
 
-## Summary
+This security audit examined the Modular Patchbay codebase for potential security vulnerabilities across API key exposure, server-side vulnerabilities, OAuth security, MCP server security, frontend security, and dependency vulnerabilities. The audit identified **2 CRITICAL**, **3 HIGH**, **2 MEDIUM**, and **3 LOW** severity issues that require immediate attention.
 
-| Severity | Count |
-|----------|-------|
-| CRITICAL | 2     |
-| HIGH     | 4     |
-| MEDIUM   | 4     |
-| LOW      | 3     |
+## Critical Findings (CRITICAL)
 
----
+### 1. Path Traversal in Knowledge Routes (CRITICAL)
+**File:** `server/routes/knowledge.ts`  
+**Lines:** 84-118, 150-185  
+**Issue:** The application validates paths using a basic check (`path.includes('..')`) which can be bypassed using URL encoding, double encoding, or other path traversal techniques. While there is an allowlist mechanism, the path validation is insufficient.
 
-## CRITICAL
+**Evidence:**
+```typescript
+function isPathSafe(targetPath: string, allowedDirs: string[]): boolean {
+  if (targetPath.includes('..')) return false; // Insufficient validation
+  const resolved = resolve(targetPath).toLowerCase();
+  return allowedDirs.some((dir) => resolved.startsWith(dir.toLowerCase()));
+}
+```
 
-### C1: API Keys Stored in Plain Text in localStorage
-**File:** `src/components/SettingsModal.tsx`  
-**Lines:** 10-11, 41  
-**Description:** API keys (OpenAI, OpenRouter, etc.) are stored as plain text in `localStorage` under `modular-api-key`. Any XSS vulnerability or malicious browser extension can exfiltrate them. localStorage is also accessible from browser DevTools.  
-**Impact:** Full compromise of user's LLM API keys → financial loss, data exfiltration.  
-**Status:** ⚠️ **NOT auto-fixed** — requires architectural decision. Options:
-1. Move key storage server-side (providers route already exists)
-2. Use the backend as a proxy (already supported via `/api/llm/chat`) and remove client-side key storage entirely
-3. At minimum, encrypt with a session-derived key
+**Impact:** Attackers could potentially access files outside the allowed directories using sophisticated path traversal techniques.  
+**Recommendation:** Implement proper path canonicalization and validation using Node.js path utilities, add null byte checks, and validate against the canonicalized allowed directories.
 
-**Recommendation:** Remove the `SettingsModal` localStorage path entirely. The app already has server-side provider management (`/api/providers`). Use that exclusively.
-
-### C2: API Keys Returned in Plain Text via GET /api/providers
-**File:** `server/routes/providers.ts`  
-**Lines:** 8-11  
-**Description:** `GET /api/providers` returns the full provider config including `apiKey` in plain text. Combined with no authentication on the API, any process on localhost can read all stored API keys.  
-**Impact:** API key theft from any local process or browser tab.  
-**Status:** ✅ **Fixed** — API keys are now masked in GET responses.
-
----
-
-## HIGH
-
-### H1: No Authentication on Any API Route
-**Files:** All `server/routes/*.ts`  
-**Description:** Zero authentication or authorization on any endpoint. The API is protected only by CORS (localhost origins) and network access. Any local application, browser extension, or script can call all endpoints.  
-**Impact:** Unauthorized access to API keys, MCP server management, file reading, LLM proxy usage.  
-**Recommendation:** Add at minimum a session token or bearer token for API access.
-
-### H2: No Rate Limiting on LLM Proxy Routes
-**Files:** `server/routes/llm.ts`, `server/routes/agent-sdk.ts`  
-**Description:** No rate limiting on `/api/llm/chat` or `/api/agent-sdk/chat`. A malicious script can make unlimited LLM API calls through the proxy, causing unbounded cost.  
-**Impact:** Cost attack — unlimited token spend on user's API keys.  
-**Recommendation:** Add `express-rate-limit` middleware, especially on LLM routes. Cap at e.g. 60 req/min.
-
-### H3: No Token Budget Enforcement on Backend
-**Files:** `server/routes/llm.ts`, `server/routes/agent-sdk.ts`  
-**Description:** The frontend has a `tokenBudget` UI control, but the backend enforces no limits on `maxTokens`. A crafted API call can set `maxTokens: 1000000`.  
-**Impact:** Single request can consume large amounts of API credits.  
-**Recommendation:** Enforce a server-side maximum for `maxTokens` (e.g., cap at 32768).
-
-### H4: MCP Server Command Execution Without Validation
+### 2. Command Injection in MCP Manager (CRITICAL)
 **File:** `server/mcp/manager.ts`  
-**Description:** `McpManager.connect()` spawns arbitrary commands from `config.command` with `StdioClientTransport`. While this is by design for MCP, any user who can POST to `/api/mcp` can register and execute arbitrary commands on the host.  
-**Impact:** Remote code execution via the unauthenticated API.  
-**Recommendation:** Combine with H1 (authentication). Optionally add a command allowlist.
+**Lines:** 87-96  
+**Issue:** The MCP manager accepts user-controlled command and arguments that are passed directly to `StdioClientTransport` without proper sanitization.
 
----
+**Evidence:**
+```typescript
+const transport = new StdioClientTransport({
+  command: conn.config.command,        // User-controlled
+  args: conn.config.args,             // User-controlled
+  env: { ...process.env, ...conn.config.env }  // User-controlled env vars
+});
+```
 
-## MEDIUM
+**Impact:** Malicious MCP server configurations could execute arbitrary commands on the host system.  
+**Recommendation:** Implement a strict allowlist of permitted MCP server executables, validate and sanitize all arguments, restrict environment variables, and consider running MCP servers in sandboxed environments.
 
-### M1: CORS Allows Only Hardcoded localhost Origins
+## High Severity Findings (HIGH)
+
+### 3. Missing OAuth State Parameter Validation (HIGH)
+**File:** `server/services/mcpOAuth.ts`  
+**Lines:** 149-179  
+**Issue:** While the OAuth implementation uses PKCE and state parameters, the state parameter validation is minimal and stored in an in-memory Map without proper expiration or size limits.
+
+**Evidence:**
+```typescript
+const pendingFlows = new Map<string, PendingFlow>(); // In-memory, unbounded
+// Only basic cleanup every 10 minutes
+if (Date.now() - v.createdAt > 600_000) pendingFlows.delete(k);
+```
+
+**Impact:** Potential CSRF attacks and memory exhaustion through state flooding.  
+**Recommendation:** Implement secure state storage with proper expiration, size limits, and additional CSRF protections.
+
+### 4. Insecure Token Storage (HIGH)
+**File:** `server/services/mcpOAuth.ts`  
+**Lines:** 258-263  
+**Issue:** OAuth tokens are stored in plain text JSON files without encryption or proper access controls.
+
+**Evidence:**
+```typescript
+const TOKEN_FILE = join(DATA_DIR, 'mcp-tokens.json');
+// Tokens stored as plain JSON
+await saveJson(TOKEN_FILE, tokens);
+```
+
+**Impact:** Token compromise if the filesystem is accessed by attackers.  
+**Recommendation:** Encrypt tokens at rest, implement proper file permissions (600), and consider using OS credential stores.
+
+### 5. Known Dependency Vulnerabilities (HIGH)
+**Source:** npm audit output  
+**Issue:** Multiple high-severity vulnerabilities in dependencies:
+- `@hono/node-server` - Authorization bypass (GHSA-wc8c-qw6v-h7f6)
+- `express-rate-limit` - IPv4-mapped IPv6 bypass (GHSA-46wh-pxpv-q5gq)  
+- `hono` - Multiple vulnerabilities including arbitrary file access (GHSA-q5qw-h33p-qvwr)
+
+**Impact:** Various attack vectors including authentication bypass and arbitrary file access.  
+**Recommendation:** Run `npm audit fix` immediately and establish a process for regular dependency updates.
+
+## Medium Severity Findings (MEDIUM)
+
+### 6. Insufficient Rate Limiting Implementation (MEDIUM)
 **File:** `server/index.ts`  
-**Lines:** 22-28  
-**Description:** CORS is restricted to `localhost:5173-5176`, which is good. However, if the app is ever deployed beyond localhost, this must be updated. No dynamic origin support.  
-**Impact:** Low currently (localhost only). Risk if deployment model changes.  
+**Lines:** 47-62  
+**Issue:** Custom in-memory rate limiter can be bypassed and doesn't properly handle IPv6 addresses or proxy headers.
 
-### M2: Error Messages May Leak Internal Details
-**Files:** Multiple routes  
-**Description:** Error handlers forward `err.message` to clients (e.g., `server/index.ts:46`, various catch blocks). Node.js error messages can contain file paths, stack traces, or system details.  
-**Recommendation:** In production, return generic error messages. Log details server-side only.
+**Evidence:**
+```typescript
+const ip = req.ip || 'unknown'; // Doesn't handle X-Forwarded-For
+const ipHits = new Map<string, { count: number; resetAt: number }>(); // In-memory only
+```
 
-### M3: No CSP Headers
-**File:** `index.html`  
-**Description:** No Content-Security-Policy header or meta tag. This means inline scripts, external script sources, and other injection vectors are unrestricted.  
-**Recommendation:** Add CSP headers via Vite plugin or Express middleware for the served frontend.
+**Impact:** Rate limit bypass and potential DoS attacks.  
+**Recommendation:** Use a proven rate limiting library like `express-rate-limit` (after patching), implement proper IP detection with proxy headers, and consider distributed rate limiting for production.
 
-### M4: Prompt Injection via User Inputs to LLM
-**Files:** `server/routes/llm.ts`, `server/routes/agent-sdk.ts`  
-**Description:** User-provided `prompt` and `messages` are forwarded directly to LLM APIs without sanitization. In the Agent SDK path, the agent has tool access (Read, Edit, Bash, etc.), making prompt injection particularly dangerous.  
-**Recommendation:** For the Agent SDK route, consider sandboxing, limiting tools, or adding prompt guardrails.
+### 7. Missing Input Validation on Several Endpoints (MEDIUM)
+**Files:** `server/routes/repo-index.ts`, `server/routes/knowledge.ts`  
+**Issue:** Several API endpoints accept user input without proper validation or sanitization.
+
+**Example:**
+```typescript
+// repo-index.ts - GitHub URL validation is minimal
+if (!url.includes('github.com') && !url.endsWith('.git')) {
+  // Insufficient validation
+}
+```
+
+**Impact:** Potential injection attacks and unexpected application behavior.  
+**Recommendation:** Implement comprehensive input validation using schema validation libraries like Zod, validate all user inputs, and sanitize data before processing.
+
+## Low Severity Findings (LOW)
+
+### 8. Information Disclosure in Error Messages (LOW)
+**Files:** Multiple route files  
+**Issue:** Detailed error messages may expose internal paths and system information.
+
+**Evidence:**
+```typescript
+error: err instanceof Error ? err.message : String(err)
+```
+
+**Impact:** Information leakage that could aid attackers.  
+**Recommendation:** Implement generic error messages for production and log detailed errors server-side only.
+
+### 9. Missing Security Headers (LOW)
+**File:** `server/index.ts`  
+**Lines:** 40-46  
+**Issue:** While basic security headers are implemented, some important security headers are missing.
+
+**Current headers:**
+```typescript
+res.setHeader('X-Content-Type-Options', 'nosniff');
+res.setHeader('X-Frame-Options', 'DENY');
+res.setHeader('Referrer-Policy', 'no-referrer');
+res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+```
+
+**Missing:** Content-Security-Policy, Strict-Transport-Security (for HTTPS), X-XSS-Protection  
+**Impact:** Reduced defense against various client-side attacks.  
+**Recommendation:** Implement comprehensive security headers using a library like helmet.js.
+
+### 10. Moderate Dependency Vulnerability (LOW)
+**Package:** `dompurify 3.1.3 - 3.3.1`  
+**Issue:** Cross-site Scripting vulnerability (GHSA-v2wj-7wpq-c8vv)  
+**Impact:** Potential XSS if DOMPurify is used for user content sanitization.  
+**Recommendation:** Update DOMPurify to the latest version.
+
+## Positive Security Findings
+
+1. **No hardcoded API keys or secrets found** in the codebase
+2. **Proper .gitignore configuration** excludes sensitive files
+3. **PKCE implementation** in OAuth flow provides good protection against authorization code interception
+4. **File size limits** implemented for file uploads (1MB limit)
+5. **Basic CORS configuration** restricts origins to localhost during development
+6. **No dangerous React patterns** found (no dangerouslySetInnerHTML usage in application code)
+
+## Recommendations Summary
+
+### Immediate Actions (Critical/High)
+1. **Fix path traversal vulnerability** in knowledge routes
+2. **Implement MCP command validation and sandboxing**
+3. **Encrypt OAuth tokens at rest**
+4. **Update all vulnerable dependencies** via `npm audit fix`
+5. **Strengthen OAuth state management**
+
+### Short Term (Medium)
+1. **Replace custom rate limiter** with proven solution
+2. **Implement comprehensive input validation**
+3. **Add missing security headers**
+
+### Long Term (Low)
+1. **Implement centralized error handling** with safe error messages
+2. **Regular security dependency audits**
+3. **Consider implementing CSP headers**
+
+## Risk Assessment
+
+**Overall Risk Level:** HIGH  
+**Most Critical Attack Vector:** Command injection via malicious MCP server configurations  
+**Recommended Timeline:** Address critical issues within 48 hours, high severity within 1 week.
 
 ---
 
-## LOW
+**Next Steps:**
+1. Prioritize fixing critical vulnerabilities immediately
+2. Establish automated dependency scanning in CI/CD pipeline  
+3. Consider engaging a professional penetration testing service
+4. Implement security-focused code review practices
 
-### L1: dangerouslySetInnerHTML Usage (Mitigated)
-**File:** `src/components/SaveAgentModal.tsx:467`  
-**Description:** Uses `dangerouslySetInnerHTML` for syntax highlighting in the export preview. The `colorizeLine` function properly calls `escapeHtml()` before injecting HTML.  
-**Impact:** Currently safe. Risk if `escapeHtml` is bypassed in future refactors.  
-
-### L2: Frontend Direct LLM Calls Expose API Key in Network Tab
-**File:** `src/services/llmService.ts` (`streamCompletion`)  
-**Description:** `streamCompletion()` sends API key directly from browser to external LLM APIs. The key is visible in browser DevTools Network tab as an `Authorization` header.  
-**Impact:** Key visible to anyone with DevTools access (same user, so limited impact).  
-**Recommendation:** Route all LLM calls through the backend proxy (`/api/llm/chat`).
-
-### L3: Google API Key Exposed in URL Query Parameter
-**File:** `server/routes/providers.ts:138`  
-**Description:** For Google provider testing, the API key is sent as a URL query parameter (`?key=...`). Query parameters may be logged in server access logs, proxy logs, and browser history.  
-**Recommendation:** Use header-based authentication for Google API calls where possible.
-
----
-
-## What Was Fixed
-
-### Fix C2: Mask API Keys in Provider GET Response
-
-API keys are now masked (showing only last 4 chars) in `GET /api/providers` responses. Full keys are only used server-side for actual API calls.
-
----
-
-## Recommendations Priority
-
-1. **Add authentication** to the Express API (H1) — this alone mitigates H4 and reduces H2/H3 severity
-2. **Add rate limiting** on LLM routes (H2)
-3. **Enforce server-side token caps** (H3)
-4. **Remove client-side API key storage** — use server-side providers exclusively (C1)
-5. **Add CSP headers** (M3)
-6. **Sanitize error messages** in production mode (M2)
+*This audit was performed using static analysis techniques. A dynamic security assessment is recommended for comprehensive coverage.*
