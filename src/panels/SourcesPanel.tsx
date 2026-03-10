@@ -19,7 +19,7 @@ import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/know
 import { TYPE_WEIGHTS } from '../services/budgetAllocator';
 import { Tooltip } from '../components/ds/Tooltip';
 import { API_BASE } from '../config';
-import { setApiKey, type ConnectorAuthStatus } from '../services/connectorAuth';
+import { type ConnectorAuthStatus } from '../services/connectorAuth';
 // import { formatTokens } from '../utils/formatTokens';
 import {
   Wand2, Sparkles, Loader2, RotateCcw,
@@ -243,8 +243,6 @@ function KnowledgeSection() {
   const setChannelKnowledgeType = useConsoleStore(s => s.setChannelKnowledgeType);
   const setShowFilePicker = useConsoleStore(s => s.setShowFilePicker);
   const setShowConnectorPicker = useConsoleStore(s => s.setShowConnectorPicker);
-  const navigationMode = useConsoleStore(s => s.navigationMode);
-  const setNavigationMode = useConsoleStore(s => s.setNavigationMode);
   const connectors = useConsoleStore(s => s.connectors);
   const removeConnector = useConsoleStore(s => s.removeConnector);
   const treeIndexes = useTreeIndexStore(s => s.indexes);
@@ -256,8 +254,6 @@ function KnowledgeSection() {
   const [repoPath, setRepoPath] = useState('');
   const [repoPrompt, setRepoPrompt] = useState(false);
   const [authExpanded, setAuthExpanded] = useState<string | null>(null);
-  const [authKey, setAuthKey] = useState('');
-  const [authTesting, setAuthTesting] = useState(false);
   const [authStatuses, setAuthStatuses] = useState<Record<string, ConnectorAuthStatus>>({});
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
 
@@ -397,28 +393,6 @@ function KnowledgeSection() {
     }).catch(() => {});
   }, []);
 
-  const handleSetApiKey = useCallback(async (service: string) => {
-    if (!authKey.trim() || authTesting) return;
-    setAuthTesting(true);
-    try {
-      const result = await setApiKey(service, authKey.trim());
-      setAuthStatuses(prev => ({
-        ...prev,
-        [service]: {
-          service,
-          method: 'api-key',
-          status: result.connectorStatus as any,
-          hasApiKey: true,
-          hasOAuth: false,
-          lastChecked: Date.now(),
-        },
-      }));
-      setAuthKey('');
-      setAuthExpanded(null);
-    } catch { /* user sees no change */ }
-    setAuthTesting(false);
-  }, [authKey, authTesting]);
-
   return (
     <Section
       icon={Database} label="Knowledge" color="#3498db"
@@ -428,23 +402,6 @@ function KnowledgeSection() {
       {/* Actions */}
       <div className="flex justify-end mb-2">
         <GenerateBtn loading={scanning} onClick={handleIndex} label="Index" />
-      </div>
-
-      {/* Navigation mode toggle */}
-      <div className="flex items-center justify-between mb-2 px-1">
-        <span className="text-[13px] tracking-[0.1em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
-          Depth selection
-        </span>
-        <div className="flex gap-0.5 rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
-          <button type="button" onClick={() => setNavigationMode('manual')}
-            className="text-[12px] px-2 py-1 cursor-pointer border-none"
-            style={{ background: navigationMode === 'manual' ? '#FE5000' : 'transparent', color: navigationMode === 'manual' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}
-            aria-label="Manual depth selection">Manual</button>
-          <button type="button" onClick={() => setNavigationMode('agent-driven')}
-            className="text-[12px] px-2 py-1 cursor-pointer border-none"
-            style={{ background: navigationMode === 'agent-driven' ? '#FE5000' : 'transparent', color: navigationMode === 'agent-driven' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}
-            aria-label="Agent-driven depth selection">Agent</button>
-        </div>
       </div>
 
       {/* Channel list — Smart Defaults + Progressive Disclosure */}
@@ -616,7 +573,7 @@ function KnowledgeSection() {
                     {conn.direction}
                   </span>
                   <button type="button" aria-label={`Configure ${conn.name} credentials`}
-                    onClick={() => { setAuthExpanded(isAuthOpen ? null : conn.service); setAuthKey(''); }}
+                    onClick={() => setAuthExpanded(isAuthOpen ? null : conn.service)}
                     className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center"
                     style={{ color: isConnected ? '#00ff88' : t.textDim }}>
                     <KeyRound size={10} />
@@ -626,25 +583,17 @@ function KnowledgeSection() {
                     <X size={10} />
                   </button>
                 </div>
-                {/* Inline API key input */}
+                {/* Auth status line */}
                 {isAuthOpen && (
-                  <div className="flex gap-1.5 pb-2 pl-4"
+                  <div className="flex items-center gap-2 pb-2 pl-4"
                     style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
-                    <input
-                      type="password"
-                      value={authKey}
-                      onChange={e => setAuthKey(e.target.value)}
-                      placeholder={`${conn.name} API key`}
-                      aria-label={`${conn.name} API key`}
-                      className="flex-1 px-2 py-1 rounded text-[12px] outline-none"
-                      style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
-                      onKeyDown={e => { if (e.key === 'Enter') handleSetApiKey(conn.service); }}
-                    />
-                    <button type="button" onClick={() => handleSetApiKey(conn.service)}
-                      disabled={authTesting || !authKey.trim()}
-                      className="px-2 py-1 rounded text-[13px] uppercase cursor-pointer border-none"
-                      style={{ background: '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace", opacity: authTesting || !authKey.trim() ? 0.5 : 1 }}>
-                      {authTesting ? '...' : isConnected ? 'Update' : 'Save'}
+                    <span className="text-[13px]" style={{ color: t.textDim }}>
+                      {isConnected ? '✓ Connected' : 'Authentication required'}
+                    </span>
+                    <button type="button" onClick={() => useConsoleStore.getState().setShowSettings(true)}
+                      className="text-[13px] px-2 py-1 rounded cursor-pointer border-none"
+                      style={{ background: '#FE500012', color: '#FE5000' }}>
+                      Open Settings
                     </button>
                   </div>
                 )}
