@@ -450,6 +450,12 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
       if (provider?.authMethod === 'claude-agent-sdk') {
         try {
           const res = await fetch(`${API_BASE}/agent-sdk/status`);
+          if (res.status === 429) {
+            set((state) => ({
+              testing: { ...state.testing, [id]: false },
+            }));
+            return { ok: false, error: 'Rate limited — try again in a moment' };
+          }
           const data = await res.json();
           const info = data?.data;
           const authenticated = info?.authenticated === true;

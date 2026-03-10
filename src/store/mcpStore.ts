@@ -70,7 +70,7 @@ export const useMcpStore = create<McpStore>((set, get) => ({
   error: undefined,
 
   loadServers: async () => {
-    if (get().loading) return;
+    if (get().loading || get().loaded) return;
     set({ loading: true, error: undefined });
 
     // Load from modular-studio config

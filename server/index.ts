@@ -51,7 +51,7 @@ export function createApp() {
 
   // Simple in-memory rate limiter for API routes
   const rateWindowMs = 60_000;
-  const maxRequestsPerWindow = 240;
+  const maxRequestsPerWindow = 600;
   const ipHits = new Map<string, { count: number; resetAt: number }>();
   app.use('/api', (req, res, next) => {
     const ip = req.ip || 'unknown';
