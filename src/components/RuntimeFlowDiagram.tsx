@@ -223,7 +223,7 @@ export function RuntimeFlowDiagram({ activeStage, stats, compact = false }: Runt
               y={y + 15}
               style={{
                 fill: t.textMuted,
-                fontSize: 10,
+                fontSize: 12,
                 fontFamily: "'Geist Mono', monospace"
               }}
             >
@@ -234,7 +234,7 @@ export function RuntimeFlowDiagram({ activeStage, stats, compact = false }: Runt
               y={y + nodeHeight - 5}
               style={{
                 fill: t.textMuted,
-                fontSize: 10,
+                fontSize: 12,
                 fontFamily: "'Geist Mono', monospace"
               }}
             >

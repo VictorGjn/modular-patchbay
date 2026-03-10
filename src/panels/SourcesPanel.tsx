@@ -34,7 +34,7 @@ import {
 function GenerateBtn({ loading, onClick, label = 'Generate' }: { loading: boolean; onClick: () => void; label?: string }) {
   return (
     <button type="button" onClick={e => { e.stopPropagation(); onClick(); }} disabled={loading} aria-label={label}
-      className="flex items-center gap-1 text-[11px] px-2 py-1 rounded cursor-pointer border-none"
+      className="flex items-center gap-1 text-[13px] px-2 py-1 rounded cursor-pointer border-none"
       style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Geist Mono', monospace", opacity: loading ? 0.6 : 1 }}>
       {loading ? <Loader2 size={9} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={9} />}
       {label}
@@ -69,14 +69,14 @@ function Section({
           ? <ChevronRight size={12} style={{ color: t.textDim }} />
           : <ChevronDown size={12} style={{ color: t.textDim }} />}
         <span
-          className="text-[10px] font-bold tracking-[0.08em] uppercase flex-1 text-left"
+          className="text-[12px] font-bold tracking-[0.08em] uppercase flex-1 text-left"
           style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}
         >
           {label}
         </span>
         {badge && (
           <span
-            className="text-[11px] px-2 py-0.5 rounded-full"
+            className="text-[13px] px-2 py-0.5 rounded-full"
             style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}
           >
             {badge}
@@ -137,7 +137,7 @@ function GeneratorSection() {
     <div style={{ borderBottom: `1px solid ${t.isDark ? '#1e1e22' : '#e8e8ec'}` }}>
       <div className="px-5 py-3 flex items-center gap-2" style={{ background: t.isDark ? '#1a1a1e' : '#f0f0f5' }}>
         <Wand2 size={13} style={{ color: '#FE5000' }} />
-        <span className="text-[10px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}>
+        <span className="text-[12px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}>
           Generate Agent
         </span>
       </div>
@@ -152,7 +152,7 @@ function GeneratorSection() {
           ].map(tmpl => (
             <button key={tmpl.label} type="button"
               onClick={() => setBrainDump(tmpl.prompt)}
-              className="text-[10px] px-2 py-1 rounded-full cursor-pointer"
+              className="text-[12px] px-2 py-1 rounded-full cursor-pointer"
               title={tmpl.prompt}
               style={{
                 fontFamily: "'Geist Mono', monospace", fontWeight: 500,
@@ -176,7 +176,7 @@ function GeneratorSection() {
           style={{ minHeight: 80 }}
         />
         {error && (
-          <div role="alert" className="text-[10px] px-2 py-1 rounded" style={{ background: '#ff000015', color: '#ff4444', border: '1px solid #ff000020' }}>
+          <div role="alert" className="text-[12px] px-2 py-1 rounded" style={{ background: '#ff000015', color: '#ff4444', border: '1px solid #ff000020' }}>
             {error}
           </div>
         )}
@@ -189,7 +189,7 @@ function GeneratorSection() {
               { label: 'Sources', count: stats.knowledge, color: '#3498db' },
               ...(stats.gaps > 0 ? [{ label: 'Gaps', count: stats.gaps, color: '#e74c3c' }] : []),
             ].map(s => (
-              <span key={s.label} className="text-[11px] px-1.5 py-0.5 rounded"
+              <span key={s.label} className="text-[13px] px-1.5 py-0.5 rounded"
                 style={{ fontFamily: "'Geist Mono', monospace", background: `${s.color}15`, color: s.color, border: `1px solid ${s.color}30` }}>
                 {s.count} {s.label}
               </span>
@@ -198,16 +198,16 @@ function GeneratorSection() {
         )}
         {lastConfig?.knowledgeGaps && lastConfig.knowledgeGaps.length > 0 && (
           <div className="flex flex-col gap-1 px-2 py-2 rounded" style={{ background: '#e74c3c10', border: '1px solid #e74c3c20' }}>
-            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#e74c3c', fontFamily: "'Geist Mono', monospace" }}>
+            <span className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#e74c3c', fontFamily: "'Geist Mono', monospace" }}>
               Missing Sources
             </span>
             {lastConfig.knowledgeGaps.map((gap, i) => (
-              <div key={i} className="flex items-start gap-1.5 text-[10px]" style={{ color: t.textSecondary }}>
+              <div key={i} className="flex items-start gap-1.5 text-[12px]" style={{ color: t.textSecondary }}>
                 <AlertCircle size={10} style={{ color: '#e74c3c', marginTop: 2, flexShrink: 0 }} />
                 <div>
                   <span style={{ color: t.textPrimary, fontWeight: 600 }}>{gap.name}</span>
                   <span style={{ color: t.textDim }}> ({gap.type})</span>
-                  {gap.description && <div style={{ color: t.textDim, fontSize: 11, marginTop: 1 }}>{gap.description}</div>}
+                  {gap.description && <div style={{ color: t.textDim, fontSize: 13, marginTop: 1 }}>{gap.description}</div>}
                 </div>
               </div>
             ))}
@@ -215,14 +215,14 @@ function GeneratorSection() {
         )}
         <div className="flex gap-2">
           <button type="button" onClick={handleGenerate} disabled={generating || !brainDump.trim()}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded text-[11px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded text-[13px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center"
             style={{ background: generating ? '#CC4000' : '#FE5000', color: '#fff', opacity: generating || !brainDump.trim() ? 0.6 : 1, fontFamily: "'Geist Mono', monospace" }}>
             {generating ? <Loader2 size={11} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={11} />}
             {generating ? 'Generating...' : lastConfig ? 'Regenerate' : 'Generate'}
           </button>
           {lastConfig && (
             <button type="button" onClick={() => { setBrainDump(''); setLastConfig(null); setError(''); }}
-              className="flex items-center gap-1 px-2 py-2 rounded text-[10px]"
+              className="flex items-center gap-1 px-2 py-2 rounded text-[12px]"
               style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, cursor: 'pointer' }}>
               <RotateCcw size={10} />
             </button>
@@ -449,7 +449,7 @@ function KnowledgeSection() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(KNOWLEDGE_TYPES).map(([key, kt]) => (
-            <div key={key} className="flex items-center gap-1 text-[11px] px-2 py-1 rounded"
+            <div key={key} className="flex items-center gap-1 text-[13px] px-2 py-1 rounded"
               style={{ color: t.textDim, background: t.isDark ? '#1c1c20' : '#f0f0f5' }}>
               <div style={{ width: 6, height: 6, borderRadius: 2, background: kt.color }} />
               {kt.label}
@@ -464,16 +464,16 @@ function KnowledgeSection() {
 
       {/* Navigation mode toggle */}
       <div className="flex items-center justify-between mb-2 px-1">
-        <span className="text-[11px] tracking-[0.1em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+        <span className="text-[13px] tracking-[0.1em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
           Depth selection
         </span>
         <div className="flex gap-0.5 rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
           <button type="button" onClick={() => setNavigationMode('manual')}
-            className="text-[10px] px-2 py-1 cursor-pointer border-none"
+            className="text-[12px] px-2 py-1 cursor-pointer border-none"
             style={{ background: navigationMode === 'manual' ? '#FE5000' : 'transparent', color: navigationMode === 'manual' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}
             aria-label="Manual depth selection">Manual</button>
           <button type="button" onClick={() => setNavigationMode('agent-driven')}
-            className="text-[10px] px-2 py-1 cursor-pointer border-none"
+            className="text-[12px] px-2 py-1 cursor-pointer border-none"
             style={{ background: navigationMode === 'agent-driven' ? '#FE5000' : 'transparent', color: navigationMode === 'agent-driven' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}
             aria-label="Agent-driven depth selection">Agent</button>
         </div>
@@ -513,7 +513,7 @@ function KnowledgeSection() {
                 </div>
                 {/* Clickable name — expands Level 3 panel */}
                 <button type="button" onClick={() => setExpandedChannel(isExpanded ? null : ch.sourceId)}
-                  className="flex-1 truncate text-[11px] text-left border-none bg-transparent cursor-pointer p-0"
+                  className="flex-1 truncate text-[13px] text-left border-none bg-transparent cursor-pointer p-0"
                   title={ch.name}
                   style={{ color: ch.enabled ? t.textPrimary : t.textDim, lineHeight: 1.2 }}>
                   {ch.name}
@@ -526,13 +526,13 @@ function KnowledgeSection() {
                   </span>
                 </Tooltip>
                 {isGithubCompressed && (
-                  <span className="text-[10px] px-1 py-0.5 rounded shrink-0"
+                  <span className="text-[12px] px-1 py-0.5 rounded shrink-0"
                     style={{ fontFamily: "'Geist Mono', monospace", color: '#24292F', background: '#24292F12', border: '1px solid #24292F30' }}
                     title="GitHub indexed & compressed context">
                     GH
                   </span>
                 )}
-                <span className="text-[11px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: isIndexed ? t.textPrimary : t.textDim }}
+                <span className="text-[13px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: isIndexed ? t.textPrimary : t.textDim }}
                   title={isIndexed ? `Indexed: ${treeIndexes[ch.path].index.nodeCount} nodes` : 'Estimated'}>
                   {fmtTokens(realTokens)}
                 </span>
@@ -558,7 +558,7 @@ function KnowledgeSection() {
                   style={{ color: depth <= 0 ? t.textFaint : t.textDim, width: 20, height: 20, padding: 0 }}>
                   <Plus size={9} />
                 </button>
-                <span className="text-[10px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 44, textAlign: 'right' }}>
+                <span className="text-[12px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 44, textAlign: 'right' }}>
                   {DETAIL_LABELS[depth]}
                 </span>
               </div>
@@ -568,7 +568,7 @@ function KnowledgeSection() {
                 <div className="mt-1.5 ml-4 px-2.5 py-2 rounded-md" style={{ background: t.isDark ? '#1a1a1e' : '#f5f5f8', border: `1px solid ${t.isDark ? '#2a2a30' : '#e0e0e5'}` }}>
                   {/* Knowledge Type pill row */}
                   <div className="flex items-center gap-1 mb-2">
-                    <span className="text-[10px] tracking-[0.1em] uppercase shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 32 }}>
+                    <span className="text-[12px] tracking-[0.1em] uppercase shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 32 }}>
                       Type
                     </span>
                     <div className="flex flex-wrap gap-1">
@@ -593,19 +593,19 @@ function KnowledgeSection() {
                   {/* Instruction from selected type */}
                   <div className="flex items-start gap-1.5 mb-2">
                     <Info size={9} style={{ color: kt.color, marginTop: 1, flexShrink: 0 }} />
-                    <span className="text-[11px]" style={{ color: t.textDim, lineHeight: 1.3 }}>
+                    <span className="text-[13px]" style={{ color: t.textDim, lineHeight: 1.3 }}>
                       {kt.instruction}
                     </span>
                   </div>
                   {/* Budget + Detail summary */}
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+                    <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
                       Budget: ~{budgetPct}%
                     </span>
-                    <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+                    <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
                       Detail: {DETAIL_LABELS[depth]}
                     </span>
-                    <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+                    <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
                       Tokens: {fmtTokens(realTokens)}
                     </span>
                   </div>
@@ -619,7 +619,7 @@ function KnowledgeSection() {
       {/* Connectors */}
       {connectors.filter(c => c.enabled && c.direction !== 'write').length > 0 && (
         <div className="mt-2 pt-2" style={{ borderTop: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
-          <div className="text-[11px] tracking-[0.1em] uppercase mb-1.5" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+          <div className="text-[13px] tracking-[0.1em] uppercase mb-1.5" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
             Connectors
           </div>
           {connectors.filter(c => c.enabled && c.direction !== 'write').map(conn => {
@@ -640,10 +640,10 @@ function KnowledgeSection() {
                     <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%',
                       background: isConnected ? '#00ff88' : auth?.hasApiKey ? '#ffaa00' : '#666' }} />
                   </div>
-                  <span className="flex-1 truncate text-[12px]" style={{ color: t.textPrimary }}>
+                  <span className="flex-1 truncate text-[14px]" style={{ color: t.textPrimary }}>
                     {conn.name}
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full uppercase"
+                  <span className="text-[12px] px-1.5 py-0.5 rounded-full uppercase"
                     style={{ fontFamily: "'Geist Mono', monospace", color: conn.direction === 'both' ? '#b88ad4' : '#6aafe6', background: conn.direction === 'both' ? '#9b59b610' : '#3498db10' }}>
                     {conn.direction}
                   </span>
@@ -668,13 +668,13 @@ function KnowledgeSection() {
                       onChange={e => setAuthKey(e.target.value)}
                       placeholder={`${conn.name} API key`}
                       aria-label={`${conn.name} API key`}
-                      className="flex-1 px-2 py-1 rounded text-[10px] outline-none"
+                      className="flex-1 px-2 py-1 rounded text-[12px] outline-none"
                       style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
                       onKeyDown={e => { if (e.key === 'Enter') handleSetApiKey(conn.service); }}
                     />
                     <button type="button" onClick={() => handleSetApiKey(conn.service)}
                       disabled={authTesting || !authKey.trim()}
-                      className="px-2 py-1 rounded text-[11px] uppercase cursor-pointer border-none"
+                      className="px-2 py-1 rounded text-[13px] uppercase cursor-pointer border-none"
                       style={{ background: '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace", opacity: authTesting || !authKey.trim() ? 0.5 : 1 }}>
                       {authTesting ? '...' : isConnected ? 'Update' : 'Save'}
                     </button>
@@ -689,7 +689,7 @@ function KnowledgeSection() {
       {/* Add buttons */}
       <div className="flex gap-2 mt-3">
         <button type="button" onClick={() => setShowFilePicker(true)}
-          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[10px] tracking-wide uppercase cursor-pointer"
+          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer"
           style={{
             background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
             fontFamily: "'Geist Mono', monospace", transition: 'border-color 150ms, color 150ms',
@@ -702,7 +702,7 @@ function KnowledgeSection() {
           <Plus size={10} /> Files
         </button>
         <button type="button" aria-label="Add connector" onClick={() => setShowConnectorPicker(true)}
-          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[10px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
+          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[12px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
           style={{
             background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
             fontFamily: "'Geist Mono', monospace", transition: 'border-color 150ms, color 150ms',
@@ -715,7 +715,7 @@ function KnowledgeSection() {
           <Plug size={10} /> Connect
         </button>
         <button type="button" aria-label="Index repository" onClick={() => setRepoPrompt(!repoPrompt)}
-          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[10px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
+          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[12px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
           style={{
             background: repoPrompt ? '#24292F15' : 'transparent', border: `1px solid ${repoPrompt ? '#24292F' : t.border}`, color: repoPrompt ? '#24292F' : t.textDim,
             fontFamily: "'Geist Mono', monospace", transition: 'border-color 150ms, color 150ms',
@@ -738,12 +738,12 @@ function KnowledgeSection() {
             onChange={e => setRepoPath(e.target.value)}
             placeholder="/path/to/repo or https://github.com/org/repo"
             aria-label="Repository path"
-            className="flex-1 px-2.5 py-1.5 rounded text-[11px] outline-none"
+            className="flex-1 px-2.5 py-1.5 rounded text-[13px] outline-none"
             style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}
             onKeyDown={e => { if (e.key === 'Enter') handleRepoIndex(); }}
           />
           <button type="button" onClick={handleRepoIndex} disabled={repoScanning || !repoPath.trim()}
-            className="px-3 py-1.5 rounded text-[10px] font-semibold tracking-wider uppercase cursor-pointer border-none"
+            className="px-3 py-1.5 rounded text-[12px] font-semibold tracking-wider uppercase cursor-pointer border-none"
             style={{ background: '#24292F', color: '#fff', fontFamily: "'Geist Mono', monospace", opacity: repoScanning || !repoPath.trim() ? 0.5 : 1 }}
             aria-label="Index repository"
           >
@@ -756,14 +756,14 @@ function KnowledgeSection() {
       {githubCompressedChannels.length > 0 && (
         <div className="mt-3 px-2.5 py-2 rounded-lg" style={{ border: `1px solid #24292F30`, background: '#24292F08' }}>
           <div className="flex items-center justify-between">
-            <span className="text-[11px] tracking-[0.1em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: '#24292F' }}>
+            <span className="text-[13px] tracking-[0.1em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: '#24292F' }}>
               GitHub Context Compression
             </span>
-            <span className="text-[10px] font-semibold" style={{ color: '#00A86B' }}>
+            <span className="text-[12px] font-semibold" style={{ color: '#00A86B' }}>
               -{githubSavingsPct.toFixed(1)}%
             </span>
           </div>
-          <div className="mt-1 text-[10px]" style={{ color: t.textDim }}>
+          <div className="mt-1 text-[12px]" style={{ color: t.textDim }}>
             Raw {fmtTokens(githubRawTokens)} → Effective {fmtTokens(githubEffectiveTokens)} tokens ({githubCompressedChannels.length} channels)
           </div>
         </div>
@@ -772,7 +772,7 @@ function KnowledgeSection() {
       {/* Context allocation mini bar */}
       {channels.length > 0 && (
         <div className="mt-3">
-          <div className="text-[11px] tracking-[0.1em] uppercase mb-1.5" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+          <div className="text-[13px] tracking-[0.1em] uppercase mb-1.5" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
             Context allocation
           </div>
           <div className="flex gap-0.5 h-1 rounded overflow-hidden">
@@ -786,7 +786,7 @@ function KnowledgeSection() {
             })}
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-[11px]" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>{fmtTokens(totalTokens)} used</span>
+            <span className="text-[13px]" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>{fmtTokens(totalTokens)} used</span>
           </div>
         </div>
       )}
@@ -918,14 +918,14 @@ function McpSection() {
             <div key={server.id} style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
               <div className="flex items-center gap-2.5 py-2.5">
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: sc.bg, boxShadow: sc.glow, flexShrink: 0 }} />
-                <span className="flex-1 text-[12px]" style={{ color: t.textPrimary }}>{server.name}</span>
+                <span className="flex-1 text-[14px]" style={{ color: t.textPrimary }}>{server.name}</span>
                 {(server as any).type && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ fontFamily: "'Geist Mono', monospace", background: t.badgeBg, color: t.textDim }}>
+                  <span className="text-[12px] px-1.5 py-0.5 rounded" style={{ fontFamily: "'Geist Mono', monospace", background: t.badgeBg, color: t.textDim }}>
                     {(server as any).type}
                   </span>
                 )}
                 {toolCount > 0 && (
-                  <span className="text-[10px]" style={{ color: t.textDim }}>{toolCount} tools</span>
+                  <span className="text-[12px]" style={{ color: t.textDim }}>{toolCount} tools</span>
                 )}
                 <button type="button" aria-label={`Remove ${server.name}`} onClick={() => removeMcp(server.id)} className="border-none bg-transparent cursor-pointer p-2 rounded hover:bg-[#ff000010] min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: t.textFaint }}>
                   <X size={10} />
@@ -933,7 +933,7 @@ function McpSection() {
               </div>
               {/* Health detail row */}
               {health && health.status !== 'unknown' && (
-                <div className="flex items-center gap-2 pb-1.5 pl-5 text-[11px]" style={{ fontFamily: "'Geist Mono', monospace" }}>
+                <div className="flex items-center gap-2 pb-1.5 pl-5 text-[13px]" style={{ fontFamily: "'Geist Mono', monospace" }}>
                   {health.latencyMs != null && (
                     <span className="flex items-end gap-[2px]" title={`${health.latencyMs}ms`}>
                       {Array.from({ length: 5 }).map((_, i) => {
@@ -969,7 +969,7 @@ function McpSection() {
         })}
       </div>
       <button type="button" aria-label="Open MCP Library" onClick={() => setShowMcpPicker(true)}
-        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
+        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[13px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
         style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Geist Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
@@ -1000,7 +1000,7 @@ function SkillsSection() {
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
       {selectedSkills.length === 0 && (
-        <div className="text-[10px] py-2" style={{ color: t.textFaint }}>
+        <div className="text-[12px] py-2" style={{ color: t.textFaint }}>
           No skills selected for this agent.
         </div>
       )}
@@ -1009,7 +1009,7 @@ function SkillsSection() {
           <div key={skill.id} className="flex items-center gap-2 py-1.5"
             style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px rgba(0,255,136,0.4)', flexShrink: 0 }} />
-            <span className="flex-1 text-[11px] truncate" style={{ color: t.textPrimary }}>{skill.name}</span>
+            <span className="flex-1 text-[13px] truncate" style={{ color: t.textPrimary }}>{skill.name}</span>
             <button type="button" aria-label={`Remove ${skill.name}`} onClick={() => removeSkill(skill.id)}
               className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
               style={{ color: t.textFaint, width: 20, height: 20, padding: 0 }}>
@@ -1019,7 +1019,7 @@ function SkillsSection() {
         ))}
       </div>
       <button type="button" aria-label="Open Skill Library" onClick={() => setShowSkillPicker(true)}
-        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
+        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[13px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
         style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Geist Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
@@ -1097,7 +1097,7 @@ const FACT_TYPE_COLORS: Record<string, string> = {
 function SubLabel({ children }: { children: React.ReactNode }) {
   const t = useTheme();
   return (
-    <div className="text-[11px] uppercase tracking-[0.12em] font-semibold mt-2 mb-1"
+    <div className="text-[13px] uppercase tracking-[0.12em] font-semibold mt-2 mb-1"
       style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
       {children}
     </div>
@@ -1112,14 +1112,14 @@ function SliderRow({ label, value, min, max, step, onChange, suffix }: {
   const display = suffix === 'K' ? `${(value / 1000).toFixed(0)}K` : `${value}`;
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[11px] uppercase tracking-wider shrink-0"
+      <span className="text-[13px] uppercase tracking-wider shrink-0"
         style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 90 }}>
         {label}
       </span>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(Number(e.target.value))}
         aria-label={label} className="flex-1" style={{ accentColor: '#FE5000' }} />
-      <span className="text-[10px] w-10 text-right"
+      <span className="text-[12px] w-10 text-right"
         style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}>
         {display}
       </span>
@@ -1198,16 +1198,16 @@ function MemorySection() {
         {facts.map(fact => {
           const domainColor = DOMAIN_COLORS[fact.domain] || '#999';
           return (
-            <div key={fact.id} className="flex items-center gap-1.5 text-[11px] py-1 px-2 rounded"
+            <div key={fact.id} className="flex items-center gap-1.5 text-[13px] py-1 px-2 rounded"
               style={{ background: t.surfaceElevated, color: t.textSecondary }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: FACT_TYPE_COLORS[fact.type] || '#999', flexShrink: 0 }} />
               <span className="flex-1 truncate" style={{ fontFamily: "'Geist Sans', sans-serif" }}>{fact.content}</span>
-              <span className="text-[10px] px-1 py-0.5 rounded"
+              <span className="text-[12px] px-1 py-0.5 rounded"
                 style={{ background: `${domainColor}15`, color: domainColor, fontFamily: "'Geist Mono', monospace", border: `1px solid ${domainColor}30` }}>
                 {fact.domain.replace('_', ' ')}
               </span>
               {fact.tags.length > 0 && fact.tags.map(tag => (
-                <span key={tag} className="text-[10px] px-1 py-0.5 rounded"
+                <span key={tag} className="text-[12px] px-1 py-0.5 rounded"
                   style={{ background: `${FACT_TYPE_COLORS[fact.type] || '#999'}15`, color: FACT_TYPE_COLORS[fact.type] || '#999', fontFamily: "'Geist Mono', monospace" }}>
                   {tag}
                 </span>
@@ -1220,7 +1220,7 @@ function MemorySection() {
           );
         })}
         {facts.length === 0 && (
-          <div className="text-[10px] py-2 text-center" style={{ color: t.textFaint }}>
+          <div className="text-[12px] py-2 text-center" style={{ color: t.textFaint }}>
             Pre-load facts the agent should always know
           </div>
         )}
@@ -1231,7 +1231,7 @@ function MemorySection() {
           placeholder="Add a seed fact..." />
         <select value={newFactDomain} onChange={e => setNewFactDomain(e.target.value as MemoryDomain)}
           aria-label="Fact domain"
-          className="text-[11px] px-1 rounded border-none cursor-pointer"
+          className="text-[13px] px-1 rounded border-none cursor-pointer"
           style={{ background: t.surfaceElevated, color: t.textDim, fontFamily: "'Geist Mono', monospace", width: 70 }}>
           <option value="shared">shared</option>
           <option value="agent_private">private</option>
@@ -1247,7 +1247,7 @@ function MemorySection() {
 
       {/* ── Advanced toggle ── */}
       <button type="button" aria-expanded={showAdvanced} onClick={() => setShowAdvanced(!showAdvanced)}
-        className="flex items-center gap-1 mt-3 text-[11px] tracking-wider uppercase cursor-pointer border-none bg-transparent w-full min-h-[44px] motion-reduce:transition-none"
+        className="flex items-center gap-1 mt-3 text-[13px] tracking-wider uppercase cursor-pointer border-none bg-transparent w-full min-h-[44px] motion-reduce:transition-none"
         style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, padding: '0 8px', transition: 'color 150ms' }}
         onMouseEnter={e => { e.currentTarget.style.color = '#FE5000'; }}
         onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}
@@ -1281,7 +1281,7 @@ function MemorySection() {
               return (
                 <button key={d.key} type="button" aria-label={`Toggle ${d.label}`} aria-pressed={active}
                   onClick={() => setSandboxDomain(d.key, !active)}
-                  className="text-[11px] px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
+                  className="text-[13px] px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
                   style={{
                     fontFamily: "'Geist Mono', monospace",
                     background: active ? `${d.color}20` : t.isDark ? '#1c1c20' : '#f0f0f5',
@@ -1342,7 +1342,7 @@ function MemorySection() {
                   return (
                     <button key={et.value} type="button" aria-label={`Toggle ${et.label}`} aria-pressed={longTerm.write.extractTypes.includes(et.value as any)}
                       onClick={() => toggleExtractType(et.value as any)}
-                      className="text-[11px] px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
+                      className="text-[13px] px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
                       style={{
                         fontFamily: "'Geist Mono', monospace",
                         background: active ? `${et.color}20` : t.isDark ? '#1c1c20' : '#f0f0f5',
@@ -1374,7 +1374,7 @@ function MemorySection() {
       {/* ── Token Budget Allocation (always visible when meaningful) ── */}
       {(longTerm.enabled || working.enabled) && totalBudget > 0 && (
         <div className="mt-3">
-          <div className="text-[11px] tracking-[0.1em] uppercase mb-1.5"
+          <div className="text-[13px] tracking-[0.1em] uppercase mb-1.5"
             style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
             Memory budget
           </div>
@@ -1397,14 +1397,14 @@ function MemorySection() {
                 ...(longTerm.enabled ? [{ label: 'Long-term', color: '#2ecc71', tokens: longTerm.tokenBudget }] : []),
                 ...(working.enabled ? [{ label: 'Working', color: '#f1c40f', tokens: working.tokenBudget }] : []),
               ].map(item => (
-                <span key={item.label} className="flex items-center gap-1 text-[10px]"
+                <span key={item.label} className="flex items-center gap-1 text-[12px]"
                   style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
                   <div style={{ width: 4, height: 4, borderRadius: 1, background: item.color }} />
                   {item.label}
                 </span>
               ))}
             </div>
-            <span className="text-[11px]" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>
+            <span className="text-[13px]" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>
               {fmtTokens(totalBudget)}
             </span>
           </div>
@@ -1513,11 +1513,11 @@ function FactInsightsSection() {
       {/* Analyze button */}
       {!result && (
         <div className="flex flex-col gap-2">
-          <div className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
+          <div className="text-[12px] leading-relaxed" style={{ color: t.textDim }}>
             Analyze your accumulated facts and discover which ones should become permanent parts of your agent — instructions, constraints, workflow steps, or knowledge sources.
           </div>
           <button type="button" onClick={handleAnalyze} disabled={analyzing || facts.length === 0}
-            className="flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded text-[11px] tracking-wide uppercase cursor-pointer border-none"
+            className="flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded text-[13px] tracking-wide uppercase cursor-pointer border-none"
             style={{ background: analyzing ? '#CC4000' : '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace", opacity: analyzing || facts.length === 0 ? 0.6 : 1 }}>
             {analyzing ? <Loader2 size={11} className="animate-spin motion-reduce:animate-none" /> : <Lightbulb size={11} />}
             {analyzing ? 'Analyzing...' : `Analyze ${facts.length} fact${facts.length !== 1 ? 's' : ''}`}
@@ -1526,7 +1526,7 @@ function FactInsightsSection() {
       )}
 
       {error && (
-        <div role="alert" className="text-[10px] px-2 py-1.5 rounded mt-1" style={{ background: '#ff000012', color: '#ff4444', border: '1px solid #ff000020' }}>
+        <div role="alert" className="text-[12px] px-2 py-1.5 rounded mt-1" style={{ background: '#ff000012', color: '#ff4444', border: '1px solid #ff000020' }}>
           {error}
         </div>
       )}
@@ -1535,10 +1535,10 @@ function FactInsightsSection() {
       {result && (
         <div className="flex flex-col gap-2">
           {/* Summary */}
-          <div className="text-[10px] leading-relaxed px-2 py-1.5 rounded" style={{ background: '#FE500008', color: t.textSecondary, border: '1px solid #FE500015' }}>
+          <div className="text-[12px] leading-relaxed px-2 py-1.5 rounded" style={{ background: '#FE500008', color: t.textSecondary, border: '1px solid #FE500015' }}>
             {result.summary}
             {result.versionImpact !== 'none' && (
-              <span className="text-[10px] ml-1.5 px-1.5 py-0.5 rounded-full"
+              <span className="text-[12px] ml-1.5 px-1.5 py-0.5 rounded-full"
                 style={{ fontFamily: "'Geist Mono', monospace", background: result.versionImpact === 'major' ? '#e74c3c20' : result.versionImpact === 'minor' ? '#f1c40f20' : '#2ecc7120', color: result.versionImpact === 'major' ? '#e74c3c' : result.versionImpact === 'minor' ? '#f1c40f' : '#2ecc71' }}>
                 {result.versionImpact} bump
               </span>
@@ -1555,7 +1555,7 @@ function FactInsightsSection() {
               <div key={promo.factId} className="rounded-lg overflow-hidden"
                 style={{ border: `1px solid ${isApplied ? '#2ecc7130' : t.border}`, opacity: isApplied ? 0.5 : 1, transition: 'opacity 300ms' }}>
                 {/* Fact content */}
-                <div className="px-3 py-2 text-[11px]" style={{ background: t.surfaceElevated, color: t.textSecondary }}>
+                <div className="px-3 py-2 text-[13px]" style={{ background: t.surfaceElevated, color: t.textSecondary }}>
                   "{promo.factContent}"
                 </div>
                 {/* Suggestion */}
@@ -1565,25 +1565,25 @@ function FactInsightsSection() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ fontFamily: "'Geist Mono', monospace", background: `${meta.color}15`, color: meta.color }}>
+                      <span className="text-[12px] px-1.5 py-0.5 rounded-full" style={{ fontFamily: "'Geist Mono', monospace", background: `${meta.color}15`, color: meta.color }}>
                         {meta.label}
                       </span>
-                      <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
+                      <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
                         {Math.round(promo.confidence * 100)}%
                       </span>
                     </div>
-                    <div className="text-[10px] leading-snug" style={{ color: t.textPrimary }}>{promo.suggestion}</div>
-                    <div className="text-[11px] mt-0.5" style={{ color: t.textDim }}>{promo.reason}</div>
+                    <div className="text-[12px] leading-snug" style={{ color: t.textPrimary }}>{promo.suggestion}</div>
+                    <div className="text-[13px] mt-0.5" style={{ color: t.textDim }}>{promo.reason}</div>
                   </div>
                   {!isApplied ? (
                     <button type="button" aria-label={meta.verb} onClick={() => handlePromote(promo)}
-                      className="flex items-center gap-1 text-[11px] px-2 py-1 rounded cursor-pointer border-none shrink-0"
+                      className="flex items-center gap-1 text-[13px] px-2 py-1 rounded cursor-pointer border-none shrink-0"
                       style={{ background: `${meta.color}15`, color: meta.color, fontFamily: "'Geist Mono', monospace" }}>
                       <ArrowUpRight size={9} />
                       {meta.verb}
                     </button>
                   ) : (
-                    <div className="flex items-center gap-1 text-[11px] px-2 py-1 shrink-0" style={{ color: '#2ecc71' }}>
+                    <div className="flex items-center gap-1 text-[13px] px-2 py-1 shrink-0" style={{ color: '#2ecc71' }}>
                       <Check size={9} /> Applied
                     </div>
                   )}
@@ -1596,12 +1596,12 @@ function FactInsightsSection() {
           {promotableCount > 0 && (
             <div className="flex gap-2 mt-1">
               <button type="button" onClick={handleApplyAll}
-                className="flex items-center justify-center gap-1.5 flex-1 px-3 py-2 rounded text-[10px] tracking-wide uppercase cursor-pointer border-none"
+                className="flex items-center justify-center gap-1.5 flex-1 px-3 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer border-none"
                 style={{ background: '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace" }}>
                 <ArrowUpRight size={10} /> Apply all ({promotableCount})
               </button>
               <button type="button" onClick={() => { setResult(null); setApplied(new Set()); }}
-                className="flex items-center gap-1 px-3 py-2 rounded text-[10px] cursor-pointer"
+                className="flex items-center gap-1 px-3 py-2 rounded text-[12px] cursor-pointer"
                 style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
                 <RotateCcw size={9} /> Re-analyze
               </button>
@@ -1609,17 +1609,17 @@ function FactInsightsSection() {
           )}
 
           {promotableCount === 0 && result.promotions.length > 0 && (
-            <div className="flex items-center justify-center gap-1.5 py-2 text-[10px]" style={{ color: '#2ecc71' }}>
+            <div className="flex items-center justify-center gap-1.5 py-2 text-[12px]" style={{ color: '#2ecc71' }}>
               <Check size={11} /> All suggestions applied
               <button type="button" onClick={() => { setResult(null); setApplied(new Set()); }}
-                className="ml-2 text-[11px] cursor-pointer border-none bg-transparent underline" style={{ color: t.textDim }}>
+                className="ml-2 text-[13px] cursor-pointer border-none bg-transparent underline" style={{ color: t.textDim }}>
                 Re-analyze
               </button>
             </div>
           )}
 
           {result.promotions.length === 0 && (
-            <div className="text-[10px] text-center py-2" style={{ color: t.textDim }}>
+            <div className="text-[12px] text-center py-2" style={{ color: t.textDim }}>
               All facts are contextual — no promotions suggested
             </div>
           )}
@@ -1692,7 +1692,7 @@ function ContextActionBar() {
   return (
     <div className="sticky top-0 z-10 px-5 py-2.5 border-b flex items-center gap-2"
       style={{ background: t.surfaceElevated, borderColor: t.border }}>
-      <span className="text-[11px] uppercase tracking-wider font-semibold flex-shrink-0"
+      <span className="text-[13px] uppercase tracking-wider font-semibold flex-shrink-0"
         style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, minWidth: 55 }}>
         Context
       </span>
@@ -1726,7 +1726,7 @@ function ContextActionBar() {
             style={{ background: t.surfaceElevated, border: `1px solid ${t.border}` }}>
             {savedContexts.map(name => (
               <button key={name} type="button" onClick={() => handleLoad(name)}
-                className="block w-full text-left px-3 py-1.5 text-[10px] border-none cursor-pointer"
+                className="block w-full text-left px-3 py-1.5 text-[12px] border-none cursor-pointer"
                 style={{ background: 'transparent', color: t.textSecondary }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#FE500010'; }}>
                 {name}
@@ -1749,18 +1749,18 @@ function ContextActionBar() {
           style={{ background: t.surfaceElevated, border: `1px solid ${t.border}` }}>
           <input type="text" value={saveNameInput} onChange={e => setSaveNameInput(e.target.value)}
             placeholder="Context name..." autoFocus
-            className="px-2 py-1 rounded text-[10px] outline-none mb-1 block"
+            className="px-2 py-1 rounded text-[12px] outline-none mb-1 block"
             style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
             onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
           />
           <div className="flex gap-1">
             <button type="button" onClick={handleSave}
-              className="flex-1 px-2 py-1 rounded text-[11px] font-semibold border-none cursor-pointer"
+              className="flex-1 px-2 py-1 rounded text-[13px] font-semibold border-none cursor-pointer"
               style={{ background: '#FE5000', color: '#fff' }}>
               Save
             </button>
             <button type="button" onClick={() => { setSaveNameInput(''); setShowSavePrompt(false); }}
-              className="flex-1 px-2 py-1 rounded text-[11px] border-none cursor-pointer"
+              className="flex-1 px-2 py-1 rounded text-[13px] border-none cursor-pointer"
               style={{ background: t.border, color: t.textDim }}>
               Cancel
             </button>

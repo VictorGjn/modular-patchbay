@@ -18,8 +18,8 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
     <div className="flex flex-col gap-1">
       {(label || showCount) && (
         <div className="flex items-center justify-between">
-          {label && <label className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>{label}</label>}
-          {showCount && <span className="text-[11px]" style={{ color: maxChars && charCount > maxChars ? t.statusError : t.textFaint }}>{charCount}{maxChars ? ` / ${maxChars}` : ''}</span>}
+          {label && <label className="text-[13px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>{label}</label>}
+          {showCount && <span className="text-[13px]" style={{ color: maxChars && charCount > maxChars ? t.statusError : t.textFaint }}>{charCount}{maxChars ? ` / ${maxChars}` : ''}</span>}
         </div>
       )}
       <textarea
@@ -31,14 +31,14 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
           border: `1px solid ${error ? t.statusError : t.border}`,
           color: t.textPrimary,
           fontFamily: "'Geist Sans', sans-serif",
-          fontSize: 13,
+          fontSize: 16,
           lineHeight: 1.5,
           minHeight: 64,
           ...style,
         }}
         {...rest}
       />
-      {error && <span className="text-[11px]" style={{ color: t.statusError }}>{error}</span>}
+      {error && <span className="text-[13px]" style={{ color: t.statusError }}>{error}</span>}
     </div>
   );
 });

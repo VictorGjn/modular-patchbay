@@ -16,11 +16,11 @@ export function Divider({ label, className = '' }: DividerProps) {
           style={{ background: t.border }}
         />
         <span
-          className="text-xs uppercase tracking-wider font-semibold px-2"
+          className="text-[14px] uppercase tracking-wider font-semibold px-2"
           style={{
             color: t.textMuted,
             fontFamily: "'Geist Mono', monospace",
-            fontSize: 10,
+            fontSize: 12,
           }}
         >
           {label}

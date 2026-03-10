@@ -92,10 +92,10 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
           }}
         >
           <div style={{ width: 4, height: 18, borderRadius: 2, background: '#e67e22', opacity: 0.8 }} />
-          <span style={{ color: t.textPrimary, fontSize: 14, fontWeight: 600, flex: 1 }}>
+          <span style={{ color: t.textPrimary, fontSize: 17, fontWeight: 600, flex: 1 }}>
             Workflow Editor
           </span>
-          <span style={{ color: t.textMuted, fontSize: 11, fontFamily: "'Geist Mono', monospace" }}>
+          <span style={{ color: t.textMuted, fontSize: 13, fontFamily: "'Geist Mono', monospace" }}>
             {workflowSteps.length} {workflowSteps.length === 1 ? 'step' : 'steps'}
           </span>
           <button
@@ -120,7 +120,7 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
                 minHeight: 200,
               }}
             >
-              <span style={{ color: t.textMuted, fontSize: 13 }}>
+              <span style={{ color: t.textMuted, fontSize: 16 }}>
                 No workflow steps yet. Click "Add Step" to begin.
               </span>
             </div>
@@ -145,7 +145,7 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
                       <span
                         style={{
                           color: 'white',
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: 600,
                           fontFamily: "'Geist Mono', monospace",
                         }}
@@ -169,7 +169,7 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
                           border: `1px solid ${t.border}`,
                           color: t.textPrimary,
                           fontFamily: "'Geist Sans', sans-serif",
-                          fontSize: 12,
+                          fontSize: 14,
                           lineHeight: 1.5,
                         }}
                       />
@@ -178,7 +178,7 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
                     {/* Action badge */}
                     <span
                       style={{
-                        fontSize: 11,
+                        fontSize: 13,
                         fontFamily: "'Geist Mono', monospace",
                         fontWeight: 600,
                         paddingLeft: 8,
@@ -239,7 +239,7 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
           <button
             type="button"
             onClick={handleAddStep}
-            className="flex items-center gap-1 text-[12px] px-3 py-2 rounded cursor-pointer border-none"
+            className="flex items-center gap-1 text-[14px] px-3 py-2 rounded cursor-pointer border-none"
             style={{
               color: t.textPrimary,
               background: 'transparent',
@@ -255,7 +255,7 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
               type="button"
               onClick={handleGenerate}
               disabled={generating}
-              className="flex items-center gap-1 text-[12px] px-3 py-2 rounded cursor-pointer border-none"
+              className="flex items-center gap-1 text-[14px] px-3 py-2 rounded cursor-pointer border-none"
               style={{
                 color: t.textPrimary,
                 background: 'transparent',
@@ -269,7 +269,7 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex items-center gap-1 text-[12px] px-5 py-2 rounded cursor-pointer border-none"
+              className="flex items-center gap-1 text-[14px] px-5 py-2 rounded cursor-pointer border-none"
               style={{
                 background: '#FE5000',
                 color: 'white',

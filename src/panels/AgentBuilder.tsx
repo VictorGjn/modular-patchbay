@@ -30,7 +30,7 @@ function OutputFormatSelect({ value, onChange, t }: { value: string; onChange: (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="appearance-none cursor-pointer outline-none text-xs h-8 pl-3 pr-7 rounded-lg"
+      className="appearance-none cursor-pointer outline-none text-[14px] h-8 pl-3 pr-7 rounded-lg"
       style={{
         fontFamily: "'Geist Sans', sans-serif",
         background: t.surfaceOpaque,
@@ -164,7 +164,7 @@ function AgentActionBar() {
     >
       {/* Agent Name Label */}
       <span
-        className="text-xs font-bold tracking-[0.12em] uppercase"
+        className="text-[14px] font-bold tracking-[0.12em] uppercase"
         style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, minWidth: '100px' }}
       >
         {agentMeta.name || 'New Agent'}
@@ -179,7 +179,7 @@ function AgentActionBar() {
       <button
         type="button"
         onClick={() => resetAgent()}
-        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-[14px] font-medium cursor-pointer border-none"
         style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
         onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
@@ -194,7 +194,7 @@ function AgentActionBar() {
         <button
           type="button"
           onClick={() => { setAgentPickerOpen(!agentPickerOpen); if (!agentPickerOpen) fetchSavedAgents(); }}
-          className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+          className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-[14px] font-medium cursor-pointer border-none"
           style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
           onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
@@ -209,7 +209,7 @@ function AgentActionBar() {
             style={{ background: t.surface, border: `1px solid ${t.border}` }}
           >
             {savedAgents.length === 0 ? (
-              <div className="px-3 py-4 text-xs text-center" style={{ color: t.textDim }}>
+              <div className="px-3 py-4 text-[14px] text-center" style={{ color: t.textDim }}>
                 No saved agents found
               </div>
             ) : (
@@ -223,9 +223,9 @@ function AgentActionBar() {
                   onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <div className="text-xs font-medium">{a.agentMeta?.name || a.id}</div>
+                  <div className="text-[14px] font-medium">{a.agentMeta?.name || a.id}</div>
                   {a.agentMeta?.description && (
-                    <div className="text-[10px] mt-0.5" style={{ color: t.textDim }}>
+                    <div className="text-[12px] mt-0.5" style={{ color: t.textDim }}>
                       {a.agentMeta.description.length > 80 ? a.agentMeta.description.slice(0, 80) + '…' : a.agentMeta.description}
                     </div>
                   )}
@@ -240,7 +240,7 @@ function AgentActionBar() {
       <button
         type="button"
         onClick={() => { void persistAgent(); }}
-        className="flex items-center justify-center h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+        className="flex items-center justify-center h-8 px-2.5 rounded-lg text-[14px] font-medium cursor-pointer border-none"
         style={{ background: saveConfirmed ? '#2ecc7115' : '#FE500012', color: saveConfirmed ? '#2ecc71' : '#FE5000', transition: 'background 0.15s', opacity: savingAgent ? 0.6 : 1 }}
         onMouseEnter={(e) => { if (!saveConfirmed) e.currentTarget.style.background = '#FE500025'; }}
         onMouseLeave={(e) => { if (!saveConfirmed) e.currentTarget.style.background = '#FE500012'; }}
@@ -270,7 +270,7 @@ function AgentActionBar() {
         }} />
         <button
           type="button"
-          className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+          className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-[14px] font-medium cursor-pointer border-none"
           style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
           onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
@@ -285,7 +285,7 @@ function AgentActionBar() {
       <button
         type="button"
         onClick={handleExport}
-        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-[14px] font-medium cursor-pointer border-none"
         style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
         onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
@@ -310,7 +310,7 @@ function AgentActionBar() {
                 setShowSaveNamePrompt(false);
               }
             }}
-            className="w-44 h-6 px-2 text-xs rounded-md outline-none"
+            className="w-44 h-6 px-2 text-[14px] rounded-md outline-none"
             style={{ background: t.inputBg, border: `1px solid ${t.borderSubtle}`, color: t.textPrimary }}
             placeholder="Agent name required"
             autoFocus
@@ -369,7 +369,7 @@ function SectionHeader({
         {collapsed ? <ChevronRight size={12} style={{ color: t.textDim }} /> : <ChevronDown size={12} style={{ color: t.textDim }} />}
         <div style={{ width: 3, height: 14, borderRadius: 2, background: color, opacity: 0.8 }} />
         <span style={{
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: 700,
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
@@ -392,7 +392,7 @@ function GenerateBtn({ loading, onClick }: { loading: boolean; onClick: () => vo
         display: 'flex',
         alignItems: 'center',
         gap: 4,
-        fontSize: 11,
+        fontSize: 13,
         padding: '4px 8px',
         borderRadius: 4,
         cursor: 'pointer',
@@ -536,14 +536,14 @@ export function AgentBuilder() {
         <div className="flex items-center gap-2.5 px-5 py-3.5 select-none" style={{ borderBottom: `1px solid ${t.border}`, background: t.surfaceElevated }}>
           <Bot size={14} style={{ color: '#FE5000' }} />
           <Tooltip content="Build your agent step by step">
-            <span className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>Agent</span>
+            <span className="text-[13px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>Agent</span>
           </Tooltip>
           <div className="flex-1" />
           <div className="flex items-center gap-1">
             {Object.entries(done).map(([key, v]) => (
               <div key={key} title={key} style={{ width: 6, height: 6, borderRadius: '50%', background: v ? '#FE5000' : t.borderSubtle, transition: 'background 200ms' }} />
             ))}
-            <span className="text-[11px] ml-1" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>{progress}/4</span>
+            <span className="text-[13px] ml-1" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>{progress}/4</span>
           </div>
         </div>
 
@@ -579,11 +579,11 @@ export function AgentBuilder() {
                 {editingName ? (
                   <Input value={agentMeta.name} onChange={e => setAgentMeta({ name: e.target.value })}
                     onBlur={() => setEditingName(false)} onKeyDown={e => e.key === 'Enter' && setEditingName(false)}
-                    autoFocus style={{ fontSize: 16, padding: '6px 10px' }} />
+                    autoFocus style={{ fontSize: 19, padding: '6px 10px' }} />
                 ) : (
                   <button type="button" onClick={() => setEditingName(true)}
                     className="text-left font-semibold cursor-pointer border-none bg-transparent p-0 w-full"
-                    style={{ color: agentMeta.name ? t.textPrimary : t.textMuted, fontSize: 16, fontFamily: "'Geist Sans', sans-serif" }}>
+                    style={{ color: agentMeta.name ? t.textPrimary : t.textMuted, fontSize: 19, fontFamily: "'Geist Sans', sans-serif" }}>
                     {agentMeta.name || 'Click to name your agent'}
                   </button>
                 )}
@@ -607,11 +607,11 @@ export function AgentBuilder() {
               placeholder="Describe the agent's role, expertise, and personality..." style={{ minHeight: 64 }} />
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Tone</span>
+                <span className="text-[13px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Tone</span>
                 <div className="flex rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
                   {(['formal', 'neutral', 'casual'] as const).map(opt => (
                     <button key={opt} type="button" onClick={() => updateInstruction({ tone: opt })}
-                      className="flex-1 text-center text-[11px] py-1.5 cursor-pointer border-none"
+                      className="flex-1 text-center text-[13px] py-1.5 cursor-pointer border-none"
                       style={{ background: tone === opt ? '#FE5000' : 'transparent', color: tone === opt ? '#fff' : t.textDim, transition: 'all 150ms' }}>
                       {opt.charAt(0).toUpperCase() + opt.slice(1)}
                     </button>
@@ -619,11 +619,11 @@ export function AgentBuilder() {
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Expertise</span>
+                <span className="text-[13px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Expertise</span>
                 <div className="flex rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
                   {([{ l: 'Junior', v: 1 }, { l: 'Mid', v: 3 }, { l: 'Senior', v: 5 }] as const).map(opt => (
                     <button key={opt.v} type="button" onClick={() => updateInstruction({ expertise: opt.v })}
-                      className="flex-1 text-center text-[11px] py-1.5 cursor-pointer border-none"
+                      className="flex-1 text-center text-[13px] py-1.5 cursor-pointer border-none"
                       style={{ background: expertise === opt.v ? '#FE5000' : 'transparent', color: expertise === opt.v ? '#fff' : t.textDim, transition: 'all 150ms' }}>
                       {opt.l}
                     </button>
@@ -650,14 +650,14 @@ export function AgentBuilder() {
             <Toggle checked={constraints.limitWords} onChange={v => updateInstruction({ constraints: { ...constraints, limitWords: v } })}
               label={`Limit responses to ${constraints.wordLimit} words`} />
             <div>
-              <span className="text-[11px] tracking-wider uppercase font-semibold block mb-1.5" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Custom Rules</span>
+              <span className="text-[13px] tracking-wider uppercase font-semibold block mb-1.5" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Custom Rules</span>
               {constraints.customConstraints.split('\n').filter(Boolean).map((rule, i) => (
                 <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-1.5" style={{
                   background: t.isDark ? '#2e1a0a' : '#fdf5ee',
                   border: `1px solid ${t.isDark ? '#e67e2230' : '#e67e2240'}`,
                 }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#e67e22', flexShrink: 0 }} />
-                  <span className="flex-1 text-[11px]" style={{
+                  <span className="flex-1 text-[13px]" style={{
                     color: t.textPrimary,
                     lineHeight: 1.4,
                     overflow: 'hidden',
@@ -679,7 +679,7 @@ export function AgentBuilder() {
                 setConstraintModalConfig({ mode: 'constraint', title: 'Add Custom Rule' });
                 setConstraintModalOpen(true);
               }}
-                className="flex items-center gap-1 text-[10px] cursor-pointer border-none bg-transparent mt-1.5" style={{ color: t.textDim }}>
+                className="flex items-center gap-1 text-[12px] cursor-pointer border-none bg-transparent mt-1.5" style={{ color: t.textDim }}>
                 <Plus size={10} /> Add rule
               </button>
             </div>
@@ -695,14 +695,14 @@ export function AgentBuilder() {
               onChange={e => updateInstruction({ objectives: { ...objectives, primary: e.target.value } })}
               placeholder="What is this agent's main goal?" style={{ minHeight: 40 }} />
             <div>
-              <span className="text-[11px] tracking-wider uppercase font-semibold block mb-1.5" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Success Criteria</span>
+              <span className="text-[13px] tracking-wider uppercase font-semibold block mb-1.5" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Success Criteria</span>
               {objectives.successCriteria.map((c, i) => (
                 <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-1.5" style={{
                   background: t.isDark ? '#1a2e1a' : '#f0faf0',
                   border: `1px solid ${t.isDark ? '#2ecc7130' : '#2ecc7140'}`,
                 }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2ecc71', flexShrink: 0 }} />
-                  <span className="flex-1 text-[11px]" style={{
+                  <span className="flex-1 text-[13px]" style={{
                     color: t.textPrimary,
                     lineHeight: 1.4,
                     overflow: 'hidden',
@@ -727,7 +727,7 @@ export function AgentBuilder() {
                 setConstraintModalConfig({ mode: 'criteria', title: 'Add Success Criterion' });
                 setConstraintModalOpen(true);
               }}
-                className="flex items-center gap-1 text-[10px] cursor-pointer border-none bg-transparent mt-1.5" style={{ color: t.textDim }}>
+                className="flex items-center gap-1 text-[12px] cursor-pointer border-none bg-transparent mt-1.5" style={{ color: t.textDim }}>
                 <Plus size={10} /> Add criterion
               </button>
             </div>
@@ -739,14 +739,14 @@ export function AgentBuilder() {
           right={
             <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
               <Toggle checked={autoSync} onChange={v => updateInstruction({ autoSync: v })} label="" />
-              <span className="text-[11px]" style={{ color: t.textDim }}>Auto</span>
+              <span className="text-[13px]" style={{ color: t.textDim }}>Auto</span>
             </div>
           } />
         {promptOpen && (
           <div className="px-5 py-4">
             <TextArea value={rawPrompt} onChange={e => updateInstruction({ rawPrompt: e.target.value })}
               placeholder="System prompt will be auto-generated from sections above, or type manually..."
-              style={{ minHeight: 120, fontFamily: "'Geist Mono', monospace", fontSize: 11 }} />
+              style={{ minHeight: 120, fontFamily: "'Geist Mono', monospace", fontSize: 13 }} />
           </div>
         )}
       </div>
@@ -773,15 +773,15 @@ export function AgentBuilder() {
       <div className="rounded-xl overflow-hidden" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)'}` }}>
         <div className="flex items-center gap-2.5 px-5 py-3.5 select-none" style={{ background: t.surfaceElevated }}>
           <div style={{ width: 3, height: 14, borderRadius: 2, background: '#e67e22', opacity: 0.8 }} />
-          <span className="text-[11px] font-bold tracking-[0.08em] uppercase flex-1" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>Workflow</span>
-          <span className="text-[11px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>{workflowSteps.length} steps</span>
+          <span className="text-[13px] font-bold tracking-[0.08em] uppercase flex-1" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>Workflow</span>
+          <span className="text-[13px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>{workflowSteps.length} steps</span>
         </div>
         <div className="px-5 py-4 flex flex-col items-center">
           {workflowSteps.length === 0 ? (
             <button
               type="button"
               onClick={() => setWorkflowModalOpen(true)}
-              className="flex items-center justify-center gap-1.5 text-[11px] px-4 py-2.5 rounded-lg cursor-pointer border-none"
+              className="flex items-center justify-center gap-1.5 text-[13px] px-4 py-2.5 rounded-lg cursor-pointer border-none"
               style={{ background: '#e67e2215', color: '#e67e22', fontFamily: "'Geist Mono', monospace", fontWeight: 600 }}
             >
               <Plus size={12} /> Define workflow steps
@@ -792,10 +792,10 @@ export function AgentBuilder() {
                 <div key={step.id} className="w-full">
                   <div className="flex items-center gap-3 py-2">
                     <div style={{ width: 24, height: 24, borderRadius: '50%', background: t.surfaceElevated, border: '1.5px solid #e67e2230', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, fontWeight: 700, color: '#e67e22' }}>{i + 1}</span>
+                      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, fontWeight: 700, color: '#e67e22' }}>{i + 1}</span>
                     </div>
-                    <span style={{ flex: 1, fontSize: 12, color: t.textPrimary }}>{step.label || 'Unnamed step'}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: t.badgeBg, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                    <span style={{ flex: 1, fontSize: 14, color: t.textPrimary }}>{step.label || 'Unnamed step'}</span>
+                    <span className="text-[12px] px-2 py-0.5 rounded" style={{ background: t.badgeBg, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
                       {step.action || 'action'}
                     </span>
                   </div>
@@ -807,7 +807,7 @@ export function AgentBuilder() {
               <button
                 type="button"
                 onClick={() => setWorkflowModalOpen(true)}
-                className="text-[10px] px-3 py-2 mt-3 rounded cursor-pointer border-none"
+                className="text-[12px] px-3 py-2 mt-3 rounded cursor-pointer border-none"
                 style={{ background: t.border, color: t.textDim }}
               >
                 Edit workflow
@@ -820,8 +820,8 @@ export function AgentBuilder() {
       {/* Context Budget */}
       <div className="rounded-xl overflow-hidden" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, padding: '16px 20px' }}>
         <div className="flex items-center justify-between mb-2.5">
-          <span className="text-[10px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>Context Budget</span>
-          <span className="text-[11px] font-semibold" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>
+          <span className="text-[12px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>Context Budget</span>
+          <span className="text-[13px] font-semibold" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>
             {formatTokens(totalUsed)} / {formatTokens(tokenBudget)}
           </span>
         </div>
@@ -834,7 +834,7 @@ export function AgentBuilder() {
             { label: 'Instructions', tokens: instructionTokens, color: '#9b59b6' },
             { label: 'Workflow', tokens: workflowTokens, color: '#e67e22' },
           ].map(cat => (
-            <span key={cat.label} className="flex items-center gap-1 text-[10px]" style={{ color: t.textDim }}>
+            <span key={cat.label} className="flex items-center gap-1 text-[12px]" style={{ color: t.textDim }}>
               <span style={{ width: 8, height: 8, borderRadius: 2, background: cat.color }} />
               {cat.label} {formatTokens(cat.tokens)}
             </span>

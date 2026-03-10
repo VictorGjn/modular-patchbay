@@ -62,7 +62,7 @@ export function ContextualHint() {
       }}
     >
       <span
-        className="flex-1 text-[10px]"
+        className="flex-1 text-[12px]"
         style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000cc' }}
       >
         {hint}
@@ -70,7 +70,7 @@ export function ContextualHint() {
       <button
         type="button"
         onClick={() => setDismissed(hint)}
-        className="text-[10px] cursor-pointer border-none bg-transparent"
+        className="text-[12px] cursor-pointer border-none bg-transparent"
         style={{ color: '#FE500066' }}
       >
         ✕

@@ -41,7 +41,7 @@ export function Tabs({ tabs, active, onChange, size = 'sm' }: TabsProps) {
           {tab.icon}
           {tab.label}
           {tab.count !== undefined && (
-            <span className="text-[10px] px-1 rounded-full" style={{
+            <span className="text-[12px] px-1 rounded-full" style={{
               background: active === tab.id ? '#FE500020' : t.badgeBg,
               color: active === tab.id ? '#FE5000' : t.textMuted,
             }}>

@@ -40,7 +40,7 @@ export default function MermaidBlock({ content }: { content: string }) {
 
   if (error) {
     return (
-      <div style={{ padding: 8, fontSize: 10, color: t.statusError, fontFamily: "'Geist Mono', monospace", background: t.isDark ? '#ff000010' : '#ff000008', borderRadius: 6 }}>
+      <div style={{ padding: 8, fontSize: 12, color: t.statusError, fontFamily: "'Geist Mono', monospace", background: t.isDark ? '#ff000010' : '#ff000008', borderRadius: 6 }}>
         Mermaid error: {error}
       </div>
     );

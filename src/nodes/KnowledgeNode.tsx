@@ -120,13 +120,13 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         <Tooltip content="Add files, docs, and context sources for your agent's knowledge base">
           <span
             className="font-bold uppercase flex-1"
-            style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary, fontSize: 10, letterSpacing: '0.08em' }}
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary, fontSize: 12, letterSpacing: '0.08em' }}
           >
             Knowledge
           </span>
         </Tooltip>
         <span
-          className="text-[10px] px-1.5 py-0.5 rounded-md"
+          className="text-[12px] px-1.5 py-0.5 rounded-md"
           style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}
         >
           {channels.filter((c) => c.enabled).length}
@@ -164,7 +164,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
           type="button"
           onClick={() => setActiveSection('files')}
           aria-label="Local files section"
-          className="flex items-center gap-1 text-[11px] px-5 py-1.5 rounded cursor-pointer border-none nodrag nowheel"
+          className="flex items-center gap-1 text-[13px] px-5 py-1.5 rounded cursor-pointer border-none nodrag nowheel"
           style={{
             background: activeSection === 'files' ? t.surfaceElevated : 'transparent',
             color: activeSection === 'files' ? t.textPrimary : t.textDim,
@@ -179,7 +179,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
           type="button"
           onClick={() => setActiveSection('external')}
           aria-label="External sources section"
-          className="flex items-center gap-1 text-[11px] px-5 py-1.5 rounded cursor-pointer border-none nodrag nowheel"
+          className="flex items-center gap-1 text-[13px] px-5 py-1.5 rounded cursor-pointer border-none nodrag nowheel"
           style={{
             background: activeSection === 'external' ? t.surfaceElevated : 'transparent',
             color: activeSection === 'external' ? t.textPrimary : t.textDim,
@@ -190,7 +190,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         >
           <Plug size={10} /> External Sources
           {readConnectors.length > 0 && (
-            <span className="text-[10px] px-1 rounded-full" style={{ background: t.badgeBg, color: t.textDim }}>{readConnectors.length}</span>
+            <span className="text-[12px] px-1 rounded-full" style={{ background: t.badgeBg, color: t.textDim }}>{readConnectors.length}</span>
           )}
         </button>
       </div>
@@ -226,7 +226,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                 style={{ border: `2px dashed ${t.border}`, background: t.surfaceHover }}
               >
                 <Plug size={20} style={{ color: t.textFaint, marginBottom: 6 }} />
-                <span className="text-[10px]" style={{ color: t.textDim }}>No connectors configured</span>
+                <span className="text-[12px]" style={{ color: t.textDim }}>No connectors configured</span>
               </div>
             ) : (
               <div className="flex flex-col gap-1">
@@ -254,7 +254,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
             <button
               type="button"
               onClick={() => setShowConnectorPicker(true)}
-              className="w-full min-h-[36px] px-5 py-3 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel"
+              className="w-full min-h-[36px] px-5 py-3 rounded text-[14px] tracking-wide uppercase cursor-pointer nodrag nowheel"
               style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3498db'; e.currentTarget.style.color = '#3498db'; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
@@ -271,7 +271,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
         <div className="px-5 pt-1 pb-2">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
-            <span className="text-[11px] tracking-wider uppercase" style={{ color: '#00d4ff', fontFamily: "'Geist Mono', monospace" }}>Feedback</span>
+            <span className="text-[13px] tracking-wider uppercase" style={{ color: '#00d4ff', fontFamily: "'Geist Mono', monospace" }}>Feedback</span>
             <div className="flex-1 h-px" style={{ background: t.borderSubtle }} />
           </div>
           <div className="flex flex-col gap-1">
@@ -281,10 +281,10 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                 className="ghost-tile flex items-center gap-2 px-2.5 py-1.5 rounded-md nodrag"
                 style={{ border: `1px dashed #00d4ff40`, background: t.isDark ? 'rgba(0,212,255,0.04)' : 'rgba(0,212,255,0.06)' }}
               >
-                <span className="flex-1 truncate text-[10px]" style={{ fontFamily: "'Geist Sans', sans-serif", color: t.textSecondary }}>
+                <span className="flex-1 truncate text-[12px]" style={{ fontFamily: "'Geist Sans', sans-serif", color: t.textSecondary }}>
                   {item.name}
                 </span>
-                <span className="text-[10px] tracking-wide uppercase px-1 rounded" style={{ color: '#00d4ff', fontFamily: "'Geist Mono', monospace", background: 'rgba(0,212,255,0.1)' }}>
+                <span className="text-[12px] tracking-wide uppercase px-1 rounded" style={{ color: '#00d4ff', fontFamily: "'Geist Mono', monospace", background: 'rgba(0,212,255,0.1)' }}>
                   {item.type}
                 </span>
                 <button
@@ -292,7 +292,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                   onClick={() => acceptPendingKnowledge(item.id)}
                   aria-label={`Accept ${item.name}`}
                   className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
-                  style={{ height: 16, fontSize: 11, fontFamily: "'Geist Mono', monospace", background: t.statusSuccessBg, color: t.statusSuccess }}
+                  style={{ height: 16, fontSize: 13, fontFamily: "'Geist Mono', monospace", background: t.statusSuccessBg, color: t.statusSuccess }}
                 >
                   <Check size={8} /> Add
                 </button>
@@ -301,7 +301,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                   onClick={() => dismissPendingKnowledge(item.id)}
                   aria-label={`Dismiss ${item.name}`}
                   className="flex items-center gap-0.5 px-1.5 rounded-md cursor-pointer border-none nodrag"
-                  style={{ height: 16, fontSize: 11, fontFamily: "'Geist Mono', monospace", background: t.statusErrorBg, color: t.statusError }}
+                  style={{ height: 16, fontSize: 13, fontFamily: "'Geist Mono', monospace", background: t.statusErrorBg, color: t.statusError }}
                 >
                   <X size={8} />
                 </button>
@@ -393,7 +393,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
               placeholder="Directory path..."
               aria-label="Directory path to scan"
               className="nowheel"
-              style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace" }}
+              style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace" }}
             />
           </div>
           <button
@@ -401,7 +401,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
             onClick={handleScan}
             disabled={scanning}
             aria-label="Scan directory"
-            className="flex items-center gap-1 px-5 py-3 rounded text-[12px] cursor-pointer border-none nodrag nowheel"
+            className="flex items-center gap-1 px-5 py-3 rounded text-[14px] cursor-pointer border-none nodrag nowheel"
             style={{ background: '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace", opacity: scanning ? 0.6 : 1 }}
           >
             {scanning ? <Loader2 size={10} className="animate-spin motion-reduce:animate-none" /> : <Search size={10} />}
@@ -409,7 +409,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
           </button>
         </div>
         {error && (
-          <div className="text-[11px] mt-1 px-1" style={{ color: t.statusError, fontFamily: "'Geist Mono', monospace" }}>{error}</div>
+          <div className="text-[13px] mt-1 px-1" style={{ color: t.statusError, fontFamily: "'Geist Mono', monospace" }}>{error}</div>
         )}
       </div>
 
@@ -436,7 +436,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
             type="button"
             onClick={() => void handleAddSelected()}
             aria-label={`Confirm adding ${selectedFiles.size} files`}
-            className="flex-1 py-2 rounded text-[12px] cursor-pointer border-none nodrag nowheel font-semibold tracking-wide"
+            className="flex-1 py-2 rounded text-[14px] cursor-pointer border-none nodrag nowheel font-semibold tracking-wide"
             style={{ background: '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace" }}
           >
             Confirm ({selectedFiles.size})
@@ -445,7 +445,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
             type="button"
             onClick={() => setSelectedFiles(new Set())}
             aria-label="Reset file selection"
-            className="py-2 px-4 rounded text-[12px] cursor-pointer nodrag nowheel"
+            className="py-2 px-4 rounded text-[14px] cursor-pointer nodrag nowheel"
             style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}
           >
             Reset
@@ -460,7 +460,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
             <div className="p-3" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
               {allChannelItems.length === 0 ? (
                 <div className="flex items-center justify-center py-3 w-full">
-                  <span className="text-[11px]" style={{ color: t.textFaint }}>No active channels</span>
+                  <span className="text-[13px]" style={{ color: t.textFaint }}>No active channels</span>
                 </div>
               ) : allChannelItems.map((ch) => {
                 const kType = (ch.knowledgeType || 'evidence') as KnowledgeType;
@@ -506,14 +506,14 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
                       onClick={() => !isEmpty && toggleCollapse(type)}
                     >
                       <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: meta.color }} />
-                      <span className="flex-1 text-left" style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em', color: isEmpty ? t.textFaint : t.textSecondary }}>
+                      <span className="flex-1 text-left" style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em', color: isEmpty ? t.textFaint : t.textSecondary }}>
                         {meta.label}
                       </span>
-                      <span className="text-[10px] px-1 rounded-full" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: items.length > 0 ? t.badgeBg : 'transparent', minWidth: 16, textAlign: 'center' }}>
+                      <span className="text-[12px] px-1 rounded-full" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: items.length > 0 ? t.badgeBg : 'transparent', minWidth: 16, textAlign: 'center' }}>
                         {items.length}
                       </span>
                       {!isEmpty && (
-                        <span style={{ color: t.textDim, fontSize: 10, transition: 'transform 200ms ease', display: 'inline-block', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+                        <span style={{ color: t.textDim, fontSize: 12, transition: 'transform 200ms ease', display: 'inline-block', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
                           &#9662;
                         </span>
                       )}
@@ -550,7 +550,7 @@ function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMod
           type="button"
           onClick={() => setShowFilePicker(true)}
           aria-label="Add knowledge files"
-          className="w-full min-h-[36px] px-5 py-3 rounded text-[12px] tracking-wide uppercase cursor-pointer nodrag nowheel"
+          className="w-full min-h-[36px] px-5 py-3 rounded text-[14px] tracking-wide uppercase cursor-pointer nodrag nowheel"
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, transition: 'border-color 150ms ease, color 150ms ease' }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
           onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
@@ -639,16 +639,16 @@ function FileTreeItem({ node, depth, selected, onToggle, theme: t }: FileTreeIte
           onClick={() => isDir ? setExpanded(!expanded) : onToggle(node.path)}
         >
           <Icon size={10} style={{ color: isDir ? t.statusWarning : t.textDim, flexShrink: 0 }} />
-          <span className="flex-1 truncate" style={{ fontSize: 10, fontFamily: "'Geist Sans', sans-serif", color: t.textSecondary }}>{node.name}</span>
+          <span className="flex-1 truncate" style={{ fontSize: 12, fontFamily: "'Geist Sans', sans-serif", color: t.textSecondary }}>{node.name}</span>
         </div>
 
         {isFile && node.tokenEstimate && (
-          <span style={{ fontSize: 11, fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
+          <span style={{ fontSize: 13, fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
             ~{node.tokenEstimate >= 1000 ? `${(node.tokenEstimate / 1000).toFixed(1)}K` : node.tokenEstimate}t
           </span>
         )}
         {isDir && childPaths.length > 0 && (
-          <span style={{ fontSize: 11, fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
+          <span style={{ fontSize: 13, fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
             {childPaths.length}
           </span>
         )}
@@ -713,7 +713,7 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
       />
 
       {/* Filename */}
-      <span className="flex-1 truncate" style={{ fontSize: 11, fontFamily: "'Geist Sans', sans-serif", color: enabled ? t.textPrimary : t.textDim, minWidth: 0 }}>
+      <span className="flex-1 truncate" style={{ fontSize: 13, fontFamily: "'Geist Sans', sans-serif", color: enabled ? t.textPrimary : t.textDim, minWidth: 0 }}>
         {name}
       </span>
 
@@ -750,7 +750,7 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
             />
           </div>
           <span
-            style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: t.textMuted, userSelect: 'none', letterSpacing: '0.03em' }}
+            style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace", color: t.textMuted, userSelect: 'none', letterSpacing: '0.03em' }}
           >
             {depthLabel}
           </span>
@@ -772,7 +772,7 @@ function FileRow({ sourceId, name, enabled, depth, baseTokens, onToggle, onDepth
       </div>
 
       {/* Token count */}
-      <span className="flex-shrink-0" style={{ fontSize: 10, fontFamily: "'Geist Mono', monospace", color: t.textDim, minWidth: 30, textAlign: 'right' }}>
+      <span className="flex-shrink-0" style={{ fontSize: 12, fontFamily: "'Geist Mono', monospace", color: t.textDim, minWidth: 30, textAlign: 'right' }}>
         {fmtTokens(eff)}
       </span>
     </div>

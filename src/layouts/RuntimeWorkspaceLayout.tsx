@@ -24,12 +24,12 @@ export function RuntimeWorkspaceLayout() {
       >
         <div className="px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
           <h2
-            className="text-[10px] font-bold tracking-[0.08em] uppercase"
+            className="text-[12px] font-bold tracking-[0.08em] uppercase"
             style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}
           >
             Team Snapshot
           </h2>
-          <p className="mt-1 text-[11px]" style={{ color: t.textDim }}>
+          <p className="mt-1 text-[13px]" style={{ color: t.textDim }}>
             Keep the radar / chip / layercake views visible while orchestrating execution.
           </p>
         </div>
@@ -42,12 +42,12 @@ export function RuntimeWorkspaceLayout() {
       >
         <div className="px-6 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
           <h1
-            className="text-[12px] font-bold tracking-[0.08em] uppercase"
+            className="text-[14px] font-bold tracking-[0.08em] uppercase"
             style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
           >
             Runtime Workspace
           </h1>
-          <p className="mt-1 text-[11px]" style={{ color: t.textDim }}>
+          <p className="mt-1 text-[13px]" style={{ color: t.textDim }}>
             One flow: global instruction + per-agent instruction + run status + shared facts.
           </p>
         </div>

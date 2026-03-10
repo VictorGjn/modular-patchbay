@@ -81,7 +81,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
               <Wand2 size={13} style={{ color: '#FE5000' }} />
               <span
                 className="font-bold uppercase"
-                style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, fontSize: 10, letterSpacing: '0.08em' }}
+                style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, fontSize: 12, letterSpacing: '0.08em' }}
               >
                 GENERATOR
               </span>
@@ -99,7 +99,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
           />
 
           {error && (
-            <div className="mt-2 text-[10px] px-2 py-1 rounded" style={{ background: '#ff000015', color: '#ff4444', border: '1px solid #ff000020' }}>
+            <div className="mt-2 text-[12px] px-2 py-1 rounded" style={{ background: '#ff000015', color: '#ff4444', border: '1px solid #ff000020' }}>
               {error}
             </div>
           )}
@@ -115,7 +115,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
               ].map(s => (
                 <span
                   key={s.label}
-                  className="text-[11px] px-1.5 py-0.5 rounded"
+                  className="text-[13px] px-1.5 py-0.5 rounded"
                   style={{
                     fontFamily: "'Geist Mono', monospace",
                     background: `${s.color}15`,
@@ -136,7 +136,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
             type="button"
             onClick={handleGenerate}
             disabled={generating || !brainDump.trim()}
-            className="flex items-center gap-1.5 px-5 py-3 rounded text-[11px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center nodrag"
+            className="flex items-center gap-1.5 px-5 py-3 rounded text-[13px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center nodrag"
             style={{
               background: generating ? '#CC4000' : '#FE5000',
               color: '#fff',
@@ -151,7 +151,7 @@ export const GeneratorNode = memo(function GeneratorNode() {
             <button
               type="button"
               onClick={handleReset}
-              className="flex items-center gap-1 px-2 py-2 rounded text-[10px] tracking-wide nodrag"
+              className="flex items-center gap-1 px-2 py-2 rounded text-[12px] tracking-wide nodrag"
               style={{
                 background: 'transparent',
                 border: `1px solid ${t.border}`,

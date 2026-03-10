@@ -36,7 +36,7 @@ function TreeNode({ node, depth, onAdd, filter }: { node: FileNode; depth: numbe
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="w-4 h-4 flex items-center justify-center text-[10px] cursor-pointer border-none bg-transparent"
+            className="w-4 h-4 flex items-center justify-center text-[12px] cursor-pointer border-none bg-transparent"
             style={{ color: t.textMuted }}
             aria-label={expanded ? 'Collapse folder' : 'Expand folder'}
           >
@@ -49,7 +49,7 @@ function TreeNode({ node, depth, onAdd, filter }: { node: FileNode; depth: numbe
         <div className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: node.type === 'directory' ? '#f1c40f' : '#3498db' }} />
 
         <span
-          className="flex-1 text-[11px] truncate"
+          className="flex-1 text-[13px] truncate"
           style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
         >
           {node.name}
@@ -57,7 +57,7 @@ function TreeNode({ node, depth, onAdd, filter }: { node: FileNode; depth: numbe
 
         {node.tokenEstimate && (
           <span
-            className="text-[11px] shrink-0"
+            className="text-[13px] shrink-0"
             style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
           >
             {formatTokens(node.tokenEstimate)}
@@ -68,7 +68,7 @@ function TreeNode({ node, depth, onAdd, filter }: { node: FileNode; depth: numbe
           <button
             type="button"
             onClick={() => onAdd(node)}
-            className="px-2 py-0.5 rounded text-[10px] tracking-[1px] uppercase cursor-pointer border transition-colors shrink-0"
+            className="px-2 py-0.5 rounded text-[12px] tracking-[1px] uppercase cursor-pointer border transition-colors shrink-0"
             style={{ fontFamily: "'Geist Mono', monospace", background: 'transparent', borderColor: t.border, color: t.textMuted }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textMuted; }}
@@ -168,7 +168,7 @@ export function FilePicker() {
       >
         <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: t.border }}>
           <span
-            className="text-[11px] font-bold tracking-[3px] uppercase"
+            className="text-[13px] font-bold tracking-[3px] uppercase"
             style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
           >
             ADD KNOWLEDGE SOURCE
@@ -176,7 +176,7 @@ export function FilePicker() {
           <button
             type="button"
             onClick={() => setShowFilePicker(false)}
-            className="text-[14px] cursor-pointer border-none bg-transparent"
+            className="text-[17px] cursor-pointer border-none bg-transparent"
             style={{ color: t.textMuted }}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = t.textMuted; }}
@@ -193,7 +193,7 @@ export function FilePicker() {
             onChange={(e) => setScanDir(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleScan(); }}
             placeholder="Directory path to scan..."
-            className="flex-1 outline-none text-[11px]"
+            className="flex-1 outline-none text-[13px]"
             style={{
               background: t.inputBg,
               border: `1px solid ${t.border}`,
@@ -208,7 +208,7 @@ export function FilePicker() {
             type="button"
             onClick={handleScan}
             disabled={scanning}
-            className="px-3 py-1 rounded text-[10px] tracking-wide uppercase cursor-pointer border-none"
+            className="px-3 py-1 rounded text-[12px] tracking-wide uppercase cursor-pointer border-none"
             style={{ background: '#FE5000', color: '#fff', opacity: scanning ? 0.6 : 1 }}
             aria-label="Scan directory"
           >
@@ -223,7 +223,7 @@ export function FilePicker() {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter results..."
-            className="w-full outline-none text-[11px]"
+            className="w-full outline-none text-[13px]"
             style={{
               background: t.inputBg,
               border: `1px solid ${t.border}`,
@@ -245,11 +245,11 @@ export function FilePicker() {
             ))
           ) : loaded && tree.length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <span className="text-[11px]" style={{ color: t.textDim }}>No files found. Try scanning a directory.</span>
+              <span className="text-[13px]" style={{ color: t.textDim }}>No files found. Try scanning a directory.</span>
             </div>
           ) : (
             <div className="flex items-center justify-center py-8">
-              <span className="text-[11px]" style={{ color: t.textDim }}>Enter a directory path and click Scan to browse files.</span>
+              <span className="text-[13px]" style={{ color: t.textDim }}>Enter a directory path and click Scan to browse files.</span>
             </div>
           )}
         </div>

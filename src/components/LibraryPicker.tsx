@@ -135,7 +135,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
             style={{
               width: '100%',
               outline: 'none',
-              fontSize: 14,
+              fontSize: 17,
               paddingLeft: 36,
               paddingRight: 12,
               paddingTop: 8,
@@ -161,19 +161,19 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
 
         {!loading && query.length >= 2 && results.length === 0 && !error && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
-            <span style={{ fontSize: 14, color: t.textFaint }}>No skills found for &ldquo;{query}&rdquo;</span>
+            <span style={{ fontSize: 17, color: t.textFaint }}>No skills found for &ldquo;{query}&rdquo;</span>
           </div>
         )}
 
         {!loading && error && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
-            <span style={{ fontSize: 14, color: t.statusError }}>Search unavailable</span>
+            <span style={{ fontSize: 17, color: t.statusError }}>Search unavailable</span>
           </div>
         )}
 
         {!loading && query.length < 2 && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
-            <span style={{ fontSize: 14, color: t.textFaint }}>Type at least 2 characters to search</span>
+            <span style={{ fontSize: 17, color: t.textFaint }}>Type at least 2 characters to search</span>
           </div>
         )}
 
@@ -212,7 +212,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
                 {/* Line 1: skill name + repo */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{
-                    fontSize: 14,
+                    fontSize: 17,
                     fontWeight: 600,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -222,7 +222,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
                     {skill.name}
                   </span>
                   <span style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -234,7 +234,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
                 {/* Line 2: installs badge + security badges + external link */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                   <span style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     padding: '2px 6px',
                     borderRadius: 9999,
                     textTransform: 'uppercase',
@@ -276,7 +276,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
                     cursor: 'pointer',
                     border: 'none',
                     flexShrink: 0,
-                    fontSize: 10,
+                    fontSize: 12,
                     fontFamily: "'Geist Mono', monospace",
                     background: '#FE500020',
                     color: '#FE5000'
@@ -294,7 +294,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
       {/* Attribution */}
       <div style={{ padding: '8px 20px', textAlign: 'center', flexShrink: 0, borderTop: `1px solid ${t.borderSubtle}` }}>
         <span style={{
-          fontSize: 11,
+          fontSize: 13,
           letterSpacing: '0.05em',
           textTransform: 'uppercase',
           color: t.textFaint,
@@ -355,7 +355,7 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{
-            fontSize: 14,
+            fontSize: 17,
             fontWeight: 500,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -366,7 +366,7 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
           </span>
           {item.source && (
             <span style={{
-              fontSize: 10,
+              fontSize: 12,
               padding: '2px 6px',
               borderRadius: 9999,
               textTransform: 'uppercase',
@@ -380,7 +380,7 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
           )}
           {item.mcpStatus && item.mcpStatus !== 'enabled' && (
             <span style={{
-              fontSize: 10,
+              fontSize: 12,
               padding: '2px 6px',
               borderRadius: 9999,
               textTransform: 'uppercase',
@@ -395,7 +395,7 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
         </div>
         {item.description && (
           <span style={{
-            fontSize: 12,
+            fontSize: 14,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -410,7 +410,7 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: getStatusColor(item.status, t) }} />
           <span style={{
-            fontSize: 10,
+            fontSize: 12,
             fontFamily: "'Geist Mono', monospace",
             color: getStatusColor(item.status, t)
           }}>
@@ -420,7 +420,7 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
       )}
       {kind === 'mcp' && item.type && (
         <span style={{
-          fontSize: 10,
+          fontSize: 12,
           padding: '2px 6px',
           borderRadius: 4,
           textTransform: 'uppercase',
@@ -465,7 +465,7 @@ export function LibraryPicker({ open, onClose, title, items, activeIds, onToggle
           if (filtered.length === 0) {
             return (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
-                <span style={{ fontSize: 14, color: t.textFaint }}>
+                <span style={{ fontSize: 17, color: t.textFaint }}>
                   {items.length === 0 ? 'No MCP servers found' : 'No matches'}
                 </span>
               </div>
@@ -500,7 +500,7 @@ export function LibraryPicker({ open, onClose, title, items, activeIds, onToggle
             if (filtered.length === 0) {
               return (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
-                  <span style={{ fontSize: 14, color: t.textFaint }}>
+                  <span style={{ fontSize: 17, color: t.textFaint }}>
                     {items.length === 0 ? 'No skills found' : 'No matches'}
                   </span>
                 </div>

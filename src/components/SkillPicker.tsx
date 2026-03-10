@@ -94,7 +94,7 @@ export function SkillPicker() {
         return grouped.map((group) => (
           <div key={group.category}>
             <div className="px-5 py-1.5">
-              <span className="text-[10px] font-medium tracking-wider uppercase" style={{ color: t.textDim }}>
+              <span className="text-[12px] font-medium tracking-wider uppercase" style={{ color: t.textDim }}>
                 {group.label}
               </span>
             </div>
@@ -112,23 +112,23 @@ export function SkillPicker() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium" style={{ color: t.textPrimary }}>{skill.name}</span>
+                    <span className="text-[17px] font-medium" style={{ color: t.textPrimary }}>{skill.name}</span>
                     {skill.skillUrl?.startsWith('https://skills.sh/') && (
                       <SecurityBadges skillPath={skill.skillUrl.replace('https://skills.sh/', '')} />
                     )}
                   </div>
-                  <span className="text-xs" style={{ color: t.textDim }}>{skill.description}</span>
+                  <span className="text-[14px]" style={{ color: t.textDim }}>{skill.description}</span>
                 </div>
 
                 {skill.added ? (
-                  <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
+                  <span className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
                     <Check size={12} /> Added
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => addSkill(skill.id)}
-                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md cursor-pointer border-none"
+                    className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md cursor-pointer border-none"
                     style={{
                       color: '#FE5000',
                       background: '#FE500012',

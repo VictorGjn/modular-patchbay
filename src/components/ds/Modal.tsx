@@ -46,7 +46,7 @@ export function Modal({ open, onClose, title, children, footer, width = 520 }: M
       >
         {title && (
           <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-            <span className="text-sm font-bold" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>{title}</span>
+            <span className="text-[17px] font-bold" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>{title}</span>
             <button type="button" onClick={onClose} className="flex items-center justify-center w-7 h-7 rounded-md cursor-pointer border-none bg-transparent" style={{ color: t.textDim }}>
               <X size={14} />
             </button>

@@ -18,7 +18,7 @@ export function TokenBudget() {
       style={{ background: t.surfaceOpaque, borderColor: t.border }}
     >
       <span
-        className="text-[10px] tracking-wider uppercase shrink-0 font-medium"
+        className="text-[12px] tracking-wider uppercase shrink-0 font-medium"
         style={{ fontFamily: "'Geist Mono', monospace", color: t.tokenLabel }}
       >
         Token Budget
@@ -36,13 +36,13 @@ export function TokenBudget() {
       </div>
 
       <span
-        className="text-[11px] shrink-0 tabular-nums"
+        className="text-[13px] shrink-0 tabular-nums"
         style={{ fontFamily: "'Geist Mono', monospace", color: barColor, minWidth: 56, textAlign: 'right', whiteSpace: 'nowrap' }}
       >
         {total >= 1000 ? `${(total / 1000).toFixed(1)}K` : total}
       </span>
       <span
-        className="text-[11px] shrink-0"
+        className="text-[13px] shrink-0"
         style={{ fontFamily: "'Geist Mono', monospace", color: t.tokenDivider, minWidth: 64, whiteSpace: 'nowrap' }}
       >
         / {tokenBudget >= 1000 ? `${(tokenBudget / 1000).toFixed(0)}K` : tokenBudget}

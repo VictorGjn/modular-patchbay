@@ -41,18 +41,18 @@ function FactRow({ fact }: { fact: ExtractedFact }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0' }}>
-      <span style={{ fontSize: 10, flexShrink: 0, marginTop: 2 }}>{EPISTEMIC_ICONS[fact.epistemicType]}</span>
+      <span style={{ fontSize: 12, flexShrink: 0, marginTop: 2 }}>{EPISTEMIC_ICONS[fact.epistemicType]}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 11, fontWeight: 500, color: t.textPrimary }}>
+        <span style={{ fontSize: 13, fontWeight: 500, color: t.textPrimary }}>
           {fact.key}
         </span>
-        <span style={{ fontSize: 10, marginLeft: 6, color: t.textDim, opacity: fact.confidence }}>
+        <span style={{ fontSize: 12, marginLeft: 6, color: t.textDim, opacity: fact.confidence }}>
           {fact.value.length > 60 ? fact.value.slice(0, 60) + '…' : fact.value}
         </span>
       </div>
       <span
         style={{
-          fontSize: 10,
+          fontSize: 12,
           padding: '2px 4px',
           borderRadius: 4,
           flexShrink: 0,
@@ -86,18 +86,18 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
       <Card>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <StatusDot status={s.dot} pulsing={agent.status === 'running'} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
           {agent.name}
         </span>
       </div>
-      <div style={{ fontSize: 11, marginBottom: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+      <div style={{ fontSize: 13, marginBottom: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
         {s.label}
       </div>
 
         {agent.currentMessage && (
           <div
             style={{
-              fontSize: 10,
+              fontSize: 12,
               padding: '8px',
               borderRadius: 6,
               marginBottom: 8,
@@ -107,7 +107,7 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
               border: `1px solid ${t.border}`
             }}
           >
-            <div style={{ fontSize: 10, color: t.textDim, marginBottom: 4, textTransform: 'uppercase', fontFamily: "'Geist Mono', monospace" }}>
+            <div style={{ fontSize: 12, color: t.textDim, marginBottom: 4, textTransform: 'uppercase', fontFamily: "'Geist Mono', monospace" }}>
               Current Message
             </div>
             {agent.currentMessage.length > 150
@@ -119,7 +119,7 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
         {agent.facts.length > 0 && (
           <div style={{ borderTop: `1px solid ${t.borderSubtle}`, paddingTop: 6, marginTop: 4 }}>
             <div style={{
-              fontSize: 10,
+              fontSize: 12,
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               marginBottom: 6,
@@ -131,7 +131,7 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 120, overflowY: 'auto' }}>
               {agent.facts.map((f, i) => (
                 <div key={i} style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
@@ -142,7 +142,7 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
                 }}>
                   <span style={{
                     color: EPISTEMIC_COLORS[f.epistemicType],
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 600
                   }}>
                     {EPISTEMIC_ICONS[f.epistemicType]}
@@ -194,7 +194,7 @@ function RuntimeStages({
             }}
           >
             <div style={{
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: 700,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
@@ -239,11 +239,11 @@ function ContextIntelligence() {
         {collapsed
           ? <ChevronRight size={11} style={{ color: t.textDim }} />
           : <ChevronDown size={11} style={{ color: t.textDim }} />}
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase flex-1 text-left"
+        <span className="text-[13px] font-bold tracking-[0.12em] uppercase flex-1 text-left"
           style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}>
           Context Intelligence
         </span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+        <span className="text-[12px] px-1.5 py-0.5 rounded-full"
           style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}>
           {enabledChannels.length} sources
         </span>
@@ -253,7 +253,7 @@ function ContextIntelligence() {
         <div className="px-3 pb-3 pt-1" style={{ background: t.isDark ? '#141416' : '#fafafa' }}>
           {/* Budget allocation bars */}
           <div className="mb-2">
-            <span className="text-[10px] tracking-[0.1em] uppercase block mb-1"
+            <span className="text-[12px] tracking-[0.1em] uppercase block mb-1"
               style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
               Budget Allocation
             </span>
@@ -265,13 +265,13 @@ function ContextIntelligence() {
                 const pct = totalWeight > 0 ? Math.round((weight / totalWeight) * 100) : 0;
                 return (
                   <div key={key} className="flex items-center gap-1.5">
-                    <span className="text-[10px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: kt.color, width: 60 }}>
+                    <span className="text-[12px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: kt.color, width: 60 }}>
                       {kt.label}
                     </span>
                     <div className="flex-1" style={{ height: 6, background: `${kt.color}12`, borderRadius: 3, overflow: 'hidden' }}>
                       <div style={{ width: `${pct}%`, height: '100%', background: kt.color, borderRadius: 3, transition: 'width 300ms' }} />
                     </div>
-                    <span className="text-[10px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 24, textAlign: 'right' }}>
+                    <span className="text-[12px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 24, textAlign: 'right' }}>
                       {pct}%
                     </span>
                     <span className="text-[7px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
@@ -285,7 +285,7 @@ function ContextIntelligence() {
 
           {/* Source list with types */}
           <div className="mb-1">
-            <span className="text-[10px] tracking-[0.1em] uppercase block mb-1"
+            <span className="text-[12px] tracking-[0.1em] uppercase block mb-1"
               style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
               Sources
             </span>
@@ -511,7 +511,7 @@ export function RuntimePanel() {
             value={selectedLibraryId}
             onChange={(e) => setSelectedLibraryId(e.target.value)}
             style={{
-              fontSize: 12,
+              fontSize: 14,
               padding: '8px 12px',
               borderRadius: 8,
               outline: 'none',
@@ -591,7 +591,7 @@ export function RuntimePanel() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <Users size={12} style={{ color: '#FE5000' }} />
           <span style={{
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: 700,
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
@@ -605,7 +605,7 @@ export function RuntimePanel() {
             value={selectedLibraryId}
             onChange={(e) => setSelectedLibraryId(e.target.value)}
             style={{
-              fontSize: 12,
+              fontSize: 14,
               padding: '6px 8px',
               borderRadius: 8,
               outline: 'none',
@@ -655,7 +655,7 @@ export function RuntimePanel() {
           {teamAgents.map((agent) => (
             <div key={agent.id} style={{ padding: '8px 12px', borderRadius: 8, border: `1px solid ${t.border}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: t.textPrimary }}>{agent.name}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary }}>{agent.name}</span>
                 <div style={{ flex: 1 }} />
                 <button
                   type="button"
@@ -675,7 +675,7 @@ export function RuntimePanel() {
                   <X size={12} />
                 </button>
               </div>
-              <div style={{ fontSize: 10, marginTop: 4, color: t.textDim }}>
+              <div style={{ fontSize: 12, marginTop: 4, color: t.textDim }}>
                 {agent.description || 'No description'}
               </div>
             </div>
@@ -722,7 +722,7 @@ export function RuntimePanel() {
         <div style={{ marginTop: 12, marginBottom: 4 }}>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: 700,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
@@ -739,7 +739,7 @@ export function RuntimePanel() {
           {teamAgents.map((a) => (
             <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <span style={{
-                fontSize: 10,
+                fontSize: 12,
                 width: 96,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -761,7 +761,7 @@ export function RuntimePanel() {
                 }}
                 style={{
                   flex: 1,
-                  fontSize: 10,
+                  fontSize: 12,
                   padding: '0 8px',
                   borderRadius: 4,
                   background: t.surfaceOpaque,
@@ -808,7 +808,7 @@ export function RuntimePanel() {
           style={{
             padding: '8px 12px',
             borderRadius: 8,
-            fontSize: 11,
+            fontSize: 13,
             background: t.statusErrorBg,
             color: t.statusError,
             border: `1px solid ${t.statusError}30`
@@ -823,7 +823,7 @@ export function RuntimePanel() {
         <div>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: 700,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
@@ -847,7 +847,7 @@ export function RuntimePanel() {
         <div>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: 700,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
@@ -874,7 +874,7 @@ export function RuntimePanel() {
       <div>
         <div
           style={{
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 700,
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
@@ -891,7 +891,7 @@ export function RuntimePanel() {
               <FactRow key={i} fact={f} />
             ))
           ) : (
-            <div style={{ fontSize: 11, padding: '8px 0', color: t.textDim }}>
+            <div style={{ fontSize: 13, padding: '8px 0', color: t.textDim }}>
               No shared facts yet. Run team execution to see memory exchange between agents.
             </div>
           )}

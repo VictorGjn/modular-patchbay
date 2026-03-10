@@ -18,14 +18,14 @@ export function CapabilityGate({ matrix, requiredCapabilities }: CapabilityGateP
   return (
     <div className="flex flex-col gap-1.5">
       {errors.map((v) => (
-        <div key={v.capability} className="flex items-start gap-2 px-3 py-2 rounded-lg text-[10px]"
+        <div key={v.capability} className="flex items-start gap-2 px-3 py-2 rounded-lg text-[12px]"
           style={{ background: t.statusErrorBg, color: t.statusError, border: `1px solid ${t.statusError}30` }} role="alert">
           <XCircle size={12} className="shrink-0 mt-0.5" />
           <span>{v.message}</span>
         </div>
       ))}
       {warnings.map((v) => (
-        <div key={v.capability} className="flex items-start gap-2 px-3 py-2 rounded-lg text-[10px]"
+        <div key={v.capability} className="flex items-start gap-2 px-3 py-2 rounded-lg text-[12px]"
           style={{ background: t.statusWarningBg, color: t.statusWarning, border: `1px solid ${t.statusWarning}30` }} role="status">
           <AlertTriangle size={12} className="shrink-0 mt-0.5" />
           <span>{v.message}</span>

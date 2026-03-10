@@ -96,12 +96,12 @@ export function ConnectorPicker() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium" style={{ color: t.textPrimary }}>{ac.name}</span>
+                  <span className="text-[17px] font-medium" style={{ color: t.textPrimary }}>{ac.name}</span>
                   <div className="flex gap-1">
                     {ac.directions.map((dir) => (
                       <span
                         key={dir}
-                        className="text-[10px] px-1.5 py-0.5 rounded-full uppercase"
+                        className="text-[12px] px-1.5 py-0.5 rounded-full uppercase"
                         style={{
                           background: DIR_COLORS[dir].bg,
                           color: DIR_COLORS[dir].color,
@@ -114,11 +114,11 @@ export function ConnectorPicker() {
                     ))}
                   </div>
                 </div>
-                <span className="text-xs" style={{ color: t.textDim }}>{ac.description}</span>
+                <span className="text-[14px]" style={{ color: t.textDim }}>{ac.description}</span>
               </div>
 
               {added ? (
-                <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
+                <span className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
                   <Check size={12} /> Added
                 </span>
               ) : (
@@ -128,7 +128,7 @@ export function ConnectorPicker() {
                       key={dir}
                       type="button"
                       onClick={() => handleAdd(ac, dir)}
-                      className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
+                      className="flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
                       style={{
                         color: DIR_COLORS[dir].color,
                         background: DIR_COLORS[dir].bg,
@@ -147,7 +147,7 @@ export function ConnectorPicker() {
                     <button
                       type="button"
                       onClick={() => handleAdd(ac, 'both')}
-                      className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
+                      className="flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
                       style={{
                         color: DIR_COLORS.both.color,
                         background: DIR_COLORS.both.bg,

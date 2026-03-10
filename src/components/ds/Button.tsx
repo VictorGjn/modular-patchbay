@@ -17,7 +17,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 
   const heights = { sm: 28, md: 32 };
   const paddings = { sm: '0 8px', md: '0 14px' };
-  const fontSizes = { sm: 10, md: 11 };
+  const fontSizes = { sm: 12, md: 13 };
 
   const variants: Record<string, { bg: string; color: string; border: string; hoverBg: string }> = {
     primary: { bg: '#FE5000', color: '#fff', border: 'transparent', hoverBg: '#e54700' },
@@ -51,7 +51,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       onMouseLeave={(e) => { e.currentTarget.style.background = v.bg; }}
       {...rest}
     >
-      {loading ? <span className="animate-spin text-[10px]">⟳</span> : icon}
+      {loading ? <span className="animate-spin text-[12px]">⟳</span> : icon}
       {children}
       {iconRight}
     </button>

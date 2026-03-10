@@ -13,7 +13,7 @@ function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: stri
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label={ariaLabel}
-      className="appearance-none cursor-pointer outline-none text-xs h-8 pl-3 pr-7 rounded-lg"
+      className="appearance-none cursor-pointer outline-none text-[14px] h-8 pl-3 pr-7 rounded-lg"
       style={{
         fontFamily: "'Geist Sans', sans-serif",
         background: t.surfaceOpaque,
@@ -59,7 +59,7 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
           style={{ background: '#FE5000', boxShadow: '0 0 8px rgba(254,80,0,0.4)' }}
         />
         <span
-          className="text-sm font-bold tracking-[3px] uppercase"
+          className="text-[17px] font-bold tracking-[3px] uppercase"
           style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
         >
           MODULAR
@@ -71,7 +71,7 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
         <button
           type="button"
           onClick={() => onWorkspaceModeChange('builder')}
-          className="px-3 py-1.5 rounded-md border-none text-[10px] font-bold tracking-[0.12em] uppercase cursor-pointer focus-visible:outline focus-visible:outline-2"
+          className="px-3 py-1.5 rounded-md border-none text-[12px] font-bold tracking-[0.12em] uppercase cursor-pointer focus-visible:outline focus-visible:outline-2"
           style={{
             fontFamily: "'Geist Mono', monospace",
             background: workspaceMode === 'builder' ? '#FE5000' : 'transparent',
@@ -84,7 +84,7 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
         <button
           type="button"
           onClick={() => onWorkspaceModeChange('runtime')}
-          className="px-3 py-1.5 rounded-md border-none text-[10px] font-bold tracking-[0.12em] uppercase cursor-pointer focus-visible:outline focus-visible:outline-2"
+          className="px-3 py-1.5 rounded-md border-none text-[12px] font-bold tracking-[0.12em] uppercase cursor-pointer focus-visible:outline focus-visible:outline-2"
           style={{
             fontFamily: "'Geist Mono', monospace",
             background: workspaceMode === 'runtime' ? '#FE5000' : 'transparent',
@@ -120,7 +120,7 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
       </TopbarSelect>
 
       {!hasModels && (
-        <span className="text-[10px]" style={{ color: t.textDim }}>
+        <span className="text-[12px]" style={{ color: t.textDim }}>
           No models loaded — connect a model source in settings
         </span>
       )}
@@ -134,7 +134,7 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
       <button
         type="button"
         onClick={() => setShowMarketplace(true)}
-        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-[14px] font-medium cursor-pointer border-none"
         style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
         onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
@@ -170,7 +170,7 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
       <button
         type="button"
         onClick={run}
-        className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg text-xs font-semibold tracking-wider uppercase cursor-pointer border-none"
+        className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg text-[14px] font-semibold tracking-wider uppercase cursor-pointer border-none"
         style={{
           background: running ? '#CC4000' : '#FE5000',
           color: '#fff',
@@ -182,7 +182,7 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
       >
         {running ? <Square size={12} fill="white" /> : <Play size={12} fill="white" />}
         {running ? 'Stop' : 'Run'}
-        <span className="text-[11px] opacity-60 tracking-normal font-normal ml-1">{running ? 'click to cancel' : 'Ctrl+Enter'}</span>
+        <span className="text-[13px] opacity-60 tracking-normal font-normal ml-1">{running ? 'click to cancel' : 'Ctrl+Enter'}</span>
       </button>
     </div>
   );
