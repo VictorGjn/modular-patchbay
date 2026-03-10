@@ -6,7 +6,7 @@ import { exportForTarget, downloadAgentFile } from '../utils/agentExport';
 import { runPipelineChat, resolveProviderAndModel } from '../services/pipelineChat';
 import {
   Send, Download, Check,
-  FileText, FileCode, Zap, ChevronDown,
+  FileText, FileCode, Zap, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { TraceViewer } from './TraceViewer';
 import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
@@ -320,7 +320,7 @@ function ExportSection() {
 }
 
 /* ── Main TestPanel ── */
-export function TestPanel() {
+export function TestPanel({ onCollapse }: { onCollapse?: () => void }) {
   const t = useTheme();
   const [activeTab, setActiveTab] = useState<'chat' | 'traces' | 'export'>('chat');
 
@@ -350,6 +350,13 @@ export function TestPanel() {
           </button>
 
         </div>
+        {onCollapse && (
+          <button type="button" onClick={onCollapse} aria-label="Collapse test panel"
+            className="w-7 h-7 rounded-md border-none cursor-pointer flex items-center justify-center"
+            style={{ background: 'transparent', color: t.textDim }}>
+            <ChevronRight size={14} />
+          </button>
+        )}
       </div>
 
       {activeTab === 'chat' && <div role="tabpanel" id="tabpanel-chat" aria-labelledby="tab-chat" className="flex flex-col flex-1 min-h-0"><ChatSection /></div>}

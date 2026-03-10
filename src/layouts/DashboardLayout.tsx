@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTheme } from '../theme';
 import { SourcesPanel } from '../panels/SourcesPanel';
 import { AgentBuilder } from '../panels/AgentBuilder';
@@ -5,6 +6,7 @@ import { TestPanel } from '../panels/TestPanel';
 
 export function DashboardLayout() {
   const t = useTheme();
+  const [testCollapsed, setTestCollapsed] = useState(true);
 
   return (
     <div
@@ -17,8 +19,9 @@ export function DashboardLayout() {
         aria-label="Agent sources"
         className="flex flex-col overflow-y-auto"
         style={{
-          width: 340,
-          minWidth: 340,
+          width: '30%',
+          minWidth: 300,
+          maxWidth: 480,
           background: t.isDark ? '#161619' : '#f8f8fa',
           borderRight: `1px solid ${t.border}`,
         }}
@@ -40,13 +43,37 @@ export function DashboardLayout() {
         aria-label="Test and export"
         className="flex flex-col overflow-hidden"
         style={{
-          width: 380,
-          minWidth: 380,
+          width: testCollapsed ? 48 : 400,
+          minWidth: testCollapsed ? 48 : 400,
           background: t.isDark ? '#161619' : '#f8f8fa',
           borderLeft: `1px solid ${t.border}`,
+          transition: 'width 200ms ease, min-width 200ms ease',
         }}
       >
-        <TestPanel />
+        {testCollapsed ? (
+          <button
+            type="button"
+            onClick={() => setTestCollapsed(false)}
+            className="flex flex-col items-center justify-center gap-2 h-full cursor-pointer border-none"
+            style={{ background: 'transparent', color: t.textDim }}
+            aria-label="Open test panel"
+          >
+            <span style={{
+              writingMode: 'vertical-rl',
+              textOrientation: 'mixed',
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              fontFamily: "'Space Mono', monospace",
+              color: t.textDim,
+            }}>
+              Test ▶
+            </span>
+          </button>
+        ) : (
+          <TestPanel onCollapse={() => setTestCollapsed(true)} />
+        )}
       </aside>
     </div>
   );
