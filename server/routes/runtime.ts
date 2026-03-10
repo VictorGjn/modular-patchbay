@@ -81,22 +81,32 @@ router.post('/run-team', (req: Request, res: Response) => {
   const signal = abortController.signal;
 
   runTeam(config, (event) => {
+    console.log('[TeamRunner] progress event:', event.type, event.agentId);
     if (!signal.aborted) sendSSE(res, event);
   })
     .then((result) => {
-      runStatus.status = 'completed';
+      console.log('[TeamRunner] finished:', result.status, 'agents:', result.agentResults.length, 'errors:', result.agentResults.filter(a => a.status === 'error').map(a => a.error));
+      runStatus.status = result.status === 'error' ? 'error' : 'completed';
       runStatus.result = result;
-      if (!signal.aborted) sendSSE(res, { type: 'done', result });
+      if (!signal.aborted) {
+        if (result.status === 'error' || result.agentResults.some(a => a.status === 'error')) {
+          const errors = result.agentResults.filter(a => a.error).map(a => `${a.agentId}: ${a.error}`).join('; ');
+          sendSSE(res, { type: 'error', error: errors || 'Team run failed' });
+        }
+        sendSSE(res, { type: 'done', result });
+      }
       res.end();
     })
     .catch((err) => {
+      console.error('[TeamRunner] uncaught error:', err);
       runStatus.status = 'error';
       if (!signal.aborted) sendSSE(res, { type: 'error', error: err instanceof Error ? err.message : String(err) });
       res.end();
     })
     .finally(() => teamAbortControllers.delete(runId));
 
-  req.on('close', () => {
+  res.on('close', () => {
+    console.log('[TeamRunner] client disconnected for', runId);
     abortController.abort();
     teamAbortControllers.delete(runId);
   });
