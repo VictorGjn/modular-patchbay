@@ -17,6 +17,56 @@ interface McpConnection {
 export class McpManager {
   private connections = new Map<string, McpConnection>();
 
+  // Allowlist of safe MCP executables - SECURITY FIX
+  private readonly ALLOWED_MCP_COMMANDS = new Set([
+    'npx', 'node', 'python', 'python3', 'uvx', 'uv', 'deno', 'bun'
+  ]);
+
+  // Dangerous environment variables to block - SECURITY FIX
+  private readonly DANGEROUS_ENV_VARS = new Set([
+    'LD_PRELOAD', 'DYLD_INSERT_LIBRARIES', 'NODE_OPTIONS'
+  ]);
+
+  private validateMcpCommand(command: string, args: string[] = []): void {
+    if (!command) {
+      throw new Error('MCP command cannot be empty');
+    }
+
+    // Extract base command (remove path prefixes)
+    const baseCommand = command.split(/[/\\]/).pop()?.split('.')[0] || '';
+    
+    // Check if command is in allowlist or starts with allowed prefix
+    const isAllowed = this.ALLOWED_MCP_COMMANDS.has(baseCommand) ||
+      Array.from(this.ALLOWED_MCP_COMMANDS).some(allowed => command.startsWith(allowed));
+
+    if (!isAllowed) {
+      throw new Error(
+        `Unsafe MCP command "${command}". Only allowed: ${Array.from(this.ALLOWED_MCP_COMMANDS).join(', ')}`
+      );
+    }
+
+    // Basic args validation - prevent obvious injection attempts
+    for (const arg of args) {
+      if (arg.includes('&&') || arg.includes('||') || arg.includes(';') || arg.includes('|')) {
+        throw new Error(`Unsafe argument detected: "${arg}"`);
+      }
+    }
+  }
+
+  private validateMcpEnvironment(env: Record<string, string> = {}): void {
+    for (const [key, value] of Object.entries(env)) {
+      // Block dangerous environment variables
+      if (this.DANGEROUS_ENV_VARS.has(key)) {
+        throw new Error(`Dangerous environment variable not allowed: ${key}`);
+      }
+      
+      // Block NODE_OPTIONS with --require
+      if (key === 'NODE_OPTIONS' && value.includes('--require')) {
+        throw new Error('NODE_OPTIONS with --require not allowed for security');
+      }
+    }
+  }
+
   private normalizeConfig(config: McpServerConfig): McpServerConfig {
     return {
       ...config,
@@ -111,6 +161,10 @@ export class McpManager {
 
         return { status: 'connected', tools: conn.tools };
       }
+
+      // Validate MCP server command and environment - SECURITY FIX
+      this.validateMcpCommand(conn.config.command, conn.config.args);
+      this.validateMcpEnvironment(conn.config.env);
 
       const transport = new StdioClientTransport({
         command: conn.config.command,

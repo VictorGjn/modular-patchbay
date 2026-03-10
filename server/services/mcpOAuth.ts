@@ -50,6 +50,8 @@ interface PendingFlow {
 
 // ── State ──
 
+// SECURITY FIX: Limit pending OAuth flows to prevent memory exhaustion
+const MAX_PENDING_FLOWS = 100;
 const pendingFlows = new Map<string, PendingFlow>();
 
 // ── Persistence helpers ──
@@ -65,7 +67,9 @@ async function loadJson<T>(path: string): Promise<T> {
 
 async function saveJson(path: string, data: unknown): Promise<void> {
   await ensureDataDir();
-  await writeFile(path, JSON.stringify(data, null, 2));
+  // SECURITY FIX: Set secure file permissions (owner read/write only)
+  // TODO: For production use, implement encryption at rest
+  await writeFile(path, JSON.stringify(data, null, 2), { mode: 0o600 });
 }
 
 // ── PKCE ──
@@ -158,6 +162,16 @@ export async function startOAuthFlow(
     clientCredentials = await getOrRegisterClient(metadata, serverUrl, redirectUri);
   }
 
+  // SECURITY FIX: Clean expired flows before adding new ones
+  for (const [k, v] of pendingFlows) {
+    if (Date.now() - v.createdAt > 600_000) pendingFlows.delete(k);
+  }
+
+  // SECURITY FIX: Reject new flows if we're at the limit
+  if (pendingFlows.size >= MAX_PENDING_FLOWS) {
+    throw new Error('Too many pending OAuth flows. Please try again later.');
+  }
+
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = generateCodeChallenge(codeVerifier);
   const state = randomBytes(16).toString('hex');
@@ -182,11 +196,6 @@ export async function startOAuthFlow(
     metadata,
     createdAt: Date.now(),
   });
-
-  // Clean stale flows (> 10 min)
-  for (const [k, v] of pendingFlows) {
-    if (Date.now() - v.createdAt > 600_000) pendingFlows.delete(k);
-  }
 
   return {
     authUrl: `${metadata.authorization_endpoint}?${params}`,

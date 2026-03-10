@@ -70,6 +70,8 @@ const TEXT_EXTENSIONS = new Set([
 
 function isPathSafe(targetPath: string, allowedDirs: string[]): boolean {
   if (targetPath.includes('..')) return false;
+  // SECURITY FIX: Reject null byte attacks
+  if (targetPath.includes('\0')) return false;
   const resolved = resolve(targetPath).toLowerCase();
   return allowedDirs.some((dir) => resolved.startsWith(dir.toLowerCase()));
 }
