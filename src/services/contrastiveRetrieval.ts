@@ -125,8 +125,8 @@ function calculateTopicOverlap(chunk1: ChunkWithMetadata, chunk2: ChunkWithMetad
   
   if (topics1.size === 0 && topics2.size === 0) return 0;
   
-  const intersection = new Set([...topics1].filter(topic => topics2.has(topic)));
-  const union = new Set([...topics1, ...topics2]);
+  const intersection = new Set(Array.from(topics1).filter(topic => topics2.has(topic)));
+  const union = new Set([...Array.from(topics1), ...Array.from(topics2)]);
   
   return intersection.size / union.size;
 }

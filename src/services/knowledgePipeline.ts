@@ -9,7 +9,7 @@ import type { ChannelConfig, KnowledgeType } from '../store/knowledgeBase';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { useTraceStore } from '../store/traceStore';
-import { indexMarkdown, estimateTokens } from './treeIndexer';
+import { indexMarkdown, estimateTokens, type TreeNode } from './treeIndexer';
 import { renderFilteredMarkdown, applyDepthFilter } from '../utils/depthFilter';
 import { allocateBudgets, DEPTH_MULTIPLIERS, type BudgetSource } from './budgetAllocator';
 import {
