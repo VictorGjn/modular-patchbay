@@ -128,26 +128,24 @@ export const useMcpStore = create<McpStore>((set, get) => ({
   },
 
   syncFromConfig: async () => {
-    // Get consoleStore mcpServers config
     const { useConsoleStore } = await import('./consoleStore');
     const configServers = useConsoleStore.getState().mcpServers;
-    
+
     const currentServers = get().servers;
     const existingIds = new Set(currentServers.map((s) => s.id));
-    
-    // Add configured servers that don't exist in mcpStore
+
+    // consoleStore.McpServer only has {id, name, icon, connected, enabled, added, ...}
+    // It does NOT have command/args/env — those live in the backend.
+    // We just need to ensure the backend knows about these servers.
     for (const configServer of configServers) {
-      if (!existingIds.has(configServer.id)) {
+      if (configServer.added && !existingIds.has(configServer.id)) {
+        // Register with backend using minimal info — backend resolves command/args from its own config
         await get().addServer({
           id: configServer.id,
           name: configServer.name,
-          type: configServer.type,
-          command: configServer.command,
-          args: configServer.args,
-          env: configServer.env,
-          autoConnect: configServer.autoConnect,
-          url: configServer.url,
-          headers: configServer.headers,
+          command: '',
+          args: [],
+          env: {},
         });
       }
     }

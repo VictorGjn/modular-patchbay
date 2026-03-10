@@ -24,22 +24,16 @@ export function McpPicker() {
   const t = useTheme();
 
   const handleAddMcp = async (serverId: string) => {
-    // Add to consoleStore (persistent config)
     addMcp(serverId);
-    
-    // Also add to mcpStore (runtime connection)
+
     const server = mcpServers.find((s) => s.id === serverId);
     if (server) {
       await mcpStoreAddServer({
         id: server.id,
         name: server.name,
-        type: server.type,
-        command: server.command,
-        args: server.args,
-        env: server.env,
-        autoConnect: server.autoConnect,
-        url: server.url,
-        headers: server.headers,
+        command: '',
+        args: [],
+        env: {},
       });
     }
   };
