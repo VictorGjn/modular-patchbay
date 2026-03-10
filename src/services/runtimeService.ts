@@ -182,6 +182,7 @@ interface RuntimeEvent {
   args?: string;
   result?: string;
   error?: string;
+  tokens?: { input: number; output: number };
 }
 
 function handleRuntimeEvent(event: RuntimeEvent): void {
@@ -194,6 +195,7 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
           status: 'running',
           turns: event.turn ?? 0,
           currentMessage: event.message,
+          ...(event.tokens && { tokens: event.tokens }),
         });
       }
       break;
@@ -218,7 +220,11 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
 
     case 'done':
       if (event.agentId) {
-        store.updateAgent(event.agentId, { status: 'completed', output: event.result });
+        store.updateAgent(event.agentId, { 
+          status: 'completed', 
+          output: event.result,
+          ...(event.tokens && { tokens: event.tokens }),
+        });
       }
       break;
   }

@@ -88,15 +88,17 @@ Every source (markdown files, Notion pages, HubSpot records, Slack threads, GitH
 - **Consolidation** — Prune weak facts, merge similar ones, promote validated hypotheses
 
 ### Runtime
-- **Team Execution** — Multi-agent parallel runs with SSE streaming and per-agent model override
+- **Team Execution** — Multi-agent parallel runs with SSE streaming and per-agent system prompts
 - **Cross-Agent Facts** — Extracted facts shared across team members, deduplicated by confidence
-- **Contract Extraction** — Automatic type/interface extraction from feature specs
-- **Claude Agent SDK** — Virtual provider for backend agent execution
+- **Claude Agent SDK** — Full integration with built-in tools (Read, Edit, Bash, Grep, Glob, WebSearch, WebFetch)
+- **Maximizable Results** — Full-screen overlay for reading long agent outputs
+- **Contrastive Retrieval** — For analytical queries, automatically pulls both supporting AND contradicting evidence
 
 ### IDE
 - **Knowledge Type System** — 6 types with classification rules and visual color coding
 - **MCP Server Registry** — 100+ pre-configured servers with live health probes
 - **Skills Marketplace** — Searchable catalog with security badges (GEN, Socket, Snyk)
+- **Agent Directory Format** — Primary export: ZIP with agent.yaml + SOUL.md + INSTRUCTIONS.md + TOOLS.md + KNOWLEDGE.md + MEMORY.md. Git-friendly, human-readable, portable.
 - **Universal Export** — Claude Code, Amp, Codex, Vibe Kanban, OpenClaw, Generic JSON
 - **Execution Traces** — Timeline of LLM calls, tool invocations, retrievals
 - **Automatic Versioning** — Semantic diffs on every agent change
@@ -118,7 +120,7 @@ cd modular-patchbay
 npm install --legacy-peer-deps
 npm run dev          # Frontend on :5173, backend on :4800
 npm run build:all    # Full production build
-npm test             # 509 tests
+npm test             # 646 tests
 ```
 
 ### First steps
@@ -194,13 +196,13 @@ workflow:
 
 ## Tech Stack
 
-- **Frontend**: React 19 + TypeScript + Vite
-- **Styling**: Tailwind CSS + custom design system (18 DS primitives)
-- **State**: Zustand (12+ stores)
-- **Backend**: Express 5 + TypeScript (LLM proxy, MCP health, repo indexer)
+- **Frontend**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS + custom design system
+- **State**: Zustand (9 stores with persist middleware)
+- **Backend**: Express + TypeScript (LLM proxy, MCP manager, team runner)
 - **Agent SDK**: @anthropic-ai/claude-agent-sdk
-- **Testing**: Vitest (unit) + Playwright (E2E) — 509 tests
-- **Fonts**: Space Mono (labels) + Inter (body)
+- **Testing**: Vitest (unit) + Playwright (E2E) — 646 tests
+- **Fonts**: Geist Sans (body) + Geist Mono (labels)
 
 ## Documentation
 
@@ -233,8 +235,8 @@ test: add contradiction detector edge cases
 2. `npm install --legacy-peer-deps`
 3. `npm run dev` — starts frontend + backend
 4. Make changes, write tests
-5. `npm test` — ensure all 509 tests pass
-6. `npm run build:all` — verify production build
+5. `npm test` — ensure all tests pass
+6. `npx tsc --noEmit` — verify TypeScript compiles
 7. Submit a PR with conventional commit title
 
 ### Code quality
