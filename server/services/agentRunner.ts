@@ -46,6 +46,7 @@ export type ProgressCallback = (event: {
   fact?: ExtractedFact;
   tool?: string;
   args?: unknown;
+  tokens?: { input: number; output: number };
 }) => void;
 
 /* ── Helpers ── */
@@ -148,6 +149,7 @@ async function callAgentSdk(
           agentId,
           turn: turn++,
           message: textContent,
+          tokens: { input: inputTokens, output: outputTokens },
         });
       }
     } else if (message.type === 'result') {
@@ -288,7 +290,13 @@ export async function runAgent(config: AgentRunConfig, onProgress?: ProgressCall
 
       // Only emit turn progress for non-Agent SDK providers (Agent SDK handles its own progress)
       if (providerConfig?.authMethod !== 'claude-agent-sdk') {
-        onProgress?.({ type: 'turn', agentId: config.agentId, turn, message: result.content });
+        onProgress?.({ 
+          type: 'turn', 
+          agentId: config.agentId, 
+          turn, 
+          message: result.content,
+          tokens: { input: totalInputTokens, output: totalOutputTokens },
+        });
       }
 
       // No tool calls → agent is done
