@@ -15,7 +15,6 @@ import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
 
 import { DashboardLayout } from './layouts/DashboardLayout';
-import { RuntimeWorkspaceLayout } from './layouts/RuntimeWorkspaceLayout';
 
 export default function App() {
   const t = useTheme();
@@ -31,7 +30,7 @@ export default function App() {
 
   const showSettings = useConsoleStore((s) => s.showSettings);
   const setShowSettings = useConsoleStore((s) => s.setShowSettings);
-  const [workspaceMode, setWorkspaceMode] = useState<'builder' | 'runtime'>('builder');
+  const workspaceMode = 'builder' as const; // Runtime merged into TestPanel
   const importInputRef = useRef<HTMLInputElement>(null);
   const handleImportClick = useCallback(() => importInputRef.current?.click(), []);
   const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,11 +79,9 @@ export default function App() {
       <input ref={importInputRef} type="file" accept=".md,.yaml,.yml,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
       <Topbar
         onSettingsClick={() => setShowSettings(true, 'providers')}
-        workspaceMode={workspaceMode}
-        onWorkspaceModeChange={setWorkspaceMode}
       />
 
-      {workspaceMode === 'builder' ? <DashboardLayout /> : <RuntimeWorkspaceLayout />}
+      <DashboardLayout />
 
       {/* Accessibility: aria-live region for canvas state announcements */}
       <div

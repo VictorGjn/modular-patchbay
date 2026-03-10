@@ -20,14 +20,6 @@ export interface AgentRunConfig {
   teamFacts: ExtractedFact[];
   maxTurns?: number;
   tools?: ToolDef[];
-  /** GitHub repo URL — if set, gets tree-indexed and injected into context */
-  repoUrl?: string;
-  /** Branch/tag/commit to index (default: HEAD) */
-  repoRef?: string;
-  /** Pre-built repo knowledge markdown (injected by teamRunner after indexing) */
-  repoKnowledge?: string;
-  /** Path to cloned repo on disk (for Claude SDK agents to work in) */
-  repoClonePath?: string;
 }
 
 export interface AgentRunResult {
@@ -56,10 +48,12 @@ export type ProgressCallback = (event: {
   args?: unknown;
 }) => void;
 
+/* ── Helpers ── */
+
 function buildTeamFactsBlock(facts: ExtractedFact[]): string {
   if (facts.length === 0) return '';
-  const lines = facts.map((f) => `  <fact key="${f.key}" type="${f.epistemicType}" confidence="${f.confidence}" source="${f.source}">${f.value}</fact>`);
-  return `\n<team_facts>\n${lines.join('\n')}\n</team_facts>\n`;
+  const lines = facts.map((f) => `  <fact key="${f.key}" type="${f.epistemicType}">${f.value}</fact>`);
+  return `\n<shared_memory>\n${lines.join('\n')}\n</shared_memory>\n`;
 }
 
 function buildToolsParam(tools: ToolDef[] | undefined, providerType: string): unknown[] | undefined {
@@ -82,6 +76,8 @@ function buildToolsParam(tools: ToolDef[] | undefined, providerType: string): un
     },
   }));
 }
+
+/* ── LLM Call ── */
 
 async function callLlm(
   messages: LlmMessage[],
@@ -107,7 +103,6 @@ async function callLlm(
       'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
     };
-    // Separate system from messages for Anthropic
     const systemMsg = messages.find((m) => m.role === 'system');
     const nonSystemMsgs = messages.filter((m) => m.role !== 'system');
     body = {
@@ -145,105 +140,22 @@ async function callLlm(
     const toolUses = content?.filter((c) => c.type === 'tool_use') ?? [];
     const toolCalls = toolUses.map((tc) => {
       const toolDef = tools?.find((t) => t.name === tc.name);
-      return {
-        id: tc.id ?? '',
-        name: tc.name ?? '',
-        args: (tc.input ?? {}) as Record<string, unknown>,
-        serverId: toolDef?.serverId ?? '',
-      };
+      return { id: tc.id ?? '', name: tc.name ?? '', args: (tc.input ?? {}) as Record<string, unknown>, serverId: toolDef?.serverId ?? '' };
     });
     return { content: textParts, toolCalls, inputTokens: usage?.input_tokens ?? 0, outputTokens: usage?.output_tokens ?? 0 };
   } else {
     const choices = data.choices as Array<{ message: { content?: string; tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }> } }>;
     const usage = data.usage as { prompt_tokens: number; completion_tokens: number } | undefined;
     const msg = choices?.[0]?.message;
-    const textContent = msg?.content ?? '';
     const toolCalls = (msg?.tool_calls ?? []).map((tc) => {
       const toolDef = tools?.find((t) => t.name === tc.function.name);
-      return {
-        id: tc.id,
-        name: tc.function.name,
-        args: JSON.parse(tc.function.arguments) as Record<string, unknown>,
-        serverId: toolDef?.serverId ?? '',
-      };
+      return { id: tc.id, name: tc.function.name, args: JSON.parse(tc.function.arguments) as Record<string, unknown>, serverId: toolDef?.serverId ?? '' };
     });
-    return { content: textContent, toolCalls, inputTokens: usage?.prompt_tokens ?? 0, outputTokens: usage?.completion_tokens ?? 0 };
+    return { content: msg?.content ?? '', toolCalls, inputTokens: usage?.prompt_tokens ?? 0, outputTokens: usage?.completion_tokens ?? 0 };
   }
 }
 
-/**
- * Run agent via Claude Agent SDK (Claude Code) — gives built-in file editing, bash, glob, grep.
- * Ideal for coding agents working on cloned repos.
- */
-async function runAgentWithSdk(
-  config: AgentRunConfig,
-  systemContent: string,
-  onProgress?: ProgressCallback,
-): Promise<AgentRunResult> {
-  const start = Date.now();
-  const allTexts: string[] = [];
-  let turns = 0;
-
-  try {
-    const { query } = await import('@anthropic-ai/claude-agent-sdk');
-
-    for await (const message of query({
-      prompt: config.task,
-      options: {
-        model: config.model || undefined,
-        allowedTools: ['Read', 'Edit', 'Bash', 'Glob', 'Grep', 'WebSearch', 'WebFetch'],
-        permissionMode: 'acceptEdits',
-        maxTurns: Math.min(config.maxTurns || 25, 100),
-        systemPrompt: systemContent,
-        ...(config.repoClonePath ? { cwd: config.repoClonePath } : {}),
-      },
-    })) {
-      if (message.type === 'assistant' && message.message?.content) {
-        turns++;
-        for (const block of message.message.content) {
-          if ('text' in block) {
-            const text = (block as { text: string }).text;
-            allTexts.push(text);
-            onProgress?.({ type: 'turn', agentId: config.agentId, turn: turns, message: text });
-          } else if ('name' in block) {
-            const toolBlock = block as { name: string; input: unknown };
-            onProgress?.({
-              type: 'tool_call',
-              agentId: config.agentId,
-              tool: toolBlock.name,
-              args: toolBlock.input,
-            });
-          }
-        }
-      }
-    }
-
-    const fullOutput = allTexts.join('\n');
-    const facts = extractFacts(fullOutput, config.agentId);
-    facts.forEach((fact) => onProgress?.({ type: 'fact', agentId: config.agentId, fact }));
-
-    return {
-      agentId: config.agentId,
-      output: fullOutput,
-      facts,
-      turns,
-      tokens: { input: 0, output: 0 }, // SDK doesn't expose token counts
-      durationMs: Date.now() - start,
-      status: 'completed',
-    };
-  } catch (err) {
-    return {
-      agentId: config.agentId,
-      output: allTexts.join('\n'),
-      facts: [],
-      turns,
-      tokens: { input: 0, output: 0 },
-      durationMs: Date.now() - start,
-      status: 'error',
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
-}
+/* ── Agent Runner ── */
 
 export async function runAgent(config: AgentRunConfig, onProgress?: ProgressCallback): Promise<AgentRunResult> {
   const start = Date.now();
@@ -252,15 +164,7 @@ export async function runAgent(config: AgentRunConfig, onProgress?: ProgressCall
   let totalOutputTokens = 0;
   const allAssistantTexts: string[] = [];
 
-  const repoBlock = config.repoKnowledge
-    ? `\n<repository name="${config.name}" url="${config.repoUrl ?? 'local'}">\n${config.repoKnowledge}\n</repository>\n`
-    : '';
-  const systemContent = config.systemPrompt + repoBlock + buildTeamFactsBlock(config.teamFacts);
-
-  // Route to Claude Agent SDK if selected — gives file editing, bash, etc.
-  if (config.providerId === 'claude-agent-sdk') {
-    return runAgentWithSdk(config, systemContent, onProgress);
-  }
+  const systemContent = config.systemPrompt + buildTeamFactsBlock(config.teamFacts);
 
   const providerConfig = readConfig().providers.find((p) => p.id === config.providerId);
   const providerType = providerConfig?.type ?? 'openai';
@@ -276,17 +180,14 @@ export async function runAgent(config: AgentRunConfig, onProgress?: ProgressCall
       totalInputTokens += result.inputTokens;
       totalOutputTokens += result.outputTokens;
 
-      if (result.content) {
-        allAssistantTexts.push(result.content);
-      }
+      if (result.content) allAssistantTexts.push(result.content);
 
       onProgress?.({ type: 'turn', agentId: config.agentId, turn, message: result.content });
 
+      // No tool calls → agent is done
       if (result.toolCalls.length === 0) {
-        // Agent is done
         const facts = extractFacts(allAssistantTexts.join('\n'), config.agentId);
         facts.forEach((fact) => onProgress?.({ type: 'fact', agentId: config.agentId, fact }));
-
         return {
           agentId: config.agentId,
           output: result.content,
@@ -300,42 +201,31 @@ export async function runAgent(config: AgentRunConfig, onProgress?: ProgressCall
 
       // Handle tool calls
       if (providerType === 'anthropic') {
-        // Append assistant message with tool_use blocks
         const assistantContent: LlmMessage['content'] = [];
-        if (result.content) {
-          assistantContent.push({ type: 'text', text: result.content });
-        }
+        if (result.content) assistantContent.push({ type: 'text', text: result.content });
         for (const tc of result.toolCalls) {
           assistantContent.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.args });
         }
         messages.push({ role: 'assistant', content: assistantContent });
 
-        // Execute tools and build tool results
         const toolResults: Array<{ type: string; tool_use_id: string; content: string }> = [];
         for (const tc of result.toolCalls) {
           onProgress?.({ type: 'tool_call', agentId: config.agentId, tool: tc.name, args: tc.args });
           try {
             const toolResult = await mcpManager.callTool(tc.serverId, tc.name, tc.args);
-            const resultText = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
-            toolResults.push({ type: 'tool_result', tool_use_id: tc.id, content: resultText });
+            toolResults.push({ type: 'tool_result', tool_use_id: tc.id, content: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult) });
           } catch (err) {
             toolResults.push({ type: 'tool_result', tool_use_id: tc.id, content: `Error: ${err instanceof Error ? err.message : String(err)}` });
           }
         }
         messages.push({ role: 'user', content: toolResults });
       } else {
-        // OpenAI format
-        messages.push({
-          role: 'assistant',
-          content: result.content || '',
-        });
-
+        messages.push({ role: 'assistant', content: result.content || '' });
         for (const tc of result.toolCalls) {
           onProgress?.({ type: 'tool_call', agentId: config.agentId, tool: tc.name, args: tc.args });
           try {
             const toolResult = await mcpManager.callTool(tc.serverId, tc.name, tc.args);
-            const resultText = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
-            messages.push({ role: 'tool', content: resultText });
+            messages.push({ role: 'tool', content: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult) });
           } catch (err) {
             messages.push({ role: 'tool', content: `Error: ${err instanceof Error ? err.message : String(err)}` });
           }

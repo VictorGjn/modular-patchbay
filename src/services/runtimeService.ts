@@ -25,36 +25,21 @@ async function parseSSEStream(
   }
 }
 
-/* ── Runtime Service ── */
+/* ── Run Team ── */
 
 export interface RunTeamConfig {
   teamId: string;
-  agents: { agentId: string; name: string; systemPrompt: string; repoUrl?: string; repoRef?: string }[];
-  featureSpec: string;
-  contractFacts: ExtractedFact[];
-  providerId: string;
-  model: string;
-  maxTurns?: number;
-}
-
-interface ExtractContractsResponse {
-  status: 'ok' | 'error';
-  data?: {
-    text: string;
-    facts: ExtractedFact[];
-  };
-  error?: string;
-}
-
-export interface RunAgentConfig {
-  agentId: string;
-  name: string;
   systemPrompt: string;
-  featureSpec: string;
-  facts: ExtractedFact[];
+  task: string;
+  agents: Array<{
+    agentId: string;
+    name: string;
+    rolePrompt?: string;
+  }>;
   providerId: string;
   model: string;
   maxTurns?: number;
+  tools?: Array<{ serverId: string; name: string; description?: string; inputSchema?: unknown }>;
 }
 
 export function runTeam(config: RunTeamConfig): AbortController {
@@ -64,27 +49,20 @@ export function runTeam(config: RunTeamConfig): AbortController {
   store.startRun(
     config.agents.map((a) => ({ agentId: a.agentId, name: a.name })),
     config.teamId,
-    config.featureSpec,
   );
 
   const payload = {
     teamId: config.teamId,
-    featureSpec: config.featureSpec,
+    systemPrompt: config.systemPrompt,
+    task: config.task,
     providerId: config.providerId,
     model: config.model,
-    extractContracts: false,
     agents: config.agents.map((agent) => ({
       agentId: agent.agentId,
       name: agent.name,
-      systemPrompt: agent.systemPrompt,
-      task: config.featureSpec,
-      providerId: config.providerId,
-      model: config.model,
-      teamFacts: config.contractFacts,
-      maxTurns: config.maxTurns,
-      repoUrl: agent.repoUrl,
-      repoRef: agent.repoRef,
+      rolePrompt: agent.rolePrompt,
     })),
+    tools: config.tools,
   };
 
   fetch(`${API_BASE}/runtime/run-team`, {
@@ -112,9 +90,7 @@ export function runTeam(config: RunTeamConfig): AbortController {
             return true;
           }
           handleRuntimeEvent(event);
-        } catch {
-          // skip malformed events
-        }
+        } catch { /* skip malformed */ }
       });
 
       if (!hasError && useRuntimeStore.getState().status !== 'error') {
@@ -123,27 +99,45 @@ export function runTeam(config: RunTeamConfig): AbortController {
     })
     .catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
-      const msg = err instanceof Error ? err.message : String(err);
-      useRuntimeStore.getState().setStatus('error', msg);
+      useRuntimeStore.getState().setStatus('error', err instanceof Error ? err.message : String(err));
     });
 
   return controller;
+}
+
+/* ── Run Single Agent ── */
+
+export interface RunAgentConfig {
+  agentId: string;
+  name: string;
+  systemPrompt: string;
+  task: string;
+  providerId: string;
+  model: string;
+  maxTurns?: number;
+  tools?: Array<{ serverId: string; name: string; description?: string; inputSchema?: unknown }>;
 }
 
 export function runAgent(config: RunAgentConfig): AbortController {
   const controller = new AbortController();
   const store = useRuntimeStore.getState();
 
-  store.startRun(
-    [{ agentId: config.agentId, name: config.name }],
-    undefined,
-    config.featureSpec,
-  );
+  store.startRun([{ agentId: config.agentId, name: config.name }]);
 
   fetch(`${API_BASE}/runtime/run-agent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(config),
+    body: JSON.stringify({
+      agentId: config.agentId,
+      name: config.name,
+      systemPrompt: config.systemPrompt,
+      task: config.task,
+      providerId: config.providerId,
+      model: config.model,
+      teamFacts: [],
+      maxTurns: config.maxTurns ?? 10,
+      tools: config.tools,
+    }),
     signal: controller.signal,
   })
     .then(async (res) => {
@@ -156,8 +150,7 @@ export function runAgent(config: RunAgentConfig): AbortController {
 
       await parseSSEStream(reader, (data) => {
         try {
-          const event = JSON.parse(data);
-          handleRuntimeEvent(event);
+          handleRuntimeEvent(JSON.parse(data));
         } catch { /* skip malformed */ }
       });
 
@@ -165,42 +158,10 @@ export function runAgent(config: RunAgentConfig): AbortController {
     })
     .catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
-      const msg = err instanceof Error ? err.message : String(err);
-      useRuntimeStore.getState().setStatus('error', msg);
+      useRuntimeStore.getState().setStatus('error', err instanceof Error ? err.message : String(err));
     });
 
   return controller;
-}
-
-export async function extractContracts(
-  featureSpec: string,
-  providerId: string,
-  model: string,
-): Promise<ExtractedFact[]> {
-  useRuntimeStore.getState().setStatus('extracting_contracts');
-
-  const res = await fetch(`${API_BASE}/runtime/extract-contracts`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ featureSpec, providerId, model }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    useRuntimeStore.getState().setStatus('error', `Extract error ${res.status}`);
-    throw new Error(`Extract error ${res.status}: ${body || res.statusText}`);
-  }
-
-  const json = await res.json() as ExtractContractsResponse;
-  const facts = json.data?.facts ?? [];
-  const store = useRuntimeStore.getState();
-
-  for (const fact of facts) {
-    store.addFact(fact, 'contract');
-  }
-
-  store.setStatus('idle');
-  return facts;
 }
 
 /* ── Event Handler ── */
@@ -233,9 +194,7 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
 
     case 'fact':
       if (event.fact) {
-        if (event.agentId) {
-          store.addFact(event.fact, { agentId: event.agentId });
-        }
+        if (event.agentId) store.addFact(event.fact, { agentId: event.agentId });
         store.addFact(event.fact, 'shared');
       }
       break;
@@ -253,10 +212,7 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
 
     case 'done':
       if (event.agentId) {
-        store.updateAgent(event.agentId, {
-          status: 'completed',
-          output: event.result,
-        });
+        store.updateAgent(event.agentId, { status: 'completed', output: event.result });
       }
       break;
   }

@@ -30,20 +30,18 @@ export interface RuntimeAgentState {
 export interface RuntimeRun {
   id: string;
   teamId?: string;
-  status: 'idle' | 'extracting_contracts' | 'running' | 'completed' | 'error';
+  status: 'idle' | 'running' | 'completed' | 'error';
   agents: RuntimeAgentState[];
   sharedFacts: ExtractedFact[];
-  contractFacts: ExtractedFact[];
-  featureSpec?: string;
   startedAt?: number;
   completedAt?: number;
   error?: string;
 }
 
 export interface RuntimeStore extends RuntimeRun {
-  startRun: (agents: { agentId: string; name: string }[], teamId?: string, featureSpec?: string) => void;
+  startRun: (agents: { agentId: string; name: string }[], teamId?: string) => void;
   updateAgent: (agentId: string, patch: Partial<RuntimeAgentState>) => void;
-  addFact: (fact: ExtractedFact, target: 'shared' | 'contract' | { agentId: string }) => void;
+  addFact: (fact: ExtractedFact, target: 'shared' | { agentId: string }) => void;
   setStatus: (status: RuntimeRun['status'], error?: string) => void;
   reset: () => void;
 }
@@ -57,13 +55,12 @@ const initialState: RuntimeRun = {
   status: 'idle',
   agents: [],
   sharedFacts: [],
-  contractFacts: [],
 };
 
 export const useRuntimeStore = create<RuntimeStore>((set) => ({
   ...initialState,
 
-  startRun: (agents, teamId, featureSpec) =>
+  startRun: (agents, teamId) =>
     set({
       id: genRunId(),
       teamId,
@@ -77,8 +74,6 @@ export const useRuntimeStore = create<RuntimeStore>((set) => ({
         toolCalls: [],
       })),
       sharedFacts: [],
-      contractFacts: [],
-      featureSpec,
       startedAt: Date.now(),
       completedAt: undefined,
       error: undefined,
@@ -94,7 +89,6 @@ export const useRuntimeStore = create<RuntimeStore>((set) => ({
   addFact: (fact, target) =>
     set((s) => {
       if (target === 'shared') return { sharedFacts: [...s.sharedFacts, fact] };
-      if (target === 'contract') return { contractFacts: [...s.contractFacts, fact] };
       return {
         agents: s.agents.map((a) =>
           a.agentId === target.agentId
