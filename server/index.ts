@@ -71,6 +71,7 @@ export function createApp() {
 
   // API routes
   app.use('/api/providers', providerRoutes);
+  app.use('/api/mcp/oauth', mcpOAuthRoutes(4800));
   app.use('/api/mcp', mcpRoutes);
   app.use('/api/llm', llmRoutes);
   app.use('/api/agent-sdk', agentSdkRoutes);
@@ -86,7 +87,6 @@ export function createApp() {
   app.use('/api/capabilities', capabilitiesRoutes);
   app.use('/api/qualification', qualificationRoutes);
   app.use('/api/agents', agentRoutes);
-  app.use('/api/mcp/oauth', mcpOAuthRoutes(4800));
 
   // Global error handler — prevent server crashes
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

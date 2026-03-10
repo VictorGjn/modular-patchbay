@@ -181,23 +181,7 @@ export function Marketplace() {
     return () => { controller.abort(); clearTimeout(timer); };
   }, [activeTab, filter, showMarketplace]);
 
-  if (!showMarketplace) return null;
-
-  const matchesFilter = (name: string, desc: string) => {
-    if (!filter) return true;
-    const f = filter.toLowerCase();
-    return name.toLowerCase().includes(f) || desc.toLowerCase().includes(f);
-  };
-
-  const filteredSkills = registrySkills.filter((s) =>
-    matchesFilter(s.name, s.description) && (category === 'all' || s.category === category)
-  );
-  const filteredMcp = registryMcpServers.filter((s) =>
-    matchesFilter(s.name, s.description) && (category === 'all' || s.category === category)
-  );
-  const filteredPresets = REGISTRY_PRESETS.filter((p) => matchesFilter(p.name, p.description));
-
-  // Responsive grid columns calculation
+  // Responsive grid columns calculation — hooks must be before any early return
   const getGridColumns = () => {
     if (typeof window === 'undefined') return 4;
     const width = window.innerWidth;
@@ -213,6 +197,22 @@ export function Marketplace() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  if (!showMarketplace) return null;
+
+  const matchesFilter = (name: string, desc: string) => {
+    if (!filter) return true;
+    const f = filter.toLowerCase();
+    return name.toLowerCase().includes(f) || desc.toLowerCase().includes(f);
+  };
+
+  const filteredSkills = registrySkills.filter((s) =>
+    matchesFilter(s.name, s.description) && (category === 'all' || s.category === category)
+  );
+  const filteredMcp = registryMcpServers.filter((s) =>
+    matchesFilter(s.name, s.description) && (category === 'all' || s.category === category)
+  );
+  const filteredPresets = REGISTRY_PRESETS.filter((p) => matchesFilter(p.name, p.description));
 
   const skillGridStyle: CSSProperties = {
     display: 'grid',
