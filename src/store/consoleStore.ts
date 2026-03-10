@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { type ChannelConfig, type Preset, PRESETS, DEPTH_LEVELS, type OutputFormat, type KnowledgeType, detectOutputFormat, type McpServer, type Skill, type AgentDef, type AgentConfig, type PlanningMode, DEFAULT_AGENT_CONFIG, type Connector, classifyKnowledge } from './knowledgeBase';
 import { REGISTRY_SKILLS, REGISTRY_MCP_SERVERS, type RegistrySkill, type RegistryMcp, type Runtime, type InstallScope } from './registry';
 import type { FileContent } from './knowledgeStore';
@@ -323,7 +324,9 @@ function getEffectiveTokens(ch: ChannelConfig): number {
   return Math.round(ch.baseTokens * level.pct);
 }
 
-export const useConsoleStore = create<ConsoleState>((set, get) => ({
+export const useConsoleStore = create<ConsoleState>()(
+  persist(
+    (set, get) => ({
   channels: [],
   prompt: '',
   selectedModel: 'claude-opus-4',
@@ -1187,7 +1190,26 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       connectors: ctx.connectors,
     });
   },
-}));
+    }),
+    {
+      name: 'modular-console',
+      partialize: (state) => ({
+        channels: state.channels,
+        mcpServers: state.mcpServers,
+        skills: state.skills,
+        connectors: state.connectors,
+        agentMeta: state.agentMeta,
+        instructionState: state.instructionState,
+        workflowSteps: state.workflowSteps,
+        selectedModel: state.selectedModel,
+        outputFormat: state.outputFormat,
+        tokenBudget: state.tokenBudget,
+        agentConfig: state.agentConfig,
+      }),
+      version: 1,
+    }
+  )
+);
 
 export { getEffectiveTokens };
 
