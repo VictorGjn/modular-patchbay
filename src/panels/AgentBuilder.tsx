@@ -642,17 +642,42 @@ export function AgentBuilder() {
         <SectionHeader label="Constraints" color="#2ecc71" collapsed={!constraintsOpen} onToggle={() => setConstraintsOpen(!constraintsOpen)} t={t}
           right={<GenerateBtn loading={refining === 'constraints'} onClick={() => {}} />} />
         {constraintsOpen && (
-          <div className="px-5 py-4 flex flex-col gap-2">
-            <Toggle checked={constraints.neverMakeUp} onChange={v => updateInstruction({ constraints: { ...constraints, neverMakeUp: v } })}
-              label="Never make up data — cite sources or say 'I don't know'" />
-            <Toggle checked={constraints.askBeforeActions} onChange={v => updateInstruction({ constraints: { ...constraints, askBeforeActions: v } })}
-              label="Ask before taking destructive actions" />
-            <Toggle checked={constraints.stayInScope} onChange={v => updateInstruction({ constraints: { ...constraints, stayInScope: v } })}
-              label="Stay within defined scope" />
-            <Toggle checked={constraints.useOnlyTools} onChange={v => updateInstruction({ constraints: { ...constraints, useOnlyTools: v } })}
-              label="Use only provided tools" />
-            <Toggle checked={constraints.limitWords} onChange={v => updateInstruction({ constraints: { ...constraints, limitWords: v } })}
-              label={`Limit responses to ${constraints.wordLimit} words`} />
+          <div className="px-5 py-4 flex flex-col gap-3">
+            {/* Safety Profile */}
+            <div className="flex items-center gap-3">
+              <span className="text-[13px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Safety</span>
+              <div className="flex gap-1">
+                {([
+                  { id: 'autonomous', label: 'Autonomous', desc: 'No guardrails', apply: { neverMakeUp: false, askBeforeActions: false, stayInScope: false, useOnlyTools: false, limitWords: false } },
+                  { id: 'balanced', label: 'Balanced', desc: 'Cite sources, stay in scope', apply: { neverMakeUp: true, askBeforeActions: false, stayInScope: true, useOnlyTools: false, limitWords: false } },
+                  { id: 'careful', label: 'Careful', desc: 'All guardrails on', apply: { neverMakeUp: true, askBeforeActions: true, stayInScope: true, useOnlyTools: true, limitWords: false } },
+                ] as const).map(profile => {
+                  const isActive = profile.id === 'careful'
+                    ? constraints.neverMakeUp && constraints.askBeforeActions && constraints.stayInScope && constraints.useOnlyTools
+                    : profile.id === 'balanced'
+                    ? constraints.neverMakeUp && constraints.stayInScope && !constraints.askBeforeActions && !constraints.useOnlyTools
+                    : !constraints.neverMakeUp && !constraints.askBeforeActions && !constraints.stayInScope && !constraints.useOnlyTools;
+                  return (
+                    <Tooltip key={profile.id} text={profile.desc}>
+                      <button
+                        type="button"
+                        onClick={() => updateInstruction({ constraints: { ...constraints, ...profile.apply } })}
+                        className="text-[13px] px-3 py-1.5 rounded-md cursor-pointer border-none font-medium"
+                        style={{
+                          background: isActive ? '#2ecc7120' : 'transparent',
+                          color: isActive ? '#2ecc71' : t.textDim,
+                          border: `1px solid ${isActive ? '#2ecc7140' : t.border}`,
+                          fontFamily: "'Geist Mono', monospace",
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {profile.label}
+                      </button>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            </div>
             <div>
               <span className="text-[13px] tracking-wider uppercase font-semibold block mb-1.5" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Custom Rules</span>
               {constraints.customConstraints.split('\n').filter(Boolean).map((rule, i) => (
