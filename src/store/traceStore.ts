@@ -11,7 +11,8 @@ export type TraceEventKind =
   | 'fact_extracted'  // Memory fact extracted from conversation
   | 'memory_recall'   // Memory pre-recall: facts injected into context
   | 'memory_write'    // Memory post-write: facts extracted from response
-  | 'handoff';        // Cross-agent handoff
+  | 'handoff'         // Cross-agent handoff
+  | 'provenance';     // Provenance chain tracking
 
 export interface TraceEvent {
   id: string;
@@ -55,6 +56,26 @@ export interface TraceEvent {
   fromAgentId?: string;
   toAgentId?: string;
   sharedFactIds?: string[];
+
+  // Provenance
+  provenanceSources?: Array<{
+    path: string;
+    type: string;
+    sections: number;
+    depth: string;
+    chunkCount: number;
+  }>;
+  provenanceDerivations?: Array<{
+    from: string;
+    method: string;
+    to: string;
+  }>;
+  conflictResolutions?: Array<{
+    sources: string[];
+    resolvedTo: string;
+    reason: string;
+    confidence: number;
+  }>;
 }
 
 export interface ConversationTrace {

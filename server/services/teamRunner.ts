@@ -1,5 +1,4 @@
 import { runAgent } from './agentRunner.js';
-import { extractFacts } from './factExtractor.js';
 import type { AgentRunConfig, AgentRunResult, ProgressCallback } from './agentRunner.js';
 import type { ExtractedFact } from './factExtractor.js';
 

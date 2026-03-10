@@ -407,5 +407,188 @@ export function agentDirectoryToState(parsed: ParsedAgentDirectory): Record<stri
     };
   }
 
+  // Parse instructions and persona from markdown files
+  if (parsed.soul || parsed.instructions) {
+    const instructionState = {
+      persona: '',
+      tone: 'neutral' as const,
+      expertise: 3,
+      constraints: {
+        neverMakeUp: false,
+        askBeforeActions: false,
+        stayInScope: false,
+        useOnlyTools: false,
+        limitWords: false,
+        wordLimit: 500,
+        customConstraints: '',
+        scopeDefinition: '',
+      },
+      objectives: {
+        primary: '',
+        successCriteria: [] as string[],
+        failureModes: [] as string[],
+      },
+      rawPrompt: '',
+      autoSync: false,
+    };
+
+    // Parse SOUL.md for persona
+    if (parsed.soul) {
+      const soulLines = parsed.soul.split('\n');
+      let currentSection = '';
+      let contentBuffer = '';
+
+      for (const line of soulLines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('## ')) {
+          // Process previous section
+          if (currentSection === 'persona' && contentBuffer.trim()) {
+            instructionState.persona = contentBuffer.trim();
+          }
+          currentSection = trimmed.toLowerCase().includes('persona') ? 'persona' : '';
+          contentBuffer = '';
+        } else if (!trimmed.startsWith('#') && trimmed) {
+          if (currentSection || !instructionState.persona) {
+            contentBuffer += line + '\n';
+            if (!instructionState.persona && !currentSection) {
+              instructionState.persona = contentBuffer.trim();
+            }
+          }
+        }
+      }
+      if (currentSection === 'persona' && contentBuffer.trim()) {
+        instructionState.persona = contentBuffer.trim();
+      }
+    }
+
+    // Parse INSTRUCTIONS.md for objectives and constraints
+    if (parsed.instructions) {
+      const instLines = parsed.instructions.split('\n');
+      let currentSection = '';
+      let inList = false;
+      let currentList: string[] = [];
+
+      for (const line of instLines) {
+        const trimmed = line.trim();
+        
+        if (trimmed.startsWith('## ')) {
+          // Process previous section
+          if (currentSection === 'successCriteria' && currentList.length > 0) {
+            instructionState.objectives.successCriteria = currentList;
+          } else if (currentSection === 'failureModes' && currentList.length > 0) {
+            instructionState.objectives.failureModes = currentList;
+          }
+          
+          const sectionName = trimmed.toLowerCase();
+          if (sectionName.includes('objective')) {
+            currentSection = 'objective';
+          } else if (sectionName.includes('constraint')) {
+            currentSection = 'constraints';
+          }
+          inList = false;
+          currentList = [];
+        } else if (trimmed.startsWith('### ')) {
+          const subSection = trimmed.toLowerCase();
+          if (subSection.includes('success')) {
+            currentSection = 'successCriteria';
+            inList = true;
+            currentList = [];
+          } else if (subSection.includes('failure')) {
+            currentSection = 'failureModes';
+            inList = true;
+            currentList = [];
+          }
+        } else if (trimmed.startsWith('- ')) {
+          if (inList) {
+            currentList.push(trimmed.substring(2));
+          } else if (currentSection === 'constraints') {
+            const constraintText = trimmed.substring(2);
+            if (constraintText.toLowerCase().includes('never fabricate') || constraintText.toLowerCase().includes('never make up')) {
+              instructionState.constraints.neverMakeUp = true;
+            }
+            if (constraintText.toLowerCase().includes('ask') && constraintText.toLowerCase().includes('permission')) {
+              instructionState.constraints.askBeforeActions = true;
+            }
+            if (constraintText.toLowerCase().includes('scope')) {
+              instructionState.constraints.stayInScope = true;
+            }
+            if (constraintText.toLowerCase().includes('only use tools')) {
+              instructionState.constraints.useOnlyTools = true;
+            }
+            if (constraintText.toLowerCase().includes('word') && /\d+/.test(constraintText)) {
+              instructionState.constraints.limitWords = true;
+              const match = constraintText.match(/(\d+)/);
+              if (match) {
+                instructionState.constraints.wordLimit = parseInt(match[1]);
+              }
+            }
+          }
+        } else if (currentSection === 'objective' && trimmed && !trimmed.startsWith('#')) {
+          if (!instructionState.objectives.primary) {
+            instructionState.objectives.primary = trimmed;
+          }
+        }
+      }
+
+      // Process final section
+      if (currentSection === 'successCriteria' && currentList.length > 0) {
+        instructionState.objectives.successCriteria = currentList;
+      } else if (currentSection === 'failureModes' && currentList.length > 0) {
+        instructionState.objectives.failureModes = currentList;
+      }
+    }
+
+    state.instructionState = instructionState;
+  }
+
   return state;
+}
+
+// ── Import from ZIP ──
+
+export async function importAgentFromZip(file: File): Promise<void> {
+  try {
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    
+    // Load ZIP file
+    const zipContent = await zip.loadAsync(file);
+    
+    // Extract files
+    const files: Record<string, string> = {};
+    const expectedFiles = ['agent.yaml', 'SOUL.md', 'INSTRUCTIONS.md', 'TOOLS.md', 'KNOWLEDGE.md', 'MEMORY.md'];
+    
+    for (const [path, zipEntry] of Object.entries(zipContent.files)) {
+      if (zipEntry.dir) continue;
+      
+      const fileName = path.split('/').pop() || '';
+      if (expectedFiles.includes(fileName)) {
+        try {
+          files[fileName] = await zipEntry.async('text');
+        } catch (err) {
+          console.warn(`Failed to read ${fileName}:`, err);
+        }
+      }
+    }
+    
+    // Require at least agent.yaml to be present
+    if (!files['agent.yaml']) {
+      throw new Error('agent.yaml is required but not found in the ZIP file');
+    }
+    
+    // Parse the directory
+    const parsed = parseAgentDirectory(files);
+    
+    // Convert to store state
+    const state = agentDirectoryToState(parsed);
+    
+    // Get the console store and restore state
+    const { useConsoleStore } = await import('../store/consoleStore');
+    const store = useConsoleStore.getState();
+    store.restoreFullState(state);
+    
+  } catch (error) {
+    console.error('Import failed:', error);
+    throw error instanceof Error ? error : new Error('Unknown import error');
+  }
 }

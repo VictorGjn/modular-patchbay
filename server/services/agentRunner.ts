@@ -83,6 +83,10 @@ async function callAgentSdk(
   messages: LlmMessage[],
   model: string,
   _tools?: ToolDef[],
+  onProgress?: ProgressCallback,
+  agentId?: string,
+  maxTurns?: number,
+  mcpServers?: Record<string, { command: string; args?: string[] }>,
 ): Promise<{ content: string; toolCalls: Array<{ id: string; name: string; args: Record<string, unknown>; serverId: string }>; inputTokens: number; outputTokens: number }> {
   const { query } = await import('@anthropic-ai/claude-agent-sdk');
 
@@ -93,6 +97,7 @@ async function callAgentSdk(
   const texts: string[] = [];
   let inputTokens = 0;
   let outputTokens = 0;
+  let turn = 0;
 
   for await (const message of query({
     prompt,
@@ -100,20 +105,57 @@ async function callAgentSdk(
       model: model || undefined,
       allowedTools: ['Read', 'Edit', 'Bash', 'Glob', 'Grep', 'WebSearch', 'WebFetch'],
       permissionMode: 'acceptEdits',
-      maxTurns: 10,
+      maxTurns: maxTurns || 10,
       systemPrompt: typeof systemMsg?.content === 'string' ? systemMsg.content : undefined,
+      ...(mcpServers ? { mcpServers } : {}),
     },
   })) {
     if (message.type === 'assistant' && message.message?.content) {
-      for (const block of (message as { type: string; message: { content: Array<{ type: string; text?: string }> } }).message.content) {
-        if (block.type === 'text' && block.text) {
-          texts.push(block.text);
+      const content = message.message.content;
+      let textContent = '';
+      
+      // Process content blocks
+      for (const block of content) {
+        if (block.type === 'text' && (block as { text?: string }).text) {
+          const text = (block as { text: string }).text;
+          texts.push(text);
+          textContent += text;
+        } else if (block.type === 'tool_use' && (block as { name?: string; input?: unknown }).name) {
+          const toolBlock = block as { name: string; input: unknown };
+          // Notify progress callback about tool use
+          if (onProgress && agentId) {
+            onProgress({
+              type: 'tool_call',
+              agentId,
+              tool: toolBlock.name,
+              args: toolBlock.input as Record<string, unknown>,
+            });
+          }
         }
       }
+
+      // Extract usage information
       const usage = (message as { message?: { usage?: { input_tokens?: number; output_tokens?: number } } }).message?.usage;
       if (usage) {
         inputTokens += usage.input_tokens ?? 0;
         outputTokens += usage.output_tokens ?? 0;
+      }
+
+      // Notify progress callback about turn completion if we have text content
+      if (textContent && onProgress && agentId) {
+        onProgress({
+          type: 'turn',
+          agentId,
+          turn: turn++,
+          message: textContent,
+        });
+      }
+    } else if (message.type === 'result') {
+      // Handle result messages (success/error/etc)
+      const resultMsg = message as { type: string; subtype: string };
+      if (resultMsg.subtype === 'error' && onProgress && agentId) {
+        // For now, we'll let the main error handling catch this
+        // Could potentially emit an error event here
       }
     }
   }
@@ -129,13 +171,25 @@ async function callLlm(
   providerId: string,
   model: string,
   tools?: ToolDef[],
+  onProgress?: ProgressCallback,
+  agentId?: string,
+  maxTurns?: number,
 ): Promise<{ content: string; toolCalls: Array<{ id: string; name: string; args: Record<string, unknown>; serverId: string }>; inputTokens: number; outputTokens: number }> {
   const config = readConfig();
   const provider = config.providers.find((p) => p.id === providerId);
   if (!provider) throw new Error(`Provider "${providerId}" not found`);
 
   if (provider.authMethod === 'claude-agent-sdk') {
-    return callAgentSdk(messages, model, tools);
+    // Build MCP servers config from global config
+    const mcpServers: Record<string, { command: string; args?: string[] }> = {};
+    config.mcpServers?.forEach((server) => {
+      mcpServers[server.id] = {
+        command: server.command,
+        args: server.args,
+      };
+    });
+
+    return callAgentSdk(messages, model, tools, onProgress, agentId, maxTurns, mcpServers);
   }
 
   if (!provider.baseUrl) throw new Error(`Provider "${providerId}" has no baseUrl`);
@@ -226,13 +280,16 @@ export async function runAgent(config: AgentRunConfig, onProgress?: ProgressCall
 
   try {
     for (let turn = 0; turn < maxTurns; turn++) {
-      const result = await callLlm(messages, config.providerId, config.model, config.tools);
+      const result = await callLlm(messages, config.providerId, config.model, config.tools, onProgress, config.agentId, maxTurns);
       totalInputTokens += result.inputTokens;
       totalOutputTokens += result.outputTokens;
 
       if (result.content) allAssistantTexts.push(result.content);
 
-      onProgress?.({ type: 'turn', agentId: config.agentId, turn, message: result.content });
+      // Only emit turn progress for non-Agent SDK providers (Agent SDK handles its own progress)
+      if (providerConfig?.authMethod !== 'claude-agent-sdk') {
+        onProgress?.({ type: 'turn', agentId: config.agentId, turn, message: result.content });
+      }
 
       // No tool calls → agent is done
       if (result.toolCalls.length === 0) {
@@ -260,7 +317,10 @@ export async function runAgent(config: AgentRunConfig, onProgress?: ProgressCall
 
         const toolResults: Array<{ type: string; tool_use_id: string; content: string }> = [];
         for (const tc of result.toolCalls) {
-          onProgress?.({ type: 'tool_call', agentId: config.agentId, tool: tc.name, args: tc.args });
+          // Only emit tool call progress for non-Agent SDK providers (Agent SDK handles its own progress)
+          if (providerConfig?.authMethod !== 'claude-agent-sdk') {
+            onProgress?.({ type: 'tool_call', agentId: config.agentId, tool: tc.name, args: tc.args });
+          }
           try {
             const toolResult = await mcpManager.callTool(tc.serverId, tc.name, tc.args);
             toolResults.push({ type: 'tool_result', tool_use_id: tc.id, content: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult) });
@@ -272,7 +332,10 @@ export async function runAgent(config: AgentRunConfig, onProgress?: ProgressCall
       } else {
         messages.push({ role: 'assistant', content: result.content || '' });
         for (const tc of result.toolCalls) {
-          onProgress?.({ type: 'tool_call', agentId: config.agentId, tool: tc.name, args: tc.args });
+          // Only emit tool call progress for non-Agent SDK providers (Agent SDK handles its own progress)
+          if (providerConfig?.authMethod !== 'claude-agent-sdk') {
+            onProgress?.({ type: 'tool_call', agentId: config.agentId, tool: tc.name, args: tc.args });
+          }
           try {
             const toolResult = await mcpManager.callTool(tc.serverId, tc.name, tc.args);
             messages.push({ role: 'tool', content: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult) });

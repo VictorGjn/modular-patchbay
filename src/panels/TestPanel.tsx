@@ -3,9 +3,10 @@ import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useConversationStore } from '../store/conversationStore';
 import { exportForTarget, downloadAgentFile } from '../utils/agentExport';
+import { importAgentFromZip } from '../utils/agentDirectory';
 import { runPipelineChat, resolveProviderAndModel } from '../services/pipelineChat';
 import {
-  Send, Download, Check, FolderOpen,
+  Send, Download, Check, FolderOpen, Upload, AlertCircle,
   FileText, FileCode, Zap, ChevronDown, ChevronRight, Users, Plus, X, Play, Square,
 } from 'lucide-react';
 import { TraceViewer } from './TraceViewer';
@@ -537,6 +538,10 @@ function TeamSection() {
 function ExportSection() {
   const t = useTheme();
   const [copied, setCopied] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getExportConfig = useCallback(() => {
     const store = useConsoleStore.getState();
@@ -589,6 +594,72 @@ function ExportSection() {
     } catch {}
   }, [getExportConfig]);
 
+  const handleImportFile = useCallback(async (file: File) => {
+    if (!file.name.endsWith('.zip')) {
+      setImportError('Please select a ZIP file containing an agent directory');
+      return;
+    }
+
+    setImporting(true);
+    setImportError(null);
+
+    try {
+      await importAgentFromZip(file);
+      setCopied('import');
+      setTimeout(() => setCopied(null), 2000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown import error';
+      setImportError(message);
+      setTimeout(() => setImportError(null), 5000);
+    } finally {
+      setImporting(false);
+    }
+  }, []);
+
+  const handleFileSelect = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleImportFile(file);
+    }
+    // Reset input value to allow re-importing the same file
+    if (event.target) {
+      event.target.value = '';
+    }
+  }, [handleImportFile]);
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragOver(false);
+
+    const files = Array.from(event.dataTransfer.files);
+    const zipFile = files.find(file => file.name.endsWith('.zip'));
+
+    if (!zipFile) {
+      setImportError('Please drop a ZIP file containing an agent directory');
+      setTimeout(() => setImportError(null), 5000);
+      return;
+    }
+
+    handleImportFile(zipFile);
+  }, [handleImportFile]);
+
   const targets = [
     { id: 'dir', icon: FolderOpen, label: 'Agent Directory', fmt: '.zip', primary: true },
     { id: 'md', icon: FileText, label: 'Claude Code / .claude', fmt: '.md', primary: false },
@@ -597,32 +668,101 @@ function ExportSection() {
   ] as const;
 
   return (
-    <div className="px-4 py-3" style={{ borderTop: `1px solid ${t.border}` }}>
-      <div className="text-[12px] font-bold tracking-[0.08em] uppercase mb-2.5" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>Export to</div>
-      <div className="flex flex-col gap-1.5">
-        {targets.map(target => {
-          const Icon = target.icon;
-          const onClick = target.id === 'dir' ? handleDirectoryExport : () => handleExport(target.id as 'md' | 'yaml' | 'json');
-          return (
-            <button key={target.id} type="button" aria-label={`Export as ${target.fmt}`} onClick={onClick}
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer w-full text-left min-h-[44px] motion-reduce:transition-none"
-              style={{
-                background: target.primary ? '#FE500010' : (t.isDark ? '#1c1c20' : '#f0f0f5'),
-                border: `1px solid ${target.primary ? '#FE500030' : t.border}`,
-                transition: 'border-color 150ms',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE500040'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#FE500040'; }}
-              onBlur={e => { e.currentTarget.style.borderColor = t.border; }}>
-              <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: t.surfaceElevated }}>
-                {copied === target.id ? <Check size={12} style={{ color: '#00ff88' }} /> : <Icon size={12} style={{ color: t.textDim }} />}
-              </div>
-              <span className="flex-1 text-[13px]" style={{ color: t.textPrimary }}>{target.label}</span>
-              <span className="text-[13px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>{target.fmt}</span>
-            </button>
-          );
-        })}
+    <div 
+      className="px-4 py-3" 
+      style={{ borderTop: `1px solid ${t.border}` }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Import Section */}
+      <div className="mb-4">
+        <div className="text-[12px] font-bold tracking-[0.08em] uppercase mb-2.5" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>Import from</div>
+        
+        {/* Import Button */}
+        <button 
+          type="button" 
+          aria-label="Import agent from ZIP" 
+          onClick={handleFileSelect}
+          disabled={importing}
+          className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer w-full text-left min-h-[44px] motion-reduce:transition-none"
+          style={{
+            background: dragOver ? '#FE500020' : '#FE500010',
+            border: `1px solid ${dragOver ? '#FE500060' : '#FE500030'}`,
+            transition: 'all 150ms',
+            opacity: importing ? 0.6 : 1,
+          }}
+          onMouseEnter={e => { if (!importing) e.currentTarget.style.borderColor = '#FE500040'; }}
+          onMouseLeave={e => { if (!importing) e.currentTarget.style.borderColor = '#FE500030'; }}
+          onFocus={e => { if (!importing) e.currentTarget.style.borderColor = '#FE500040'; }}
+          onBlur={e => { if (!importing) e.currentTarget.style.borderColor = '#FE500030'; }}
+        >
+          <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: t.surfaceElevated }}>
+            {copied === 'import' ? (
+              <Check size={12} style={{ color: '#00ff88' }} />
+            ) : importing ? (
+              <div className="w-3 h-3 border border-t-0 border-l-0" style={{ 
+                borderColor: '#FE5000', 
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+            ) : (
+              <Upload size={12} style={{ color: t.textDim }} />
+            )}
+          </div>
+          <span className="flex-1 text-[13px]" style={{ color: t.textPrimary }}>
+            {dragOver ? 'Drop ZIP file here' : importing ? 'Importing...' : 'Import Agent'}
+          </span>
+          <span className="text-[13px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>.zip</span>
+        </button>
+
+        {/* Error Display */}
+        {importError && (
+          <div className="mt-2 p-2 rounded-lg flex items-start gap-2" style={{ background: '#dc262615', border: '1px solid #dc262630' }}>
+            <AlertCircle size={14} style={{ color: '#dc2626', flexShrink: 0, marginTop: 1 }} />
+            <span className="text-[12px] leading-relaxed" style={{ color: '#dc2626' }}>{importError}</span>
+          </div>
+        )}
+
+        {/* Hidden File Input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".zip"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+          aria-label="Import agent ZIP file"
+        />
+      </div>
+
+      {/* Export Section */}
+      <div>
+        <div className="text-[12px] font-bold tracking-[0.08em] uppercase mb-2.5" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>Export to</div>
+        <div className="flex flex-col gap-1.5">
+          {targets.map(target => {
+            const Icon = target.icon;
+            const onClick = target.id === 'dir' ? handleDirectoryExport : () => handleExport(target.id as 'md' | 'yaml' | 'json');
+            return (
+              <button key={target.id} type="button" aria-label={`Export as ${target.fmt}`} onClick={onClick}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer w-full text-left min-h-[44px] motion-reduce:transition-none"
+                style={{
+                  background: target.primary ? '#FE500010' : (t.isDark ? '#1c1c20' : '#f0f0f5'),
+                  border: `1px solid ${target.primary ? '#FE500030' : t.border}`,
+                  transition: 'border-color 150ms',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE500040'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#FE500040'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = t.border; }}>
+                <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: t.surfaceElevated }}>
+                  {copied === target.id ? <Check size={12} style={{ color: '#00ff88' }} /> : <Icon size={12} style={{ color: t.textDim }} />}
+                </div>
+                <span className="flex-1 text-[13px]" style={{ color: t.textPrimary }}>{target.label}</span>
+                <span className="text-[13px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>{target.fmt}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

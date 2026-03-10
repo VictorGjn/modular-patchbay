@@ -5,6 +5,7 @@ export interface ProviderConfig {
   apiKey: string;
   baseUrl: string;
   accessToken?: string;
+  authMethod?: 'claude-agent-sdk';
 }
 
 export interface McpServerConfig {

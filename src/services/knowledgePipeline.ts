@@ -35,10 +35,17 @@ import {
   type BranchSelection,
 } from './treeNavigator';
 import { API_BASE } from '../config';
+import { 
+  buildProvenanceSummary, 
+  createProvenanceAwareChunks, 
+  resolveConflicts 
+} from './provenanceService';
+import type { ProvenanceSummary } from '../types/provenance';
 
 export interface KnowledgeResult {
   knowledgeBlock: string;
   pipelineResult: PipelineResult | null;
+  provenance: ProvenanceSummary | null;
 }
 
 // ── Provenance metadata helpers ──
@@ -138,7 +145,10 @@ function enhanceWithContrastiveRetrieval(
   pipelineResult: PipelineResult,
   sourceChannels: ChannelConfig[],
   userMessage: string,
-): string {
+): { knowledgeBlock: string; provenance: ProvenanceSummary } {
+  // Build provenance summary
+  const provenance = buildProvenanceSummary(pipelineResult, sourceChannels);
+
   // Check if contrastive retrieval should be activated
   if (!shouldActivateContrastiveRetrieval(userMessage)) {
     // Just add provenance tags to the regular context
@@ -146,7 +156,8 @@ function enhanceWithContrastiveRetrieval(
       .map(s => `${s.name} (${s.type}, ${s.totalTokens} tokens, ${s.indexedNodes} nodes)`)
       .join(', ');
     
-    return `<knowledge sources="${sourceAnnotations}">\n${pipelineResult.context}\n</knowledge>`;
+    const knowledgeBlock = `<knowledge sources="${sourceAnnotations}">\n${pipelineResult.context}\n</knowledge>`;
+    return { knowledgeBlock, provenance };
   }
 
   // Extract chunks with provenance metadata
@@ -157,8 +168,15 @@ function enhanceWithContrastiveRetrieval(
       .map(s => `${s.name} (${s.type}, ${s.totalTokens} tokens, ${s.indexedNodes} nodes)`)
       .join(', ');
     
-    return `<knowledge sources="${sourceAnnotations}">\n${pipelineResult.context}\n</knowledge>`;
+    const knowledgeBlock = `<knowledge sources="${sourceAnnotations}">\n${pipelineResult.context}\n</knowledge>`;
+    return { knowledgeBlock, provenance };
   }
+
+  // Create provenance-aware chunks
+  const provenanceAwareChunks = createProvenanceAwareChunks(chunks);
+  
+  // Resolve any conflicts based on provenance
+  const conflicts = resolveConflicts(provenanceAwareChunks);
 
   // Find contrasting chunks
   const contrastiveResult = findContrastingChunks(chunks, chunks);
@@ -197,6 +215,17 @@ function enhanceWithContrastiveRetrieval(
     knowledgeContent += `<contrasting>\n${contrastingChunks.join('\n\n')}\n</contrasting>`;
   }
   
+  // Add conflict resolution information if conflicts were found
+  if (conflicts.length > 0) {
+    if (knowledgeContent) knowledgeContent += '\n\n';
+    knowledgeContent += '<conflicts_resolved>\n';
+    for (const conflict of conflicts) {
+      knowledgeContent += `Conflict: ${conflict.conflictingChunks.map(c => c.provenance.source).join(' vs ')}\n`;
+      knowledgeContent += `Resolution: ${conflict.resolution.reason}\n\n`;
+    }
+    knowledgeContent += '</conflicts_resolved>';
+  }
+  
   // If no supporting/contrasting structure, fall back to regular format
   if (!knowledgeContent) {
     knowledgeContent = pipelineResult.context;
@@ -206,7 +235,8 @@ function enhanceWithContrastiveRetrieval(
     .map(s => `${s.name} (${s.type}, ${s.totalTokens} tokens, ${s.indexedNodes} nodes)`)
     .join(', ');
 
-  return `<knowledge sources="${sourceAnnotations}">\n${knowledgeContent}\n</knowledge>`;
+  const knowledgeBlock = `<knowledge sources="${sourceAnnotations}">\n${knowledgeContent}\n</knowledge>`;
+  return { knowledgeBlock, provenance };
 }
 
 interface KnowledgePipelineOptions {
@@ -356,6 +386,7 @@ export async function compressKnowledge(
 
   let knowledgeBlock = residualKnowledgeBlock;
   let pipelineResult: PipelineResult | null = null;
+  let provenance: ProvenanceSummary | null = null;
 
   // 2c. Build pipeline sources from indexed content (regular channels only)
   //     Supports three paths: inline content, file-backed tree index, metadata-only fallback
@@ -578,11 +609,16 @@ export async function compressKnowledge(
 
     if (pipelineResult.context.trim()) {
       // Apply contrastive retrieval and provenance enhancement
-      knowledgeBlock = enhanceWithContrastiveRetrieval(
+      const enhancementResult = enhanceWithContrastiveRetrieval(
         pipelineResult,
         regularChannels,
         userMessage,
       );
+      knowledgeBlock = enhancementResult.knowledgeBlock;
+      provenance = enhancementResult.provenance;
+    } else if (pipelineResult) {
+      // Build provenance even if no context content
+      provenance = buildProvenanceSummary(pipelineResult, regularChannels);
     }
   }
 
@@ -591,5 +627,21 @@ export async function compressKnowledge(
     knowledgeBlock = buildKnowledgeFallback(channels);
   }
 
-  return { knowledgeBlock, pipelineResult };
+  // Add provenance tracking to trace store
+  if (provenance) {
+    traceStore.addEvent(traceId, {
+      kind: 'provenance',
+      provenanceSources: provenance.sources.map(source => ({
+        path: source.path,
+        type: source.type,
+        sections: source.sections,
+        depth: source.depth,
+        chunkCount: source.chunkCount || 0,
+      })),
+      provenanceDerivations: provenance.derivations,
+      resultCount: provenance.sources.length,
+    });
+  }
+
+  return { knowledgeBlock, pipelineResult, provenance };
 }
