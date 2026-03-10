@@ -42,6 +42,7 @@ export interface RunTeamConfig {
   model: string;
   maxTurns?: number;
   tools?: Array<{ serverId: string; name: string; description?: string; inputSchema?: unknown }>;
+  isAgentSdk?: boolean;
 }
 
 export function runTeam(config: RunTeamConfig): AbortController {
@@ -49,7 +50,7 @@ export function runTeam(config: RunTeamConfig): AbortController {
   const store = useRuntimeStore.getState();
 
   store.startRun(
-    config.agents.map((a) => ({ agentId: a.agentId, name: a.name })),
+    config.agents.map((a) => ({ agentId: a.agentId, name: a.name, isAgentSdk: config.isAgentSdk })),
     config.teamId,
   );
 
@@ -120,13 +121,14 @@ export interface RunAgentConfig {
   model: string;
   maxTurns?: number;
   tools?: Array<{ serverId: string; name: string; description?: string; inputSchema?: unknown }>;
+  isAgentSdk?: boolean;
 }
 
 export function runAgent(config: RunAgentConfig): AbortController {
   const controller = new AbortController();
   const store = useRuntimeStore.getState();
 
-  store.startRun([{ agentId: config.agentId, name: config.name }]);
+  store.startRun([{ agentId: config.agentId, name: config.name, isAgentSdk: config.isAgentSdk }]);
 
   fetch(`${API_BASE}/runtime/run-agent`, {
     method: 'POST',

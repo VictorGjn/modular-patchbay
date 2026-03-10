@@ -3,13 +3,16 @@
 ## Table of Contents
 
 - [Getting Started](#getting-started)
-- [The Canvas](#the-canvas)
-- [Nodes in Detail](#nodes-in-detail)
+- [Layout Overview](#layout-overview)
+- [Sources Panel (Left)](#sources-panel-left)
+- [Agent Builder (Center)](#agent-builder-center)
+- [Test Panel (Right)](#test-panel-right)
 - [Settings](#settings)
-- [Working with MCP Servers](#working-with-mcp-servers)
-- [Running an Agent](#running-an-agent)
-- [Exporting Agents](#exporting-agents)
 - [Marketplace](#marketplace)
+- [Knowledge Pipeline](#knowledge-pipeline)
+- [Team Runner](#team-runner)
+- [Agent Directory Format](#agent-directory-format)
+- [MCP Servers](#mcp-servers)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Troubleshooting](#troubleshooting)
 
@@ -19,393 +22,350 @@
 
 ### Prerequisites
 
-- **Node.js 18+** (check with `node --version`)
+- **Node.js 18+**
 - **git**
 
 ### Installation
 
 ```bash
 git clone https://github.com/VictorGjn/modular-patchbay.git
-cd modular-patchbay && git checkout feat/ui-modernization
+cd modular-patchbay
 npm install
-npm run build:all
-node dist-server/bin/modular-studio.js --open
 ```
 
-Or, if published to npm:
+### Running
 
 ```bash
-npx modular-studio
+# Terminal 1 — Backend (port 4800)
+npm run server
+
+# Terminal 2 — Frontend (port 5173)
+npm run dev
 ```
 
-This starts an Express server on port 4800 and opens the studio in your browser. Use `--port 3000` to change the port.
+Open `http://localhost:5173` in your browser.
 
 ### First Launch
 
-When you open Modular Studio, you'll see:
-
-- **Topbar** — Model selector, preset picker, output format dropdown, Run/Stop buttons, theme toggle, Import/Export, Settings, and Marketplace
-- **Canvas** — The main workspace with six pre-connected nodes arranged in a left-to-right flow
-- **Minimap** — Bottom-right corner, shows a birds-eye view of the canvas
-- **Controls** — Bottom-left corner, zoom in/out and fit-to-view buttons
-
-The default canvas starts with all nodes wired up and ready to go. Write a prompt, configure a provider, and hit Run.
+1. Open **Settings** (gear icon, top-right) → **Providers**
+2. Add an API key for Anthropic, OpenAI, or any OpenAI-compatible provider
+3. Click **Test Connection** to verify
+4. Close Settings — you're ready to build agents
 
 ---
 
-## The Canvas
+## Layout Overview
 
-### Node Layout
-
-The canvas uses a left-to-right signal flow:
+Modular Studio uses a **3-panel layout**:
 
 ```
-Knowledge ─┐
-Skills ────┤──→ Prompt (Agent) ──→ Output
-MCP Tools ─┘         │              Response
-                     │
-              Feedback edges
-         (enrich knowledge, discover skills)
+┌─────────────┬────────────────────┬──────────────┐
+│   Sources   │   Agent Builder    │  Test Panel   │
+│   (30%)     │   (flexible)       │  (collapsible)│
+│             │                    │              │
+│  Knowledge  │  Identity          │  Chat        │
+│  MCP        │  Instructions      │  Team        │
+│  Skills     │  Constraints       │  Export      │
+│  Connectors │  Workflow          │              │
+│             │                    │  Results     │
+│ Save/Load   │  Save/Load/Export  │  (expandable)│
+│  Context    │    Agent           │              │
+└─────────────┴────────────────────┴──────────────┘
 ```
 
-**Left column** — Input nodes (Knowledge, Skills, MCP) feed context into the Prompt node.
+**Topbar** — Model selector, Marketplace, Settings, theme toggle, Run button (Ctrl+Enter).
 
-**Center** — The Prompt node is the agent's brain. It receives all inputs, runs the LLM, and sends output right.
-
-**Right column** — Output node (format selection and destinations) and Response node (displays the LLM result).
-
-### Connecting Nodes
-
-Nodes have **jack ports** — small circular connection points labeled with abbreviated names (KNOW, SKILLS, MCP, OUTPUT, etc.).
-
-- **Drag from an output port to an input port** to create a cable
-- Cables only connect output → input (ports ending in `-out` to ports ending in `-in`)
-- Cables are color-coded by source node (see table below)
-- You can **reconnect** existing cables by dragging them to a different port
-
-### Cable Colors
-
-| Color | Connection |
-|-------|-----------|
-| Blue (`#3498db`) | Knowledge → Prompt |
-| Yellow (`#f1c40f`) | Skills → Prompt |
-| Green (`#2ecc71`) | MCP Tools → Prompt |
-| Orange (`#FE5000`) | Prompt → Output / Response |
-| Cyan dashed (`#00d4ff`) | Feedback: Prompt → Knowledge |
-| Yellow dashed | Feedback: Prompt → Skills |
-
-### Deleting Cables
-
-- Select an edge and press the **Delete** key
-- Edges are reconnectable — drag an endpoint to reroute instead of deleting
-
-### Navigation
-
-- **Zoom**: Mouse wheel or pinch gesture; also use the +/- controls (bottom-left)
-- **Pan**: Click and drag on the canvas background
-- **Fit view**: Click the fit-to-view button in the controls panel
-- **Minimap**: Bottom-right shows overall layout; click to jump to a region
+**Two conceptual objects:**
+- **Context** (left panel) — Sources, MCP servers, skills, connectors. Saved/loaded independently.
+- **Agent** (center panel) — Identity, persona, constraints, objectives, workflow. Saved/loaded/exported independently.
 
 ---
 
-## Nodes in Detail
+## Sources Panel (Left)
 
-### Prompt / Agent Node
+Width: 30% of viewport (min 300px, max 480px).
 
-The hero node — this is where you write your prompt and configure the agent.
+### Knowledge Sources
 
-**Header**: Shows the currently selected model name. Three input jack ports on the left (KNOW, SKILLS, MCP) and one output port on the right (OUTPUT).
+Add files that feed context into the agent. Each source has:
 
-**Textarea**: Write your prompt here. Describe what you need — analysis, slides, email, code, etc. The output format auto-detects from your prompt text (e.g., mentioning "slides" selects HTML Slides).
+- **Knowledge Type** — Classification that tells the LLM how to treat the source:
 
-**Bottom bar** (inside the textarea area):
-- Auto-detected output format tag (if not markdown)
-- Character count
-- Approximate token count (`~N tokens`)
+| Type | Color | LLM Instruction |
+|------|-------|-----------------|
+| Ground Truth 🔴 | Red | "Do not contradict this." |
+| Signal 🟡 | Yellow | "Interpret the underlying need." |
+| Evidence 🔵 | Blue | "Cite and weigh against other evidence." |
+| Framework 🟢 | Green | "Use to structure thinking." |
+| Hypothesis 🟣 | Purple | "Help validate or invalidate." |
+| Guideline 📏 | Orange | "Follow as active constraints." |
 
-**Advanced drawer** (click the ⚙ Settings button to expand):
-- **Model**: Select from Claude Opus 4, Claude Sonnet 4, GPT-4o, GPT-4o Mini, Llama 3.1 70B, DeepSeek V3, Gemini 2.5 Pro
-- **Thinking Depth**: Low / Medium / High — controls how much reasoning the model does
-- **Context Size**: Maximum token budget for the context window
+- **Depth** — Controls how much of the source to include:
+  - Summary → Key Points → Details → Full → Verbatim
+  - Each level uses more tokens but provides more context
 
-**Action buttons**:
-- **Test Run** — Sends the assembled context to the LLM and streams the response. Shortcut: `Ctrl/Cmd + Enter`
-- **Save as Agent** — Opens the export modal to save your agent configuration as a downloadable file
+- **Index** button — Scans the file and builds a tree index (headings → sections → content)
 
-**Feedback ports** (bottom): KB OUT and SKILL OUT ports send feedback edges back to Knowledge and Skills nodes. These allow the agent to suggest new knowledge sources or skills after a run.
+### MCP Servers
 
----
+Shows connected MCP servers and their tools. Click **+ Add** to open the MCP picker or install from Marketplace.
 
-### Knowledge Node
+### Skills
 
-Manages all context sources that feed into the agent. Has two tabs:
+Toggle agent skills on/off. Browse more via Marketplace.
 
-#### Local Files Tab
+### Connectors
 
-Drag-and-drop files or click **+ Add Files ⌘K** to open the file picker. Files are organized by knowledge type:
+External integrations (Notion, Google Docs, etc.). OAuth-aware: status dots show connection state. Only addable when authenticated.
 
-| Type | Color | Instruction to LLM |
-|------|-------|-------------------|
-| Ground Truth | Red (`#e74c3c`) | "Do not contradict this." |
-| Signal | Yellow (`#f1c40f`) | "Interpret — look for the underlying need, not the surface request." |
-| Evidence | Blue (`#3498db`) | "Cite and weigh against other evidence." |
-| Framework | Green (`#2ecc71`) | "Use to structure thinking, but not as immutable." |
-| Hypothesis | Purple (`#9b59b6`) | "Help validate or invalidate with evidence and signals." |
-| Artifact | Gray (`#95a5a6`) | "May be outdated. Cross-reference with current ground truth." |
+### Save/Load Context
 
-Files are auto-classified by their path, but you can **drag files between type sections** to reclassify them.
-
-**Depth carousel**: Each file has a depth control with left/right arrows:
-
-| Level | Abbreviation | Description |
-|-------|-------------|-------------|
-| Summary | Sum | Minimal context, lowest token usage |
-| Key Points | Key | Main takeaways only |
-| Details | Det | Moderate detail |
-| Full | Full | Complete content |
-| Verbatim | Verb | Exact text, highest token usage |
-
-Each file shows its effective token count based on the selected depth. Toggle files on/off with the green dot indicator.
-
-**View modes**: Switch between card view (grid icon) and list view (list icon) in the header.
-
-#### External Sources Tab
-
-Connect to external services (Notion, Google Docs, Confluence, etc.) via connectors. Click **+ Add Connector** to browse available integrations. Each connector tile shows its name, status, authentication method, and a toggle to enable/disable.
-
-#### Feedback Section
-
-When the agent suggests new knowledge sources after a run, they appear as ghost tiles with cyan dashed borders. You can **Add** (accept) or dismiss each suggestion.
+Save the entire left panel state (sources + MCP + skills + connectors) for reuse across agents.
 
 ---
 
-### Skills Node
+## Agent Builder (Center)
 
-Displays agent capabilities — skills that extend what the agent can do.
+### Identity
 
-**Installed skills** appear as tiles with toggle controls. Each skill can be enabled or disabled individually. The header badge shows the count of currently enabled skills.
+- **Name** — Agent name
+- **Description** — What the agent does
+- **Icon** — Visual identifier
 
-**View modes**: Card or list view.
+### Persona
 
-**+ Browse Marketplace** button opens the Marketplace to discover and install new skills.
+Free-text field defining the agent's personality, tone, and behavior. This becomes part of the system prompt.
 
-#### Feedback Section
+### Safety Profile
 
-When the agent suggests skills after a run, they appear as ghost tiles. You can accept (install) or dismiss each suggestion.
+Three presets:
+- **Autonomous** — Minimal guardrails, agent acts independently
+- **Balanced** — Default. Reasonable safety with flexibility
+- **Careful** — Strict constraints, asks before acting
 
----
+### Constraints
 
-### MCP Node
+Editable via modal. Displayed as compact read-only chips. Constraints are injected into the system prompt as hard rules the agent must follow.
 
-Shows connected MCP (Model Context Protocol) servers and their tools.
+### Objectives
 
-Each server row displays:
-- **Status indicator**: Green dot (connected), yellow spinner (connecting), red alert (error), gray dot (disconnected)
-- **Server name**
-- **Tool count** badge
-- **Connect/Disconnect** button
+- **Primary** — Main goal
+- **Secondary** — Supporting goals
 
-Click the expand arrow on a connected server to see its **tool list** — each tool shows its name and description.
+### Workflow
 
-**View modes**: Card or list view.
+Ordered steps the agent follows. Edited via modal with two generate modes:
+- **Refine** — Improve existing workflow
+- **Generate** — Create from scratch based on objectives
 
-**+ Add MCP Server** button opens the MCP picker to add a new server.
+Displayed as a compact numbered list.
 
-Health polling runs automatically to keep status indicators up to date.
+### Evaluation Criteria
 
----
+How to judge the agent's output quality. Displayed as chips, edited via modal.
 
-### Output Node
+### Save/Load/Export Agent
 
-Select the output format(s) for the agent's response and configure write destinations.
-
-**Format tiles**: Toggle output formats on/off. Available formats:
-
-| Format | Extension |
-|--------|-----------|
-| Markdown | `.md` |
-| HTML Slides | `.html` |
-| Email Draft | — |
-| Code | `.py` |
-| Data Table (CSV) | `.csv` |
-| JSON | `.json` |
-| Diagram | `.svg` |
-| Slack Post | — |
-
-**Write connectors**: Below the format section, connectors with write direction appear. These are destinations where the output can be sent (e.g., Notion page, Google Doc, Slack channel). Click **+ Add Connector** to configure new destinations.
+- **Save** — Store agent config to local library (`~/.modular-studio/agents/`)
+- **Load** — Restore a previously saved agent
+- **Export** — Download as Agent Directory (ZIP) or legacy formats (MD/YAML/JSON)
 
 ---
 
-### Response Node
+## Test Panel (Right)
 
-Displays the LLM response after running the agent.
+Collapsed by default (48px strip with "Test ▶"). Expands to 400px.
 
-- Shows a **typing animation** while streaming
-- Renders markdown with basic formatting (headers, bold, code blocks, lists)
-- **Copy** button to copy the response text
-- **Expand** button to view in a larger modal
-- Displays metadata: output format badge, knowledge type indicators for sources used, and character/token counts
-- Shows a "No response yet" placeholder until you run the agent
+### Three tabs:
+
+#### Chat Tab
+
+Single-agent conversation. Type a message, hit Enter or click Send. Uses the currently configured agent + sources.
+
+#### Team Tab
+
+Multi-agent execution. Configure 1-5 agents, each with:
+- **Name** — Agent identifier
+- **Load from Library** — Import a saved agent's config as the system prompt
+- **Role Prompt** — Role-specific instructions appended to the system prompt
+- **Repo URL** — GitHub repo the agent works on (added to context)
+
+**Task** — Shared task description all agents receive.
+
+**Run Team** — Executes all agents in parallel. Each agent gets:
+- The shared system prompt (from current builder config)
+- Its own role overlay
+- Access to MCP tools
+- Shared fact pool (facts extracted from one agent are visible to others)
+
+**Results** — Agent cards show real-time progress:
+- Current turn, status (waiting/running/completed/error)
+- Output text (expandable — click "Expand" for full output)
+- Token usage
+- Extracted facts (color-coded by epistemic type)
+- **Maximize** button (↗) — Full-screen results overlay for reading long outputs
+- **Copy** button — Copy agent output to clipboard
+
+**Shared Memory** — Facts extracted across all agents, deduplicated by key.
+
+#### Export Tab
+
+Download the current agent configuration:
+
+- **Agent Directory** (primary, orange highlight) — ZIP with:
+  - `agent.yaml` — Core config (name, model, token budget)
+  - `SOUL.md` — Persona and tone
+  - `INSTRUCTIONS.md` — Objectives, constraints, workflow
+  - `TOOLS.md` — MCP servers and skills
+  - `KNOWLEDGE.md` — Knowledge sources and connectors
+  - `MEMORY.md` — Memory template
+
+- **Legacy formats** — Markdown, YAML, JSON (single-file exports)
 
 ---
 
 ## Settings
 
-Open Settings from the gear icon in the Topbar or the Prompt node. Settings has four tabs:
+### Providers
 
-### Providers Tab
+Configure LLM credentials:
 
-Configure LLM provider credentials. Built-in providers:
+| Provider | Auth | Notes |
+|----------|------|-------|
+| Anthropic | API Key | `x-api-key` header |
+| OpenAI | API Key | Bearer token |
+| Claude Agent SDK | Zero-config | Requires `claude` CLI authenticated |
+| Custom | API Key | Any OpenAI-compatible endpoint |
 
-| Provider | Auth Method | Header Style |
-|----------|------------|--------------|
-| Anthropic | API Key | `x-api-key` |
-| OpenAI | API Key | `Bearer` token |
-| Google AI | API Key | Query parameter |
-| OpenRouter | API Key | `Bearer` token |
-| Claude Agent SDK | Zero-config | Needs `claude` CLI authenticated |
+**Test Connection** verifies the key works and fetches available models.
 
-For each provider:
-1. Expand the provider row
-2. Paste your API key
-3. Optionally change the base URL (useful for proxies)
-4. Click **Save**, then **Test Connection** to verify
-5. A green checkmark confirms the connection works; red X shows the error
+### MCP Servers
 
-You can also **add custom providers** with any OpenAI-compatible endpoint using the + button.
+View all servers, their status, tool count, and errors. Connect/disconnect/remove.
 
-### MCP Servers Tab
+### General
 
-View all configured MCP servers with their:
-- Connection status (connected / disconnected / error)
-- Tool count
-- Last error message (if any)
-
-Manage servers: connect, disconnect, or remove.
-
-### Skills Tab
-
-View installed skills and their status.
-
-### General Tab
-
-| Setting | Options |
-|---------|---------|
-| Theme | System / Light / Dark |
-| Edge Routing | Straight / Smoothstep |
-| Grid Snap | On / Off |
-| Minimap | Show / Hide |
-
----
-
-## Working with MCP Servers
-
-### What is MCP?
-
-The **Model Context Protocol** (MCP) is an open standard for connecting AI models to external tools and data sources. MCP servers expose tools (like "search the web", "read a file", "query a database") that agents can call during execution.
-
-### Installing from Marketplace
-
-1. Click the **shopping bag icon** in the Topbar (or the **+ Add MCP Server** button in the MCP node)
-2. Switch to the **MCP Servers** tab
-3. Browse or search for a server
-4. Click **Install** and select the target runtime and scope (global or project)
-5. Some servers require configuration (API keys, OAuth tokens) — fill in the config fields when prompted
-
-### Configuring Environment Variables
-
-Many MCP servers need credentials:
-- **Firecrawl**: `FIRECRAWL_API_KEY`
-- **Gmail**: OAuth client ID and secret
-- **GitHub**: Personal access token
-
-These are configured during installation or in Settings → MCP Servers.
-
-### Connecting and Discovering Tools
-
-Once installed and configured, click **Connect** on the server row. The MCP Manager uses `StdioClientTransport` to spawn the server process and calls `listTools()` to discover available tools. Tools appear in the expandable tool list.
-
-### Health Monitoring
-
-Status indicators update automatically via health polling:
-- 🟢 **Connected** — Server is running and responsive
-- 🟡 **Connecting** — Handshake in progress
-- 🔴 **Error** — Connection failed (hover for error message)
-- ⚪ **Disconnected** — Not running
-
----
-
-## Running an Agent
-
-1. **Set up a provider** — Open Settings → Providers, add an API key, and test the connection
-2. **Select a model** — Choose from the Topbar dropdown or the Prompt node's Advanced drawer
-3. **Write a prompt** — Describe what you need in the Prompt node textarea
-4. **Add knowledge** (optional) — Open the file picker (`Ctrl/Cmd + K`) or drag files onto the Knowledge node. Adjust depth levels and knowledge types as needed
-5. **Enable skills** (optional) — Toggle relevant skills in the Skills node
-6. **Connect MCP tools** (optional) — Add and connect MCP servers for tool access
-7. **Choose output format** — Select in the Output node or let auto-detection pick it from your prompt
-8. **Click Test Run** (or press `Ctrl/Cmd + Enter`)
-9. **View the response** — Watch it stream into the Response node. Copy or expand as needed
-
----
-
-## Exporting Agents
-
-### Save as Agent
-
-Click **Save as Agent** in the Prompt node to open the export modal.
-
-**Configure your agent:**
-- **Name** — Give your agent a descriptive name
-- **Description** — What the agent does
-- **Icon** — Choose from 20 icons (Brain, Code, Search, Globe, etc.)
-- **Category** — coding, research, analysis, writing, data, design, domain-specific, general
-
-**Choose export targets:**
-
-| Target | Format | Description |
-|--------|--------|-------------|
-| Claude | `.md` | Claude Code / Claude Desktop agent definition |
-| AMP | `.md` | Anthropic Model Protocol format |
-| Codex | `.md` | OpenAI Codex agent format |
-| OpenClaw | `.md` | OpenClaw skill format |
-| Generic | `.md` | Runtime-agnostic markdown definition |
-
-You can download a single target or **Download All** to get every format at once.
-
-### Import Agent
-
-Click the **Upload** icon in the Topbar to import an agent from a `.md`, `.yaml`, `.yml`, or `.json` file. The importer parses the file and populates the canvas with the agent's configuration.
-
-### Presets
-
-Presets are pre-configured canvas setups. Select a preset from the Topbar dropdown to quickly load a knowledge + skills + output combination tailored for a specific use case.
+Theme (System/Light/Dark) and display preferences.
 
 ---
 
 ## Marketplace
 
-Access the Marketplace from the **shopping bag icon** in the Topbar.
+Access via the shopping bag icon in the Topbar.
 
-### Three tabs:
+**Skills** — Browse and install agent capabilities. Each skill shows name, description, supported runtimes, and install count.
 
-**Skills** — Browse agent capabilities like Web Search, GitHub, Weather, Coding Agent, and more. Each skill card shows:
-- Name, description, author
-- Install count
-- Supported runtimes (Claude, AMP, Codex, etc.)
-- Install button with runtime and scope selection
+**MCP Servers** — Browse MCP servers (Firecrawl, Filesystem, PostgreSQL, etc.). Install with transport config.
 
-**MCP Servers** — Browse MCP servers like Firecrawl, Filesystem, PostgreSQL, etc. Each card shows:
-- Transport type (stdio)
-- Config fields required
-- Install and configure flow
+---
 
-**Presets** — Pre-built canvas configurations for common use cases.
+## Knowledge Pipeline
 
-### Filtering
+The knowledge pipeline processes sources before they reach the LLM:
 
-- **Search bar** — Filter by name or description
-- **Category filter** — All, Research, Coding, Data, Design, Writing, Domain
+```
+Sources → Tree Index → Knowledge Types → Contrastive Retrieval → Adaptive Depth → Context Assembly
+```
+
+1. **Tree Index** — Parses markdown headings into a navigable tree structure
+2. **Knowledge Types** — Tags each chunk with its epistemic type (ground-truth, evidence, signal...)
+3. **Contrastive Retrieval** — For analytical queries ("compare", "pros and cons", "evaluate"), finds both supporting AND contradicting chunks. Labels them `<supporting>` and `<contrasting>` so the LLM sees both sides.
+4. **Adaptive Depth** — Allocates token budget across sources based on type priority and depth settings
+5. **Context Assembly** — Wraps everything with provenance tags (`<chunk source="..." section="..." type="..." method="...">`)
+
+### Provenance
+
+Every chunk carries its derivation path:
+- Which source file it came from
+- Which section (heading path)
+- What knowledge type
+- What depth level
+- How it was extracted
+
+When sources conflict, the LLM is instructed to prefer ground-truth over evidence, full-depth over summary.
+
+---
+
+## Team Runner
+
+### Architecture
+
+```
+Team Runner
+├── Agent 1 (parallel) → LLM call → extract facts → done
+├── Agent 2 (parallel) → LLM call → tool calls → extract facts → done
+└── Agent 3 (parallel) → LLM call → extract facts → done
+         ↓
+    Shared Fact Pool (deduplicated)
+         ↓
+    Team Result (all outputs + shared facts)
+```
+
+### Provider Support
+
+- **Anthropic / OpenAI / Custom** — Raw API calls with explicit tool handling. Agents use MCP tools via the backend manager.
+- **Claude Agent SDK** — Routes through `query()` with built-in tools (Read, Edit, Bash, Grep, Glob, WebSearch, WebFetch). Tools are handled by the SDK internally.
+
+### Fact Extraction
+
+After each agent completes, its output is scanned for facts:
+- **Observations** — Things the agent noticed
+- **Inferences** — Conclusions drawn
+- **Decisions** — Choices made
+- **Hypotheses** — Theories proposed
+
+Facts are deduplicated by key and shared across all agents in the team.
+
+---
+
+## Agent Directory Format
+
+The primary export format. A self-contained directory of human-readable files:
+
+```
+my-agent/
+├── agent.yaml          # Name, model, token budget, tags
+├── SOUL.md             # Persona and tone
+├── INSTRUCTIONS.md     # Objectives, constraints, workflow
+├── TOOLS.md            # MCP servers and skills
+├── KNOWLEDGE.md        # Sources and connectors
+└── MEMORY.md           # Memory template
+```
+
+**Properties:**
+- Git-friendly (all text files, diffable)
+- Human-editable (no binary formats)
+- Portable (works with Claude Code, OpenClaw, Cursor, Amp)
+- Composable (mix and match files across agents)
+
+**Export:** TestPanel → Export tab → "Agent Directory" button → downloads ZIP.
+
+**Import:** TestPanel → Export tab → "Import Agent" button → upload ZIP.
+
+---
+
+## MCP Servers
+
+### Transports
+
+| Transport | Use Case |
+|-----------|----------|
+| `stdio` | Local CLI tools (npx, node, python) |
+| `streamable-http` | Remote servers (Notion, cloud APIs) |
+
+### OAuth Flow
+
+For remote MCP servers requiring OAuth (e.g., Notion):
+1. Click **Connect** on the connector
+2. OAuth popup opens → authorize
+3. Token stored securely (600 permissions)
+4. Bearer token injected automatically on requests
+
+### Security
+
+- **Command allowlist** — Only safe executables: npx, node, python, python3, uvx, uv, deno, bun
+- **Argument sanitization** — Shell injection prevention
+- **Env var blocking** — Dangerous variables (`LD_PRELOAD`, `NODE_OPTIONS --require`) blocked
 
 ---
 
@@ -414,37 +374,31 @@ Access the Marketplace from the **shopping bag icon** in the Topbar.
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl/Cmd + K` | Open file picker |
-| `Ctrl/Cmd + Enter` | Run the agent |
-| `Escape` | Close any open modal or picker |
-| `Delete` | Remove selected edge |
+| `Ctrl/Cmd + Enter` | Run agent |
+| `Escape` | Close any modal/picker |
 
 ---
 
 ## Troubleshooting
 
-### "No API key configured"
+### "No provider configured"
 
-Open **Settings → Providers**, expand your provider, paste the API key, click **Save**, then **Test Connection**. A green checkmark confirms it's working.
+Settings → Providers → add API key → Test Connection → green checkmark.
 
-### MCP server shows red status
+### Run Team button does nothing
 
-1. Check that the server's required environment variables are set (API keys, tokens)
-2. Try **Disconnect** then **Connect** again
-3. Hover over the red indicator to see the error message
-4. Verify the MCP server package is installed (`npx -y <package>` should work)
+1. Verify a provider is connected (not just configured — must show green/connected status)
+2. Check the browser console (F12) for `[TeamRunner]` logs
+3. Make sure you typed a task in the text area
 
-### Claude Agent SDK shows "Not authenticated"
+### Agent SDK shows "Not authenticated"
 
-The Claude Agent SDK requires the `claude` CLI to be authenticated. Run `claude` in your terminal and complete the authentication flow, then retry in Modular Studio.
+Run `claude` in your terminal to authenticate the CLI, then retry.
 
-### Response node shows nothing after running
+### 429 Too Many Requests
 
-1. Verify a provider is connected (green status in Settings → Providers)
-2. Check that the selected model matches your provider (e.g., don't select Claude models with an OpenAI key)
-3. Look for errors in the browser console (`F12`)
+The rate limiter caps at 600 requests/minute. If you hit it, wait a moment and retry. Usually caused by rapid page refreshes.
 
-### Canvas feels sluggish
+### Results panel too small
 
-- Collapse nodes you're not actively using (click the chevron in each node header)
-- Switch to list view mode instead of card view
-- Disable the minimap in Settings → General if not needed
+Click the **↗ Maximize** button in the results header to view in full-screen overlay. Click **↙ Minimize** to return.
