@@ -7,8 +7,46 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore, type McpTool } from '../store/mcpStore';
 import { compileWorkflow } from '../nodes/WorkflowNode';
 import type { ChannelConfig } from '../store/knowledgeBase';
+import type { ProvenanceSummary } from '../types/provenance';
 
-export function buildSystemFrame(): string {
+/**
+ * Builds a provenance section for the system prompt when provenance data is available
+ */
+export function buildProvenanceSection(provenance: ProvenanceSummary): string {
+  const lines: string[] = [];
+  
+  // Source summary
+  lines.push('<provenance>');
+  
+  if (provenance.sources.length > 0) {
+    for (const source of provenance.sources) {
+      lines.push(`  <source path="${source.path}" type="${source.type}" sections="${source.sections}" depth="${source.depth}" />`);
+    }
+  }
+  
+  // Derivation chain if available
+  if (provenance.derivations.length > 0) {
+    lines.push('  <derivation>');
+    for (const step of provenance.derivations) {
+      lines.push(`    <step from="${step.from}" method="${step.method}" to="${step.to}" />`);
+    }
+    lines.push('  </derivation>');
+  }
+  
+  lines.push('</provenance>');
+  
+  // Conflict resolution instructions
+  if (provenance.conflictResolution) {
+    lines.push('');
+    lines.push('<context_provenance>');
+    lines.push(provenance.conflictResolution.instructions);
+    lines.push('</context_provenance>');
+  }
+  
+  return lines.join('\n');
+}
+
+export function buildSystemFrame(provenance?: ProvenanceSummary): string {
   const state = useConsoleStore.getState();
   const { instructionState, workflowSteps, agentMeta } = state;
   const parts: string[] = [];
@@ -63,6 +101,12 @@ export function buildSystemFrame(): string {
   // Tools — replaced by dynamic tool guide (Ticket B)
   const toolGuide = buildToolGuide();
   if (toolGuide) parts.push(toolGuide);
+
+  // Provenance — add when available
+  if (provenance) {
+    const provenanceSection = buildProvenanceSection(provenance);
+    parts.push(provenanceSection);
+  }
 
   return parts.join('\n\n');
 }

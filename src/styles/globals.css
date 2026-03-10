@@ -160,6 +160,16 @@ html, body, #root {
   fill: #555 !important;
 }
 
+/* ── Import spinner animation ── */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Accessibility: respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

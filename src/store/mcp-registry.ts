@@ -21,7 +21,6 @@ export interface McpRegistryEntry {
   website?: string;
   repo?: string;
   tags: string[];
-  authMethod: 'none',
 }
 
 export const MCP_REGISTRY: McpRegistryEntry[] = [

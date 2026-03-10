@@ -1,8 +1,7 @@
+import { useState } from 'react';
 import { useTheme } from '../theme';
 import { useRuntimeStore, type ExtractedFact, type RuntimeAgentState } from '../store/runtimeStore';
-import { Loader2, CheckCircle, XCircle, Clock, Brain } from 'lucide-react';
-
-/* ── Fact Badge ── */
+import { Loader2, CheckCircle, XCircle, Clock, Brain, Maximize2, Minimize2, ChevronDown, ChevronRight, Copy, Check } from 'lucide-react';
 
 const FACT_COLORS: Record<string, string> = {
   observation: '#3498db',
@@ -15,25 +14,29 @@ const FACT_COLORS: Record<string, string> = {
 function FactBadge({ fact }: { fact: ExtractedFact }) {
   const color = FACT_COLORS[fact.epistemicType] ?? '#888';
   return (
-    <span
-      style={{
-        fontSize: 12,
-        padding: '2px 6px',
-        borderRadius: 4,
-        background: color + '15',
-        color,
-        fontFamily: "'Geist Mono', monospace",
-      }}
-    >
+    <span style={{ fontSize: 12, padding: '2px 6px', borderRadius: 4, background: color + '15', color, fontFamily: "'Geist Mono', monospace" }}>
       {fact.key}
     </span>
   );
 }
 
-/* ── Agent Card ── */
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, opacity: 0.6 }}
+      title="Copy output"
+    >
+      {copied ? <Check size={12} style={{ color: '#2ecc71' }} /> : <Copy size={12} />}
+    </button>
+  );
+}
 
-function AgentCard({ agent }: { agent: RuntimeAgentState }) {
+function AgentCard({ agent, expanded: forceExpanded }: { agent: RuntimeAgentState; expanded?: boolean }) {
   const t = useTheme();
+  const [expanded, setExpanded] = useState(forceExpanded ?? false);
 
   const statusIcon = {
     waiting: <Clock size={14} style={{ color: t.textDim }} />,
@@ -42,59 +45,83 @@ function AgentCard({ agent }: { agent: RuntimeAgentState }) {
     error: <XCircle size={14} style={{ color: '#dc2626' }} />,
   }[agent.status];
 
+  const output = agent.status === 'completed' ? agent.output : agent.currentMessage;
+  const hasLongOutput = (output?.length ?? 0) > 300;
+
   return (
-    <div
-      style={{
-        padding: 12,
-        borderRadius: 8,
-        border: `1px solid ${agent.status === 'running' ? '#FE500040' : t.border}`,
-        background: agent.status === 'running' ? '#FE500008' : t.surface,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+    <div style={{ padding: 12, borderRadius: 8, border: `1px solid ${agent.status === 'running' ? '#FE500040' : t.border}`, background: agent.status === 'running' ? '#FE500008' : t.surface }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: output ? 8 : 0 }}>
         {statusIcon}
         <span style={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
           {agent.name}
         </span>
-        <span style={{ fontSize: 12, color: t.textDim, marginLeft: 'auto' }}>
+        <span style={{ fontSize: 12, color: t.textDim, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
           {agent.status === 'running' ? `Turn ${agent.turns}` : agent.status}
+          {agent.tokens && (agent.tokens.input > 0 || agent.tokens.output > 0) && (
+            <span style={{ fontSize: 11, color: t.textFaint }}>
+              {((agent.tokens.input + agent.tokens.output) / 1000).toFixed(1)}k tok
+            </span>
+          )}
         </span>
       </div>
 
-      {agent.currentMessage && (
-        <div
-          style={{
-            fontSize: 13,
-            padding: 8,
-            borderRadius: 6,
-            background: t.inputBg,
-            color: t.textSecondary,
-            lineHeight: 1.5,
-            maxHeight: 120,
-            overflowY: 'auto',
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          {agent.currentMessage.length > 300 ? agent.currentMessage.slice(0, 300) + '…' : agent.currentMessage}
+      {output && (
+        <div style={{ position: 'relative' }}>
+          <div style={{
+            fontSize: 13, padding: 10, borderRadius: 6, background: t.inputBg, color: t.textPrimary,
+            lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowY: 'auto',
+            maxHeight: expanded ? 'none' : 200,
+          }}>
+            {output}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+            {hasLongOutput && (
+              <button
+                type="button"
+                onClick={() => setExpanded(!expanded)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', fontSize: 12, color: '#FE5000', display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'Geist Mono', monospace" }}
+              >
+                {expanded ? <><ChevronDown size={12} /> Collapse</> : <><ChevronRight size={12} /> Expand ({Math.ceil((output?.length ?? 0) / 1000)}k chars)</>}
+              </button>
+            )}
+            {output && <CopyButton text={output} />}
+          </div>
         </div>
       )}
 
-      {agent.output && agent.status === 'completed' && (
-        <div
-          style={{
-            fontSize: 13,
-            padding: 8,
-            borderRadius: 6,
-            marginTop: 8,
-            background: t.inputBg,
-            color: t.textPrimary,
-            lineHeight: 1.5,
-            maxHeight: 200,
-            overflowY: 'auto',
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          {agent.output}
+      {agent.toolCalls.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <Zap size={12} style={{ color: '#2ecc71' }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary, fontFamily: "'Geist Mono', monospace" }}>
+              Tool Calls ({agent.toolCalls.length})
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {agent.toolCalls.map((tc, i) => (
+              <div
+                key={i}
+                style={{
+                  fontSize: 12,
+                  padding: 6,
+                  borderRadius: 4,
+                  background: '#2ecc7115',
+                  border: '1px solid #2ecc7130',
+                  color: t.textSecondary,
+                  fontFamily: "'Geist Mono', monospace",
+                }}
+              >
+                <div style={{ fontWeight: 600, color: '#2ecc71', marginBottom: 2 }}>
+                  {tc.tool}
+                </div>
+                {tc.args && (
+                  <div style={{ color: t.textDim, fontSize: 11, lineHeight: 1.4 }}>
+                    {tc.args.length > 100 ? tc.args.slice(0, 100) + '…' : tc.args}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -107,21 +134,12 @@ function AgentCard({ agent }: { agent: RuntimeAgentState }) {
   );
 }
 
-/* ── Shared Facts ── */
-
 function SharedFacts({ facts }: { facts: ExtractedFact[] }) {
   const t = useTheme();
   if (facts.length === 0) return null;
 
   return (
-    <div
-      style={{
-        padding: 12,
-        borderRadius: 8,
-        border: `1px solid ${t.border}`,
-        background: t.surface,
-      }}
-    >
+    <div style={{ padding: 12, borderRadius: 8, border: `1px solid ${t.border}`, background: t.surface }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         <Brain size={14} style={{ color: '#FE5000' }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
@@ -132,17 +150,13 @@ function SharedFacts({ facts }: { facts: ExtractedFact[] }) {
         {facts.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <FactBadge fact={f} />
-            <span style={{ fontSize: 12, color: t.textDim, flex: 1 }}>
-              {f.value.length > 80 ? f.value.slice(0, 80) + '…' : f.value}
-            </span>
+            <span style={{ fontSize: 12, color: t.textDim, flex: 1 }}>{f.value}</span>
           </div>
         ))}
       </div>
     </div>
   );
 }
-
-/* ── Main Panel (embedded in TestPanel) ── */
 
 export function RuntimeResults() {
   const t = useTheme();
@@ -152,6 +166,7 @@ export function RuntimeResults() {
   const startedAt = useRuntimeStore((s) => s.startedAt);
   const completedAt = useRuntimeStore((s) => s.completedAt);
   const error = useRuntimeStore((s) => s.error);
+  const [maximized, setMaximized] = useState(false);
 
   if (status === 'idle') return null;
 
@@ -161,39 +176,10 @@ export function RuntimeResults() {
       ? ((Date.now() - startedAt) / 1000).toFixed(0)
       : '0';
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* Status bar */}
+  const content = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {status === 'running' && <Loader2 size={14} className="animate-spin" style={{ color: '#FE5000' }} />}
         {status === 'completed' && <CheckCircle size={14} style={{ color: '#2ecc71' }} />}
         {status === 'error' && <XCircle size={14} style={{ color: '#dc2626' }} />}
-        <span style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary }}>
-          {status === 'running' ? 'Running...' : status === 'completed' ? 'Completed' : 'Error'}
-        </span>
-        <span style={{ fontSize: 12, color: t.textDim, marginLeft: 'auto' }}>
-          {elapsed}s
-        </span>
-      </div>
-
-      {error && (
-        <div style={{ fontSize: 13, color: '#dc2626', padding: 8, borderRadius: 6, background: '#dc262610' }}>
-          {error}
-        </div>
-      )}
-
-      {/* Agent cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {agents.map((a) => <AgentCard key={a.agentId} agent={a} />)}
-      </div>
-
-      {/* Shared facts */}
-      <SharedFacts facts={sharedFacts} />
-    </div>
-  );
-}
-
-/** @deprecated — use RuntimeResults embedded in TestPanel instead */
-export function RuntimePanel() {
-  return <RuntimeResults />;
-}
+        <span style={{ fontSize: 13, fontWe
