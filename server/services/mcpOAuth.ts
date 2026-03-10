@@ -253,6 +253,51 @@ export async function handleCallback(
 
 // ── Token Storage ──
 
+async function refreshToken(serverUrl: string, token: TokenSet): Promise<string> {
+  // We need the client credentials and token endpoint to refresh
+  const clients = await loadJson<Record<string, ClientCredentials>>(CLIENT_FILE);
+  const client = clients[serverUrl];
+  if (!client) throw new Error('No client credentials for refresh');
+
+  // Re-discover to get token_endpoint
+  const metadata = await discoverOAuth(serverUrl);
+
+  const body: Record<string, string> = {
+    grant_type: 'refresh_token',
+    refresh_token: token.refresh_token!,
+    client_id: client.client_id,
+  };
+  if (client.client_secret) body.client_secret = client.client_secret;
+
+  const resp = await fetch(metadata.token_endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(body),
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!resp.ok) throw new Error('Token refresh failed: ' + resp.status);
+
+  const data = await resp.json() as {
+    access_token: string;
+    refresh_token?: string;
+    token_type?: string;
+    scope?: string;
+    expires_in?: number;
+  };
+
+  const newToken: TokenSet = {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token || token.refresh_token, // keep old refresh if none returned
+    token_type: data.token_type || 'Bearer',
+    scope: data.scope || token.scope,
+    expires_at: data.expires_in ? Date.now() + data.expires_in * 1000 : undefined,
+  };
+
+  await storeToken(serverUrl, newToken);
+  return newToken.access_token;
+}
+
 async function storeToken(serverUrl: string, token: TokenSet): Promise<void> {
   const tokens = await loadJson<Record<string, TokenSet>>(TOKEN_FILE);
   tokens[serverUrl] = token;
@@ -267,8 +312,11 @@ export async function getToken(serverUrl: string): Promise<string | null> {
   // Check expiry with 60s buffer
   if (token.expires_at && Date.now() > token.expires_at - 60_000) {
     if (token.refresh_token) {
-      // TODO: implement token refresh
-      return null;
+      try {
+        return await refreshToken(serverUrl, token);
+      } catch {
+        return null; // refresh failed, need re-auth
+      }
     }
     return null;
   }
