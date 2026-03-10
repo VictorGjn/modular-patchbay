@@ -310,6 +310,11 @@ export interface ConsoleState {
 
   // Generator — hydrate all nodes from AI-generated config
   hydrateFromGenerated: (config: import('../utils/generateAgent').GeneratedAgentConfig) => void;
+
+  // Context and Agent management
+  resetAgent: () => void;
+  collectContextState: () => { channels: ChannelConfig[]; mcpServers: McpServer[]; skills: Skill[]; connectors: Connector[] };
+  restoreContextState: (ctx: { channels: ChannelConfig[]; mcpServers: McpServer[]; skills: Skill[]; connectors: Connector[] }) => void;
 }
 
 function getEffectiveTokens(ch: ChannelConfig): number {
@@ -1132,6 +1137,54 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       mcpServers: [...preset.mcpServers],
       selectedPreset: '',
       response: '',
+    });
+  },
+
+  // Reset agent to empty state
+  resetAgent: () => {
+    set({
+      agentMeta: { name: '', description: '', icon: 'brain', category: 'general', tags: [], avatar: 'bot' },
+      instructionState: {
+        persona: '',
+        tone: 'neutral',
+        expertise: 3,
+        constraints: {
+          neverMakeUp: false,
+          askBeforeActions: false,
+          stayInScope: false,
+          useOnlyTools: false,
+          limitWords: false,
+          wordLimit: 500,
+          customConstraints: '',
+          scopeDefinition: '',
+        },
+        objectives: {
+          primary: '',
+          successCriteria: [],
+          failureModes: [],
+        },
+        rawPrompt: '',
+        autoSync: true,
+      },
+      workflowSteps: [],
+    });
+  },
+
+  // Collect current context state (channels, mcpServers, skills, connectors)
+  collectContextState: () => ({
+    channels: get().channels,
+    mcpServers: get().mcpServers,
+    skills: get().skills,
+    connectors: get().connectors,
+  }),
+
+  // Restore context state (channels, mcpServers, skills, connectors)
+  restoreContextState: (ctx) => {
+    set({
+      channels: ctx.channels,
+      mcpServers: ctx.mcpServers,
+      skills: ctx.skills,
+      connectors: ctx.connectors,
     });
   },
 }));

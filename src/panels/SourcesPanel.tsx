@@ -27,6 +27,7 @@ import {
   Database, Plug, Zap, Brain,
   Plus, X, Minus, Library,
   Lightbulb, ArrowUpRight, Check, AlertCircle, Bot, FolderGit2, KeyRound, Info,
+  Target, Save, FolderOpen, Trash2,
 } from 'lucide-react';
 
 /* ── Shared Generate Button ── */
@@ -1628,9 +1629,152 @@ function FactInsightsSection() {
   );
 }
 
+/* ── Context Action Bar ── */
+function ContextActionBar() {
+  const t = useTheme();
+  const { collectContextState, restoreContextState } = useConsoleStore();
+  const [saveNameInput, setSaveNameInput] = useState('');
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [showLoadMenu, setShowLoadMenu] = useState(false);
+  const [savedContexts, setSavedContexts] = useState<string[]>([]);
+
+  // Load saved context names on mount
+  useEffect(() => {
+    const contexts: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('modular-ctx-')) {
+        contexts.push(key.replace('modular-ctx-', ''));
+      }
+    }
+    setSavedContexts(contexts);
+  }, []);
+
+  const handleLoadDemo = () => {
+    // Reset to empty context (no channels, mcpServers, skills, connectors)
+    restoreContextState({
+      channels: [],
+      mcpServers: [],
+      skills: [],
+      connectors: [],
+    });
+  };
+
+  const handleSave = () => {
+    if (!saveNameInput.trim()) return;
+    const ctx = collectContextState();
+    localStorage.setItem(`modular-ctx-${saveNameInput}`, JSON.stringify(ctx));
+    setSaveNameInput('');
+    setShowSavePrompt(false);
+    // Refresh list
+    setSavedContexts(prev => [...new Set([...prev, saveNameInput])]);
+  };
+
+  const handleLoad = (name: string) => {
+    const data = localStorage.getItem(`modular-ctx-${name}`);
+    if (data) {
+      restoreContextState(JSON.parse(data));
+    }
+    setShowLoadMenu(false);
+  };
+
+  const handleClear = () => {
+    if (window.confirm('Clear all context (channels, MCPs, skills, connectors)?')) {
+      restoreContextState({
+        channels: [],
+        mcpServers: [],
+        skills: [],
+        connectors: [],
+      });
+    }
+  };
+
+  return (
+    <div className="sticky top-0 z-10 px-5 py-2.5 border-b flex items-center gap-2"
+      style={{ background: t.surfaceElevated, borderColor: t.border }}>
+      <span className="text-[9px] uppercase tracking-wider font-semibold flex-shrink-0"
+        style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, minWidth: 55 }}>
+        Context
+      </span>
+
+      <button type="button" aria-label="Demo" onClick={handleLoadDemo}
+        className="p-1.5 rounded border-none cursor-pointer transition-colors"
+        style={{ background: 'transparent', color: t.textDim }}
+        onMouseEnter={e => { e.currentTarget.style.color = '#FE5000'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}>
+        <Target size={10} />
+      </button>
+
+      <button type="button" aria-label="Save" onClick={() => setShowSavePrompt(true)}
+        className="p-1.5 rounded border-none cursor-pointer transition-colors"
+        style={{ background: 'transparent', color: t.textDim }}
+        onMouseEnter={e => { e.currentTarget.style.color = '#FE5000'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}>
+        <Save size={10} />
+      </button>
+
+      <div className="relative">
+        <button type="button" aria-label="Load" onClick={() => setShowLoadMenu(!showLoadMenu)}
+          className="p-1.5 rounded border-none cursor-pointer transition-colors"
+          style={{ background: 'transparent', color: t.textDim }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#FE5000'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}>
+          <FolderOpen size={10} />
+        </button>
+        {showLoadMenu && savedContexts.length > 0 && (
+          <div className="absolute top-full mt-1 left-0 rounded shadow-lg z-20 min-w-max"
+            style={{ background: t.surfaceElevated, border: `1px solid ${t.border}` }}>
+            {savedContexts.map(name => (
+              <button key={name} type="button" onClick={() => handleLoad(name)}
+                className="block w-full text-left px-3 py-1.5 text-[10px] border-none cursor-pointer"
+                style={{ background: 'transparent', color: t.textSecondary }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#FE500010'; }}>
+                {name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <button type="button" aria-label="Clear" onClick={handleClear}
+        className="p-1.5 rounded border-none cursor-pointer transition-colors"
+        style={{ background: 'transparent', color: t.textDim }}
+        onMouseEnter={e => { e.currentTarget.style.color = '#ff4444'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}>
+        <Trash2 size={10} />
+      </button>
+
+      {showSavePrompt && (
+        <div className="absolute top-12 left-5 rounded shadow-lg p-2 z-20 min-w-max"
+          style={{ background: t.surfaceElevated, border: `1px solid ${t.border}` }}>
+          <input type="text" value={saveNameInput} onChange={e => setSaveNameInput(e.target.value)}
+            placeholder="Context name..." autoFocus
+            className="px-2 py-1 rounded text-[10px] outline-none mb-1 block"
+            style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+            onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
+          />
+          <div className="flex gap-1">
+            <button type="button" onClick={handleSave}
+              className="flex-1 px-2 py-1 rounded text-[9px] font-semibold border-none cursor-pointer"
+              style={{ background: '#FE5000', color: '#fff' }}>
+              Save
+            </button>
+            <button type="button" onClick={() => { setSaveNameInput(''); setShowSavePrompt(false); }}
+              className="flex-1 px-2 py-1 rounded text-[9px] border-none cursor-pointer"
+              style={{ background: t.border, color: t.textDim }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SourcesPanel() {
   return (
     <div className="flex flex-col">
+      <ContextActionBar />
       <GeneratorSection />
       <KnowledgeSection />
       <McpSection />

@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTheme, type ThemePalette } from '../theme';
-import { useConsoleStore } from '../store/consoleStore';
+import { useConsoleStore, collectFullState, agentNameToId } from '../store/consoleStore';
 import { Input } from '../components/ds/Input';
 import { TextArea } from '../components/ds/TextArea';
 import { Toggle } from '../components/ds/Toggle';
@@ -9,15 +9,332 @@ import { PRESET_AVATARS, AvatarIcon } from '../components/ds/AvatarIcon';
 import { refineField, type RefinedAgent } from '../utils/refineInstruction';
 import { generateWorkflow } from '../utils/generateSection';
 import { formatTokens } from '../utils/formatTokens';
+import { OUTPUT_FORMATS } from '../store/knowledgeBase';
+import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 import {
   Bot, Sparkles, Loader2,
   ChevronDown, ChevronRight,
-  Plus, X,
+  Plus, X, Download, Upload, FolderOpen, Save, Check,
 } from 'lucide-react';
+import { OutputIcon } from '../components/icons/SectionIcons';
+import { API_BASE } from '../config';
 
 /* ── Types ── */
 // type InstructionState = ReturnType<typeof useConsoleStore.getState>['instructionState'];
 // type WorkflowStep = ReturnType<typeof useConsoleStore.getState>['workflowSteps'][number];
+
+/* ── Output Format Select ── */
+function OutputFormatSelect({ value, onChange, t }: { value: string; onChange: (v: string) => void; t: ThemePalette & { isDark: boolean } }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="appearance-none cursor-pointer outline-none text-xs h-8 pl-3 pr-7 rounded-lg"
+      style={{
+        fontFamily: "'Inter', sans-serif",
+        background: t.surfaceOpaque,
+        border: `1px solid ${t.border}`,
+        color: t.isDark ? t.textSecondary : '#1a1a20',
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M0 2l4 4 4-4' fill='none' stroke='%23${t.isDark ? '555' : '999'}' stroke-width='1.5'/%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 8px center',
+      }}
+    >
+      {OUTPUT_FORMATS.map((f) => (
+        <option key={f.id} value={f.id}>{f.label}</option>
+      ))}
+    </select>
+  );
+}
+
+/* ── Agent Action Bar ── */
+function AgentActionBar() {
+  const t = useTheme();
+  const agentMeta = useConsoleStore(s => s.agentMeta);
+  const setAgentMeta = useConsoleStore(s => s.setAgentMeta);
+  const outputFormat = useConsoleStore(s => s.outputFormat);
+  const setOutputFormat = useConsoleStore(s => s.setOutputFormat);
+  const loadAgent = useConsoleStore(s => s.loadAgent);
+  const resetAgent = useConsoleStore(s => s.resetAgent);
+  const channels = useConsoleStore(s => s.channels);
+  const selectedModel = useConsoleStore(s => s.selectedModel);
+  const outputFormats = useConsoleStore(s => s.outputFormats);
+  const prompt = useConsoleStore(s => s.prompt);
+  const tokenBudget = useConsoleStore(s => s.tokenBudget);
+  const mcpServers = useConsoleStore(s => s.mcpServers);
+  const skills = useConsoleStore(s => s.skills);
+
+  const [savedAgents, setSavedAgents] = useState<{ id: string; agentMeta?: { name: string; description: string } }[]>([]);
+  const [agentPickerOpen, setAgentPickerOpen] = useState(false);
+  const [showSaveNamePrompt, setShowSaveNamePrompt] = useState(false);
+  const [saveNameInput, setSaveNameInput] = useState('');
+  const [savingAgent, setSavingAgent] = useState(false);
+  const [saveConfirmed, setSaveConfirmed] = useState(false);
+  const saveConfirmTimerRef = useRef<number | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (saveConfirmTimerRef.current) {
+        window.clearTimeout(saveConfirmTimerRef.current);
+      }
+    };
+  }, []);
+
+  const fetchSavedAgents = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/agents`);
+      if (!res.ok) return;
+      const json = await res.json();
+      setSavedAgents(json.data ?? []);
+    } catch {
+      // backend not available
+    }
+  }, []);
+
+  const handleExport = () => {
+    const store = useConsoleStore.getState();
+    const content = exportAsAgent({
+      channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta,
+      agentConfig: store.agentConfig,
+      connectors: store.connectors,
+      instructionState: store.instructionState,
+      workflowSteps: store.workflowSteps,
+    });
+    const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? 'modular-agent';
+    downloadAgentFile(content, name);
+    setShowExportDialog(false);
+  };
+
+  const showSaveConfirmation = useCallback(() => {
+    setSaveConfirmed(true);
+    if (saveConfirmTimerRef.current) {
+      window.clearTimeout(saveConfirmTimerRef.current);
+    }
+    saveConfirmTimerRef.current = window.setTimeout(() => {
+      setSaveConfirmed(false);
+    }, 2000);
+  }, []);
+
+  const persistAgent = useCallback(async (nameOverride?: string) => {
+    const resolvedName = (nameOverride ?? agentMeta.name).trim();
+    if (!resolvedName) {
+      setSaveNameInput(agentMeta.name);
+      setShowSaveNamePrompt(true);
+      return;
+    }
+
+    if (resolvedName !== agentMeta.name) {
+      setAgentMeta({ name: resolvedName });
+    }
+
+    setSavingAgent(true);
+    try {
+      const id = agentNameToId(resolvedName);
+      const state = collectFullState();
+      state.id = id;
+      state.agentMeta = { ...state.agentMeta, name: resolvedName };
+
+      const res = await fetch(`${API_BASE}/agents/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state),
+      });
+      if (!res.ok) return;
+      setShowSaveNamePrompt(false);
+      showSaveConfirmation();
+    } catch {
+      // backend may not be available
+    } finally {
+      setSavingAgent(false);
+    }
+  }, [agentMeta.name, setAgentMeta, showSaveConfirmation]);
+
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 shrink-0 border-b select-none"
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        background: t.surface,
+        borderColor: t.border,
+      }}
+    >
+      {/* Agent Name Label */}
+      <span
+        className="text-xs font-bold tracking-[0.12em] uppercase"
+        style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, minWidth: '100px' }}
+      >
+        {agentMeta.name || 'New Agent'}
+      </span>
+
+      {/* Output Format Selector */}
+      <OutputFormatSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)} t={t} />
+
+      <div className="flex-1" />
+
+      {/* New Agent */}
+      <button
+        type="button"
+        onClick={() => resetAgent()}
+        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+        style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
+        title="Create new agent"
+      >
+        <Plus size={13} />
+        New
+      </button>
+
+      {/* Load Agent */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => { setAgentPickerOpen(!agentPickerOpen); if (!agentPickerOpen) fetchSavedAgents(); }}
+          className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+          style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
+          title="Load saved agent"
+        >
+          <FolderOpen size={13} />
+          Load
+        </button>
+        {agentPickerOpen && (
+          <div
+            className="absolute top-full right-0 mt-1 z-50 min-w-[260px] max-h-[300px] overflow-y-auto rounded-lg shadow-lg"
+            style={{ background: t.surface, border: `1px solid ${t.border}` }}
+          >
+            {savedAgents.length === 0 ? (
+              <div className="px-3 py-4 text-xs text-center" style={{ color: t.textDim }}>
+                No saved agents found
+              </div>
+            ) : (
+              savedAgents.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => { loadAgent(a.id); setAgentPickerOpen(false); }}
+                  className="w-full text-left px-3 py-2 border-none cursor-pointer block"
+                  style={{ background: 'transparent', color: t.textPrimary }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <div className="text-xs font-medium">{a.agentMeta?.name || a.id}</div>
+                  {a.agentMeta?.description && (
+                    <div className="text-[10px] mt-0.5" style={{ color: t.textDim }}>
+                      {a.agentMeta.description.length > 80 ? a.agentMeta.description.slice(0, 80) + '…' : a.agentMeta.description}
+                    </div>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Save Agent */}
+      <button
+        type="button"
+        onClick={() => { void persistAgent(); }}
+        className="flex items-center justify-center h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+        style={{ background: saveConfirmed ? '#2ecc7115' : '#FE500012', color: saveConfirmed ? '#2ecc71' : '#FE5000', transition: 'background 0.15s', opacity: savingAgent ? 0.6 : 1 }}
+        onMouseEnter={(e) => { if (!saveConfirmed) e.currentTarget.style.background = '#FE500025'; }}
+        onMouseLeave={(e) => { if (!saveConfirmed) e.currentTarget.style.background = '#FE500012'; }}
+        title={saveConfirmed ? 'Agent saved' : 'Save agent'}
+        disabled={savingAgent}
+      >
+        {saveConfirmed ? <Check size={13} /> : <Save size={13} />}
+        Save
+      </button>
+
+      {/* Import Agent */}
+      <label className="cursor-pointer">
+        <input type="file" accept=".agent.yaml,.agent.yml,.yaml,.yml" style={{ display: 'none' }} onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              try {
+                // This would require parsing the agent file - for now just show the dialog
+                setShowExportDialog(true);
+              } catch (err) {
+                console.error('Failed to import agent:', err);
+              }
+            };
+            reader.readAsText(file);
+          }
+        }} />
+        <button
+          type="button"
+          className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+          style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
+          title="Import agent definition"
+        >
+          <Upload size={13} />
+          Import
+        </button>
+      </label>
+
+      {/* Export Agent */}
+      <button
+        type="button"
+        onClick={handleExport}
+        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-none"
+        style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
+        title="Export agent definition"
+      >
+        <Download size={13} />
+        Export
+      </button>
+
+      {/* Save Name Prompt */}
+      {showSaveNamePrompt && (
+        <div className="flex items-center gap-1.5 h-8 px-2 rounded-lg" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}` }}>
+          <input
+            type="text"
+            value={saveNameInput}
+            onChange={(e) => setSaveNameInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                void persistAgent(saveNameInput);
+              }
+              if (e.key === 'Escape') {
+                setShowSaveNamePrompt(false);
+              }
+            }}
+            className="w-44 h-6 px-2 text-xs rounded-md outline-none"
+            style={{ background: t.inputBg, border: `1px solid ${t.borderSubtle}`, color: t.textPrimary }}
+            placeholder="Agent name required"
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={() => { void persistAgent(saveNameInput); }}
+            className="flex items-center justify-center w-6 h-6 rounded-md border-none cursor-pointer"
+            style={{ background: '#FE5000', color: '#fff' }}
+          >
+            <Check size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSaveNamePrompt(false)}
+            className="flex items-center justify-center w-6 h-6 rounded-md border-none cursor-pointer"
+            style={{ background: 'transparent', color: t.textDim }}
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ── Section Header ── */
 function SectionHeader({
@@ -166,6 +483,7 @@ export function AgentBuilder() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <AgentActionBar />
       {/* Agent Card */}
       <div className="rounded-xl overflow-hidden" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)'}` }}>
 

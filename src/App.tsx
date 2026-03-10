@@ -79,7 +79,6 @@ export default function App() {
     >
       <input ref={importInputRef} type="file" accept=".md,.yaml,.yml,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
       <Topbar
-        onImportClick={handleImportClick}
         onSettingsClick={() => setShowSettings(true, 'providers')}
         workspaceMode={workspaceMode}
         onWorkspaceModeChange={setWorkspaceMode}
