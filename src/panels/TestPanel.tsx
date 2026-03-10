@@ -6,11 +6,15 @@ import { exportForTarget, downloadAgentFile } from '../utils/agentExport';
 import { runPipelineChat, resolveProviderAndModel } from '../services/pipelineChat';
 import {
   Send, Download, Check,
-  FileText, FileCode, Zap, ChevronDown, ChevronRight,
+  FileText, FileCode, Zap, ChevronDown, ChevronRight, Users, Plus, X, Play, Square,
 } from 'lucide-react';
 import { TraceViewer } from './TraceViewer';
 import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
 import { CapabilityGate } from '../components/CapabilityGate';
+import { RuntimeResults } from './RuntimePanel';
+import { runTeam as runTeamService, type RunTeamConfig } from '../services/runtimeService';
+import { useRuntimeStore } from '../store/runtimeStore';
+import { buildSystemFrame } from '../services/systemFrameBuilder';
 
 /* ── Pipeline Stats Bar ── */
 function PipelineStatsBar() {
@@ -241,6 +245,171 @@ function ChatSection() {
   );
 }
 
+/* ── Team Section ── */
+
+interface TeamAgent {
+  id: string;
+  name: string;
+  rolePrompt: string;
+}
+
+function TeamSection() {
+  const t = useTheme();
+  const [agents, setAgents] = useState<TeamAgent[]>([
+    { id: 'agent-1', name: 'Agent 1', rolePrompt: '' },
+    { id: 'agent-2', name: 'Agent 2', rolePrompt: '' },
+  ]);
+  const [task, setTask] = useState('');
+  const abortRef = useRef<AbortController | null>(null);
+  const runtimeStatus = useRuntimeStore((s) => s.status);
+  const runtimeReset = useRuntimeStore((s) => s.reset);
+  const isRunning = runtimeStatus === 'running';
+
+  const addAgent = () => {
+    const num = agents.length + 1;
+    setAgents([...agents, { id: `agent-${Date.now()}`, name: `Agent ${num}`, rolePrompt: '' }]);
+  };
+
+  const removeAgent = (id: string) => {
+    if (agents.length <= 2) return; // minimum 2
+    setAgents(agents.filter(a => a.id !== id));
+  };
+
+  const updateAgent = (id: string, patch: Partial<TeamAgent>) => {
+    setAgents(agents.map(a => a.id === id ? { ...a, ...patch } : a));
+  };
+
+  const handleRun = useCallback(() => {
+    if (!task.trim() || isRunning) return;
+
+    const { providerId, model, error } = resolveProviderAndModel();
+    if (error) return;
+
+    // Build system prompt from the current agent config in the builder
+    const systemPrompt = buildSystemFrame();
+
+    const config: RunTeamConfig = {
+      teamId: `team-${Date.now()}`,
+      systemPrompt,
+      task: task.trim(),
+      providerId,
+      model,
+      agents: agents.map(a => ({
+        agentId: a.id,
+        name: a.name,
+        rolePrompt: a.rolePrompt || undefined,
+      })),
+    };
+
+    abortRef.current = runTeamService(config);
+  }, [task, agents, isRunning]);
+
+  const handleStop = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Agent definitions */}
+      <div className="px-4 py-3 flex flex-col gap-2 overflow-y-auto" style={{ maxHeight: '40%' }}>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[12px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+            Team Agents ({agents.length})
+          </span>
+          <button
+            type="button"
+            onClick={addAgent}
+            disabled={agents.length >= 5}
+            className="flex items-center gap-1 text-[12px] px-2 py-1 rounded cursor-pointer border-none"
+            style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Geist Mono', monospace", opacity: agents.length >= 5 ? 0.4 : 1 }}
+          >
+            <Plus size={10} /> Add
+          </button>
+        </div>
+
+        {agents.map((agent) => (
+          <div key={agent.id} style={{ padding: 8, borderRadius: 6, border: `1px solid ${t.border}`, background: t.surface }}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <Users size={12} style={{ color: '#FE5000' }} />
+              <input
+                type="text"
+                value={agent.name}
+                onChange={e => updateAgent(agent.id, { name: e.target.value })}
+                className="flex-1 text-[13px] font-semibold px-1.5 py-0.5 rounded outline-none border-none"
+                style={{ background: 'transparent', color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
+              />
+              {agents.length > 2 && (
+                <button type="button" onClick={() => removeAgent(agent.id)} className="border-none cursor-pointer p-0.5 rounded"
+                  style={{ background: 'transparent', color: t.textDim }}>
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+            <input
+              type="text"
+              value={agent.rolePrompt}
+              onChange={e => updateAgent(agent.id, { rolePrompt: e.target.value })}
+              placeholder="Role-specific instructions (optional)"
+              className="w-full text-[12px] px-2 py-1.5 rounded outline-none"
+              style={{ background: t.inputBg, border: `1px solid ${t.borderSubtle}`, color: t.textSecondary }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Task input */}
+      <div className="px-4 py-2" style={{ borderTop: `1px solid ${t.border}` }}>
+        <textarea
+          value={task}
+          onChange={e => setTask(e.target.value)}
+          placeholder="Describe the task for the team..."
+          rows={3}
+          className="w-full text-[13px] px-3 py-2.5 rounded-lg outline-none resize-none"
+          style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, lineHeight: 1.5 }}
+        />
+        <div className="flex gap-2 mt-2">
+          {!isRunning ? (
+            <button
+              type="button"
+              onClick={handleRun}
+              disabled={!task.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg cursor-pointer border-none text-[12px] font-bold tracking-[0.08em] uppercase min-h-[44px]"
+              style={{ background: '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace", opacity: task.trim() ? 1 : 0.5 }}
+            >
+              <Play size={12} /> Run Team
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleStop}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg cursor-pointer border-none text-[12px] font-bold tracking-[0.08em] uppercase min-h-[44px]"
+              style={{ background: '#dc2626', color: '#fff', fontFamily: "'Geist Mono', monospace" }}
+            >
+              <Square size={12} /> Stop
+            </button>
+          )}
+          {runtimeStatus !== 'idle' && !isRunning && (
+            <button
+              type="button"
+              onClick={runtimeReset}
+              className="text-[12px] px-3 py-2 rounded-lg cursor-pointer border-none"
+              style={{ background: t.border, color: t.textDim }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Results */}
+      <div className="flex-1 overflow-y-auto px-4 py-3" style={{ borderTop: `1px solid ${t.border}` }}>
+        <RuntimeResults />
+      </div>
+    </div>
+  );
+}
+
 /* ── Export Section ── */
 function ExportSection() {
   const t = useTheme();
@@ -322,7 +491,7 @@ function ExportSection() {
 /* ── Main TestPanel ── */
 export function TestPanel({ onCollapse }: { onCollapse?: () => void }) {
   const t = useTheme();
-  const [activeTab, setActiveTab] = useState<'chat' | 'traces' | 'export'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'team' | 'traces' | 'export'>('chat');
 
   return (
     <div className="flex flex-col h-full">
@@ -330,13 +499,18 @@ export function TestPanel({ onCollapse }: { onCollapse?: () => void }) {
       <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px rgba(0,255,136,0.4)' }} />
         <span className="text-[12px] font-bold tracking-[0.08em] uppercase flex-1" style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}>
-          {activeTab === 'chat' ? 'Conversation Tester' : activeTab === 'traces' ? 'Execution Traces' : 'Export'}
+          {activeTab === 'chat' ? 'Conversation Tester' : activeTab === 'team' ? 'Team Runner' : activeTab === 'traces' ? 'Execution Traces' : 'Export'}
         </span>
         <div className="flex gap-0.5 rounded-md overflow-hidden" role="tablist" style={{ border: `1px solid ${t.border}` }}>
           <button type="button" role="tab" id="tab-chat" aria-selected={activeTab === 'chat'} aria-controls="tabpanel-chat" onClick={() => setActiveTab('chat')}
             className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
             style={{ background: activeTab === 'chat' ? '#FE5000' : 'transparent', color: activeTab === 'chat' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
             Chat
+          </button>
+          <button type="button" role="tab" id="tab-team" aria-selected={activeTab === 'team'} aria-controls="tabpanel-team" onClick={() => setActiveTab('team')}
+            className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
+            style={{ background: activeTab === 'team' ? '#FE5000' : 'transparent', color: activeTab === 'team' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+            Team
           </button>
           <button type="button" role="tab" id="tab-traces" aria-selected={activeTab === 'traces'} aria-controls="tabpanel-traces" onClick={() => setActiveTab('traces')}
             className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
@@ -360,6 +534,7 @@ export function TestPanel({ onCollapse }: { onCollapse?: () => void }) {
       </div>
 
       {activeTab === 'chat' && <div role="tabpanel" id="tabpanel-chat" aria-labelledby="tab-chat" className="flex flex-col flex-1 min-h-0"><ChatSection /></div>}
+      {activeTab === 'team' && <div role="tabpanel" id="tabpanel-team" aria-labelledby="tab-team" className="flex flex-col flex-1 min-h-0"><TeamSection /></div>}
       {activeTab === 'traces' && (
         <div role="tabpanel" id="tabpanel-traces" aria-labelledby="tab-traces" className="flex-1 overflow-y-auto">
           <TraceViewer />
