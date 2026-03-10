@@ -1,0 +1,36 @@
+# Source files (dist versions are included)
+src/
+server/
+
+# Tests
+tests/
+__tests__/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Docs (except README)
+docs/
+
+# Development files
+.github/
+.vscode/
+*.config.ts
+*.config.js
+vite.config.ts
+vitest.config.ts
+tailwind.config.ts
+playwright.config.ts
+eslint.config.js
+
+# Development dependencies
+node_modules/
+
+# Local data
+memory/
+.modular-studio/
+
+# Build artifacts
+*.tsbuildinfo
+fix-duplicates.js

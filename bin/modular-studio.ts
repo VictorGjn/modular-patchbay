@@ -33,7 +33,7 @@ function parseArgs(argv: string[]): { port: number; open: boolean } {
       showHelp();
       process.exit(0);
     } else if (argv[i] === '--version' || argv[i] === '-v') {
-      console.log('modular-studio v0.1.0');
+      console.log('modular-studio v0.2.0');
       process.exit(0);
     } else if (argv[i] === '--port' && argv[i + 1]) {
       port = parseInt(argv[i + 1], 10);
