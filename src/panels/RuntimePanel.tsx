@@ -228,7 +228,7 @@ export function RuntimeResults() {
     return (
       <div style={{
         position: 'fixed', inset: 0, zIndex: 100,
-        background: t.background, padding: 24, overflowY: 'auto',
+        background: t.bg, padding: 24, overflowY: 'auto',
       }}>
         {content}
       </div>

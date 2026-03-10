@@ -17,7 +17,6 @@ import {
   ChevronDown, ChevronRight,
   Plus, X, Download, Upload, FolderOpen, Save, Check, PencilLine,
 } from 'lucide-react';
-import { OutputIcon } from '../components/icons/SectionIcons';
 import { VersionIndicator } from '../components/VersionIndicator';
 import { API_BASE } from '../config';
 
@@ -73,7 +72,7 @@ function AgentActionBar() {
   const [savingAgent, setSavingAgent] = useState(false);
   const [saveConfirmed, setSaveConfirmed] = useState(false);
   const saveConfirmTimerRef = useRef<number | null>(null);
-  const [showExportDialog, setShowExportDialog] = useState(false);
+
 
   useEffect(() => {
     return () => {
@@ -105,7 +104,6 @@ function AgentActionBar() {
     });
     const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? 'modular-agent';
     downloadAgentFile(content, name);
-    setShowExportDialog(false);
   };
 
   const showSaveConfirmation = useCallback(() => {
@@ -261,10 +259,10 @@ function AgentActionBar() {
           const file = e.target.files?.[0];
           if (file) {
             const reader = new FileReader();
-            reader.onload = (event) => {
+            reader.onload = () => {
               try {
-                // This would require parsing the agent file - for now just show the dialog
-                setShowExportDialog(true);
+                // This would require parsing the agent file - implementation pending
+                console.log('Agent import functionality not implemented yet');
               } catch (err) {
                 console.error('Failed to import agent:', err);
               }
@@ -658,7 +656,7 @@ export function AgentBuilder() {
                     ? constraints.neverMakeUp && constraints.stayInScope && !constraints.askBeforeActions && !constraints.useOnlyTools
                     : !constraints.neverMakeUp && !constraints.askBeforeActions && !constraints.stayInScope && !constraints.useOnlyTools;
                   return (
-                    <Tooltip key={profile.id} text={profile.desc}>
+                    <Tooltip key={profile.id} content={profile.desc}>
                       <button
                         type="button"
                         onClick={() => updateInstruction({ constraints: { ...constraints, ...profile.apply } })}

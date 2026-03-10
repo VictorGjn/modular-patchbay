@@ -134,7 +134,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     configFields: [],
     tags: ['browser', 'automation', 'screenshots', 'scraping'],
     authMethod: 'none',
-    authMethod: 'none',
   },
   {
     id: 'mcp-playwright', name: 'Playwright', npmPackage: '@playwright/mcp',
@@ -143,7 +142,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@playwright/mcp'],
     configFields: [],
     tags: ['browser', 'playwright', 'testing', 'automation'],
-    authMethod: 'none',
     authMethod: 'none',
   },
 
@@ -178,7 +176,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     ],
     tags: ['gitlab', 'git', 'ci-cd', 'merge-request'],
     authMethod: 'api-key',
-    authMethod: 'api-key',
   },
   {
     id: 'mcp-linear', name: 'Linear', npmPackage: '@linear/mcp-server',
@@ -206,7 +203,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     configFields: [],
     tags: ['docker', 'containers', 'devops', 'infrastructure'],
     authMethod: 'none',
-    authMethod: 'none',
   },
   {
     id: 'mcp-kubernetes', name: 'Kubernetes', npmPackage: 'kubernetes-mcp',
@@ -215,7 +211,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'kubernetes-mcp'],
     configFields: [{ key: 'KUBECONFIG', label: 'Kubeconfig Path', type: 'text', placeholder: '~/.kube/config', required: false }],
     tags: ['kubernetes', 'k8s', 'devops', 'orchestration'],
-    authMethod: 'none',
     authMethod: 'none',
   },
   {
@@ -244,7 +239,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     configFields: [{ key: 'NETLIFY_TOKEN', label: 'Personal Access Token', type: 'password', placeholder: '', required: true }],
     tags: ['netlify', 'deploy', 'hosting', 'jamstack'],
     authMethod: 'api-key',
-    authMethod: 'api-key',
   },
   {
     id: 'mcp-npm', name: 'npm Registry', npmPackage: 'npm-mcp',
@@ -253,7 +247,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'npm-mcp'],
     configFields: [],
     tags: ['npm', 'packages', 'dependencies', 'registry'],
-    authMethod: 'none',
     authMethod: 'none',
   },
 
@@ -266,7 +259,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     configFields: [{ key: 'DATABASE_URL', label: 'Connection String', type: 'password', placeholder: 'postgresql://user:pass@host:5432/db', required: true }],
     tags: ['postgres', 'database', 'sql', 'query'],
     authMethod: 'api-key',
-    authMethod: 'api-key',
   },
   {
     id: 'mcp-mysql', name: 'MySQL', npmPackage: 'mysql-mcp-server',
@@ -275,7 +267,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'mysql-mcp-server'],
     configFields: [{ key: 'MYSQL_URL', label: 'Connection String', type: 'password', placeholder: 'mysql://user:pass@host:3306/db', required: true }],
     tags: ['mysql', 'database', 'sql'],
-    authMethod: 'api-key',
     authMethod: 'api-key',
   },
   {
@@ -286,7 +277,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     configFields: [{ key: 'SQLITE_PATH', label: 'Database File Path', type: 'text', placeholder: '/path/to/database.db', required: true }],
     tags: ['sqlite', 'database', 'sql', 'local'],
     authMethod: 'none',
-    authMethod: 'none',
   },
   {
     id: 'mcp-mongodb', name: 'MongoDB', npmPackage: 'mongodb-mcp-server',
@@ -296,7 +286,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     configFields: [{ key: 'MONGODB_URI', label: 'Connection URI', type: 'password', placeholder: 'mongodb+srv://user:pass@cluster.mongodb.net/db', required: true }],
     tags: ['mongodb', 'nosql', 'database', 'documents'],
     authMethod: 'api-key',
-    authMethod: 'api-key',
   },
   {
     id: 'mcp-redis', name: 'Redis', npmPackage: '@modelcontextprotocol/server-redis',
@@ -305,7 +294,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-redis'],
     configFields: [{ key: 'REDIS_URL', label: 'Connection URL', type: 'password', placeholder: 'redis://localhost:6379', required: true }],
     tags: ['redis', 'cache', 'key-value', 'pub-sub'],
-    authMethod: 'api-key',
     authMethod: 'api-key',
   },
   {
@@ -394,7 +382,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     configFields: [{ key: 'DISCORD_TOKEN', label: 'Bot Token', type: 'password', placeholder: '', required: true }],
     tags: ['discord', 'messaging', 'bot', 'community'],
     authMethod: 'api-key',
-    authMethod: 'api-key',
   },
   {
     id: 'mcp-gmail', name: 'Gmail', npmPackage: '@gongrzhe/server-gmail-autoauth-mcp',
@@ -406,7 +393,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'GMAIL_CLIENT_SECRET', label: 'OAuth Client Secret', type: 'password', placeholder: 'GOCSPX-...', required: true },
     ],
     tags: ['gmail', 'email', 'google', 'oauth'],
-    authMethod: 'api-key',
     authMethod: 'api-key',
   },
   {
@@ -420,7 +406,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'SMTP_PASS', label: 'Password', type: 'password', placeholder: '', required: true },
     ],
     tags: ['email', 'smtp', 'imap', 'send'],
-    authMethod: 'api-key',
     authMethod: 'api-key',
   },
   {
@@ -467,7 +452,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     ],
     tags: ['google-drive', 'files', 'docs', 'sheets', 'storage'],
     authMethod: 'api-key',
-    authMethod: 'oauth',
   },
   {
     id: 'mcp-google-sheets', name: 'Google Sheets', npmPackage: 'google-sheets-mcp',
@@ -479,7 +463,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'GOOGLE_CLIENT_SECRET', label: 'OAuth Client Secret', type: 'password', placeholder: '', required: true },
     ],
     tags: ['google-sheets', 'spreadsheet', 'data', 'tables'],
-    authMethod: 'api-key',
     authMethod: 'api-key',
   },
   {
@@ -493,7 +476,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     ],
     tags: ['google-calendar', 'events', 'scheduling', 'calendar'],
     authMethod: 'api-key',
-    authMethod: 'api-key',
   },
   {
     id: 'mcp-google-maps', name: 'Google Maps', npmPackage: '@modelcontextprotocol/server-google-maps',
@@ -502,7 +484,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-google-maps'],
     configFields: [{ key: 'GOOGLE_MAPS_API_KEY', label: 'API Key', type: 'password', placeholder: 'AIza...', required: true }],
     tags: ['google-maps', 'geocoding', 'directions', 'places'],
-    authMethod: 'api-key',
     authMethod: 'api-key',
   },
   {
@@ -517,7 +498,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     ],
     tags: ['confluence', 'wiki', 'docs', 'atlassian'],
     authMethod: 'api-key',
-    authMethod: 'api-key',
   },
   {
     id: 'mcp-jira', name: 'Jira', npmPackage: 'jira-mcp',
@@ -530,7 +510,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'JIRA_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true },
     ],
     tags: ['jira', 'issues', 'agile', 'boards', 'atlassian'],
-    authMethod: 'api-key',
     authMethod: 'api-key',
   },
   {
@@ -558,7 +537,6 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'obsidian-mcp'],
     configFields: [{ key: 'OBSIDIAN_VAULT_PATH', label: 'Vault Path', type: 'text', placeholder: '/path/to/vault', required: true }],
     tags: ['obsidian', 'notes', 'markdown', 'knowledge-base'],
-    authMethod: 'none',
     authMethod: 'none',
   },
   {
