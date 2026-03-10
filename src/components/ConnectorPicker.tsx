@@ -4,10 +4,13 @@ import { useMcpStore } from '../store/mcpStore';
 import type { ConnectorService, ConnectorDirection } from '../store/knowledgeBase';
 import { ConnectorIcon } from './icons/SectionIcons';
 import { useTheme } from '../theme';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, Loader2 } from 'lucide-react';
 import { PickerModal } from './PickerModal';
 import { getAuthStatuses } from '../services/connectorAuth';
 import type { ConnectorAuthStatus } from '../services/connectorAuth';
+import { startMcpOAuth, getMcpOAuthStatus } from '../services/mcpOAuthClient';
+import { MCP_REGISTRY } from '../store/mcp-registry';
+import type { McpRegistryEntry } from '../store/mcp-registry';
 
 interface AvailableConnector {
   service: ConnectorService;
@@ -67,13 +70,41 @@ export function ConnectorPicker() {
   const addConnector = useConsoleStore((s) => s.addConnector);
   const t = useTheme();
   const [authStatuses, setAuthStatuses] = useState<Record<string, ConnectorAuthStatus>>({});
+  const [oauthStatuses, setOauthStatuses] = useState<Record<string, boolean>>({});
+  const [oauthLoading, setOauthLoading] = useState<Record<string, boolean>>({});
+  const [oauthErrors, setOauthErrors] = useState<Record<string, string>>({});
 
   const mcpServers = useMcpStore((s) => s.servers);
+
+  const oauthEntries = MCP_REGISTRY.filter(
+    (e): e is McpRegistryEntry & { url: string } => e.authMethod === 'oauth' && !!e.url
+  );
 
   useEffect(() => {
     if (!showConnectorPicker) return;
     getAuthStatuses().then(setAuthStatuses).catch(() => {});
-  }, [showConnectorPicker]);
+    oauthEntries.forEach((entry) => {
+      getMcpOAuthStatus(entry.url).then((s) => {
+        setOauthStatuses((prev) => ({ ...prev, [entry.url]: s.connected }));
+        if (s.connected) {
+          const svc = entry.id as ConnectorService;
+          if (!useConsoleStore.getState().connectors.some((c) => c.service === svc)) {
+            addConnector({
+              id: `conn-${entry.id}-oauth`,
+              service: svc,
+              name: entry.name,
+              mcpServerId: entry.id,
+              direction: 'both',
+              enabled: true,
+              config: {},
+              status: 'connected',
+              authMethod: 'oauth',
+            });
+          }
+        }
+      }).catch(() => {});
+    });
+  }, [showConnectorPicker]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const builtInIds = new Set(BUILT_IN_CONNECTORS.map((c) => c.mcpServerId));
 
@@ -116,6 +147,94 @@ export function ConnectorPicker() {
   };
 
   const isAdded = (service: ConnectorService) => connectors.some((c) => c.service === service);
+
+  const handleOAuthConnect = async (entry: McpRegistryEntry & { url: string }) => {
+    setOauthLoading((prev) => ({ ...prev, [entry.url]: true }));
+    setOauthErrors((prev) => ({ ...prev, [entry.url]: '' }));
+    try {
+      await startMcpOAuth(entry.url);
+      setOauthStatuses((prev) => ({ ...prev, [entry.url]: true }));
+      const svc = entry.id as ConnectorService;
+      if (!connectors.some((c) => c.service === svc)) {
+        addConnector({
+          id: `conn-${entry.id}-oauth-${Date.now()}`,
+          service: svc,
+          name: entry.name,
+          mcpServerId: entry.id,
+          direction: 'both',
+          enabled: true,
+          config: {},
+          status: 'connected',
+          authMethod: 'oauth',
+        });
+      }
+    } catch (err) {
+      setOauthErrors((prev) => ({ ...prev, [entry.url]: (err as Error).message }));
+    } finally {
+      setOauthLoading((prev) => ({ ...prev, [entry.url]: false }));
+    }
+  };
+
+  const renderOAuthRow = (entry: McpRegistryEntry & { url: string }) => {
+    const connected = oauthStatuses[entry.url] ?? false;
+    const loading = oauthLoading[entry.url] ?? false;
+    const error = oauthErrors[entry.url];
+    const added = isAdded(entry.id as ConnectorService);
+
+    return (
+      <div key={entry.id} className="flex items-center gap-3 px-5 py-2.5 hover-row cursor-default">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: t.surfaceElevated }}
+        >
+          <ConnectorIcon service={entry.id as ConnectorService} size={16} style={{ color: t.textSecondary }} />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span
+              style={{
+                display: 'inline-block',
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: connected ? '#00cc66' : '#555',
+                flexShrink: 0,
+              }}
+            />
+            <span className="text-[17px] font-medium" style={{ color: t.textPrimary }}>{entry.name}</span>
+            <span
+              className="text-[12px] px-1.5 py-0.5 rounded-full uppercase"
+              style={{ background: '#FE500010', color: '#FE5000', fontFamily: "'Geist Mono', monospace", fontWeight: 600 }}
+            >
+              OAuth
+            </span>
+          </div>
+          <div>
+            <span className="text-[14px]" style={{ color: t.textDim }}>{entry.description}</span>
+            {error && <span className="text-[12px] ml-2" style={{ color: '#ff4444' }}>{error}</span>}
+          </div>
+        </div>
+
+        {added ? (
+          <span className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
+            <Check size={12} /> Connected
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => handleOAuthConnect(entry)}
+            disabled={loading}
+            className="flex items-center gap-1.5 text-[13px] px-3 py-1 rounded-md cursor-pointer border-none"
+            style={{ background: '#FE500018', color: '#FE5000', fontWeight: 600, opacity: loading ? 0.7 : 1 }}
+          >
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+            {loading ? 'Connecting...' : 'Connect'}
+          </button>
+        )}
+      </div>
+    );
+  };
 
   const isAuthenticated = (ac: AvailableConnector) => {
     const auth = authStatuses[ac.service];
@@ -243,21 +362,27 @@ export function ConnectorPicker() {
         const f = filter?.toLowerCase() ?? '';
         const matchFilter = (ac: AvailableConnector) =>
           !f || ac.name.toLowerCase().includes(f) || ac.description.toLowerCase().includes(f);
+        const matchOAuthFilter = (e: McpRegistryEntry) =>
+          !f || e.name.toLowerCase().includes(f) || e.description.toLowerCase().includes(f);
 
         const filteredConnected = connectedMcpConnectors.filter(matchFilter);
         const filteredAvailable = availableConnectors.filter(matchFilter);
+        const connectedOAuth = oauthEntries.filter((e) => oauthStatuses[e.url] && matchOAuthFilter(e));
+        const availableOAuth = oauthEntries.filter((e) => !oauthStatuses[e.url] && matchOAuthFilter(e));
 
         return (
           <>
-            {filteredConnected.length > 0 && (
+            {(filteredConnected.length > 0 || connectedOAuth.length > 0) && (
               <>
                 <SectionLabel label="Connected Services" t={t} />
+                {connectedOAuth.map(renderOAuthRow)}
                 {filteredConnected.map(renderConnectorRow)}
               </>
             )}
-            {filteredAvailable.length > 0 && (
+            {(filteredAvailable.length > 0 || availableOAuth.length > 0) && (
               <>
                 <SectionLabel label="Available Connectors" t={t} />
+                {availableOAuth.map(renderOAuthRow)}
                 {filteredAvailable.map(renderConnectorRow)}
               </>
             )}
