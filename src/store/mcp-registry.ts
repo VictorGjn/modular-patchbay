@@ -21,6 +21,7 @@ export interface McpRegistryEntry {
   website?: string;
   repo?: string;
   tags: string[];
+  authMethod: 'none',
 }
 
 export const MCP_REGISTRY: McpRegistryEntry[] = [
@@ -32,6 +33,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-filesystem'],
     configFields: [{ key: 'ALLOWED_DIRS', label: 'Allowed Directories (comma-separated)', type: 'text', placeholder: '/home/user/projects,/tmp', required: true }],
     repo: 'https://github.com/modelcontextprotocol/servers', tags: ['files', 'local', 'read', 'write'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-memory', name: 'Memory (Knowledge Graph)', npmPackage: '@modelcontextprotocol/server-memory',
@@ -58,6 +60,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'uvx', defaultArgs: ['mcp-server-git'],
     configFields: [{ key: 'GIT_REPO_PATH', label: 'Repository Path', type: 'text', placeholder: '/path/to/repo', required: false }],
     repo: 'https://github.com/modelcontextprotocol/servers', tags: ['git', 'version-control', 'diff', 'log'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-sequential-thinking', name: 'Sequential Thinking', npmPackage: '@modelcontextprotocol/server-sequential-thinking',
@@ -75,6 +78,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-time'],
     configFields: [],
     repo: 'https://github.com/modelcontextprotocol/servers', tags: ['time', 'timezone', 'date'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-everything', name: 'Everything (Test)', npmPackage: '@modelcontextprotocol/server-everything',
@@ -83,6 +87,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-everything'],
     configFields: [],
     repo: 'https://github.com/modelcontextprotocol/servers', tags: ['test', 'reference', 'debug'],
+    authMethod: 'none',
   },
 
   // ─── SEARCH & WEB ──────────────────────────────────────
@@ -93,6 +98,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-brave-search'],
     configFields: [{ key: 'BRAVE_API_KEY', label: 'API Key', type: 'password', placeholder: 'BSA...', required: true }],
     website: 'https://brave.com/search/api/', tags: ['search', 'web', 'brave'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-tavily', name: 'Tavily Search', npmPackage: 'tavily-mcp',
@@ -101,6 +107,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'tavily-mcp'],
     configFields: [{ key: 'TAVILY_API_KEY', label: 'API Key', type: 'password', placeholder: 'tvly-...', required: true }],
     website: 'https://tavily.com', tags: ['search', 'ai-search', 'research'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-exa', name: 'Exa Search', npmPackage: 'exa-mcp-server',
@@ -109,6 +116,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'exa-mcp-server'],
     configFields: [{ key: 'EXA_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true }],
     website: 'https://exa.ai', tags: ['search', 'neural-search', 'semantic'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-firecrawl', name: 'Firecrawl', npmPackage: 'firecrawl-mcp',
@@ -117,6 +125,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'firecrawl-mcp'],
     configFields: [{ key: 'FIRECRAWL_API_KEY', label: 'API Key', type: 'password', placeholder: 'fc-...', required: true }],
     website: 'https://firecrawl.dev', tags: ['scraping', 'crawling', 'web', 'extract'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-puppeteer', name: 'Puppeteer', npmPackage: '@modelcontextprotocol/server-puppeteer',
@@ -125,6 +134,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-puppeteer'],
     configFields: [],
     tags: ['browser', 'automation', 'screenshots', 'scraping'],
+    authMethod: 'none',
+    authMethod: 'none',
   },
   {
     id: 'mcp-playwright', name: 'Playwright', npmPackage: '@playwright/mcp',
@@ -133,6 +144,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@playwright/mcp'],
     configFields: [],
     tags: ['browser', 'playwright', 'testing', 'automation'],
+    authMethod: 'none',
+    authMethod: 'none',
   },
 
   // ─── CODE & DEV TOOLS ──────────────────────────────────
@@ -143,6 +156,17 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-github'],
     configFields: [{ key: 'GITHUB_TOKEN', label: 'Personal Access Token', type: 'password', placeholder: 'ghp_...', required: true }],
     website: 'https://github.com', tags: ['github', 'git', 'issues', 'pr', 'code'],
+    authMethod: 'api-key',
+  },
+  {
+    id: 'github-remote', name: 'GitHub (Cloud)', npmPackage: '',
+    description: 'GitHub repos, issues, PRs — OAuth via GitHub App',
+    icon: 'git-branch', category: 'coding', author: 'GitHub', transport: 'streamable-http',
+    runtimes: ['claude', 'amp', 'codex'], command: '', defaultArgs: [],
+    url: 'https://api.githubcopilot.com/mcp/',
+    authMethod: 'oauth',
+    configFields: [],
+    website: 'https://github.com', tags: ['github', 'git', 'issues', 'pr', 'code', 'oauth'],
   },
   {
     id: 'mcp-gitlab', name: 'GitLab', npmPackage: '@modelcontextprotocol/server-gitlab',
@@ -154,6 +178,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'GITLAB_URL', label: 'Instance URL', type: 'url', placeholder: 'https://gitlab.com', required: false },
     ],
     tags: ['gitlab', 'git', 'ci-cd', 'merge-request'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-linear', name: 'Linear', npmPackage: '@linear/mcp-server',
@@ -162,6 +188,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@linear/mcp-server'],
     configFields: [{ key: 'LINEAR_API_KEY', label: 'API Key', type: 'password', placeholder: 'lin_api_...', required: true }],
     website: 'https://linear.app', tags: ['linear', 'project-management', 'issues', 'agile'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-sentry', name: 'Sentry', npmPackage: '@sentry/mcp-server',
@@ -170,6 +197,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@sentry/mcp-server'],
     configFields: [{ key: 'SENTRY_AUTH_TOKEN', label: 'Auth Token', type: 'password', placeholder: 'sntrys_...', required: true }],
     website: 'https://sentry.io', tags: ['sentry', 'errors', 'monitoring', 'debugging'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-docker', name: 'Docker', npmPackage: 'docker-mcp',
@@ -178,6 +206,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'docker-mcp'],
     configFields: [],
     tags: ['docker', 'containers', 'devops', 'infrastructure'],
+    authMethod: 'none',
+    authMethod: 'none',
   },
   {
     id: 'mcp-kubernetes', name: 'Kubernetes', npmPackage: 'kubernetes-mcp',
@@ -186,6 +216,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'kubernetes-mcp'],
     configFields: [{ key: 'KUBECONFIG', label: 'Kubeconfig Path', type: 'text', placeholder: '~/.kube/config', required: false }],
     tags: ['kubernetes', 'k8s', 'devops', 'orchestration'],
+    authMethod: 'none',
+    authMethod: 'none',
   },
   {
     id: 'mcp-vercel', name: 'Vercel', npmPackage: '@vercel/mcp',
@@ -194,6 +226,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@vercel/mcp'],
     configFields: [{ key: 'VERCEL_TOKEN', label: 'Access Token', type: 'password', placeholder: '', required: true }],
     website: 'https://vercel.com', tags: ['vercel', 'deploy', 'hosting', 'serverless'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-cloudflare', name: 'Cloudflare', npmPackage: '@cloudflare/mcp-server-cloudflare',
@@ -202,6 +235,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@cloudflare/mcp-server-cloudflare'],
     configFields: [{ key: 'CLOUDFLARE_API_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true }],
     website: 'https://cloudflare.com', tags: ['cloudflare', 'workers', 'cdn', 'dns'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-netlify', name: 'Netlify', npmPackage: 'netlify-mcp',
@@ -210,6 +244,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'netlify-mcp'],
     configFields: [{ key: 'NETLIFY_TOKEN', label: 'Personal Access Token', type: 'password', placeholder: '', required: true }],
     tags: ['netlify', 'deploy', 'hosting', 'jamstack'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-npm', name: 'npm Registry', npmPackage: 'npm-mcp',
@@ -218,6 +254,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'npm-mcp'],
     configFields: [],
     tags: ['npm', 'packages', 'dependencies', 'registry'],
+    authMethod: 'none',
+    authMethod: 'none',
   },
 
   // ─── DATABASES ─────────────────────────────────────────
@@ -228,6 +266,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-postgres'],
     configFields: [{ key: 'DATABASE_URL', label: 'Connection String', type: 'password', placeholder: 'postgresql://user:pass@host:5432/db', required: true }],
     tags: ['postgres', 'database', 'sql', 'query'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-mysql', name: 'MySQL', npmPackage: 'mysql-mcp-server',
@@ -236,6 +276,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'mysql-mcp-server'],
     configFields: [{ key: 'MYSQL_URL', label: 'Connection String', type: 'password', placeholder: 'mysql://user:pass@host:3306/db', required: true }],
     tags: ['mysql', 'database', 'sql'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-sqlite', name: 'SQLite', npmPackage: '@modelcontextprotocol/server-sqlite',
@@ -244,6 +286,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-sqlite'],
     configFields: [{ key: 'SQLITE_PATH', label: 'Database File Path', type: 'text', placeholder: '/path/to/database.db', required: true }],
     tags: ['sqlite', 'database', 'sql', 'local'],
+    authMethod: 'none',
+    authMethod: 'none',
   },
   {
     id: 'mcp-mongodb', name: 'MongoDB', npmPackage: 'mongodb-mcp-server',
@@ -252,6 +296,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'mongodb-mcp-server'],
     configFields: [{ key: 'MONGODB_URI', label: 'Connection URI', type: 'password', placeholder: 'mongodb+srv://user:pass@cluster.mongodb.net/db', required: true }],
     tags: ['mongodb', 'nosql', 'database', 'documents'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-redis', name: 'Redis', npmPackage: '@modelcontextprotocol/server-redis',
@@ -260,6 +306,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-redis'],
     configFields: [{ key: 'REDIS_URL', label: 'Connection URL', type: 'password', placeholder: 'redis://localhost:6379', required: true }],
     tags: ['redis', 'cache', 'key-value', 'pub-sub'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-supabase', name: 'Supabase', npmPackage: '@supabase/mcp-server',
@@ -271,6 +319,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'SUPABASE_SERVICE_ROLE_KEY', label: 'Service Role Key', type: 'password', placeholder: 'eyJ...', required: true },
     ],
     website: 'https://supabase.com', tags: ['supabase', 'database', 'auth', 'storage', 'postgres'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-neon', name: 'Neon', npmPackage: '@neondatabase/mcp-server-neon',
@@ -279,6 +328,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@neondatabase/mcp-server-neon'],
     configFields: [{ key: 'NEON_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true }],
     website: 'https://neon.tech', tags: ['neon', 'postgres', 'serverless', 'database'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-turso', name: 'Turso', npmPackage: '@tursodatabase/mcp-server',
@@ -290,6 +340,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'TURSO_AUTH_TOKEN', label: 'Auth Token', type: 'password', placeholder: '', required: true },
     ],
     website: 'https://turso.tech', tags: ['turso', 'sqlite', 'edge', 'database'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-pinecone', name: 'Pinecone', npmPackage: '@pinecone-database/mcp',
@@ -298,6 +349,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@pinecone-database/mcp'],
     configFields: [{ key: 'PINECONE_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true }],
     website: 'https://pinecone.io', tags: ['pinecone', 'vector', 'embeddings', 'rag'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-qdrant', name: 'Qdrant', npmPackage: 'qdrant-mcp',
@@ -309,6 +361,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'QDRANT_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: false },
     ],
     website: 'https://qdrant.tech', tags: ['qdrant', 'vector', 'search', 'embeddings'],
+    authMethod: 'api-key',
   },
 
   // ─── COMMUNICATION ─────────────────────────────────────
@@ -322,6 +375,17 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'SLACK_TEAM_ID', label: 'Team ID', type: 'text', placeholder: 'T0...', required: false },
     ],
     website: 'https://slack.com', tags: ['slack', 'messaging', 'channels', 'team'],
+    authMethod: 'api-key',
+  },
+  {
+    id: 'slack-remote', name: 'Slack (Cloud)', npmPackage: '',
+    description: 'Slack workspace — OAuth, no bot token needed',
+    icon: 'hash', category: 'data', author: 'Slack', transport: 'streamable-http',
+    runtimes: ['claude', 'amp', 'codex'], command: '', defaultArgs: [],
+    url: 'https://mcp.slack.com/sse',
+    authMethod: 'oauth',
+    configFields: [],
+    website: 'https://slack.com', tags: ['slack', 'messaging', 'channels', 'team', 'oauth'],
   },
   {
     id: 'mcp-discord', name: 'Discord', npmPackage: 'discord-mcp',
@@ -330,6 +394,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'discord-mcp'],
     configFields: [{ key: 'DISCORD_TOKEN', label: 'Bot Token', type: 'password', placeholder: '', required: true }],
     tags: ['discord', 'messaging', 'bot', 'community'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-gmail', name: 'Gmail', npmPackage: '@gongrzhe/server-gmail-autoauth-mcp',
@@ -341,6 +407,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'GMAIL_CLIENT_SECRET', label: 'OAuth Client Secret', type: 'password', placeholder: 'GOCSPX-...', required: true },
     ],
     tags: ['gmail', 'email', 'google', 'oauth'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-email', name: 'Email (SMTP/IMAP)', npmPackage: 'email-mcp',
@@ -353,6 +421,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'SMTP_PASS', label: 'Password', type: 'password', placeholder: '', required: true },
     ],
     tags: ['email', 'smtp', 'imap', 'send'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-twilio', name: 'Twilio', npmPackage: 'twilio-mcp',
@@ -364,6 +434,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'TWILIO_AUTH_TOKEN', label: 'Auth Token', type: 'password', placeholder: '', required: true },
     ],
     website: 'https://twilio.com', tags: ['twilio', 'sms', 'phone', 'messaging'],
+    authMethod: 'api-key',
   },
 
   // ─── PRODUCTIVITY & DOCS ───────────────────────────────
@@ -374,6 +445,17 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@notionhq/notion-mcp-server'],
     configFields: [{ key: 'NOTION_TOKEN', label: 'Integration Token', type: 'password', placeholder: 'ntn_...', required: true }],
     website: 'https://notion.so', tags: ['notion', 'docs', 'wiki', 'database', 'pages'],
+    authMethod: 'api-key',
+  },
+  {
+    id: 'notion-remote', name: 'Notion (Cloud)', npmPackage: '',
+    description: 'Notion pages, databases, blocks — OAuth, no API key needed',
+    icon: 'book-open', category: 'writing', author: 'Notion', transport: 'streamable-http',
+    runtimes: ['claude', 'amp', 'codex'], command: '', defaultArgs: [],
+    url: 'https://mcp.notion.com/mcp',
+    authMethod: 'oauth',
+    configFields: [],
+    website: 'https://notion.so', tags: ['notion', 'docs', 'wiki', 'database', 'pages', 'oauth'],
   },
   {
     id: 'mcp-google-drive', name: 'Google Drive', npmPackage: '@modelcontextprotocol/server-gdrive',
@@ -385,6 +467,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'GOOGLE_CLIENT_SECRET', label: 'OAuth Client Secret', type: 'password', placeholder: '', required: true },
     ],
     tags: ['google-drive', 'files', 'docs', 'sheets', 'storage'],
+    authMethod: 'api-key',
+    authMethod: 'oauth',
   },
   {
     id: 'mcp-google-sheets', name: 'Google Sheets', npmPackage: 'google-sheets-mcp',
@@ -396,6 +480,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'GOOGLE_CLIENT_SECRET', label: 'OAuth Client Secret', type: 'password', placeholder: '', required: true },
     ],
     tags: ['google-sheets', 'spreadsheet', 'data', 'tables'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-google-calendar', name: 'Google Calendar', npmPackage: 'google-calendar-mcp',
@@ -407,6 +493,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'GOOGLE_CLIENT_SECRET', label: 'OAuth Client Secret', type: 'password', placeholder: '', required: true },
     ],
     tags: ['google-calendar', 'events', 'scheduling', 'calendar'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-google-maps', name: 'Google Maps', npmPackage: '@modelcontextprotocol/server-google-maps',
@@ -415,6 +503,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-google-maps'],
     configFields: [{ key: 'GOOGLE_MAPS_API_KEY', label: 'API Key', type: 'password', placeholder: 'AIza...', required: true }],
     tags: ['google-maps', 'geocoding', 'directions', 'places'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-confluence', name: 'Confluence', npmPackage: 'confluence-mcp',
@@ -427,6 +517,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'CONFLUENCE_EMAIL', label: 'Email', type: 'text', placeholder: 'user@company.com', required: true },
     ],
     tags: ['confluence', 'wiki', 'docs', 'atlassian'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-jira', name: 'Jira', npmPackage: 'jira-mcp',
@@ -439,6 +531,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'JIRA_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true },
     ],
     tags: ['jira', 'issues', 'agile', 'boards', 'atlassian'],
+    authMethod: 'api-key',
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-asana', name: 'Asana', npmPackage: 'asana-mcp',
@@ -447,6 +541,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'asana-mcp'],
     configFields: [{ key: 'ASANA_TOKEN', label: 'Personal Access Token', type: 'password', placeholder: '1/...', required: true }],
     website: 'https://asana.com', tags: ['asana', 'tasks', 'project-management'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-todoist', name: 'Todoist', npmPackage: 'todoist-mcp',
@@ -455,6 +550,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'todoist-mcp'],
     configFields: [{ key: 'TODOIST_API_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true }],
     website: 'https://todoist.com', tags: ['todoist', 'tasks', 'productivity', 'todo'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-obsidian', name: 'Obsidian', npmPackage: 'obsidian-mcp',
@@ -463,6 +559,8 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'obsidian-mcp'],
     configFields: [{ key: 'OBSIDIAN_VAULT_PATH', label: 'Vault Path', type: 'text', placeholder: '/path/to/vault', required: true }],
     tags: ['obsidian', 'notes', 'markdown', 'knowledge-base'],
+    authMethod: 'none',
+    authMethod: 'none',
   },
   {
     id: 'mcp-airtable', name: 'Airtable', npmPackage: 'airtable-mcp',
@@ -493,6 +591,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'SF_PASSWORD', label: 'Password + Security Token', type: 'password', placeholder: '', required: true },
     ],
     tags: ['salesforce', 'crm', 'soql', 'sales'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-stripe', name: 'Stripe', npmPackage: '@stripe/mcp',
@@ -512,6 +611,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'SHOPIFY_ACCESS_TOKEN', label: 'Access Token', type: 'password', placeholder: 'shpat_...', required: true },
     ],
     tags: ['shopify', 'ecommerce', 'products', 'orders'],
+    authMethod: 'api-key',
   },
 
   // ─── AI & ML ───────────────────────────────────────────
@@ -522,6 +622,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'openai-mcp'],
     configFields: [{ key: 'OPENAI_API_KEY', label: 'API Key', type: 'password', placeholder: 'sk-...', required: true }],
     tags: ['openai', 'gpt', 'embeddings', 'dalle', 'whisper'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-anthropic', name: 'Anthropic Claude', npmPackage: 'anthropic-mcp',
@@ -530,6 +631,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'anthropic-mcp'],
     configFields: [{ key: 'ANTHROPIC_API_KEY', label: 'API Key', type: 'password', placeholder: 'sk-ant-...', required: true }],
     tags: ['anthropic', 'claude', 'ai', 'llm'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-replicate', name: 'Replicate', npmPackage: 'replicate-mcp',
@@ -560,6 +662,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'AWS_REGION', label: 'Region', type: 'text', placeholder: 'us-east-1', required: false },
     ],
     tags: ['aws', 's3', 'lambda', 'ec2', 'cloud'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-gcp', name: 'Google Cloud', npmPackage: 'gcp-mcp',
@@ -568,6 +671,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'gcp-mcp'],
     configFields: [{ key: 'GOOGLE_APPLICATION_CREDENTIALS', label: 'Service Account Key Path', type: 'text', placeholder: '/path/to/key.json', required: true }],
     tags: ['gcp', 'bigquery', 'cloud-storage', 'google-cloud'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-azure', name: 'Azure', npmPackage: 'azure-mcp',
@@ -581,6 +685,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'AZURE_CLIENT_SECRET', label: 'Client Secret', type: 'password', placeholder: '', required: true },
     ],
     tags: ['azure', 'cloud', 'microsoft', 'blob-storage'],
+    authMethod: 'api-key',
   },
 
   // ─── AUTOMATION & WORKFLOW ─────────────────────────────
@@ -602,6 +707,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'zapier-mcp'],
     configFields: [{ key: 'ZAPIER_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true }],
     tags: ['zapier', 'automation', 'workflow', 'zaps'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-make', name: 'Make (Integromat)', npmPackage: 'make-mcp',
@@ -610,6 +716,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'make-mcp'],
     configFields: [{ key: 'MAKE_API_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true }],
     tags: ['make', 'integromat', 'automation', 'scenarios'],
+    authMethod: 'api-key',
   },
 
   // ─── MONITORING & ANALYTICS ────────────────────────────
@@ -634,6 +741,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'GRAFANA_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true },
     ],
     tags: ['grafana', 'dashboards', 'monitoring', 'visualization'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-posthog', name: 'PostHog', npmPackage: 'posthog-mcp',
@@ -656,6 +764,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'MIXPANEL_API_SECRET', label: 'API Secret', type: 'password', placeholder: '', required: false },
     ],
     tags: ['mixpanel', 'analytics', 'events', 'funnels'],
+    authMethod: 'api-key',
   },
 
   // ─── SOCIAL & CONTENT ─────────────────────────────────
@@ -671,6 +780,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'TWITTER_ACCESS_SECRET', label: 'Access Token Secret', type: 'password', placeholder: '', required: true },
     ],
     tags: ['twitter', 'x', 'social', 'tweets'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-youtube', name: 'YouTube', npmPackage: 'youtube-mcp',
@@ -679,6 +789,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'youtube-mcp'],
     configFields: [{ key: 'YOUTUBE_API_KEY', label: 'API Key', type: 'password', placeholder: 'AIza...', required: true }],
     tags: ['youtube', 'video', 'transcripts', 'search'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-spotify', name: 'Spotify', npmPackage: 'spotify-mcp',
@@ -690,6 +801,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'SPOTIFY_CLIENT_SECRET', label: 'Client Secret', type: 'password', placeholder: '', required: true },
     ],
     tags: ['spotify', 'music', 'playlists', 'audio'],
+    authMethod: 'api-key',
   },
 
   // ─── DESIGN & MEDIA ───────────────────────────────────
@@ -716,6 +828,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'cloudinary-mcp'],
     configFields: [{ key: 'CLOUDINARY_URL', label: 'Cloudinary URL', type: 'password', placeholder: 'cloudinary://api_key:api_secret@cloud_name', required: true }],
     tags: ['cloudinary', 'images', 'media', 'cdn', 'transform'],
+    authMethod: 'api-key',
   },
 
   // ─── SECURITY & AUTH ───────────────────────────────────
@@ -729,6 +842,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'VAULT_TOKEN', label: 'Token', type: 'password', placeholder: 'hvs.', required: true },
     ],
     tags: ['vault', 'secrets', 'security', 'hashicorp'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-1password', name: '1Password', npmPackage: '1password-mcp',
@@ -737,6 +851,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '1password-mcp'],
     configFields: [{ key: 'OP_SERVICE_ACCOUNT_TOKEN', label: 'Service Account Token', type: 'password', placeholder: 'ops_...', required: true }],
     tags: ['1password', 'secrets', 'passwords', 'security'],
+    authMethod: 'api-key',
   },
 
   // ─── DATA & ETL ────────────────────────────────────────
@@ -751,6 +866,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'SNOWFLAKE_PASSWORD', label: 'Password', type: 'password', placeholder: '', required: true },
     ],
     tags: ['snowflake', 'data-warehouse', 'sql', 'analytics'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-bigquery', name: 'BigQuery', npmPackage: 'bigquery-mcp',
@@ -762,6 +878,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'BIGQUERY_PROJECT_ID', label: 'Project ID', type: 'text', placeholder: 'my-project', required: true },
     ],
     tags: ['bigquery', 'sql', 'analytics', 'google-cloud'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-elasticsearch', name: 'Elasticsearch', npmPackage: 'elasticsearch-mcp',
@@ -773,6 +890,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'ELASTICSEARCH_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: false },
     ],
     tags: ['elasticsearch', 'search', 'indexing', 'analytics'],
+    authMethod: 'api-key',
   },
 
   // ─── MESSAGING QUEUES ──────────────────────────────────
@@ -783,6 +901,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'rabbitmq-mcp'],
     configFields: [{ key: 'RABBITMQ_URL', label: 'Connection URL', type: 'password', placeholder: 'amqp://user:pass@localhost:5672', required: true }],
     tags: ['rabbitmq', 'queue', 'messaging', 'amqp'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-kafka', name: 'Kafka', npmPackage: 'kafka-mcp',
@@ -791,6 +910,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'kafka-mcp'],
     configFields: [{ key: 'KAFKA_BROKERS', label: 'Brokers (comma-separated)', type: 'text', placeholder: 'localhost:9092', required: true }],
     tags: ['kafka', 'streaming', 'events', 'queue'],
+    authMethod: 'none',
   },
 
   // ─── FINANCE & BUSINESS ────────────────────────────────
@@ -815,6 +935,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'QUICKBOOKS_CLIENT_SECRET', label: 'Client Secret', type: 'password', placeholder: '', required: true },
     ],
     tags: ['quickbooks', 'accounting', 'invoices', 'finance'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-xero', name: 'Xero', npmPackage: 'xero-mcp',
@@ -826,6 +947,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'XERO_CLIENT_SECRET', label: 'Client Secret', type: 'password', placeholder: '', required: true },
     ],
     tags: ['xero', 'accounting', 'invoices', 'finance'],
+    authMethod: 'api-key',
   },
 
   // ─── CMS & CONTENT ─────────────────────────────────────
@@ -840,6 +962,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'WORDPRESS_APP_PASSWORD', label: 'Application Password', type: 'password', placeholder: '', required: true },
     ],
     tags: ['wordpress', 'cms', 'blog', 'content'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-contentful', name: 'Contentful', npmPackage: 'contentful-mcp',
@@ -851,6 +974,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'CONTENTFUL_ACCESS_TOKEN', label: 'Access Token', type: 'password', placeholder: '', required: true },
     ],
     tags: ['contentful', 'cms', 'headless', 'content'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-sanity', name: 'Sanity', npmPackage: 'sanity-mcp',
@@ -862,6 +986,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'SANITY_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true },
     ],
     tags: ['sanity', 'cms', 'headless', 'groq'],
+    authMethod: 'api-key',
   },
 
   // ─── MISC / UTILITY ────────────────────────────────────
@@ -872,6 +997,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'weather-mcp'],
     configFields: [{ key: 'OPENWEATHER_API_KEY', label: 'OpenWeatherMap API Key', type: 'password', placeholder: '', required: true }],
     tags: ['weather', 'forecast', 'climate', 'temperature'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-wolfram', name: 'Wolfram Alpha', npmPackage: 'wolfram-mcp',
@@ -880,6 +1006,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'wolfram-mcp'],
     configFields: [{ key: 'WOLFRAM_APP_ID', label: 'App ID', type: 'password', placeholder: '', required: true }],
     tags: ['wolfram', 'math', 'science', 'computation'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-whois', name: 'WHOIS', npmPackage: 'whois-mcp',
@@ -888,6 +1015,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'whois-mcp'],
     configFields: [],
     tags: ['whois', 'domain', 'dns', 'lookup'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-mermaid', name: 'Mermaid', npmPackage: 'mermaid-mcp',
@@ -896,6 +1024,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'mermaid-mcp'],
     configFields: [],
     tags: ['mermaid', 'diagrams', 'flowchart', 'visualization'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-screenshot', name: 'Screenshot', npmPackage: 'screenshot-mcp',
@@ -904,6 +1033,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'screenshot-mcp'],
     configFields: [],
     tags: ['screenshot', 'capture', 'web', 'image'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-pdf', name: 'PDF Tools', npmPackage: 'pdf-mcp',
@@ -912,6 +1042,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'pdf-mcp'],
     configFields: [],
     tags: ['pdf', 'extract', 'text', 'documents'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-csv', name: 'CSV Tools', npmPackage: 'csv-mcp',
@@ -920,6 +1051,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'csv-mcp'],
     configFields: [],
     tags: ['csv', 'tsv', 'data', 'tables', 'transform'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-s3', name: 'S3 / Object Storage', npmPackage: 's3-mcp',
@@ -933,6 +1065,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'S3_BUCKET', label: 'Bucket Name', type: 'text', placeholder: 'my-bucket', required: true },
     ],
     tags: ['s3', 'storage', 'objects', 'bucket'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-ssh', name: 'SSH', npmPackage: 'ssh-mcp',
@@ -945,6 +1078,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'SSH_KEY_PATH', label: 'Private Key Path', type: 'text', placeholder: '~/.ssh/id_rsa', required: false },
     ],
     tags: ['ssh', 'remote', 'terminal', 'server'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-terraform', name: 'Terraform', npmPackage: 'terraform-mcp',
@@ -953,6 +1087,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'terraform-mcp'],
     configFields: [],
     tags: ['terraform', 'iac', 'infrastructure', 'devops'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-prometheus', name: 'Prometheus', npmPackage: 'prometheus-mcp',
@@ -961,6 +1096,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'prometheus-mcp'],
     configFields: [{ key: 'PROMETHEUS_URL', label: 'URL', type: 'url', placeholder: 'http://localhost:9090', required: true }],
     tags: ['prometheus', 'metrics', 'monitoring', 'promql'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-intercom', name: 'Intercom', npmPackage: 'intercom-mcp',
@@ -969,6 +1105,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'intercom-mcp'],
     configFields: [{ key: 'INTERCOM_TOKEN', label: 'Access Token', type: 'password', placeholder: '', required: true }],
     tags: ['intercom', 'support', 'chat', 'crm'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-zendesk', name: 'Zendesk', npmPackage: 'zendesk-mcp',
@@ -981,6 +1118,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'ZENDESK_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true },
     ],
     tags: ['zendesk', 'support', 'tickets', 'helpdesk'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-freshdesk', name: 'Freshdesk', npmPackage: 'freshdesk-mcp',
@@ -992,6 +1130,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'FRESHDESK_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true },
     ],
     tags: ['freshdesk', 'support', 'tickets', 'helpdesk'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-clickup', name: 'ClickUp', npmPackage: 'clickup-mcp',
@@ -1000,6 +1139,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'clickup-mcp'],
     configFields: [{ key: 'CLICKUP_TOKEN', label: 'Personal API Token', type: 'password', placeholder: 'pk_...', required: true }],
     tags: ['clickup', 'tasks', 'project-management', 'productivity'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-trello', name: 'Trello', npmPackage: 'trello-mcp',
@@ -1011,6 +1151,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'TRELLO_TOKEN', label: 'Token', type: 'password', placeholder: '', required: true },
     ],
     tags: ['trello', 'boards', 'kanban', 'cards'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-monday', name: 'Monday.com', npmPackage: 'monday-mcp',
@@ -1019,6 +1160,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'monday-mcp'],
     configFields: [{ key: 'MONDAY_API_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true }],
     tags: ['monday', 'boards', 'project-management', 'workflow'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-github-actions', name: 'GitHub Actions', npmPackage: 'github-actions-mcp',
@@ -1027,6 +1169,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'github-actions-mcp'],
     configFields: [{ key: 'GITHUB_TOKEN', label: 'Personal Access Token', type: 'password', placeholder: 'ghp_...', required: true }],
     tags: ['github-actions', 'ci-cd', 'workflows', 'automation'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-circleci', name: 'CircleCI', npmPackage: 'circleci-mcp',
@@ -1035,6 +1178,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'circleci-mcp'],
     configFields: [{ key: 'CIRCLECI_TOKEN', label: 'Personal API Token', type: 'password', placeholder: '', required: true }],
     tags: ['circleci', 'ci-cd', 'pipelines', 'automation'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-upstash', name: 'Upstash', npmPackage: '@upstash/mcp-server',
@@ -1054,6 +1198,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'sendgrid-mcp'],
     configFields: [{ key: 'SENDGRID_API_KEY', label: 'API Key', type: 'password', placeholder: 'SG.', required: true }],
     tags: ['sendgrid', 'email', 'transactional', 'templates'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-resend', name: 'Resend', npmPackage: 'resend-mcp',
@@ -1070,6 +1215,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'openapi-mcp'],
     configFields: [{ key: 'OPENAPI_SPEC_URL', label: 'Spec URL', type: 'url', placeholder: 'https://api.example.com/openapi.json', required: true }],
     tags: ['openapi', 'swagger', 'rest', 'api'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-graphql', name: 'GraphQL', npmPackage: 'graphql-mcp',
@@ -1081,6 +1227,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'GRAPHQL_AUTH_HEADER', label: 'Auth Header Value', type: 'password', placeholder: 'Bearer ...', required: false },
     ],
     tags: ['graphql', 'api', 'query', 'mutation'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-coda', name: 'Coda', npmPackage: 'coda-mcp',
@@ -1089,6 +1236,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'coda-mcp'],
     configFields: [{ key: 'CODA_API_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true }],
     tags: ['coda', 'docs', 'tables', 'automation'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-segment', name: 'Segment', npmPackage: 'segment-mcp',
@@ -1097,6 +1245,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'segment-mcp'],
     configFields: [{ key: 'SEGMENT_WRITE_KEY', label: 'Write Key', type: 'password', placeholder: '', required: true }],
     tags: ['segment', 'analytics', 'events', 'cdp'],
+    authMethod: 'api-key',
   },
   {
     id: 'mcp-amplitude', name: 'Amplitude', npmPackage: 'amplitude-mcp',
@@ -1108,6 +1257,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
       { key: 'AMPLITUDE_SECRET_KEY', label: 'Secret Key', type: 'password', placeholder: '', required: true },
     ],
     tags: ['amplitude', 'analytics', 'events', 'product'],
+    authMethod: 'api-key',
   },
 
   // ─── DOMAIN-SPECIFIC ─────────────────────────────────
@@ -1118,6 +1268,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@upstash/context7-mcp'],
     configFields: [],
     tags: ['docs', 'documentation', 'libraries', 'context'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-aws-kb-retrieval', name: 'AWS KB Retrieval', npmPackage: '@modelcontextprotocol/server-aws-kb-retrieval',
@@ -1170,6 +1321,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'medical-ref-mcp'],
     configFields: [],
     tags: ['medical', 'healthcare', 'drugs', 'clinical'],
+    authMethod: 'none',
   },
   {
     id: 'mcp-legal', name: 'Legal Research', npmPackage: 'legal-mcp',
@@ -1178,6 +1330,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'legal-mcp'],
     configFields: [],
     tags: ['legal', 'law', 'case-law', 'regulations'],
+    authMethod: 'none',
   },
 ];
 
