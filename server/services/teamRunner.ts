@@ -9,12 +9,16 @@ export interface TeamRunConfig {
   systemPrompt: string;
   /** The task to execute */
   task: string;
-  /** Agent definitions — each gets the shared system prompt + their own role overlay */
+  /** Agent definitions */
   agents: Array<{
     agentId: string;
     name: string;
-    /** Optional role-specific addition to the shared system prompt */
+    /** Full custom system prompt (overrides shared systemPrompt if set) */
+    systemPrompt?: string;
+    /** Optional role-specific addition appended to the system prompt */
     rolePrompt?: string;
+    /** GitHub repo URL — cloned and available as context */
+    repoUrl?: string;
     providerId?: string;
     model?: string;
     maxTurns?: number;
@@ -52,11 +56,14 @@ export async function runTeam(config: TeamRunConfig, onProgress?: ProgressCallba
   const sharedFacts: ExtractedFact[] = [...(config.initialFacts ?? [])];
 
   try {
-    // Build agent configs — each gets the shared system prompt + optional role overlay
+    // Build agent configs — each gets its own or shared system prompt + optional role overlay
     const agentConfigs: AgentRunConfig[] = config.agents.map((agent) => {
-      let systemPrompt = config.systemPrompt;
+      let systemPrompt = agent.systemPrompt || config.systemPrompt;
       if (agent.rolePrompt) {
         systemPrompt += `\n\n## Your Role\n${agent.rolePrompt}`;
+      }
+      if (agent.repoUrl) {
+        systemPrompt += `\n\n## Repository\nYou are working on: ${agent.repoUrl}`;
       }
 
       return {

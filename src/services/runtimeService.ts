@@ -34,7 +34,9 @@ export interface RunTeamConfig {
   agents: Array<{
     agentId: string;
     name: string;
+    systemPrompt?: string;
     rolePrompt?: string;
+    repoUrl?: string;
   }>;
   providerId: string;
   model: string;
@@ -60,7 +62,9 @@ export function runTeam(config: RunTeamConfig): AbortController {
     agents: config.agents.map((agent) => ({
       agentId: agent.agentId,
       name: agent.name,
+      systemPrompt: agent.systemPrompt,
       rolePrompt: agent.rolePrompt,
+      repoUrl: agent.repoUrl,
     })),
     tools: config.tools,
   };

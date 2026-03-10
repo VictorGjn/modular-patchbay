@@ -12,6 +12,7 @@ import { TraceViewer } from './TraceViewer';
 import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
 import { CapabilityGate } from '../components/CapabilityGate';
 import { RuntimeResults } from './RuntimePanel';
+import { API_BASE } from '../config';
 import { runTeam as runTeamService, type RunTeamConfig } from '../services/runtimeService';
 import { useRuntimeStore } from '../store/runtimeStore';
 import { buildSystemFrame } from '../services/systemFrameBuilder';
@@ -251,27 +252,77 @@ interface TeamAgent {
   id: string;
   name: string;
   rolePrompt: string;
+  repoUrl: string;
+  /** If loaded from library, stores the saved agent's system prompt */
+  savedSystemPrompt?: string;
+  /** Source: 'blank' (manual) or agent ID from library */
+  source: string;
 }
 
 function TeamSection() {
   const t = useTheme();
   const [agents, setAgents] = useState<TeamAgent[]>([
-    { id: 'agent-1', name: 'Agent 1', rolePrompt: '' },
-    { id: 'agent-2', name: 'Agent 2', rolePrompt: '' },
+    { id: 'agent-1', name: 'Agent 1', rolePrompt: '', repoUrl: '', source: 'blank' },
+    { id: 'agent-2', name: 'Agent 2', rolePrompt: '', repoUrl: '', source: 'blank' },
   ]);
   const [task, setTask] = useState('');
+  const [savedAgents, setSavedAgents] = useState<Array<{ id: string; name: string; description: string }>>([]);
+  const [showPicker, setShowPicker] = useState<string | null>(null); // agent ID to replace
   const abortRef = useRef<AbortController | null>(null);
   const runtimeStatus = useRuntimeStore((s) => s.status);
   const runtimeReset = useRuntimeStore((s) => s.reset);
   const isRunning = runtimeStatus === 'running';
 
-  const addAgent = () => {
+  // Load saved agents list from backend on mount
+  useEffect(() => {
+    fetch(`${API_BASE}/agents`)
+      .then(r => r.ok ? r.json() : { data: [] })
+      .then(json => {
+        const list = (json.data ?? json ?? []) as Array<{ id: string; agentMeta?: { name?: string; description?: string } }>;
+        setSavedAgents(list.map(a => ({
+          id: a.id,
+          name: a.agentMeta?.name || a.id,
+          description: a.agentMeta?.description || '',
+        })));
+      })
+      .catch(() => {});
+  }, []);
+
+  const addBlankAgent = () => {
     const num = agents.length + 1;
-    setAgents([...agents, { id: `agent-${Date.now()}`, name: `Agent ${num}`, rolePrompt: '' }]);
+    setAgents([...agents, { id: `agent-${Date.now()}`, name: `Agent ${num}`, rolePrompt: '', repoUrl: '', source: 'blank' }]);
+  };
+
+  const loadSavedAgent = async (slotId: string, savedId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/agents/${encodeURIComponent(savedId)}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      const state = json.data ?? json;
+      const meta = state.agentMeta ?? {};
+
+      // Build system prompt from saved agent's instruction state
+      // We'll pass it to the backend so it uses the saved agent's full config
+      const parts: string[] = [];
+      const inst = state.instructionState ?? {};
+      if (meta.name) parts.push(`You are ${meta.name}. ${meta.description || ''}`);
+      if (inst.persona) parts.push(`Persona: ${inst.persona}`);
+      if (inst.objectives?.primary) parts.push(`Primary Objective: ${inst.objectives.primary}`);
+      if (inst.constraints?.customConstraints) parts.push(`Constraints: ${inst.constraints.customConstraints}`);
+      const systemPrompt = parts.join('\n\n');
+
+      setAgents(prev => prev.map(a => a.id === slotId ? {
+        ...a,
+        name: meta.name || savedId,
+        savedSystemPrompt: systemPrompt,
+        source: savedId,
+      } : a));
+    } catch {}
+    setShowPicker(null);
   };
 
   const removeAgent = (id: string) => {
-    if (agents.length <= 2) return; // minimum 2
+    if (agents.length <= 1) return;
     setAgents(agents.filter(a => a.id !== id));
   };
 
@@ -285,19 +336,21 @@ function TeamSection() {
     const { providerId, model, error } = resolveProviderAndModel();
     if (error) return;
 
-    // Build system prompt from the current agent config in the builder
-    const systemPrompt = buildSystemFrame();
+    // Fallback system prompt from current builder config
+    const fallbackSystemPrompt = buildSystemFrame();
 
     const config: RunTeamConfig = {
       teamId: `team-${Date.now()}`,
-      systemPrompt,
+      systemPrompt: fallbackSystemPrompt,
       task: task.trim(),
       providerId,
       model,
       agents: agents.map(a => ({
         agentId: a.id,
         name: a.name,
+        systemPrompt: a.savedSystemPrompt || undefined,
         rolePrompt: a.rolePrompt || undefined,
+        repoUrl: a.repoUrl || undefined,
       })),
     };
 
@@ -312,14 +365,14 @@ function TeamSection() {
   return (
     <div className="flex flex-col h-full">
       {/* Agent definitions */}
-      <div className="px-4 py-3 flex flex-col gap-2 overflow-y-auto" style={{ maxHeight: '40%' }}>
+      <div className="px-4 py-3 flex flex-col gap-2 overflow-y-auto" style={{ maxHeight: '45%' }}>
         <div className="flex items-center justify-between mb-1">
           <span className="text-[12px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
             Team Agents ({agents.length})
           </span>
           <button
             type="button"
-            onClick={addAgent}
+            onClick={addBlankAgent}
             disabled={agents.length >= 5}
             className="flex items-center gap-1 text-[12px] px-2 py-1 rounded cursor-pointer border-none"
             style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Geist Mono', monospace", opacity: agents.length >= 5 ? 0.4 : 1 }}
@@ -329,9 +382,10 @@ function TeamSection() {
         </div>
 
         {agents.map((agent) => (
-          <div key={agent.id} style={{ padding: 8, borderRadius: 6, border: `1px solid ${t.border}`, background: t.surface }}>
-            <div className="flex items-center gap-2 mb-1.5">
-              <Users size={12} style={{ color: '#FE5000' }} />
+          <div key={agent.id} style={{ padding: 10, borderRadius: 8, border: `1px solid ${agent.source !== 'blank' ? '#FE500030' : t.border}`, background: t.surface }}>
+            {/* Header: name + load from library + remove */}
+            <div className="flex items-center gap-2 mb-2">
+              <Users size={12} style={{ color: agent.source !== 'blank' ? '#FE5000' : t.textDim }} />
               <input
                 type="text"
                 value={agent.name}
@@ -339,18 +393,73 @@ function TeamSection() {
                 className="flex-1 text-[13px] font-semibold px-1.5 py-0.5 rounded outline-none border-none"
                 style={{ background: 'transparent', color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
               />
-              {agents.length > 2 && (
+              <button
+                type="button"
+                onClick={() => setShowPicker(showPicker === agent.id ? null : agent.id)}
+                className="text-[11px] px-2 py-0.5 rounded cursor-pointer border-none"
+                style={{ background: '#FE500010', color: '#FE5000', fontFamily: "'Geist Mono', monospace" }}
+              >
+                {agent.source !== 'blank' ? '↻ Swap' : '↗ Load'}
+              </button>
+              {agents.length > 1 && (
                 <button type="button" onClick={() => removeAgent(agent.id)} className="border-none cursor-pointer p-0.5 rounded"
                   style={{ background: 'transparent', color: t.textDim }}>
                   <X size={12} />
                 </button>
               )}
             </div>
+
+            {/* Agent picker dropdown */}
+            {showPicker === agent.id && savedAgents.length > 0 && (
+              <div className="mb-2 flex flex-col gap-1 p-2 rounded" style={{ background: t.inputBg, border: `1px solid ${t.border}` }}>
+                <span className="text-[11px] uppercase font-bold tracking-[0.08em] mb-1" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                  Load from library
+                </span>
+                {savedAgents.map(sa => (
+                  <button
+                    key={sa.id}
+                    type="button"
+                    onClick={() => loadSavedAgent(agent.id, sa.id)}
+                    className="text-left text-[12px] px-2 py-1.5 rounded cursor-pointer border-none w-full"
+                    style={{ background: 'transparent', color: t.textPrimary }}
+                    onMouseEnter={e => { e.currentTarget.style.background = t.surfaceHover; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <span style={{ fontWeight: 600 }}>{sa.name}</span>
+                    {sa.description && <span style={{ color: t.textDim, marginLeft: 6 }}>— {sa.description.slice(0, 40)}</span>}
+                  </button>
+                ))}
+                {savedAgents.length === 0 && (
+                  <span className="text-[12px]" style={{ color: t.textFaint }}>No saved agents. Save one from the Agent Builder first.</span>
+                )}
+              </div>
+            )}
+
+            {/* Source badge */}
+            {agent.source !== 'blank' && (
+              <div className="mb-1.5">
+                <span className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Geist Mono', monospace" }}>
+                  ↗ {agent.source}
+                </span>
+              </div>
+            )}
+
+            {/* Role prompt */}
             <input
               type="text"
               value={agent.rolePrompt}
               onChange={e => updateAgent(agent.id, { rolePrompt: e.target.value })}
-              placeholder="Role-specific instructions (optional)"
+              placeholder="Role override (optional — appended to agent instructions)"
+              className="w-full text-[12px] px-2 py-1.5 rounded outline-none mb-1.5"
+              style={{ background: t.inputBg, border: `1px solid ${t.borderSubtle}`, color: t.textSecondary }}
+            />
+
+            {/* Repo URL */}
+            <input
+              type="text"
+              value={agent.repoUrl}
+              onChange={e => updateAgent(agent.id, { repoUrl: e.target.value })}
+              placeholder="Repository URL (optional — e.g., https://github.com/user/repo)"
               className="w-full text-[12px] px-2 py-1.5 rounded outline-none"
               style={{ background: t.inputBg, border: `1px solid ${t.borderSubtle}`, color: t.textSecondary }}
             />
