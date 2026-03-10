@@ -7,8 +7,8 @@ import { Toggle } from '../components/ds/Toggle';
 import { Tooltip } from '../components/ds/Tooltip';
 import { PRESET_AVATARS, AvatarIcon } from '../components/ds/AvatarIcon';
 import { ConstraintModal } from '../components/ConstraintModal';
+import { WorkflowModal } from '../components/WorkflowModal';
 import { refineField, type RefinedAgent } from '../utils/refineInstruction';
-import { generateWorkflow } from '../utils/generateSection';
 import { formatTokens } from '../utils/formatTokens';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
@@ -417,10 +417,6 @@ export function AgentBuilder() {
   const instructionState = useConsoleStore(s => s.instructionState);
   const updateInstruction = useConsoleStore(s => s.updateInstruction);
   const workflowSteps = useConsoleStore(s => s.workflowSteps);
-  const addWorkflowStep = useConsoleStore(s => s.addWorkflowStep);
-  const updateWorkflowStep = useConsoleStore(s => s.updateWorkflowStep);
-  const removeWorkflowStep = useConsoleStore(s => s.removeWorkflowStep);
-  const updateWorkflowSteps = useConsoleStore(s => s.updateWorkflowSteps);
   const channels = useConsoleStore(s => s.channels);
   const mcpServers = useConsoleStore(s => s.mcpServers);
   const skills = useConsoleStore(s => s.skills);
@@ -445,6 +441,7 @@ export function AgentBuilder() {
     title: string;
     initial?: string;
   } | null>(null);
+  const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
 
   const { persona, tone, expertise, constraints, objectives, rawPrompt, autoSync } = instructionState;
 
@@ -513,15 +510,6 @@ export function AgentBuilder() {
     } catch {}
     setRefining(null);
   }, [persona, channels, mcpServers, skills, constraints, objectives, updateInstruction]);
-
-  const handleGenerateWorkflow = useCallback(async () => {
-    setRefining('workflow');
-    try {
-      const steps = await generateWorkflow();
-      if (steps) updateWorkflowSteps(steps as any);
-    } catch {}
-    setRefining(null);
-  }, [persona, constraints, objectives, channels, mcpServers, skills, updateWorkflowSteps]);
 
   // Progress dots
   const done = {
@@ -776,43 +764,55 @@ export function AgentBuilder() {
         title={constraintModalConfig?.title || ''}
       />
 
+      <WorkflowModal
+        open={workflowModalOpen}
+        onClose={() => setWorkflowModalOpen(false)}
+      />
+
       {/* Workflow Card */}
       <div className="rounded-xl overflow-hidden" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)'}` }}>
         <div className="flex items-center gap-2.5 px-5 py-3.5 select-none" style={{ background: t.surfaceElevated }}>
           <div style={{ width: 3, height: 14, borderRadius: 2, background: '#e67e22', opacity: 0.8 }} />
           <span className="text-[11px] font-bold tracking-[0.2em] uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>Workflow</span>
           <span className="text-[9px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>{workflowSteps.length} steps</span>
-          <GenerateBtn loading={refining === 'workflow'} onClick={handleGenerateWorkflow} />
         </div>
         <div className="px-5 py-4 flex flex-col items-center">
-          {workflowSteps.map((step, i) => (
-            <div key={step.id}>
-              <div className="flex items-center gap-3 py-2 w-full">
-                <div style={{ width: 24, height: 24, borderRadius: '50%', background: t.surfaceElevated, border: '1.5px solid #e67e2230', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 9, fontWeight: 700, color: '#e67e22' }}>{i + 1}</span>
+          {workflowSteps.length === 0 ? (
+            <button
+              type="button"
+              onClick={() => setWorkflowModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 text-[11px] px-4 py-2.5 rounded-lg cursor-pointer border-none"
+              style={{ background: '#e67e2215', color: '#e67e22', fontFamily: "'Space Mono', monospace", fontWeight: 600 }}
+            >
+              <Plus size={12} /> Define workflow steps
+            </button>
+          ) : (
+            <>
+              {workflowSteps.map((step, i) => (
+                <div key={step.id} className="w-full">
+                  <div className="flex items-center gap-3 py-2">
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: t.surfaceElevated, border: '1.5px solid #e67e2230', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 9, fontWeight: 700, color: '#e67e22' }}>{i + 1}</span>
+                    </div>
+                    <span style={{ flex: 1, fontSize: 12, color: t.textPrimary }}>{step.label || 'Unnamed step'}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: t.badgeBg, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
+                      {step.action || 'action'}
+                    </span>
+                  </div>
+                  {i < workflowSteps.length - 1 && (
+                    <div style={{ width: 2, height: 12, background: '#e67e2220', marginLeft: 11 }} />
+                  )}
                 </div>
-                <Input value={step.label} onChange={e => updateWorkflowStep(step.id, { label: e.target.value })}
-                  placeholder="Step description..." style={{ flex: 1 }} />
-                <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: t.badgeBg, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
-                  {step.action || 'action'}
-                </span>
-                <button type="button" aria-label={`Remove step ${i + 1}`} onClick={() => removeWorkflowStep(step.id)}
-                  className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-[#ff000010]" style={{ color: t.textFaint }}><X size={11} /></button>
-              </div>
-              {i < workflowSteps.length - 1 && (
-                <div style={{ width: 2, height: 12, background: '#e67e2220', marginLeft: 11 }} />
-              )}
-            </div>
-          ))}
-          <button type="button" onClick={() => addWorkflowStep({ label: '', action: '', tool: '', condition: 'always', conditionText: '' })}
-            className="flex items-center justify-center gap-1.5 text-[10px] px-4 py-2.5 mt-2 rounded-lg cursor-pointer border-none"
-            style={{ background: '#e67e2215', color: '#e67e22', fontFamily: "'Space Mono', monospace" }}>
-            <Plus size={11} /> Add Step
-          </button>
-          {workflowSteps.length === 0 && (
-            <div className="py-4 text-center text-[11px]" style={{ color: t.textFaint }}>
-              Define step-by-step reasoning plan
-            </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setWorkflowModalOpen(true)}
+                className="text-[10px] px-3 py-2 mt-3 rounded cursor-pointer border-none"
+                style={{ background: t.border, color: t.textDim }}
+              >
+                Edit workflow
+              </button>
+            </>
           )}
         </div>
       </div>
