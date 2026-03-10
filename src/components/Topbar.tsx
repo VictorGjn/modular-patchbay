@@ -4,7 +4,7 @@ import { useTheme } from '../theme';
 import { useMemo } from 'react';
 import { Play, Square, Sun, Moon, Settings, ShoppingBag } from 'lucide-react';
 import { useProviderStore } from '../store/providerStore';
-import { VersionIndicator } from './VersionIndicator';
+
 
 
 function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: string; onChange: (v: string) => void; children: React.ReactNode; t: ReturnType<typeof useTheme>; ariaLabel?: string }) {
@@ -124,9 +124,6 @@ export function Topbar({ onSettingsClick, workspaceMode, onWorkspaceModeChange }
           No models loaded — connect a model source in settings
         </span>
       )}
-
-      {/* Version indicator */}
-      <VersionIndicator />
 
       <div className="flex-1" />
 
