@@ -128,7 +128,7 @@ export function resolveConflicts(chunks: ProvenanceAwareChunk[]): ConflictResolu
   // Group chunks by topic/section for conflict detection
   const topicGroups = groupChunksByTopic(chunks);
   
-  for (const [topic, groupChunks] of Object.entries(topicGroups)) {
+  for (const [_topic, groupChunks] of Object.entries(topicGroups)) {
     if (groupChunks.length < 2) continue;
     
     // Find potential conflicts (chunks with different content but same topic)

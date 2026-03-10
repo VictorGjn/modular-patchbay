@@ -22,7 +22,6 @@ import {
   findContrastingChunks,
   shouldActivateContrastiveRetrieval,
   type ChunkWithMetadata,
-  type ContrastiveResult,
 } from './contrastiveRetrieval';
 import {
   extractHeadlines,

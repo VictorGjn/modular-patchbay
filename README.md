@@ -2,7 +2,7 @@
 
 > The Context Engineering Layer — an IDE for designing AI agent knowledge pipelines.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Tests: 646](https://img.shields.io/badge/tests-646_passing-green.svg)]()
 [![Version: 0.2.0](https://img.shields.io/badge/version-0.2.0-blue.svg)]()
 
@@ -254,7 +254,7 @@ test: add contradiction detector edge cases
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+Apache License 2.0 — see [LICENSE](LICENSE) for details.
 
 ---
 

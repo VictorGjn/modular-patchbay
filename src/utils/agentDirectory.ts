@@ -11,8 +11,8 @@
  */
 
 import type { ExportConfig } from './agentExport';
-import type { InstructionState, WorkflowStep } from '../store/consoleStore';
-import type { McpServer, Skill, Connector, ChannelConfig } from '../store/knowledgeBase';
+
+
 
 // ── YAML helpers ──
 
@@ -147,7 +147,7 @@ function buildInstructionsMd(config: ExportConfig): string {
     parts.push('## Workflow');
     parts.push('');
     config.workflowSteps.forEach((step, i) => {
-      parts.push(`${i + 1}. **${step.title}**${step.description ? ' — ' + step.description : ''}`);
+      parts.push(`${i + 1}. **${step.label}** — ${step.action}`);
     });
     parts.push('');
   }
@@ -223,7 +223,7 @@ function buildKnowledgeMd(config: ExportConfig): string {
       parts.push('');
       parts.push(`- **Path:** \`${ch.path}\``);
       parts.push(`- **Type:** ${type}`);
-      if (ch.hint) parts.push(`- **Hint:** ${ch.hint}`);
+      if (ch.content) parts.push(`- **Content Preview:** ${ch.content.slice(0, 100)}${ch.content.length > 100 ? '...' : ''}`);
       parts.push('');
     });
   }
@@ -247,7 +247,7 @@ function buildKnowledgeMd(config: ExportConfig): string {
 
 // ── MEMORY.md ──
 
-function buildMemoryMd(config: ExportConfig): string {
+function buildMemoryMd(_config: ExportConfig): string {
   return [
     '# Memory',
     '',

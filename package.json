@@ -1,29 +1,28 @@
 {
   "name": "modular-studio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Context engineering IDE for AI agents. Design knowledge pipelines, not just prompts.",
   "type": "module",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Victor Grosjean <victor.grosjean@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/VictorGjn/modular-patchbay.git"
   },
   "homepage": "https://github.com/VictorGjn/modular-patchbay#readme",
+  "bugs": {
+    "url": "https://github.com/VictorGjn/modular-patchbay/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "keywords": [
     "ai",
     "agent",
-    "agent-builder",
     "context-engineering",
     "mcp",
-    "model-context-protocol",
-    "prompt-engineering",
-    "visual-builder",
-    "claude",
-    "llm",
-    "react-flow",
-    "mixing-console",
-    "design-tool"
+    "knowledge-pipeline",
+    "llm"
   ],
   "bin": {
     "modular-studio": "./dist-server/bin/modular-studio.js",

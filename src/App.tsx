@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Topbar } from './components/Topbar';
 import { TokenBudget } from './components/TokenBudget';
 import { FilePicker } from './components/FilePicker';
@@ -32,9 +32,7 @@ export default function App() {
   const showSettings = useConsoleStore((s) => s.showSettings);
   const setShowSettings = useConsoleStore((s) => s.setShowSettings);
   const loadServers = useMcpStore((s) => s.loadServers);
-  const workspaceMode = 'builder' as const; // Runtime merged into TestPanel
   const importInputRef = useRef<HTMLInputElement>(null);
-  const handleImportClick = useCallback(() => importInputRef.current?.click(), []);
   const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
