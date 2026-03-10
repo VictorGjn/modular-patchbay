@@ -5,7 +5,7 @@ import { useConversationStore } from '../store/conversationStore';
 import { exportForTarget, downloadAgentFile } from '../utils/agentExport';
 import { runPipelineChat, resolveProviderAndModel } from '../services/pipelineChat';
 import {
-  Send, Download, Check,
+  Send, Download, Check, FolderOpen,
   FileText, FileCode, Zap, ChevronDown, ChevronRight, Users, Plus, X, Play, Square,
 } from 'lucide-react';
 import { TraceViewer } from './TraceViewer';
@@ -538,24 +538,37 @@ function ExportSection() {
   const t = useTheme();
   const [copied, setCopied] = useState<string | null>(null);
 
+  const getExportConfig = useCallback(() => {
+    const store = useConsoleStore.getState();
+    return {
+      channels: store.channels,
+      selectedModel: store.selectedModel,
+      outputFormat: store.outputFormat,
+      outputFormats: store.outputFormats,
+      prompt: store.prompt,
+      tokenBudget: store.tokenBudget,
+      mcpServers: store.mcpServers,
+      skills: store.skills,
+      agentMeta: store.agentMeta,
+      agentConfig: store.agentConfig,
+      connectors: store.connectors,
+      instructionState: store.instructionState,
+      workflowSteps: store.workflowSteps,
+    };
+  }, []);
+
+  const handleDirectoryExport = useCallback(async () => {
+    try {
+      const { downloadAgentDirectory } = await import('../utils/agentDirectory');
+      await downloadAgentDirectory(getExportConfig());
+      setCopied('dir');
+      setTimeout(() => setCopied(null), 2000);
+    } catch (e) { console.error('Directory export failed:', e); }
+  }, [getExportConfig]);
+
   const handleExport = useCallback(async (format: 'md' | 'yaml' | 'json') => {
     try {
-      const store = useConsoleStore.getState();
-      const config = {
-        channels: store.channels,
-        selectedModel: store.selectedModel,
-        outputFormat: store.outputFormat,
-        outputFormats: store.outputFormats,
-        prompt: store.prompt,
-        tokenBudget: store.tokenBudget,
-        mcpServers: store.mcpServers,
-        skills: store.skills,
-        agentMeta: store.agentMeta,
-        agentConfig: store.agentConfig,
-        connectors: store.connectors,
-        instructionState: store.instructionState,
-        workflowSteps: store.workflowSteps,
-      };
+      const config = getExportConfig();
       let content: string;
       let ext: string;
       if (format === 'md') {
@@ -568,20 +581,19 @@ function ExportSection() {
         content = exportForTarget('generic', config);
         ext = '.json';
       }
-      // Download the file
-      const name = (store.agentMeta.name || 'modular-agent').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const name = (config.agentMeta.name || 'modular-agent').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       downloadAgentFile(content, name, ext);
-      // Also copy to clipboard
       await navigator.clipboard.writeText(content);
       setCopied(format);
       setTimeout(() => setCopied(null), 2000);
     } catch {}
-  }, []);
+  }, [getExportConfig]);
 
   const targets = [
-    { id: 'md', icon: FileText, label: 'Claude Code / .claude', fmt: '.md' },
-    { id: 'yaml', icon: FileCode, label: 'OpenClaw Agent', fmt: '.yaml' },
-    { id: 'json', icon: Download, label: 'Vibe Kanban / BloopAI', fmt: '.json' },
+    { id: 'dir', icon: FolderOpen, label: 'Agent Directory', fmt: '.zip', primary: true },
+    { id: 'md', icon: FileText, label: 'Claude Code / .claude', fmt: '.md', primary: false },
+    { id: 'yaml', icon: FileCode, label: 'OpenClaw Agent', fmt: '.yaml', primary: false },
+    { id: 'json', icon: Download, label: 'Vibe Kanban / BloopAI', fmt: '.json', primary: false },
   ] as const;
 
   return (
@@ -590,10 +602,15 @@ function ExportSection() {
       <div className="flex flex-col gap-1.5">
         {targets.map(target => {
           const Icon = target.icon;
+          const onClick = target.id === 'dir' ? handleDirectoryExport : () => handleExport(target.id as 'md' | 'yaml' | 'json');
           return (
-            <button key={target.id} type="button" aria-label={`Export as ${target.fmt}`} onClick={() => handleExport(target.id)}
+            <button key={target.id} type="button" aria-label={`Export as ${target.fmt}`} onClick={onClick}
               className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer w-full text-left min-h-[44px] motion-reduce:transition-none"
-              style={{ background: t.isDark ? '#1c1c20' : '#f0f0f5', border: `1px solid ${t.border}`, transition: 'border-color 150ms' }}
+              style={{
+                background: target.primary ? '#FE500010' : (t.isDark ? '#1c1c20' : '#f0f0f5'),
+                border: `1px solid ${target.primary ? '#FE500030' : t.border}`,
+                transition: 'border-color 150ms',
+              }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE500040'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; }}
               onFocus={e => { e.currentTarget.style.borderColor = '#FE500040'; }}

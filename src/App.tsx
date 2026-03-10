@@ -11,6 +11,7 @@ import { SettingsPage } from './components/SettingsPage';
 import { SaveAgentModal } from './components/SaveAgentModal';
 import './store/versionStore'; // activate version subscription
 import { useConsoleStore } from './store/consoleStore';
+import { useMcpStore } from './store/mcpStore';
 import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
 
@@ -30,6 +31,7 @@ export default function App() {
 
   const showSettings = useConsoleStore((s) => s.showSettings);
   const setShowSettings = useConsoleStore((s) => s.setShowSettings);
+  const loadServers = useMcpStore((s) => s.loadServers);
   const workspaceMode = 'builder' as const; // Runtime merged into TestPanel
   const importInputRef = useRef<HTMLInputElement>(null);
   const handleImportClick = useCallback(() => importInputRef.current?.click(), []);
@@ -64,6 +66,11 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, setShowConnectorPicker, setShowMarketplace, run, running]);
+
+  // Load MCP servers on app mount
+  useEffect(() => {
+    loadServers();
+  }, [loadServers]);
 
   return (
     <div

@@ -739,6 +739,18 @@ export const useConsoleStore = create<ConsoleState>()(
     patch.response = '';
 
     set(patch);
+
+    // Sync MCP servers to mcpStore after restoring config
+    if (state.mcpServers) {
+      (async () => {
+        try {
+          const { useMcpStore } = await import('./mcpStore');
+          await useMcpStore.getState().syncFromConfig();
+        } catch {
+          // silent fail
+        }
+      })();
+    }
   },
 
   setInstructionState: (instructionState: InstructionState) => {
