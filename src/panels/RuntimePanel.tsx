@@ -52,13 +52,13 @@ function FactRow({ fact }: { fact: ExtractedFact }) {
       </div>
       <span
         style={{
-          fontSize: 8,
+          fontSize: 10,
           padding: '2px 4px',
           borderRadius: 4,
           flexShrink: 0,
           background: color + '18',
           color,
-          fontFamily: "'Space Mono', monospace"
+          fontFamily: "'Geist Mono', monospace"
         }}
       >
         {fact.epistemicType}
@@ -86,11 +86,11 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
       <Card>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <StatusDot status={s.dot} pulsing={agent.status === 'running'} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: t.textPrimary, fontFamily: "'Space Mono', monospace" }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
           {agent.name}
         </span>
       </div>
-      <div style={{ fontSize: 9, marginBottom: 8, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
+      <div style={{ fontSize: 11, marginBottom: 8, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
         {s.label}
       </div>
 
@@ -107,7 +107,7 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
               border: `1px solid ${t.border}`
             }}
           >
-            <div style={{ fontSize: 8, color: t.textDim, marginBottom: 4, textTransform: 'uppercase', fontFamily: "'Space Mono', monospace" }}>
+            <div style={{ fontSize: 10, color: t.textDim, marginBottom: 4, textTransform: 'uppercase', fontFamily: "'Geist Mono', monospace" }}>
               Current Message
             </div>
             {agent.currentMessage.length > 150
@@ -119,19 +119,19 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
         {agent.facts.length > 0 && (
           <div style={{ borderTop: `1px solid ${t.borderSubtle}`, paddingTop: 6, marginTop: 4 }}>
             <div style={{
-              fontSize: 8,
+              fontSize: 10,
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               marginBottom: 6,
               color: t.textFaint,
-              fontFamily: "'Space Mono', monospace"
+              fontFamily: "'Geist Mono', monospace"
             }}>
               Facts Extracted ({agent.facts.length})
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 120, overflowY: 'auto' }}>
               {agent.facts.map((f, i) => (
                 <div key={i} style={{
-                  fontSize: 9,
+                  fontSize: 11,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
@@ -142,7 +142,7 @@ function AgentCard({ agent }: { agent: ReturnType<typeof useRuntimeStore.getStat
                 }}>
                   <span style={{
                     color: EPISTEMIC_COLORS[f.epistemicType],
-                    fontSize: 8,
+                    fontSize: 10,
                     fontWeight: 600
                   }}>
                     {EPISTEMIC_ICONS[f.epistemicType]}
@@ -194,11 +194,11 @@ function RuntimeStages({
             }}
           >
             <div style={{
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: 700,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               color: stage.done ? '#FE5000' : t.textDim
             }}>
               {stage.label}
@@ -239,12 +239,12 @@ function ContextIntelligence() {
         {collapsed
           ? <ChevronRight size={11} style={{ color: t.textDim }} />
           : <ChevronDown size={11} style={{ color: t.textDim }} />}
-        <span className="text-[9px] font-bold tracking-[0.12em] uppercase flex-1 text-left"
-          style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}>
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase flex-1 text-left"
+          style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}>
           Context Intelligence
         </span>
-        <span className="text-[8px] px-1.5 py-0.5 rounded-full"
-          style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: t.badgeBg }}>
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+          style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}>
           {enabledChannels.length} sources
         </span>
       </button>
@@ -253,8 +253,8 @@ function ContextIntelligence() {
         <div className="px-3 pb-3 pt-1" style={{ background: t.isDark ? '#141416' : '#fafafa' }}>
           {/* Budget allocation bars */}
           <div className="mb-2">
-            <span className="text-[8px] tracking-[0.1em] uppercase block mb-1"
-              style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+            <span className="text-[10px] tracking-[0.1em] uppercase block mb-1"
+              style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
               Budget Allocation
             </span>
             <div className="flex flex-col gap-1">
@@ -265,16 +265,16 @@ function ContextIntelligence() {
                 const pct = totalWeight > 0 ? Math.round((weight / totalWeight) * 100) : 0;
                 return (
                   <div key={key} className="flex items-center gap-1.5">
-                    <span className="text-[8px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: kt.color, width: 60 }}>
+                    <span className="text-[10px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: kt.color, width: 60 }}>
                       {kt.label}
                     </span>
                     <div className="flex-1" style={{ height: 6, background: `${kt.color}12`, borderRadius: 3, overflow: 'hidden' }}>
                       <div style={{ width: `${pct}%`, height: '100%', background: kt.color, borderRadius: 3, transition: 'width 300ms' }} />
                     </div>
-                    <span className="text-[8px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, width: 24, textAlign: 'right' }}>
+                    <span className="text-[10px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 24, textAlign: 'right' }}>
                       {pct}%
                     </span>
-                    <span className="text-[7px] shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+                    <span className="text-[7px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
                       ({val.count})
                     </span>
                   </div>
@@ -285,8 +285,8 @@ function ContextIntelligence() {
 
           {/* Source list with types */}
           <div className="mb-1">
-            <span className="text-[8px] tracking-[0.1em] uppercase block mb-1"
-              style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>
+            <span className="text-[10px] tracking-[0.1em] uppercase block mb-1"
+              style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
               Sources
             </span>
             <div className="flex flex-wrap gap-1">
@@ -294,7 +294,7 @@ function ContextIntelligence() {
                 const kt = KNOWLEDGE_TYPES[ch.knowledgeType as keyof typeof KNOWLEDGE_TYPES] || KNOWLEDGE_TYPES.evidence;
                 return (
                   <span key={ch.sourceId} className="text-[7px] px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
-                    style={{ fontFamily: "'Space Mono', monospace", background: `${kt.color}12`, color: kt.color, border: `1px solid ${kt.color}20` }}>
+                    style={{ fontFamily: "'Geist Mono', monospace", background: `${kt.color}12`, color: kt.color, border: `1px solid ${kt.color}20` }}>
                     <span style={{ width: 4, height: 4, borderRadius: 1, background: kt.color }} />
                     {ch.name}
                   </span>
@@ -595,7 +595,7 @@ export function RuntimePanel() {
             fontWeight: 700,
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             color: t.textPrimary
           }}>
             Runtime Canvas
@@ -722,15 +722,15 @@ export function RuntimePanel() {
         <div style={{ marginTop: 12, marginBottom: 4 }}>
           <div
             style={{
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: 700,
-              letterSpacing: '0.15em',
+              letterSpacing: '0.08em',
               textTransform: 'uppercase',
               marginBottom: 6,
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               color: t.textDim
             }}
           >
@@ -746,7 +746,7 @@ export function RuntimePanel() {
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
                 color: t.textPrimary,
-                fontFamily: "'Space Mono', monospace"
+                fontFamily: "'Geist Mono', monospace"
               }}>
                 {a.name}
               </span>
@@ -768,7 +768,7 @@ export function RuntimePanel() {
                   border: `1px solid ${t.border}`,
                   color: t.textPrimary,
                   height: 32,
-                  fontFamily: "'Space Mono', monospace",
+                  fontFamily: "'Geist Mono', monospace",
                 }}
                 aria-label={`GitHub repo URL for ${a.name}`}
               />
@@ -823,12 +823,12 @@ export function RuntimePanel() {
         <div>
           <div
             style={{
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: 700,
-              letterSpacing: '0.15em',
+              letterSpacing: '0.08em',
               textTransform: 'uppercase',
               marginBottom: 6,
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               color: t.textDim
             }}
           >
@@ -847,15 +847,15 @@ export function RuntimePanel() {
         <div>
           <div
             style={{
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: 700,
-              letterSpacing: '0.15em',
+              letterSpacing: '0.08em',
               textTransform: 'uppercase',
               marginBottom: 6,
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               color: t.textDim
             }}
           >
@@ -874,12 +874,12 @@ export function RuntimePanel() {
       <div>
         <div
           style={{
-            fontSize: 9,
+            fontSize: 11,
             fontWeight: 700,
-            letterSpacing: '0.15em',
+            letterSpacing: '0.08em',
             textTransform: 'uppercase',
             marginBottom: 6,
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             color: t.textDim
           }}
         >

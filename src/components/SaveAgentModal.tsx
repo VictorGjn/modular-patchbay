@@ -244,7 +244,7 @@ export function SaveAgentModal() {
         <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
           <span
             className="text-xs font-bold tracking-[3px] uppercase"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
           >
             SAVE AS AGENT
           </span>
@@ -281,16 +281,16 @@ export function SaveAgentModal() {
                 <span
                   className="text-[10px] font-semibold leading-tight text-center"
                   style={{
-                    fontFamily: "'Space Mono', monospace",
+                    fontFamily: "'Geist Mono', monospace",
                     color: isActive ? '#FE5000' : t.textSecondary,
                   }}
                 >
                   {target.name}
                 </span>
                 <span
-                  className="text-[9px] px-1.5 py-0.5 rounded"
+                  className="text-[11px] px-1.5 py-0.5 rounded"
                   style={{
-                    fontFamily: "'Space Mono', monospace",
+                    fontFamily: "'Geist Mono', monospace",
                     background: isActive ? '#FE500020' : t.badgeBg,
                     color: isActive ? '#FE5000' : t.textDim,
                   }}
@@ -311,7 +311,7 @@ export function SaveAgentModal() {
               <div className="flex flex-col gap-1.5">
                 <label
                   className="text-[11px] font-semibold uppercase tracking-wider"
-                  style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}
+                  style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}
                 >
                   Agent Name
                 </label>
@@ -326,7 +326,7 @@ export function SaveAgentModal() {
                     background: t.inputBg,
                     border: `1px solid ${t.border}`,
                     color: t.textPrimary,
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "'Geist Sans', sans-serif",
                   }}
                 />
               </div>
@@ -335,7 +335,7 @@ export function SaveAgentModal() {
               <div className="flex flex-col gap-1.5">
                 <label
                   className="text-[11px] font-semibold uppercase tracking-wider"
-                  style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}
+                  style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}
                 >
                   Description
                 </label>
@@ -349,7 +349,7 @@ export function SaveAgentModal() {
                     background: t.inputBg,
                     border: `1px solid ${t.border}`,
                     color: t.textPrimary,
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "'Geist Sans', sans-serif",
                     lineHeight: 1.5,
                   }}
                 />
@@ -359,7 +359,7 @@ export function SaveAgentModal() {
               <div className="flex flex-col gap-1.5">
                 <label
                   className="text-[11px] font-semibold uppercase tracking-wider"
-                  style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}
+                  style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}
                 >
                   Icon
                 </label>
@@ -387,7 +387,7 @@ export function SaveAgentModal() {
               <div className="flex flex-col gap-1.5">
                 <label
                   className="text-[11px] font-semibold uppercase tracking-wider"
-                  style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}
+                  style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}
                 >
                   Category
                 </label>
@@ -399,7 +399,7 @@ export function SaveAgentModal() {
                     background: t.inputBg,
                     border: `1px solid ${t.border}`,
                     color: t.textPrimary,
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "'Geist Sans', sans-serif",
                   }}
                 >
                   {CATEGORIES.map((cat) => (
@@ -478,14 +478,14 @@ export function SaveAgentModal() {
                 {selectedIcon && <selectedIcon.Icon size={14} style={{ color: '#FE5000' }} />}
                 <span
                   className="text-xs font-bold tracking-[2px] uppercase"
-                  style={{ fontFamily: "'Space Mono', monospace", color: t.textMuted }}
+                  style={{ fontFamily: "'Geist Mono', monospace", color: t.textMuted }}
                 >
                   Preview
                 </span>
                 <span
-                  className="text-[9px] px-1.5 py-0.5 rounded"
+                  className="text-[11px] px-1.5 py-0.5 rounded"
                   style={{
-                    fontFamily: "'Space Mono', monospace",
+                    fontFamily: "'Geist Mono', monospace",
                     background: '#FE500018',
                     color: '#FE5000',
                   }}
@@ -495,7 +495,7 @@ export function SaveAgentModal() {
               </div>
               <span
                 className="text-[10px]"
-                style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}
+                style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
               >
                 {preview.split('\n').length} lines
               </span>
@@ -511,7 +511,7 @@ export function SaveAgentModal() {
               <pre
                 className="text-xs leading-relaxed whitespace-pre-wrap break-all m-0"
                 style={{
-                  fontFamily: "'Space Mono', monospace",
+                  fontFamily: "'Geist Mono', monospace",
                   color: t.textSecondary,
                 }}
               >

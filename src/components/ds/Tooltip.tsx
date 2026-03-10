@@ -49,7 +49,7 @@ export function Tooltip({ content, children, position = 'top', delay = 300 }: To
             transform: position === 'top' ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
             background: bg,
             color: '#fff',
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             maxWidth: 250,
             whiteSpace: 'normal',

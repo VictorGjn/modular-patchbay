@@ -1,7 +1,7 @@
 // Shared constants — extracted from repeated inline values across components
 
-export const FONT_MONO = "'Space Mono', monospace";
-export const FONT_SANS = "'Inter', sans-serif";
+export const FONT_MONO = "'Geist Mono', monospace";
+export const FONT_SANS = "'Geist Sans', sans-serif";
 
 export const COLORS = {
   accent: '#FE5000',

@@ -83,7 +83,7 @@ export function Scope({ active }: ScopeProps) {
       />
       <span
         className="absolute top-1 right-1.5 text-[7px] uppercase tracking-wider"
-        style={{ color: t.statusSuccess, fontFamily: "'Space Mono', monospace", opacity: 0.6 }}
+        style={{ color: t.statusSuccess, fontFamily: "'Geist Mono', monospace", opacity: 0.6 }}
       >
         SIGNAL
       </span>

@@ -97,7 +97,7 @@ function EmptyState() {
           />
         ))}
       </div>
-      <span className="text-xs tracking-widest uppercase" style={{ fontFamily: "'Space Mono', monospace", color: '#444' }}>
+      <span className="text-xs tracking-widest uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: '#444' }}>
         AWAITING SIGNAL
       </span>
       <span className="text-[11px]" style={{ color: '#333' }}>
@@ -189,7 +189,7 @@ export function ResponseArea() {
         )}
 
         {response && !running && (
-          <span className="text-[10px]" style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#444' }}>
+          <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#444' }}>
             ~{responseTokens.toLocaleString()}t
           </span>
         )}
@@ -241,7 +241,7 @@ export function ResponseArea() {
       {/* Source list */}
       {response && !running && activeChannels.length > 0 && (
         <div className="px-4 pb-3 pt-1 border-t flex flex-wrap gap-1.5" style={{ borderColor: '#222226' }}>
-          <span className="text-[9px] tracking-wider uppercase self-center mr-1" style={{ color: '#444' }}>
+          <span className="text-[11px] tracking-wider uppercase self-center mr-1" style={{ color: '#444' }}>
             Sources:
           </span>
           {activeChannels.map((ch) => {

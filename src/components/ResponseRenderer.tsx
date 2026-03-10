@@ -148,7 +148,7 @@ function CodeBlock({ content, language }: { content: string; language: string })
   return (
     <div style={{ position: 'relative', margin: '4px 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', background: t.isDark ? '#ffffff08' : '#00000008', borderRadius: '6px 6px 0 0', borderBottom: `1px solid ${t.borderSubtle}` }}>
-        <span style={{ fontSize: 9, color: t.textDim, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em' }}>{language}</span>
+        <span style={{ fontSize: 11, color: t.textDim, fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em' }}>{language}</span>
         <CopyButton text={content} />
       </div>
       <pre style={{
@@ -157,7 +157,7 @@ function CodeBlock({ content, language }: { content: string; language: string })
         borderRadius: '0 0 6px 6px',
         overflow: 'auto',
         fontSize: 10,
-        fontFamily: "'Space Mono', monospace",
+        fontFamily: "'Geist Mono', monospace",
         color: t.textPrimary,
         margin: 0,
         lineHeight: 1.5,
@@ -173,7 +173,7 @@ function HtmlPreview({ content }: { content: string }) {
   return (
     <div style={{ margin: '4px 0', border: `1px solid ${t.borderSubtle}`, borderRadius: 6, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: t.isDark ? '#ffffff08' : '#00000008', borderBottom: `1px solid ${t.borderSubtle}` }}>
-        <span style={{ fontSize: 9, color: t.textDim, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em' }}>HTML Preview</span>
+        <span style={{ fontSize: 11, color: t.textDim, fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em' }}>HTML Preview</span>
       </div>
       <iframe
         srcDoc={content}
@@ -191,7 +191,7 @@ function JsonTreeView({ content }: { content: string }) {
   return (
     <div style={{ margin: '4px 0', background: t.isDark ? '#ffffff0a' : '#00000008', borderRadius: 6, padding: 8, overflow: 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 9, color: t.textDim, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase' }}>JSON</span>
+        <span style={{ fontSize: 11, color: t.textDim, fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase' }}>JSON</span>
         <CopyButton text={content} />
       </div>
       <TreeNode value={parsed} depth={0} />
@@ -205,7 +205,7 @@ function TreeNode({ label, value, depth }: { label?: string; value: unknown; dep
   const isObj = value !== null && typeof value === 'object';
   const entries = isObj ? (Array.isArray(value) ? value.map((v, i) => [String(i), v] as [string, unknown]) : Object.entries(value as Record<string, unknown>)) : [];
 
-  const style = { fontFamily: "'Space Mono', monospace", fontSize: 10, lineHeight: 1.6 } as const;
+  const style = { fontFamily: "'Geist Mono', monospace", fontSize: 10, lineHeight: 1.6 } as const;
 
   if (!isObj) {
     const color = typeof value === 'string' ? '#e06c75' : typeof value === 'number' ? '#d19a66' : typeof value === 'boolean' ? '#56b6c2' : t.textMuted;
@@ -247,7 +247,7 @@ function TableView({ rows }: { rows: string[][] }) {
   const [header, ...body] = rows;
   return (
     <div style={{ margin: '4px 0', overflow: 'auto', borderRadius: 6, border: `1px solid ${t.borderSubtle}` }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10, fontFamily: "'Space Mono', monospace" }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10, fontFamily: "'Geist Mono', monospace" }}>
         <thead>
           <tr style={{ background: t.isDark ? '#ffffff0a' : '#00000008' }}>
             {header.map((h, i) => (
@@ -273,7 +273,7 @@ function MermaidRenderer({ content }: { content: string }) {
   const t = useTheme();
   return (
     <div style={{ margin: '4px 0' }}>
-      <div style={{ fontSize: 9, color: t.textDim, fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', marginBottom: 4 }}>Mermaid</div>
+      <div style={{ fontSize: 11, color: t.textDim, fontFamily: "'Geist Mono', monospace", textTransform: 'uppercase', marginBottom: 4 }}>Mermaid</div>
       <Suspense fallback={<div style={{ padding: 8, fontSize: 10, color: t.textMuted }}>Loading diagram…</div>}>
         <MermaidBlock content={content} />
       </Suspense>

@@ -76,7 +76,7 @@ export function StatusIndicator({
           fontSize: currentSize.font,
           fontWeight: 500,
           color,
-          fontFamily: "'Space Mono', monospace"
+          fontFamily: "'Geist Mono', monospace"
         }}>
           {label}
         </span>
@@ -125,7 +125,7 @@ export function MultiPhaseStatus({ phases, className = '' }: MultiPhaseStatusPro
             fontSize: 10,
             fontWeight: phase.status === 'active' ? 600 : 400,
             color: getStatusColor(phase.status),
-            fontFamily: "'Space Mono', monospace"
+            fontFamily: "'Geist Mono', monospace"
           }}>
             {phase.label}
           </span>

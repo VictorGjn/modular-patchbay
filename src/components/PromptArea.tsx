@@ -80,7 +80,7 @@ export function PromptArea() {
             border: `1px solid ${focused ? 'rgba(254,80,0,0.3)' : '#2a2a30'}`,
             borderRadius: 12,
             color: '#f0f0f0',
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "'Geist Sans', sans-serif",
             padding: '12px 16px',
             paddingBottom: 28,
             lineHeight: 1.6,
@@ -112,14 +112,14 @@ export function PromptArea() {
 
           <span
             className="text-[10px]"
-            style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#444' }}
+            style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#444' }}
           >
             {prompt.length} chars
           </span>
 
           <span
             className="text-[10px]"
-            style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#555' }}
+            style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: 'tabular-nums', color: '#555' }}
           >
             · ~{tokenCount.toLocaleString()} tokens
           </span>

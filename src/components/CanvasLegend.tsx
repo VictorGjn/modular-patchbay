@@ -32,8 +32,8 @@ export function CanvasLegend() {
           border: `1px solid ${t.border}`,
           boxShadow: `0 2px 8px ${t.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.08)'}`,
           color: t.textSecondary,
-          fontFamily: "'Space Mono', monospace",
-          fontSize: 9,
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: 11,
           letterSpacing: '0.1em',
         }}
       >
@@ -61,8 +61,8 @@ export function CanvasLegend() {
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2"
         style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-        <span className="text-[9px] font-bold tracking-[0.15em] uppercase"
-          style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
+        <span className="text-[11px] font-bold tracking-[0.08em] uppercase"
+          style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>
           Connection Types
         </span>
         <button type="button" onClick={() => setOpen(false)}
@@ -95,10 +95,10 @@ export function CanvasLegend() {
             </div>
             {/* Label + desc */}
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-semibold" style={{ color: t.textPrimary, fontFamily: "'Inter', sans-serif" }}>
+              <div className="text-[10px] font-semibold" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
                 {item.label}
               </div>
-              <div className="text-[8px]" style={{ color: t.textDim, fontFamily: "'Inter', sans-serif" }}>
+              <div className="text-[10px]" style={{ color: t.textDim, fontFamily: "'Geist Sans', sans-serif" }}>
                 {item.desc}
               </div>
             </div>

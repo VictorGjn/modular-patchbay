@@ -124,7 +124,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
     background: t.inputBg,
     border: `1px solid ${t.border}`,
     color: t.textPrimary,
-    fontFamily: "'Space Mono', monospace",
+    fontFamily: "'Geist Mono', monospace",
     fontSize: 11,
   };
 
@@ -155,11 +155,11 @@ export const WorkflowNode = memo(function WorkflowNode() {
         <ListOrdered size={13} style={{ color: '#e67e22' }} />
         <span
           className="text-[10px] font-bold tracking-widest uppercase"
-          style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}
+          style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
         >
           Workflow
         </span>
-        <span className="text-[9px] ml-1" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
+        <span className="text-[11px] ml-1" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
           {workflowSteps.length} {workflowSteps.length === 1 ? 'step' : 'steps'}
         </span>
         <div className="flex-1" />
@@ -167,11 +167,11 @@ export const WorkflowNode = memo(function WorkflowNode() {
           type="button"
           onClick={handleGenerate}
           disabled={generating}
-          className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded cursor-pointer border-none nodrag"
+          className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded cursor-pointer border-none nodrag"
           style={{
             background: '#FE500015',
             color: '#FE5000',
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             opacity: generating ? 0.6 : 1,
           }}
         >
@@ -240,8 +240,8 @@ export const WorkflowNode = memo(function WorkflowNode() {
                       style={{
                         background: '#e67e2218',
                         color: '#e67e22',
-                        fontFamily: "'Space Mono', monospace",
-                        fontSize: 9,
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: 11,
                       }}
                     >
                       {idx + 1}
@@ -249,25 +249,25 @@ export const WorkflowNode = memo(function WorkflowNode() {
 
                     <span
                       className="flex-1 text-[11px] font-semibold truncate"
-                      style={{ color: step.label ? t.textPrimary : t.textMuted, fontFamily: "'Inter', sans-serif" }}
+                      style={{ color: step.label ? t.textPrimary : t.textMuted, fontFamily: "'Geist Sans', sans-serif" }}
                     >
                       {step.label || `Step ${idx + 1}`}
                     </span>
 
                     {/* Badges */}
                     {hasCondition && (
-                      <span className="flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded" style={{ background: '#3498db15', color: '#3498db' }}>
+                      <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#3498db15', color: '#3498db' }}>
                         <GitBranch size={8} />
                         {step.condition}
                       </span>
                     )}
                     {hasTool && (
-                      <span className="flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded" style={{ background: '#2ecc7115', color: '#2ecc71' }}>
+                      <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#2ecc7115', color: '#2ecc71' }}>
                         <Wrench size={8} />
                       </span>
                     )}
                     {hasLoop && (
-                      <span className="flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded" style={{ background: '#9b59b615', color: '#9b59b6' }}>
+                      <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#9b59b615', color: '#9b59b6' }}>
                         <RotateCw size={8} />
                       </span>
                     )}
@@ -350,10 +350,10 @@ export const WorkflowNode = memo(function WorkflowNode() {
                             />
                           </div>
                           {step.loopTarget && (
-                            <span className="flex items-center gap-0.5 text-[9px]" style={{ color: t.textDim }}>
+                            <span className="flex items-center gap-0.5 text-[11px]" style={{ color: t.textDim }}>
                               max <Input type="number" min={1} max={10} value={step.loopMax}
                                 onChange={(e) => updateStep(idx, { loopMax: parseInt(e.target.value) || 3 })}
-                                style={{ width: 32, textAlign: 'center', padding: '2px 2px', ...inputStyle, fontSize: 9 }}
+                                style={{ width: 32, textAlign: 'center', padding: '2px 2px', ...inputStyle, fontSize: 11 }}
                               />x
                             </span>
                           )}
@@ -374,7 +374,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
                         border: `1px dashed #9b59b640`,
                       }}
                     >
-                      <span className="text-[7px] font-bold" style={{ color: '#9b59b6', fontFamily: "'Space Mono', monospace" }}>
+                      <span className="text-[7px] font-bold" style={{ color: '#9b59b6', fontFamily: "'Geist Mono', monospace" }}>
                         {step.loopMax}x
                       </span>
                     </div>
@@ -397,7 +397,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
               background: '#e67e2210',
               border: `1.5px dashed #e67e2240`,
               color: '#e67e22',
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontWeight: 600,
             }}
           >
@@ -409,7 +409,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
             <div className="px-4 py-4 text-center text-[10px]" style={{ color: t.textFaint }}>
               <ListOrdered size={18} style={{ margin: '0 auto 6px', opacity: 0.3 }} />
               <div>Define step-by-step reasoning plan</div>
-              <div style={{ color: t.textMuted, marginTop: 4, fontSize: 9 }}>Visual flowchart builder</div>
+              <div style={{ color: t.textMuted, marginTop: 4, fontSize: 11 }}>Visual flowchart builder</div>
             </div>
           )}
 

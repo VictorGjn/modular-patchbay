@@ -32,7 +32,7 @@ function OutputFormatSelect({ value, onChange, t }: { value: string; onChange: (
       onChange={(e) => onChange(e.target.value)}
       className="appearance-none cursor-pointer outline-none text-xs h-8 pl-3 pr-7 rounded-lg"
       style={{
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "'Geist Sans', sans-serif",
         background: t.surfaceOpaque,
         border: `1px solid ${t.border}`,
         color: t.isDark ? t.textSecondary : '#1a1a20',
@@ -165,7 +165,7 @@ function AgentActionBar() {
       {/* Agent Name Label */}
       <span
         className="text-xs font-bold tracking-[0.12em] uppercase"
-        style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary, minWidth: '100px' }}
+        style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, minWidth: '100px' }}
       >
         {agentMeta.name || 'New Agent'}
       </span>
@@ -371,9 +371,9 @@ function SectionHeader({
         <span style={{
           fontSize: 10,
           fontWeight: 700,
-          letterSpacing: '0.15em',
+          letterSpacing: '0.08em',
           textTransform: 'uppercase',
-          fontFamily: "'Space Mono', monospace",
+          fontFamily: "'Geist Mono', monospace",
           color: t.textPrimary
         }}>
           {label}
@@ -392,14 +392,14 @@ function GenerateBtn({ loading, onClick }: { loading: boolean; onClick: () => vo
         display: 'flex',
         alignItems: 'center',
         gap: 4,
-        fontSize: 9,
+        fontSize: 11,
         padding: '4px 8px',
         borderRadius: 4,
         cursor: 'pointer',
         border: 'none',
         background: '#FE500015',
         color: '#FE5000',
-        fontFamily: "'Space Mono', monospace"
+        fontFamily: "'Geist Mono', monospace"
       }}>
       {loading ? <Loader2 size={9} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={9} />}
       Generate
@@ -536,14 +536,14 @@ export function AgentBuilder() {
         <div className="flex items-center gap-2.5 px-5 py-3.5 select-none" style={{ borderBottom: `1px solid ${t.border}`, background: t.surfaceElevated }}>
           <Bot size={14} style={{ color: '#FE5000' }} />
           <Tooltip content="Build your agent step by step">
-            <span className="text-[11px] font-bold tracking-[0.2em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>Agent</span>
+            <span className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>Agent</span>
           </Tooltip>
           <div className="flex-1" />
           <div className="flex items-center gap-1">
             {Object.entries(done).map(([key, v]) => (
               <div key={key} title={key} style={{ width: 6, height: 6, borderRadius: '50%', background: v ? '#FE5000' : t.borderSubtle, transition: 'background 200ms' }} />
             ))}
-            <span className="text-[9px] ml-1" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>{progress}/4</span>
+            <span className="text-[11px] ml-1" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>{progress}/4</span>
           </div>
         </div>
 
@@ -583,7 +583,7 @@ export function AgentBuilder() {
                 ) : (
                   <button type="button" onClick={() => setEditingName(true)}
                     className="text-left font-semibold cursor-pointer border-none bg-transparent p-0 w-full"
-                    style={{ color: agentMeta.name ? t.textPrimary : t.textMuted, fontSize: 16, fontFamily: "'Inter', sans-serif" }}>
+                    style={{ color: agentMeta.name ? t.textPrimary : t.textMuted, fontSize: 16, fontFamily: "'Geist Sans', sans-serif" }}>
                     {agentMeta.name || 'Click to name your agent'}
                   </button>
                 )}
@@ -607,7 +607,7 @@ export function AgentBuilder() {
               placeholder="Describe the agent's role, expertise, and personality..." style={{ minHeight: 64 }} />
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Tone</span>
+                <span className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Tone</span>
                 <div className="flex rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
                   {(['formal', 'neutral', 'casual'] as const).map(opt => (
                     <button key={opt} type="button" onClick={() => updateInstruction({ tone: opt })}
@@ -619,7 +619,7 @@ export function AgentBuilder() {
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Expertise</span>
+                <span className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Expertise</span>
                 <div className="flex rounded-md overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
                   {([{ l: 'Junior', v: 1 }, { l: 'Mid', v: 3 }, { l: 'Senior', v: 5 }] as const).map(opt => (
                     <button key={opt.v} type="button" onClick={() => updateInstruction({ expertise: opt.v })}
@@ -650,7 +650,7 @@ export function AgentBuilder() {
             <Toggle checked={constraints.limitWords} onChange={v => updateInstruction({ constraints: { ...constraints, limitWords: v } })}
               label={`Limit responses to ${constraints.wordLimit} words`} />
             <div>
-              <span className="text-[9px] tracking-wider uppercase font-semibold block mb-1.5" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Custom Rules</span>
+              <span className="text-[11px] tracking-wider uppercase font-semibold block mb-1.5" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Custom Rules</span>
               {constraints.customConstraints.split('\n').filter(Boolean).map((rule, i) => (
                 <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-1.5" style={{
                   background: t.isDark ? '#2e1a0a' : '#fdf5ee',
@@ -695,7 +695,7 @@ export function AgentBuilder() {
               onChange={e => updateInstruction({ objectives: { ...objectives, primary: e.target.value } })}
               placeholder="What is this agent's main goal?" style={{ minHeight: 40 }} />
             <div>
-              <span className="text-[9px] tracking-wider uppercase font-semibold block mb-1.5" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Success Criteria</span>
+              <span className="text-[11px] tracking-wider uppercase font-semibold block mb-1.5" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Success Criteria</span>
               {objectives.successCriteria.map((c, i) => (
                 <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-1.5" style={{
                   background: t.isDark ? '#1a2e1a' : '#f0faf0',
@@ -739,14 +739,14 @@ export function AgentBuilder() {
           right={
             <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
               <Toggle checked={autoSync} onChange={v => updateInstruction({ autoSync: v })} label="" />
-              <span className="text-[9px]" style={{ color: t.textDim }}>Auto</span>
+              <span className="text-[11px]" style={{ color: t.textDim }}>Auto</span>
             </div>
           } />
         {promptOpen && (
           <div className="px-5 py-4">
             <TextArea value={rawPrompt} onChange={e => updateInstruction({ rawPrompt: e.target.value })}
               placeholder="System prompt will be auto-generated from sections above, or type manually..."
-              style={{ minHeight: 120, fontFamily: "'Space Mono', monospace", fontSize: 11 }} />
+              style={{ minHeight: 120, fontFamily: "'Geist Mono', monospace", fontSize: 11 }} />
           </div>
         )}
       </div>
@@ -773,8 +773,8 @@ export function AgentBuilder() {
       <div className="rounded-xl overflow-hidden" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)'}` }}>
         <div className="flex items-center gap-2.5 px-5 py-3.5 select-none" style={{ background: t.surfaceElevated }}>
           <div style={{ width: 3, height: 14, borderRadius: 2, background: '#e67e22', opacity: 0.8 }} />
-          <span className="text-[11px] font-bold tracking-[0.2em] uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>Workflow</span>
-          <span className="text-[9px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>{workflowSteps.length} steps</span>
+          <span className="text-[11px] font-bold tracking-[0.08em] uppercase flex-1" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>Workflow</span>
+          <span className="text-[11px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>{workflowSteps.length} steps</span>
         </div>
         <div className="px-5 py-4 flex flex-col items-center">
           {workflowSteps.length === 0 ? (
@@ -782,7 +782,7 @@ export function AgentBuilder() {
               type="button"
               onClick={() => setWorkflowModalOpen(true)}
               className="flex items-center justify-center gap-1.5 text-[11px] px-4 py-2.5 rounded-lg cursor-pointer border-none"
-              style={{ background: '#e67e2215', color: '#e67e22', fontFamily: "'Space Mono', monospace", fontWeight: 600 }}
+              style={{ background: '#e67e2215', color: '#e67e22', fontFamily: "'Geist Mono', monospace", fontWeight: 600 }}
             >
               <Plus size={12} /> Define workflow steps
             </button>
@@ -792,10 +792,10 @@ export function AgentBuilder() {
                 <div key={step.id} className="w-full">
                   <div className="flex items-center gap-3 py-2">
                     <div style={{ width: 24, height: 24, borderRadius: '50%', background: t.surfaceElevated, border: '1.5px solid #e67e2230', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 9, fontWeight: 700, color: '#e67e22' }}>{i + 1}</span>
+                      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, fontWeight: 700, color: '#e67e22' }}>{i + 1}</span>
                     </div>
                     <span style={{ flex: 1, fontSize: 12, color: t.textPrimary }}>{step.label || 'Unnamed step'}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: t.badgeBg, color: t.textDim, fontFamily: "'Space Mono', monospace" }}>
+                    <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: t.badgeBg, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
                       {step.action || 'action'}
                     </span>
                   </div>
@@ -820,8 +820,8 @@ export function AgentBuilder() {
       {/* Context Budget */}
       <div className="rounded-xl overflow-hidden" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, padding: '16px 20px' }}>
         <div className="flex items-center justify-between mb-2.5">
-          <span className="text-[10px] font-bold tracking-[0.15em] uppercase" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>Context Budget</span>
-          <span className="text-[11px] font-semibold" style={{ fontFamily: "'Space Mono', monospace", color: '#FE5000' }}>
+          <span className="text-[10px] font-bold tracking-[0.08em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>Context Budget</span>
+          <span className="text-[11px] font-semibold" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>
             {formatTokens(totalUsed)} / {formatTokens(tokenBudget)}
           </span>
         </div>

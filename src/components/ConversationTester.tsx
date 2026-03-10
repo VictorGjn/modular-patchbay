@@ -177,7 +177,7 @@ export function ConversationTester() {
           background: panelOpen ? '#FE500010' : t.surfaceElevated,
           color: panelOpen ? '#FE5000' : t.textDim,
           borderTop: `1px solid ${t.border}`,
-          fontFamily: "'Space Mono', monospace",
+          fontFamily: "'Geist Mono', monospace",
           fontSize: 10,
           fontWeight: 600,
           letterSpacing: '0.1em',
@@ -218,7 +218,7 @@ export function ConversationTester() {
                 {messages.length === 0 && (
                   <div className="flex-1 flex flex-col items-center justify-center gap-2" style={{ color: t.textFaint }}>
                     <MessageSquare size={24} style={{ opacity: 0.3 }} />
-                    <span className="text-[10px] tracking-wider uppercase" style={{ fontFamily: "'Space Mono', monospace" }}>
+                    <span className="text-[10px] tracking-wider uppercase" style={{ fontFamily: "'Geist Mono', monospace" }}>
                       Test your agent with a conversation
                     </span>
                     <span className="text-[10px]" style={{ color: t.textMuted }}>
@@ -237,7 +237,7 @@ export function ConversationTester() {
                         background: msg.role === 'user' ? '#FE5000' : t.surfaceElevated,
                         color: msg.role === 'user' ? '#fff' : t.textPrimary,
                         border: msg.role === 'user' ? 'none' : `1px solid ${t.borderSubtle}`,
-                        fontFamily: msg.role === 'assistant' ? "'Space Mono', monospace" : 'inherit',
+                        fontFamily: msg.role === 'assistant' ? "'Geist Mono', monospace" : 'inherit',
                         fontSize: msg.role === 'assistant' ? 11 : 12,
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-word',
@@ -271,7 +271,7 @@ export function ConversationTester() {
                     background: t.inputBg,
                     border: `1px solid ${t.border}`,
                     color: t.textPrimary,
-                    fontFamily: "'Space Mono', monospace",
+                    fontFamily: "'Geist Mono', monospace",
                     fontSize: 11,
                   }}
                   disabled={streaming}
@@ -315,7 +315,7 @@ export function ConversationTester() {
 
               {/* Add test form */}
               <div className="flex flex-col gap-2 p-3 rounded-lg" style={{ background: t.surfaceElevated, border: `1px solid ${t.borderSubtle}` }}>
-                <span className="text-[9px] font-semibold tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>
+                <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
                   Add Test Case
                 </span>
                 <Input placeholder="Test name" value={testName} onChange={(e) => setTestName(e.target.value)} />
@@ -409,7 +409,7 @@ export function ConversationTester() {
             className="relative flex flex-col gap-3 p-4 rounded-xl"
             style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, width: 360 }}
           >
-            <span className="text-xs font-bold" style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>Save as Test Case</span>
+            <span className="text-xs font-bold" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>Save as Test Case</span>
             <Input label="Name" placeholder="e.g., catches-missing-key-prop" value={testName} onChange={(e) => setTestName(e.target.value)} />
             <Input label="Expected Behavior" placeholder="Should flag missing key prop..." value={testExpected} onChange={(e) => setTestExpected(e.target.value)} />
             <div className="flex justify-end gap-2">

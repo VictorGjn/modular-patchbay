@@ -34,7 +34,7 @@ function VersionRow({ v, isCurrent, onRestore, onDelete }: {
           style={{ color: t.textDim, transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}
         />
         <div className="flex-1 min-w-0 flex items-center gap-2">
-          <span className="text-[12px] font-bold shrink-0" style={{ fontFamily: "'Space Mono', monospace", color: isCurrent ? '#FE5000' : t.textPrimary }}>
+          <span className="text-[12px] font-bold shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: isCurrent ? '#FE5000' : t.textPrimary }}>
             v{v.version}
           </span>
           <span className="text-[10px] truncate" style={{ color: t.textMuted }}>
@@ -42,7 +42,7 @@ function VersionRow({ v, isCurrent, onRestore, onDelete }: {
           </span>
         </div>
         {isCurrent && <Badge variant="success" size="sm" dot>CURRENT</Badge>}
-        <span className="text-[9px] shrink-0" style={{ color: t.textFaint }}>
+        <span className="text-[11px] shrink-0" style={{ color: t.textFaint }}>
           {new Date(v.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </button>
@@ -57,7 +57,7 @@ function VersionRow({ v, isCurrent, onRestore, onDelete }: {
           {v.changes.map((c, i) => (
             <div key={i} className="flex items-center gap-2 text-[10px]" style={{ color: t.textSecondary }}>
               <ChangeIcon type={c.type} />
-              <span className="uppercase text-[8px] font-semibold w-14 shrink-0" style={{ color: t.textDim }}>{c.category}</span>
+              <span className="uppercase text-[10px] font-semibold w-14 shrink-0" style={{ color: t.textDim }}>{c.category}</span>
               <span>{c.description}</span>
             </div>
           ))}
@@ -90,7 +90,7 @@ export function VersionIndicator() {
         style={{
           background: dirty ? '#FE500015' : 'transparent',
           color: dirty ? '#FE5000' : t.textDim,
-          fontFamily: "'Space Mono', monospace",
+          fontFamily: "'Geist Mono', monospace",
           fontSize: 10,
           fontWeight: 600,
           transition: 'background 0.15s',

@@ -95,7 +95,7 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
           <span style={{ color: t.textPrimary, fontSize: 14, fontWeight: 600, flex: 1 }}>
             Workflow Editor
           </span>
-          <span style={{ color: t.textMuted, fontSize: 11, fontFamily: "'Space Mono', monospace" }}>
+          <span style={{ color: t.textMuted, fontSize: 11, fontFamily: "'Geist Mono', monospace" }}>
             {workflowSteps.length} {workflowSteps.length === 1 ? 'step' : 'steps'}
           </span>
           <button
@@ -147,7 +147,7 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
                           color: 'white',
                           fontSize: 11,
                           fontWeight: 600,
-                          fontFamily: "'Space Mono', monospace",
+                          fontFamily: "'Geist Mono', monospace",
                         }}
                       >
                         {i + 1}
@@ -168,7 +168,7 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
                           background: t.inputBg,
                           border: `1px solid ${t.border}`,
                           color: t.textPrimary,
-                          fontFamily: "'Inter', sans-serif",
+                          fontFamily: "'Geist Sans', sans-serif",
                           fontSize: 12,
                           lineHeight: 1.5,
                         }}
@@ -178,8 +178,8 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
                     {/* Action badge */}
                     <span
                       style={{
-                        fontSize: 9,
-                        fontFamily: "'Space Mono', monospace",
+                        fontSize: 11,
+                        fontFamily: "'Geist Mono', monospace",
                         fontWeight: 600,
                         paddingLeft: 8,
                         paddingRight: 8,

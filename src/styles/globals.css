@@ -17,8 +17,8 @@
   --color-discovery: #2ecc71;
   --color-intel: #e67e22;
   --color-agents: #9b59b6;
-  --font-mono: 'Space Mono', monospace;
-  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  --font-sans: 'Geist Sans', sans-serif;
 }
 
 @layer base {

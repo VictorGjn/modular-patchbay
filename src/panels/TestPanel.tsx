@@ -30,8 +30,8 @@ function PipelineStatsBar() {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-3 px-4 py-1.5 text-[9px] w-full border-none cursor-pointer"
-        style={{ fontFamily: "'Space Mono', monospace", color: t.textDim, background: 'transparent' }}
+        className="flex items-center gap-3 px-4 py-1.5 text-[11px] w-full border-none cursor-pointer"
+        style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: 'transparent' }}
         aria-label="Pipeline statistics"
         aria-expanded={expanded}
       >
@@ -57,11 +57,11 @@ function PipelineStatsBar() {
             <div key={src.path}>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[10px] font-medium" style={{ color: t.textPrimary }}>{src.name}</span>
-                <span className="text-[8px] px-1.5 py-0.5 rounded"
-                  style={{ fontFamily: "'Space Mono', monospace", background: DEPTH_COLORS[src.depth] + '18', color: DEPTH_COLORS[src.depth] }}>
+                <span className="text-[10px] px-1.5 py-0.5 rounded"
+                  style={{ fontFamily: "'Geist Mono', monospace", background: DEPTH_COLORS[src.depth] + '18', color: DEPTH_COLORS[src.depth] }}>
                   {DEPTH_LABELS[src.depth]}
                 </span>
-                <span className="text-[8px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+                <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
                   {fmtTokens(src.filteredTokens)}/{fmtTokens(src.totalTokens)}
                 </span>
               </div>
@@ -74,20 +74,20 @@ function PipelineStatsBar() {
                     const barColor = DEPTH_COLORS[Math.min(h.depth, 4)];
                     return (
                       <div key={h.nodeId} className="flex items-center gap-1.5">
-                        <span className="text-[8px] truncate w-24 text-right" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+                        <span className="text-[10px] truncate w-24 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
                           {h.title}
                         </span>
                         <div style={{ flex: 1, height: 4, background: `${barColor}18`, borderRadius: 2, overflow: 'hidden' }}>
                           <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 2 }} />
                         </div>
-                        <span className="text-[7px] w-6 text-right" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+                        <span className="text-[7px] w-6 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
                           {fmtTokens(h.tokens)}
                         </span>
                       </div>
                     );
                   })}
                   {src.headings.length > 8 && (
-                    <span className="text-[8px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textFaint }}>
+                    <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
                       +{src.headings.length - 8} more
                     </span>
                   )}
@@ -228,12 +228,12 @@ function ChatSection() {
           className="flex-1 px-3.5 py-2.5 rounded-lg outline-none text-[12px]"
           style={{
             background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary,
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "'Geist Sans', sans-serif",
           }}
         />
         <button type="button" aria-label="Send message" onClick={handleSend} disabled={streaming || !inputText.trim()}
           className="px-4 rounded-lg cursor-pointer border-none text-[10px] font-semibold tracking-wider uppercase min-h-[44px] min-w-[44px]"
-          style={{ background: '#FE5000', color: '#fff', fontFamily: "'Space Mono', monospace", opacity: streaming || !inputText.trim() ? 0.5 : 1 }}>
+          style={{ background: '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace", opacity: streaming || !inputText.trim() ? 0.5 : 1 }}>
           <Send size={12} />
         </button>
       </div>
@@ -294,7 +294,7 @@ function ExportSection() {
 
   return (
     <div className="px-4 py-3" style={{ borderTop: `1px solid ${t.border}` }}>
-      <div className="text-[10px] font-bold tracking-[0.15em] uppercase mb-2.5" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>Export to</div>
+      <div className="text-[10px] font-bold tracking-[0.08em] uppercase mb-2.5" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>Export to</div>
       <div className="flex flex-col gap-1.5">
         {targets.map(target => {
           const Icon = target.icon;
@@ -310,7 +310,7 @@ function ExportSection() {
                 {copied === target.id ? <Check size={12} style={{ color: '#00ff88' }} /> : <Icon size={12} style={{ color: t.textDim }} />}
               </div>
               <span className="flex-1 text-[11px]" style={{ color: t.textPrimary }}>{target.label}</span>
-              <span className="text-[9px]" style={{ fontFamily: "'Space Mono', monospace", color: t.textDim }}>{target.fmt}</span>
+              <span className="text-[11px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>{target.fmt}</span>
             </button>
           );
         })}
@@ -329,23 +329,23 @@ export function TestPanel({ onCollapse }: { onCollapse?: () => void }) {
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: `1px solid ${t.border}` }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px rgba(0,255,136,0.4)' }} />
-        <span className="text-[10px] font-bold tracking-[0.15em] uppercase flex-1" style={{ fontFamily: "'Space Mono', monospace", color: t.textSecondary }}>
+        <span className="text-[10px] font-bold tracking-[0.08em] uppercase flex-1" style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}>
           {activeTab === 'chat' ? 'Conversation Tester' : activeTab === 'traces' ? 'Execution Traces' : 'Export'}
         </span>
         <div className="flex gap-0.5 rounded-md overflow-hidden" role="tablist" style={{ border: `1px solid ${t.border}` }}>
           <button type="button" role="tab" id="tab-chat" aria-selected={activeTab === 'chat'} aria-controls="tabpanel-chat" onClick={() => setActiveTab('chat')}
-            className="text-[9px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
-            style={{ background: activeTab === 'chat' ? '#FE5000' : 'transparent', color: activeTab === 'chat' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}>
+            className="text-[11px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
+            style={{ background: activeTab === 'chat' ? '#FE5000' : 'transparent', color: activeTab === 'chat' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
             Chat
           </button>
           <button type="button" role="tab" id="tab-traces" aria-selected={activeTab === 'traces'} aria-controls="tabpanel-traces" onClick={() => setActiveTab('traces')}
-            className="text-[9px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
-            style={{ background: activeTab === 'traces' ? '#FE5000' : 'transparent', color: activeTab === 'traces' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}>
+            className="text-[11px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
+            style={{ background: activeTab === 'traces' ? '#FE5000' : 'transparent', color: activeTab === 'traces' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
             Traces
           </button>
           <button type="button" role="tab" id="tab-export" aria-selected={activeTab === 'export'} aria-controls="tabpanel-export" onClick={() => setActiveTab('export')}
-            className="text-[9px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
-            style={{ background: activeTab === 'export' ? '#FE5000' : 'transparent', color: activeTab === 'export' ? '#fff' : t.textDim, fontFamily: "'Space Mono', monospace" }}>
+            className="text-[11px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
+            style={{ background: activeTab === 'export' ? '#FE5000' : 'transparent', color: activeTab === 'export' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
             Export
           </button>
 

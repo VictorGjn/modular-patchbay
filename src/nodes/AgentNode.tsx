@@ -66,8 +66,8 @@ function Section({ label, color, collapsed, onToggle, right, t }: {
       style={{ borderTop: `1px solid ${t.borderSubtle}`, background: t.isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.01)' }}>
       {collapsed ? <ChevronRight size={10} style={{ color: t.textDim }} /> : <ChevronDown size={10} style={{ color: t.textDim }} />}
       <div style={{ width: 3, height: 14, borderRadius: 2, background: color, opacity: 0.8 }} />
-      <span className="text-[10px] font-bold tracking-[0.15em] uppercase"
-        style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
+      <span className="text-[10px] font-bold tracking-[0.08em] uppercase"
+        style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>
         {label}
       </span>
       <div className="flex-1" />
@@ -79,8 +79,8 @@ function Section({ label, color, collapsed, onToggle, right, t }: {
 function GenerateBtn({ loading, onClick }: { loading: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} disabled={loading}
-      className="flex items-center gap-1 text-[9px] px-2 py-1 rounded cursor-pointer border-none nodrag"
-      style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Space Mono', monospace", opacity: loading ? 0.5 : 1 }}>
+      className="flex items-center gap-1 text-[11px] px-2 py-1 rounded cursor-pointer border-none nodrag"
+      style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Geist Mono', monospace", opacity: loading ? 0.5 : 1 }}>
       {loading ? <Loader2 size={9} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={9} />}
       Generate
     </button>
@@ -100,7 +100,7 @@ function SegmentedControl<T extends string | number>({ options, value, onChange 
           style={{
             background: value === opt.value ? '#FE5000' : 'transparent',
             color: value === opt.value ? '#fff' : t.textSecondary,
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "'Geist Sans', sans-serif",
             transition: 'all 100ms',
           }}>
           {opt.label}
@@ -133,7 +133,7 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick}
       className="flex items-center gap-1 text-[11px] px-2 py-1 rounded cursor-pointer border-none nodrag mt-1"
-      style={{ background: t.surfaceElevated, color: t.textSecondary, fontFamily: "'Inter', sans-serif" }}>
+      style={{ background: t.surfaceElevated, color: t.textSecondary, fontFamily: "'Geist Sans', sans-serif" }}>
       <Plus size={10} /> {label}
     </button>
   );
@@ -235,8 +235,8 @@ export const AgentNode = memo(function AgentNode() {
         style={{ borderBottom: `1px solid ${t.border}`, background: t.surfaceElevated }}>
         <Bot size={14} style={{ color: '#FE5000' }} />
         <Tooltip content="Build your agent step by step">
-          <span className="text-[11px] font-bold tracking-[0.2em] uppercase"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.textPrimary }}>
+          <span className="text-[11px] font-bold tracking-[0.08em] uppercase"
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>
             Agent
           </span>
         </Tooltip>
@@ -249,7 +249,7 @@ export const AgentNode = memo(function AgentNode() {
               transition: 'background 200ms',
             }} />
           ))}
-          <span className="text-[9px] ml-1" style={{ color: t.textDim, fontFamily: "'Space Mono', monospace" }}>{progress}/4</span>
+          <span className="text-[11px] ml-1" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>{progress}/4</span>
         </div>
       </div>
 
@@ -295,7 +295,7 @@ export const AgentNode = memo(function AgentNode() {
                 ) : (
                   <button type="button" onClick={() => setEditingName(true)}
                     className="text-left font-semibold cursor-pointer border-none bg-transparent p-0 nodrag w-full"
-                    style={{ color: agentMeta.name ? t.textPrimary : t.textMuted, fontSize: 16, fontFamily: "'Inter', sans-serif" }}>
+                    style={{ color: agentMeta.name ? t.textPrimary : t.textMuted, fontSize: 16, fontFamily: "'Geist Sans', sans-serif" }}>
                     {agentMeta.name || 'Click to name your agent'}
                   </button>
                 )}
@@ -322,11 +322,11 @@ export const AgentNode = memo(function AgentNode() {
               style={{ minHeight: 64 }} />
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Tone</label>
+                <label className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Tone</label>
                 <SegmentedControl options={TONE_OPTIONS.map(o => ({ value: o, label: o.charAt(0).toUpperCase() + o.slice(1) }))} value={tone} onChange={v => updateInstruction({ tone: v })} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Expertise</label>
+                <label className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Expertise</label>
                 <SegmentedControl options={[{ value: 1, label: 'Junior' }, { value: 3, label: 'Mid' }, { value: 5, label: 'Senior' }]} value={expertise} onChange={v => updateInstruction({ expertise: v })} />
               </div>
             </div>
@@ -345,7 +345,7 @@ export const AgentNode = memo(function AgentNode() {
             {constraints.stayInScope && (
               <div className="mt-3">
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-[9px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Scope</label>
+                  <label className="text-[11px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Scope</label>
                   <GenerateBtn loading={refining === 'scope'} onClick={handleRefineScope} />
                 </div>
                 <Input value={constraints.scopeDefinition}
@@ -372,7 +372,7 @@ export const AgentNode = memo(function AgentNode() {
               placeholder="The single most important thing this agent does..." />
 
             <div>
-              <label className="text-[9px] tracking-wider uppercase font-semibold block mb-2" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Success Looks Like</label>
+              <label className="text-[11px] tracking-wider uppercase font-semibold block mb-2" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Success Looks Like</label>
               {objectives.successCriteria.map((sc, i) => (
                 <ListItem key={i} color="#2ecc71" value={sc} placeholder="Measurable criterion..."
                   onChange={v => { const next = [...objectives.successCriteria]; next[i] = v; updateInstruction({ objectives: { ...objectives, successCriteria: next } }); }}
@@ -382,7 +382,7 @@ export const AgentNode = memo(function AgentNode() {
             </div>
 
             <div>
-              <label className="text-[9px] tracking-wider uppercase font-semibold block mb-2" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Failure Modes</label>
+              <label className="text-[11px] tracking-wider uppercase font-semibold block mb-2" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Failure Modes</label>
               {objectives.failureModes.map((fm, i) => (
                 <ListItem key={i} color="#e74c3c" value={fm} placeholder="What must never happen..."
                   onChange={v => { const next = [...objectives.failureModes]; next[i] = v; updateInstruction({ objectives: { ...objectives, failureModes: next } }); }}
@@ -404,7 +404,7 @@ export const AgentNode = memo(function AgentNode() {
             <TextArea value={rawPrompt}
               onChange={e => { if (!autoSync) updateInstruction({ rawPrompt: e.target.value }); }}
               readOnly={autoSync}
-              style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, minHeight: 120, opacity: autoSync ? 0.5 : 1, cursor: autoSync ? 'default' : 'text' }} />
+              style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, minHeight: 120, opacity: autoSync ? 0.5 : 1, cursor: autoSync ? 'default' : 'text' }} />
             {autoSync && <p className="text-[10px] mt-2 m-0" style={{ color: t.textFaint }}>Auto-compiled from sections above. Switch to Manual to edit.</p>}
           </div>
         )}

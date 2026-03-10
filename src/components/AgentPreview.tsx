@@ -41,21 +41,21 @@ export function AgentPreview() {
           aria-label={expanded ? 'Collapse agent definition' : 'Expand agent definition'}
         >
           <span
-            className="text-[9px] tracking-[2px] uppercase font-medium"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.agentLabel }}
+            className="text-[11px] tracking-[2px] uppercase font-medium"
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.agentLabel }}
           >
             AGENT DEFINITION
           </span>
           <div className="flex-1" />
           <span
-            className="text-[9px]"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.agentMeta }}
+            className="text-[11px]"
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.agentMeta }}
           >
             {lines.length} lines
           </span>
           <span
-            className="text-[9px]"
-            style={{ fontFamily: "'Space Mono', monospace", color: t.agentArrow }}
+            className="text-[11px]"
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.agentArrow }}
           >
             {expanded ? '▲' : '▼'}
           </span>
@@ -70,7 +70,7 @@ export function AgentPreview() {
             <pre
               className="text-[10px] leading-[1.5]"
               style={{
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "'Geist Mono', monospace",
                 color: t.agentText,
                 margin: 0,
                 whiteSpace: 'pre-wrap',

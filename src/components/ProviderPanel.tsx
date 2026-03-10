@@ -81,7 +81,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
     background: t.inputBg,
     border: `1px solid ${t.border}`,
     color: t.textPrimary,
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "'Geist Sans', sans-serif",
     fontSize: 12,
     padding: '6px 10px',
     borderRadius: 8,
@@ -123,7 +123,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
         <Icon size={14} style={{ color: provider.color, flexShrink: 0 }} />
         <span
           style={{
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             fontSize: 12,
             fontWeight: 600,
             flex: 1,
@@ -150,7 +150,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label
               style={{
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "'Geist Mono', monospace",
                 fontSize: 10,
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
@@ -193,7 +193,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label
               style={{
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "'Geist Mono', monospace",
                 fontSize: 10,
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
@@ -215,7 +215,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label
               style={{
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "'Geist Mono', monospace",
                 fontSize: 10,
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
@@ -229,7 +229,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                 <span
                   key={m.id}
                   style={{
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "'Geist Sans', sans-serif",
                     fontSize: 10,
                     padding: '2px 8px',
                     borderRadius: 6,
@@ -247,7 +247,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
           {provider.headerNote && (
             <span
               style={{
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Geist Sans', sans-serif",
                 fontSize: 10,
                 color: t.textFaint,
                 fontStyle: 'italic',
@@ -274,7 +274,7 @@ function ProviderRow({ provider }: { provider: ProviderConfig }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: "'Geist Mono', monospace",
                 fontSize: 11,
                 padding: '5px 12px',
                 borderRadius: 8,
@@ -374,7 +374,7 @@ export function ProviderPanel() {
       {/* Header */}
       <div
         style={{
-          fontFamily: "'Space Mono', monospace",
+          fontFamily: "'Geist Mono', monospace",
           fontSize: 11,
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
@@ -407,7 +407,7 @@ export function ProviderPanel() {
           background: 'transparent',
           color: t.textDim,
           cursor: 'pointer',
-          fontFamily: "'Space Mono', monospace",
+          fontFamily: "'Geist Mono', monospace",
           fontSize: 11,
         }}
       >

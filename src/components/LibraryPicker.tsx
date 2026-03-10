@@ -144,7 +144,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
               background: t.inputBg,
               border: `1px solid ${t.border}`,
               color: t.textPrimary,
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Geist Sans', sans-serif",
             }}
             autoFocus
           />
@@ -234,12 +234,12 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
                 {/* Line 2: installs badge + security badges + external link */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                   <span style={{
-                    fontSize: 8,
+                    fontSize: 10,
                     padding: '2px 6px',
                     borderRadius: 9999,
                     textTransform: 'uppercase',
                     flexShrink: 0,
-                    fontFamily: "'Space Mono', monospace",
+                    fontFamily: "'Geist Mono', monospace",
                     fontWeight: 600,
                     background: t.badgeBg,
                     color: t.textMuted
@@ -277,7 +277,7 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
                     border: 'none',
                     flexShrink: 0,
                     fontSize: 10,
-                    fontFamily: "'Space Mono', monospace",
+                    fontFamily: "'Geist Mono', monospace",
                     background: '#FE500020',
                     color: '#FE5000'
                   }}
@@ -294,11 +294,11 @@ function MarketplaceTab({ search }: { search: ReturnType<typeof useMarketplaceSe
       {/* Attribution */}
       <div style={{ padding: '8px 20px', textAlign: 'center', flexShrink: 0, borderTop: `1px solid ${t.borderSubtle}` }}>
         <span style={{
-          fontSize: 9,
+          fontSize: 11,
           letterSpacing: '0.05em',
           textTransform: 'uppercase',
           color: t.textFaint,
-          fontFamily: "'Space Mono', monospace"
+          fontFamily: "'Geist Mono', monospace"
         }}>
           Powered by skills.sh
         </span>
@@ -366,11 +366,11 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
           </span>
           {item.source && (
             <span style={{
-              fontSize: 8,
+              fontSize: 10,
               padding: '2px 6px',
               borderRadius: 9999,
               textTransform: 'uppercase',
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontWeight: 600,
               background: t.badgeBg,
               color: t.textMuted
@@ -380,11 +380,11 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
           )}
           {item.mcpStatus && item.mcpStatus !== 'enabled' && (
             <span style={{
-              fontSize: 8,
+              fontSize: 10,
               padding: '2px 6px',
               borderRadius: 9999,
               textTransform: 'uppercase',
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontWeight: 600,
               background: item.mcpStatus === 'deferred' ? t.statusWarningBg : t.statusErrorBg,
               color: item.mcpStatus === 'deferred' ? t.statusWarning : t.statusError,
@@ -411,7 +411,7 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: getStatusColor(item.status, t) }} />
           <span style={{
             fontSize: 10,
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             color: getStatusColor(item.status, t)
           }}>
             {item.status === 'connected' && item.toolCount ? `${item.toolCount} tools` : item.status}
@@ -420,12 +420,12 @@ function LibraryItemRow({ item, isActive, onToggle, kind, t }: {
       )}
       {kind === 'mcp' && item.type && (
         <span style={{
-          fontSize: 8,
+          fontSize: 10,
           padding: '2px 6px',
           borderRadius: 4,
           textTransform: 'uppercase',
           flexShrink: 0,
-          fontFamily: "'Space Mono', monospace",
+          fontFamily: "'Geist Mono', monospace",
           fontWeight: 600,
           background: item.type === 'stdio' ? '#3498db15' : item.type === 'http' ? '#9b59b615' : '#e67e2215',
           color: item.type === 'stdio' ? '#3498db' : item.type === 'http' ? '#9b59b6' : '#e67e22',
