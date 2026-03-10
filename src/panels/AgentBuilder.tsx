@@ -6,6 +6,7 @@ import { TextArea } from '../components/ds/TextArea';
 import { Toggle } from '../components/ds/Toggle';
 import { Tooltip } from '../components/ds/Tooltip';
 import { PRESET_AVATARS, AvatarIcon } from '../components/ds/AvatarIcon';
+import { ConstraintModal } from '../components/ConstraintModal';
 import { refineField, type RefinedAgent } from '../utils/refineInstruction';
 import { generateWorkflow } from '../utils/generateSection';
 import { formatTokens } from '../utils/formatTokens';
@@ -14,7 +15,7 @@ import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 import {
   Bot, Sparkles, Loader2,
   ChevronDown, ChevronRight,
-  Plus, X, Download, Upload, FolderOpen, Save, Check,
+  Plus, X, Download, Upload, FolderOpen, Save, Check, PencilLine,
 } from 'lucide-react';
 import { OutputIcon } from '../components/icons/SectionIcons';
 import { API_BASE } from '../config';
@@ -436,7 +437,63 @@ export function AgentBuilder() {
   const [editingName, setEditingName] = useState(false);
   const [refining, setRefining] = useState<string | null>(null);
 
+  // Modal state
+  const [constraintModalOpen, setConstraintModalOpen] = useState(false);
+  const [constraintModalConfig, setConstraintModalConfig] = useState<{
+    mode: 'criteria' | 'constraint';
+    index?: number;
+    title: string;
+    initial?: string;
+  } | null>(null);
+
   const { persona, tone, expertise, constraints, objectives, rawPrompt, autoSync } = instructionState;
+
+  // Modal handlers
+  const handleConstraintModalSave = (text: string) => {
+    if (!constraintModalConfig) return;
+
+    if (constraintModalConfig.mode === 'constraint') {
+      if (constraintModalConfig.index !== undefined) {
+        // Edit existing rule
+        const rules = constraints.customConstraints.split('\n').filter(Boolean);
+        rules[constraintModalConfig.index] = text;
+        updateInstruction({ constraints: { ...constraints, customConstraints: rules.join('\n') } });
+      } else {
+        // Add new rule
+        const newRules = constraints.customConstraints ? constraints.customConstraints + '\n' + text : text;
+        updateInstruction({ constraints: { ...constraints, customConstraints: newRules } });
+      }
+    } else if (constraintModalConfig.mode === 'criteria') {
+      if (constraintModalConfig.index !== undefined) {
+        // Edit existing criterion
+        const updated = [...objectives.successCriteria];
+        updated[constraintModalConfig.index] = text;
+        updateInstruction({ objectives: { ...objectives, successCriteria: updated } });
+      } else {
+        // Add new criterion
+        updateInstruction({ objectives: { ...objectives, successCriteria: [...objectives.successCriteria, text] } });
+      }
+    }
+
+    setConstraintModalOpen(false);
+    setConstraintModalConfig(null);
+  };
+
+  const handleConstraintModalDelete = () => {
+    if (!constraintModalConfig || constraintModalConfig.index === undefined) return;
+
+    if (constraintModalConfig.mode === 'constraint') {
+      const rules = constraints.customConstraints.split('\n').filter(Boolean);
+      rules.splice(constraintModalConfig.index, 1);
+      updateInstruction({ constraints: { ...constraints, customConstraints: rules.join('\n') } });
+    } else if (constraintModalConfig.mode === 'criteria') {
+      const updated = objectives.successCriteria.filter((_, i) => i !== constraintModalConfig.index);
+      updateInstruction({ objectives: { ...objectives, successCriteria: updated } });
+    }
+
+    setConstraintModalOpen(false);
+    setConstraintModalConfig(null);
+  };
 
   // Handlers
   const handleTagsChange = (val: string) => {
@@ -604,9 +661,40 @@ export function AgentBuilder() {
               label="Use only provided tools" />
             <Toggle checked={constraints.limitWords} onChange={v => updateInstruction({ constraints: { ...constraints, limitWords: v } })}
               label={`Limit responses to ${constraints.wordLimit} words`} />
-            <TextArea label="Custom Rules" value={constraints.customConstraints}
-              onChange={e => updateInstruction({ constraints: { ...constraints, customConstraints: e.target.value } })}
-              placeholder="Add custom constraints, one per line..." style={{ minHeight: 48 }} />
+            <div>
+              <span className="text-[9px] tracking-wider uppercase font-semibold block mb-1.5" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Custom Rules</span>
+              {constraints.customConstraints.split('\n').filter(Boolean).map((rule, i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-1.5" style={{
+                  background: t.isDark ? '#2e1a0a' : '#fdf5ee',
+                  border: `1px solid ${t.isDark ? '#e67e2230' : '#e67e2240'}`,
+                }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#e67e22', flexShrink: 0 }} />
+                  <span className="flex-1 text-[11px]" style={{
+                    color: t.textPrimary,
+                    lineHeight: 1.4,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '100%',
+                  }}>
+                    {rule}
+                  </span>
+                  <button type="button" onClick={() => { setConstraintModalConfig({ mode: 'constraint', index: i, title: 'Edit Custom Rule', initial: rule }); setConstraintModalOpen(true); }}
+                    className="border-none bg-transparent cursor-pointer p-1 rounded min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    style={{ color: t.textDim }}
+                    aria-label="Edit rule">
+                    <PencilLine size={11} />
+                  </button>
+                </div>
+              ))}
+              <button type="button" onClick={() => {
+                setConstraintModalConfig({ mode: 'constraint', title: 'Add Custom Rule' });
+                setConstraintModalOpen(true);
+              }}
+                className="flex items-center gap-1 text-[10px] cursor-pointer border-none bg-transparent mt-1.5" style={{ color: t.textDim }}>
+                <Plus size={10} /> Add rule
+              </button>
+            </div>
           </div>
         )}
 
@@ -621,21 +709,37 @@ export function AgentBuilder() {
             <div>
               <span className="text-[9px] tracking-wider uppercase font-semibold block mb-1.5" style={{ color: t.textMuted, fontFamily: "'Space Mono', monospace" }}>Success Criteria</span>
               {objectives.successCriteria.map((c, i) => (
-                <div key={i} className="flex items-center gap-2 mb-1.5">
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2ecc71' }} />
-                  <Input value={c} onChange={e => {
-                    const updated = [...objectives.successCriteria];
-                    updated[i] = e.target.value;
-                    updateInstruction({ objectives: { ...objectives, successCriteria: updated } });
-                  }} style={{ flex: 1 }} />
-                  <button type="button" aria-label="Remove criterion" onClick={() => {
-                    const updated = objectives.successCriteria.filter((_, j) => j !== i);
-                    updateInstruction({ objectives: { ...objectives, successCriteria: updated } });
-                  }} className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-[#ff000010]" style={{ color: t.textFaint }}><X size={11} /></button>
+                <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-1.5" style={{
+                  background: t.isDark ? '#1a2e1a' : '#f0faf0',
+                  border: `1px solid ${t.isDark ? '#2ecc7130' : '#2ecc7140'}`,
+                }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2ecc71', flexShrink: 0 }} />
+                  <span className="flex-1 text-[11px]" style={{
+                    color: t.textPrimary,
+                    lineHeight: 1.4,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '100%',
+                  }}>
+                    {c}
+                  </span>
+                  <button type="button" onClick={() => {
+                    setConstraintModalConfig({ mode: 'criteria', index: i, title: 'Edit Success Criterion', initial: c });
+                    setConstraintModalOpen(true);
+                  }}
+                    className="border-none bg-transparent cursor-pointer p-1 rounded min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    style={{ color: t.textDim }}
+                    aria-label="Edit criterion">
+                    <PencilLine size={11} />
+                  </button>
                 </div>
               ))}
-              <button type="button" onClick={() => updateInstruction({ objectives: { ...objectives, successCriteria: [...objectives.successCriteria, ''] } })}
-                className="flex items-center gap-1 text-[10px] cursor-pointer border-none bg-transparent" style={{ color: t.textDim }}>
+              <button type="button" onClick={() => {
+                setConstraintModalConfig({ mode: 'criteria', title: 'Add Success Criterion' });
+                setConstraintModalOpen(true);
+              }}
+                className="flex items-center gap-1 text-[10px] cursor-pointer border-none bg-transparent mt-1.5" style={{ color: t.textDim }}>
                 <Plus size={10} /> Add criterion
               </button>
             </div>
@@ -658,6 +762,19 @@ export function AgentBuilder() {
           </div>
         )}
       </div>
+
+      {/* Constraint Modal */}
+      <ConstraintModal
+        open={constraintModalOpen}
+        onClose={() => {
+          setConstraintModalOpen(false);
+          setConstraintModalConfig(null);
+        }}
+        onSave={handleConstraintModalSave}
+        onDelete={constraintModalConfig?.index !== undefined ? handleConstraintModalDelete : undefined}
+        initial={constraintModalConfig?.initial}
+        title={constraintModalConfig?.title || ''}
+      />
 
       {/* Workflow Card */}
       <div className="rounded-xl overflow-hidden" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)'}` }}>
