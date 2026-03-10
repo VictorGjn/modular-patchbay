@@ -10,7 +10,7 @@ export interface ProviderConfig {
 export interface McpServerConfig {
   id: string;
   name: string;
-  type?: 'stdio' | 'sse' | 'http';
+  type?: 'stdio' | 'sse' | 'http' | 'streamable-http';
   command: string;
   args: string[];
   env: Record<string, string>;

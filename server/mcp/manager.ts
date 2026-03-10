@@ -1,6 +1,8 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { McpServerConfig } from '../types.js';
+import { getToken } from '../services/mcpOAuth.js';
 
 interface McpConnection {
   config: McpServerConfig;
@@ -63,10 +65,10 @@ export class McpManager {
     const conn = this.connections.get(id);
     if (!conn) throw new Error(`MCP server "${id}" not found`);
 
-    // Only support stdio transport for now
-    if (conn.config.type && conn.config.type !== 'stdio') {
+    const transportType = conn.config.type || 'stdio';
+    if (transportType !== 'stdio' && transportType !== 'streamable-http') {
       conn.status = 'error';
-      conn.lastError = `Transport type "${conn.config.type}" not yet supported. Only "stdio" is supported.`;
+      conn.lastError = 'Transport type ' + transportType + ' not yet supported. Use stdio or streamable-http.';
       throw new Error(conn.lastError);
     }
 
@@ -79,6 +81,37 @@ export class McpManager {
     conn.lastError = null;
 
     try {
+      let client: Client;
+
+      if (transportType === 'streamable-http') {
+        // Remote MCP server via Streamable HTTP
+        const serverUrl = conn.config.url;
+        if (!serverUrl) throw new Error('No URL configured for streamable-http server');
+
+        const headers: Record<string, string> = {};
+        const token = await getToken(serverUrl);
+        if (token) {
+          headers['Authorization'] = 'Bearer ' + token;
+        }
+
+        const transport = new StreamableHTTPClientTransport(
+          new URL(serverUrl),
+          { requestInit: { headers } },
+        );
+
+        client = new Client({ name: 'modular-studio', version: '1.0.0' });
+        await client.connect(transport);
+        const { tools } = await client.listTools();
+
+        conn.client = client;
+        conn.transport = null; // no stdio transport to store
+        conn.status = 'connected';
+        conn.tools = tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema }));
+        conn.connectedAt = Date.now();
+
+        return { status: 'connected', tools: conn.tools };
+      }
+
       const transport = new StdioClientTransport({
         command: conn.config.command,
         args: conn.config.args,
