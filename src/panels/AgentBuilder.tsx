@@ -18,6 +18,7 @@ import {
   Plus, X, Download, Upload, FolderOpen, Save, Check, PencilLine,
 } from 'lucide-react';
 import { OutputIcon } from '../components/icons/SectionIcons';
+import { VersionIndicator } from '../components/VersionIndicator';
 import { API_BASE } from '../config';
 
 /* ── Types ── */
@@ -169,6 +170,9 @@ function AgentActionBar() {
       >
         {agentMeta.name || 'New Agent'}
       </span>
+
+      {/* Version */}
+      <VersionIndicator />
 
       {/* Output Format Selector */}
       <OutputFormatSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)} t={t} />
