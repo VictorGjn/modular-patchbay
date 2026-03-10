@@ -10,7 +10,7 @@ import { Input } from '../components/ds/Input';
 import { Toggle } from '../components/ds/Toggle';
 import { Select } from '../components/ds/Select';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
-import { generateMemoryConfig, generateKnowledge } from '../utils/generateSection';
+import { generateMemoryConfig } from '../utils/generateSection';
 import { analyzeFactsForPromotion, type FactPromotion, type FactAnalysisResult } from '../utils/analyzeFactsForPromotion';
 import { useVersionStore } from '../store/versionStore';
 import { useHealthStore } from '../store/healthStore';
@@ -251,7 +251,6 @@ function KnowledgeSection() {
   const treeLoading = useTreeIndexStore(s => s.loading);
   const treeErrors = useTreeIndexStore(s => s.errors);
   const [collapsed, setCollapsed] = useState(false);
-  const [generating, setGenerating] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [repoScanning, setRepoScanning] = useState(false);
   const [repoPath, setRepoPath] = useState('');
@@ -291,7 +290,7 @@ function KnowledgeSection() {
   const githubSavingsPct = githubRawTokens > 0 ? Math.max(0, ((githubRawTokens - githubEffectiveTokens) / githubRawTokens) * 100) : 0;
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
 
-  const handleScanSources = useCallback(async () => {
+  const handleIndex = useCallback(async () => {
     setScanning(true);
     const paths = channels.filter(c => c.enabled && c.path).map(c => c.path);
     if (paths.length > 0) {
@@ -420,46 +419,15 @@ function KnowledgeSection() {
     setAuthTesting(false);
   }, [authKey, authTesting]);
 
-  const handleGenerate = useCallback(async () => {
-    setGenerating(true);
-    try {
-      const suggestions = await generateKnowledge();
-      for (const s of suggestions) {
-        addChannel({
-          sourceId: `gen-${crypto.randomUUID().slice(0, 8)}`,
-          name: s.name,
-          path: '',
-          category: 'file' as any,
-          knowledgeType: s.type as any,
-          depth: 0,
-          baseTokens: 500,
-        });
-      }
-    } catch { /* user sees no change */ }
-    setGenerating(false);
-  }, [addChannel]);
-
   return (
     <Section
       icon={Database} label="Knowledge" color="#3498db"
       badge={`${indexedCount}/${enabledCount} indexed · ${fmtTokens(totalTokens)} tokens`}
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
-      {/* Type legend + actions */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex flex-wrap gap-1.5">
-          {Object.entries(KNOWLEDGE_TYPES).map(([key, kt]) => (
-            <div key={key} className="flex items-center gap-1 text-[13px] px-2 py-1 rounded"
-              style={{ color: t.textDim, background: t.isDark ? '#1c1c20' : '#f0f0f5' }}>
-              <div style={{ width: 6, height: 6, borderRadius: 2, background: kt.color }} />
-              {kt.label}
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-1">
-          <GenerateBtn loading={scanning} onClick={handleScanSources} label="Scan" />
-          <GenerateBtn loading={generating} onClick={handleGenerate} label="Suggest" />
-        </div>
+      {/* Actions */}
+      <div className="flex justify-end mb-2">
+        <GenerateBtn loading={scanning} onClick={handleIndex} label="Index" />
       </div>
 
       {/* Navigation mode toggle */}
