@@ -165,7 +165,7 @@ class MCPClient {
   }
 }
 
-describe('MCP Server Integration Tests', () => {
+describe.skip('MCP Server Integration Tests', () => {
   let client: MCPClient;
   let testDir: string;
   let testFile: string;

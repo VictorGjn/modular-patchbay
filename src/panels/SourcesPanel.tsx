@@ -1618,7 +1618,9 @@ function ContextActionBar() {
         className="p-1.5 rounded border-none cursor-pointer transition-colors"
         style={{ background: 'transparent', color: t.textDim }}
         onMouseEnter={e => { e.currentTarget.style.color = '#FE5000'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}>
+        onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}
+        onFocus={e => { e.currentTarget.style.color = '#FE5000'; }}
+        onBlur={e => { e.currentTarget.style.color = t.textDim; }}>
         <Target size={10} />
       </button>
 
@@ -1626,7 +1628,9 @@ function ContextActionBar() {
         className="p-1.5 rounded border-none cursor-pointer transition-colors"
         style={{ background: 'transparent', color: t.textDim }}
         onMouseEnter={e => { e.currentTarget.style.color = '#FE5000'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}>
+        onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}
+        onFocus={e => { e.currentTarget.style.color = '#FE5000'; }}
+        onBlur={e => { e.currentTarget.style.color = t.textDim; }}>
         <Save size={10} />
       </button>
 
@@ -1635,7 +1639,9 @@ function ContextActionBar() {
           className="p-1.5 rounded border-none cursor-pointer transition-colors"
           style={{ background: 'transparent', color: t.textDim }}
           onMouseEnter={e => { e.currentTarget.style.color = '#FE5000'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}>
+          onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}
+          onFocus={e => { e.currentTarget.style.color = '#FE5000'; }}
+          onBlur={e => { e.currentTarget.style.color = t.textDim; }}>
           <FolderOpen size={10} />
         </button>
         {showLoadMenu && savedContexts.length > 0 && (
@@ -1645,7 +1651,9 @@ function ContextActionBar() {
               <button key={name} type="button" onClick={() => handleLoad(name)}
                 className="block w-full text-left px-3 py-1.5 text-[12px] border-none cursor-pointer"
                 style={{ background: 'transparent', color: t.textSecondary }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#FE500010'; }}>
+                onMouseEnter={e => { e.currentTarget.style.background = '#FE500010'; }}
+                onFocus={e => { e.currentTarget.style.background = '#FE500010'; }}
+                onBlur={e => { e.currentTarget.style.background = 'transparent'; }}>
                 {name}
               </button>
             ))}
@@ -1657,7 +1665,9 @@ function ContextActionBar() {
         className="p-1.5 rounded border-none cursor-pointer transition-colors"
         style={{ background: 'transparent', color: t.textDim }}
         onMouseEnter={e => { e.currentTarget.style.color = '#ff4444'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}>
+        onMouseLeave={e => { e.currentTarget.style.color = t.textDim; }}
+        onFocus={e => { e.currentTarget.style.color = '#ff4444'; }}
+        onBlur={e => { e.currentTarget.style.color = t.textDim; }}>
         <Trash2 size={10} />
       </button>
 

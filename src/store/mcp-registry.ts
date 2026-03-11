@@ -1,4 +1,4 @@
-// Pre-built MCP server configurations — curated MCP servers
+// Pre-built MCP server configurations - curated MCP servers
 // Each entry includes command, args, env var names, and metadata
 
 import type { ConfigField, MarketplaceCategory, McpTransport, Runtime } from './registry';
@@ -54,7 +54,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-git', name: 'Git', npmPackage: '@modelcontextprotocol/server-git',
-    description: 'Read, search, and manipulate Git repositories — log, diff, blame',
+    description: 'Read, search, and manipulate Git repositories - log, diff, blame',
     icon: 'git-branch', category: 'coding', author: 'MCP Official', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'uvx', defaultArgs: ['mcp-server-git'],
     configFields: [{ key: 'GIT_REPO_PATH', label: 'Repository Path', type: 'text', placeholder: '/path/to/repo', required: false }],
@@ -110,7 +110,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-exa', name: 'Exa Search', npmPackage: 'exa-mcp-server',
-    description: 'Neural search engine — find similar content, get page contents',
+    description: 'Neural search engine - find similar content, get page contents',
     icon: 'search', category: 'research', author: 'Exa', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'exa-mcp-server'],
     configFields: [{ key: 'EXA_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true }],
@@ -119,7 +119,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-firecrawl', name: 'Firecrawl', npmPackage: 'firecrawl-mcp',
-    description: 'Web scraping and crawling — extract structured data from any website',
+    description: 'Web scraping and crawling - extract structured data from any website',
     icon: 'flame', category: 'research', author: 'Firecrawl', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'firecrawl-mcp'],
     configFields: [{ key: 'FIRECRAWL_API_KEY', label: 'API Key', type: 'password', placeholder: 'fc-...', required: true }],
@@ -128,7 +128,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-puppeteer', name: 'Puppeteer', npmPackage: '@modelcontextprotocol/server-puppeteer',
-    description: 'Browser automation — screenshots, navigation, form filling, scraping',
+    description: 'Browser automation - screenshots, navigation, form filling, scraping',
     icon: 'globe', category: 'research', author: 'MCP Official', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-puppeteer'],
     configFields: [],
@@ -137,7 +137,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-playwright', name: 'Playwright', npmPackage: '@playwright/mcp',
-    description: 'Browser automation with Playwright — cross-browser testing and scraping',
+    description: 'Browser automation with Playwright - cross-browser testing and scraping',
     icon: 'globe', category: 'research', author: 'Microsoft', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@playwright/mcp'],
     configFields: [],
@@ -156,10 +156,10 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     authMethod: 'api-key',
   },
   {
-    id: 'github-remote', name: 'GitHub (Cloud)', npmPackage: '',
-    description: 'GitHub repos, issues, PRs — OAuth via GitHub App',
-    icon: 'git-branch', category: 'coding', author: 'GitHub', transport: 'streamable-http',
-    runtimes: ['claude', 'amp', 'codex'], command: '', defaultArgs: [],
+    id: 'github-remote', name: 'GitHub (Cloud)', npmPackage: '@modelcontextprotocol/server-github-cloud',
+    description: 'GitHub repos, issues, PRs – OAuth via GitHub App',
+    icon: 'git-branch', category: 'coding', author: 'GitHub', transport: 'sse',
+    runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-github-cloud'],
     url: 'https://api.githubcopilot.com/mcp/',
     authMethod: 'oauth',
     configFields: [],
@@ -167,7 +167,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-gitlab', name: 'GitLab', npmPackage: '@modelcontextprotocol/server-gitlab',
-    description: 'GitLab API — projects, issues, merge requests, pipelines',
+    description: 'GitLab API - projects, issues, merge requests, pipelines',
     icon: 'git-merge', category: 'coding', author: 'GitLab', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-gitlab'],
     configFields: [
@@ -179,7 +179,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-linear', name: 'Linear', npmPackage: '@linear/mcp-server',
-    description: 'Linear project management — issues, projects, cycles, and teams',
+    description: 'Linear project management - issues, projects, cycles, and teams',
     icon: 'target', category: 'coding', author: 'Linear', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@linear/mcp-server'],
     configFields: [{ key: 'LINEAR_API_KEY', label: 'API Key', type: 'password', placeholder: 'lin_api_...', required: true }],
@@ -188,7 +188,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-sentry', name: 'Sentry', npmPackage: '@sentry/mcp-server',
-    description: 'Error tracking and performance monitoring — issues, events, releases',
+    description: 'Error tracking and performance monitoring - issues, events, releases',
     icon: 'shield', category: 'coding', author: 'Sentry', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@sentry/mcp-server'],
     configFields: [{ key: 'SENTRY_AUTH_TOKEN', label: 'Auth Token', type: 'password', placeholder: 'sntrys_...', required: true }],
@@ -206,7 +206,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-kubernetes', name: 'Kubernetes', npmPackage: 'kubernetes-mcp',
-    description: 'Kubernetes cluster management — pods, deployments, services, logs',
+    description: 'Kubernetes cluster management - pods, deployments, services, logs',
     icon: 'server', category: 'coding', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'kubernetes-mcp'],
     configFields: [{ key: 'KUBECONFIG', label: 'Kubeconfig Path', type: 'text', placeholder: '~/.kube/config', required: false }],
@@ -253,7 +253,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── DATABASES ─────────────────────────────────────────
   {
     id: 'mcp-postgres', name: 'PostgreSQL', npmPackage: '@modelcontextprotocol/server-postgres',
-    description: 'Query PostgreSQL databases — schema inspection, read/write operations',
+    description: 'Query PostgreSQL databases - schema inspection, read/write operations',
     icon: 'database', category: 'data', author: 'MCP Official', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-postgres'],
     configFields: [{ key: 'DATABASE_URL', label: 'Connection String', type: 'password', placeholder: 'postgresql://user:pass@host:5432/db', required: true }],
@@ -262,7 +262,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-mysql', name: 'MySQL', npmPackage: 'mysql-mcp-server',
-    description: 'MySQL database operations — queries, schema, migrations',
+    description: 'MySQL database operations - queries, schema, migrations',
     icon: 'database', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'mysql-mcp-server'],
     configFields: [{ key: 'MYSQL_URL', label: 'Connection String', type: 'password', placeholder: 'mysql://user:pass@host:3306/db', required: true }],
@@ -271,7 +271,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-sqlite', name: 'SQLite', npmPackage: '@modelcontextprotocol/server-sqlite',
-    description: 'SQLite database — local file-based SQL with business intelligence',
+    description: 'SQLite database - local file-based SQL with business intelligence',
     icon: 'database', category: 'data', author: 'MCP Official', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-sqlite'],
     configFields: [{ key: 'SQLITE_PATH', label: 'Database File Path', type: 'text', placeholder: '/path/to/database.db', required: true }],
@@ -280,7 +280,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-mongodb', name: 'MongoDB', npmPackage: 'mongodb-mcp-server',
-    description: 'MongoDB operations — collections, documents, aggregation pipelines',
+    description: 'MongoDB operations - collections, documents, aggregation pipelines',
     icon: 'database', category: 'data', author: 'MongoDB', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'mongodb-mcp-server'],
     configFields: [{ key: 'MONGODB_URI', label: 'Connection URI', type: 'password', placeholder: 'mongodb+srv://user:pass@cluster.mongodb.net/db', required: true }],
@@ -289,7 +289,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-redis', name: 'Redis', npmPackage: '@modelcontextprotocol/server-redis',
-    description: 'Redis key-value store — get, set, scan, pub/sub',
+    description: 'Redis key-value store - get, set, scan, pub/sub',
     icon: 'database', category: 'data', author: 'MCP Official', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-redis'],
     configFields: [{ key: 'REDIS_URL', label: 'Connection URL', type: 'password', placeholder: 'redis://localhost:6379', required: true }],
@@ -298,7 +298,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-supabase', name: 'Supabase', npmPackage: '@supabase/mcp-server',
-    description: 'Supabase — database, auth, storage, edge functions, realtime',
+    description: 'Supabase - database, auth, storage, edge functions, realtime',
     icon: 'database', category: 'data', author: 'Supabase', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@supabase/mcp-server'],
     configFields: [
@@ -310,7 +310,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-neon', name: 'Neon', npmPackage: '@neondatabase/mcp-server-neon',
-    description: 'Neon serverless Postgres — branches, queries, schema management',
+    description: 'Neon serverless Postgres - branches, queries, schema management',
     icon: 'database', category: 'data', author: 'Neon', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@neondatabase/mcp-server-neon'],
     configFields: [{ key: 'NEON_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true }],
@@ -319,7 +319,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-turso', name: 'Turso', npmPackage: '@tursodatabase/mcp-server',
-    description: 'Turso edge database — SQLite at the edge, libSQL',
+    description: 'Turso edge database - SQLite at the edge, libSQL',
     icon: 'database', category: 'data', author: 'Turso', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@tursodatabase/mcp-server'],
     configFields: [
@@ -331,7 +331,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-pinecone', name: 'Pinecone', npmPackage: '@pinecone-database/mcp',
-    description: 'Pinecone vector database — upsert, query, delete vectors',
+    description: 'Pinecone vector database - upsert, query, delete vectors',
     icon: 'database', category: 'data', author: 'Pinecone', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@pinecone-database/mcp'],
     configFields: [{ key: 'PINECONE_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true }],
@@ -340,7 +340,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-qdrant', name: 'Qdrant', npmPackage: 'qdrant-mcp',
-    description: 'Qdrant vector search — collections, points, filtering, similarity',
+    description: 'Qdrant vector search - collections, points, filtering, similarity',
     icon: 'database', category: 'data', author: 'Qdrant', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'qdrant-mcp'],
     configFields: [
@@ -354,7 +354,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── COMMUNICATION ─────────────────────────────────────
   {
     id: 'mcp-slack', name: 'Slack', npmPackage: '@modelcontextprotocol/server-slack',
-    description: 'Slack workspace — channels, messages, threads, search, reactions',
+    description: 'Slack workspace - channels, messages, threads, search, reactions',
     icon: 'hash', category: 'data', author: 'Slack', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-slack'],
     configFields: [
@@ -366,7 +366,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'slack-remote', name: 'Slack (Cloud)', npmPackage: '',
-    description: 'Slack workspace — OAuth, no bot token needed',
+    description: 'Slack workspace - OAuth, no bot token needed',
     icon: 'hash', category: 'data', author: 'Slack', transport: 'streamable-http',
     runtimes: ['claude', 'amp', 'codex'], command: '', defaultArgs: [],
     url: 'https://mcp.slack.com/sse',
@@ -376,7 +376,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-discord', name: 'Discord', npmPackage: 'discord-mcp',
-    description: 'Discord bot — read messages, manage channels, send notifications',
+    description: 'Discord bot - read messages, manage channels, send notifications',
     icon: 'message-circle', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'discord-mcp'],
     configFields: [{ key: 'DISCORD_TOKEN', label: 'Bot Token', type: 'password', placeholder: '', required: true }],
@@ -397,7 +397,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-email', name: 'Email (SMTP/IMAP)', npmPackage: 'email-mcp',
-    description: 'Send and read emails via SMTP/IMAP — works with any email provider',
+    description: 'Send and read emails via SMTP/IMAP - works with any email provider',
     icon: 'mail', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'email-mcp'],
     configFields: [
@@ -424,7 +424,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── PRODUCTIVITY & DOCS ───────────────────────────────
   {
     id: 'mcp-notion', name: 'Notion', npmPackage: '@notionhq/notion-mcp-server',
-    description: 'Notion pages, databases, blocks — read, create, update, search',
+    description: 'Notion pages, databases, blocks - read, create, update, search',
     icon: 'book-open', category: 'writing', author: 'Notion', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@notionhq/notion-mcp-server'],
     configFields: [{ key: 'NOTION_TOKEN', label: 'Integration Token', type: 'password', placeholder: 'ntn_...', required: true }],
@@ -433,7 +433,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'notion-remote', name: 'Notion (Cloud)', npmPackage: '',
-    description: 'Notion pages, databases, blocks — OAuth, no API key needed',
+    description: 'Notion pages, databases, blocks - OAuth, no API key needed',
     icon: 'book-open', category: 'writing', author: 'Notion', transport: 'streamable-http',
     runtimes: ['claude', 'amp', 'codex'], command: '', defaultArgs: [],
     url: 'https://mcp.notion.com/mcp',
@@ -443,7 +443,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-google-drive', name: 'Google Drive', npmPackage: '@modelcontextprotocol/server-gdrive',
-    description: 'Google Drive — search, read, create files and folders',
+    description: 'Google Drive - search, read, create files and folders',
     icon: 'hard-drive', category: 'data', author: 'MCP Official', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-gdrive'],
     configFields: [
@@ -455,7 +455,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-google-sheets', name: 'Google Sheets', npmPackage: 'google-sheets-mcp',
-    description: 'Read and write Google Sheets — cells, ranges, formulas',
+    description: 'Read and write Google Sheets - cells, ranges, formulas',
     icon: 'table', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'google-sheets-mcp'],
     configFields: [
@@ -467,7 +467,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-google-calendar', name: 'Google Calendar', npmPackage: 'google-calendar-mcp',
-    description: 'Google Calendar — events, scheduling, availability, reminders',
+    description: 'Google Calendar - events, scheduling, availability, reminders',
     icon: 'calendar', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'google-calendar-mcp'],
     configFields: [
@@ -479,7 +479,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-google-maps', name: 'Google Maps', npmPackage: '@modelcontextprotocol/server-google-maps',
-    description: 'Google Maps — geocoding, directions, places, distance matrix',
+    description: 'Google Maps - geocoding, directions, places, distance matrix',
     icon: 'map-pin', category: 'data', author: 'MCP Official', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-google-maps'],
     configFields: [{ key: 'GOOGLE_MAPS_API_KEY', label: 'API Key', type: 'password', placeholder: 'AIza...', required: true }],
@@ -488,7 +488,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-confluence', name: 'Confluence', npmPackage: 'confluence-mcp',
-    description: 'Atlassian Confluence — spaces, pages, search, content management',
+    description: 'Atlassian Confluence - spaces, pages, search, content management',
     icon: 'book-open', category: 'writing', author: 'Atlassian', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'confluence-mcp'],
     configFields: [
@@ -501,7 +501,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-jira', name: 'Jira', npmPackage: 'jira-mcp',
-    description: 'Jira — issues, boards, sprints, epics, JQL search',
+    description: 'Jira - issues, boards, sprints, epics, JQL search',
     icon: 'clipboard-list', category: 'coding', author: 'Atlassian', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'jira-mcp'],
     configFields: [
@@ -514,7 +514,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-asana', name: 'Asana', npmPackage: 'asana-mcp',
-    description: 'Asana — tasks, projects, sections, comments, assignees',
+    description: 'Asana - tasks, projects, sections, comments, assignees',
     icon: 'check-square', category: 'coding', author: 'Asana', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'asana-mcp'],
     configFields: [{ key: 'ASANA_TOKEN', label: 'Personal Access Token', type: 'password', placeholder: '1/...', required: true }],
@@ -523,7 +523,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-todoist', name: 'Todoist', npmPackage: 'todoist-mcp',
-    description: 'Todoist — tasks, projects, labels, filters, productivity',
+    description: 'Todoist - tasks, projects, labels, filters, productivity',
     icon: 'check-circle', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'todoist-mcp'],
     configFields: [{ key: 'TODOIST_API_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true }],
@@ -532,7 +532,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-obsidian', name: 'Obsidian', npmPackage: 'obsidian-mcp',
-    description: 'Obsidian vault — read, search, create notes, manage links',
+    description: 'Obsidian vault - read, search, create notes, manage links',
     icon: 'file-text', category: 'writing', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'obsidian-mcp'],
     configFields: [{ key: 'OBSIDIAN_VAULT_PATH', label: 'Vault Path', type: 'text', placeholder: '/path/to/vault', required: true }],
@@ -541,7 +541,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-airtable', name: 'Airtable', npmPackage: 'airtable-mcp',
-    description: 'Airtable bases, tables, records — CRUD operations and views',
+    description: 'Airtable bases, tables, records - CRUD operations and views',
     icon: 'table', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'airtable-mcp'],
     configFields: [{ key: 'AIRTABLE_TOKEN', label: 'Personal Access Token', type: 'password', placeholder: 'pat...', required: true }],
@@ -551,7 +551,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── CRM & SALES ──────────────────────────────────────
   {
     id: 'mcp-hubspot', name: 'HubSpot', npmPackage: 'hubspot-mcp',
-    description: 'HubSpot CRM — contacts, companies, deals, tickets, engagement',
+    description: 'HubSpot CRM - contacts, companies, deals, tickets, engagement',
     icon: 'hexagon', category: 'data', author: 'HubSpot', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'hubspot-mcp'],
     configFields: [{ key: 'HUBSPOT_ACCESS_TOKEN', label: 'Private App Token', type: 'password', placeholder: 'pat-...', required: true }],
@@ -559,7 +559,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-salesforce', name: 'Salesforce', npmPackage: 'salesforce-mcp',
-    description: 'Salesforce — SOQL queries, objects, records, reports',
+    description: 'Salesforce - SOQL queries, objects, records, reports',
     icon: 'cloud', category: 'data', author: 'Salesforce', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'salesforce-mcp'],
     configFields: [
@@ -572,7 +572,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-stripe', name: 'Stripe', npmPackage: '@stripe/mcp',
-    description: 'Stripe payments — customers, invoices, subscriptions, products',
+    description: 'Stripe payments - customers, invoices, subscriptions, products',
     icon: 'credit-card', category: 'data', author: 'Stripe', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@stripe/mcp'],
     configFields: [{ key: 'STRIPE_SECRET_KEY', label: 'Secret Key', type: 'password', placeholder: 'sk_...', required: true }],
@@ -580,7 +580,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-shopify', name: 'Shopify', npmPackage: '@shopify/dev-mcp',
-    description: 'Shopify store — products, orders, customers, inventory',
+    description: 'Shopify store - products, orders, customers, inventory',
     icon: 'shopping-bag', category: 'data', author: 'Shopify', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@shopify/dev-mcp'],
     configFields: [
@@ -594,7 +594,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── AI & ML ───────────────────────────────────────────
   {
     id: 'mcp-openai', name: 'OpenAI', npmPackage: 'openai-mcp',
-    description: 'OpenAI API — completions, embeddings, DALL-E, Whisper, assistants',
+    description: 'OpenAI API - completions, embeddings, DALL-E, Whisper, assistants',
     icon: 'cpu', category: 'coding', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'openai-mcp'],
     configFields: [{ key: 'OPENAI_API_KEY', label: 'API Key', type: 'password', placeholder: 'sk-...', required: true }],
@@ -603,7 +603,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-anthropic', name: 'Anthropic Claude', npmPackage: 'anthropic-mcp',
-    description: 'Anthropic API — Claude completions, tool use, system prompts',
+    description: 'Anthropic API - Claude completions, tool use, system prompts',
     icon: 'cpu', category: 'coding', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'anthropic-mcp'],
     configFields: [{ key: 'ANTHROPIC_API_KEY', label: 'API Key', type: 'password', placeholder: 'sk-ant-...', required: true }],
@@ -612,7 +612,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-replicate', name: 'Replicate', npmPackage: 'replicate-mcp',
-    description: 'Replicate — run open-source ML models via API',
+    description: 'Replicate - run open-source ML models via API',
     icon: 'cpu', category: 'coding', author: 'Replicate', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'replicate-mcp'],
     configFields: [{ key: 'REPLICATE_API_TOKEN', label: 'API Token', type: 'password', placeholder: 'r8_...', required: true }],
@@ -620,7 +620,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-huggingface', name: 'Hugging Face', npmPackage: 'huggingface-mcp',
-    description: 'Hugging Face — models, datasets, spaces, inference API',
+    description: 'Hugging Face - models, datasets, spaces, inference API',
     icon: 'cpu', category: 'coding', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'huggingface-mcp'],
     configFields: [{ key: 'HF_TOKEN', label: 'Access Token', type: 'password', placeholder: 'hf_...', required: true }],
@@ -630,7 +630,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── CLOUD & INFRA ─────────────────────────────────────
   {
     id: 'mcp-aws', name: 'AWS', npmPackage: 'aws-mcp',
-    description: 'AWS services — S3, Lambda, EC2, DynamoDB, CloudWatch',
+    description: 'AWS services - S3, Lambda, EC2, DynamoDB, CloudWatch',
     icon: 'cloud', category: 'coding', author: 'AWS', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'aws-mcp'],
     configFields: [
@@ -643,7 +643,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-gcp', name: 'Google Cloud', npmPackage: 'gcp-mcp',
-    description: 'Google Cloud Platform — BigQuery, Cloud Storage, Compute, Pub/Sub',
+    description: 'Google Cloud Platform - BigQuery, Cloud Storage, Compute, Pub/Sub',
     icon: 'cloud', category: 'coding', author: 'Google', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'gcp-mcp'],
     configFields: [{ key: 'GOOGLE_APPLICATION_CREDENTIALS', label: 'Service Account Key Path', type: 'text', placeholder: '/path/to/key.json', required: true }],
@@ -652,7 +652,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-azure', name: 'Azure', npmPackage: 'azure-mcp',
-    description: 'Azure services — Blob Storage, Functions, Cosmos DB, Key Vault',
+    description: 'Azure services - Blob Storage, Functions, Cosmos DB, Key Vault',
     icon: 'cloud', category: 'coding', author: 'Microsoft', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'azure-mcp'],
     configFields: [
@@ -668,7 +668,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── AUTOMATION & WORKFLOW ─────────────────────────────
   {
     id: 'mcp-n8n', name: 'n8n', npmPackage: 'n8n-mcp',
-    description: 'n8n workflow automation — trigger, manage, inspect workflows',
+    description: 'n8n workflow automation - trigger, manage, inspect workflows',
     icon: 'workflow', category: 'coding', author: 'n8n', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'n8n-mcp'],
     configFields: [
@@ -679,7 +679,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-zapier', name: 'Zapier', npmPackage: 'zapier-mcp',
-    description: 'Zapier — trigger Zaps, manage connections, inspect runs',
+    description: 'Zapier - trigger Zaps, manage connections, inspect runs',
     icon: 'zap', category: 'coding', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'zapier-mcp'],
     configFields: [{ key: 'ZAPIER_API_KEY', label: 'API Key', type: 'password', placeholder: '', required: true }],
@@ -688,7 +688,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-make', name: 'Make (Integromat)', npmPackage: 'make-mcp',
-    description: 'Make.com — scenarios, modules, connections, execution history',
+    description: 'Make.com - scenarios, modules, connections, execution history',
     icon: 'workflow', category: 'coding', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'make-mcp'],
     configFields: [{ key: 'MAKE_API_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true }],
@@ -699,7 +699,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── MONITORING & ANALYTICS ────────────────────────────
   {
     id: 'mcp-datadog', name: 'Datadog', npmPackage: 'datadog-mcp',
-    description: 'Datadog — metrics, dashboards, monitors, logs, APM',
+    description: 'Datadog - metrics, dashboards, monitors, logs, APM',
     icon: 'bar-chart', category: 'data', author: 'Datadog', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'datadog-mcp'],
     configFields: [
@@ -710,7 +710,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-grafana', name: 'Grafana', npmPackage: 'grafana-mcp',
-    description: 'Grafana — dashboards, alerts, data sources, panels',
+    description: 'Grafana - dashboards, alerts, data sources, panels',
     icon: 'bar-chart', category: 'data', author: 'Grafana', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'grafana-mcp'],
     configFields: [
@@ -722,7 +722,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-posthog', name: 'PostHog', npmPackage: 'posthog-mcp',
-    description: 'PostHog product analytics — events, funnels, feature flags, surveys',
+    description: 'PostHog product analytics - events, funnels, feature flags, surveys',
     icon: 'bar-chart-3', category: 'data', author: 'PostHog', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'posthog-mcp'],
     configFields: [
@@ -733,7 +733,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-mixpanel', name: 'Mixpanel', npmPackage: 'mixpanel-mcp',
-    description: 'Mixpanel — events, funnels, cohorts, user analytics',
+    description: 'Mixpanel - events, funnels, cohorts, user analytics',
     icon: 'bar-chart', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'mixpanel-mcp'],
     configFields: [
@@ -747,7 +747,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── SOCIAL & CONTENT ─────────────────────────────────
   {
     id: 'mcp-twitter', name: 'Twitter / X', npmPackage: 'twitter-mcp',
-    description: 'Twitter/X — tweets, search, timeline, DMs, analytics',
+    description: 'Twitter/X - tweets, search, timeline, DMs, analytics',
     icon: 'message-circle', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'twitter-mcp'],
     configFields: [
@@ -761,7 +761,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-youtube', name: 'YouTube', npmPackage: 'youtube-mcp',
-    description: 'YouTube — search videos, get transcripts, channel analytics',
+    description: 'YouTube - search videos, get transcripts, channel analytics',
     icon: 'play', category: 'research', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'youtube-mcp'],
     configFields: [{ key: 'YOUTUBE_API_KEY', label: 'API Key', type: 'password', placeholder: 'AIza...', required: true }],
@@ -770,7 +770,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-spotify', name: 'Spotify', npmPackage: 'spotify-mcp',
-    description: 'Spotify — search tracks, manage playlists, playback control',
+    description: 'Spotify - search tracks, manage playlists, playback control',
     icon: 'music', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'spotify-mcp'],
     configFields: [
@@ -784,7 +784,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── DESIGN & MEDIA ───────────────────────────────────
   {
     id: 'mcp-figma', name: 'Figma', npmPackage: 'figma-mcp',
-    description: 'Figma — read files, components, styles, export assets',
+    description: 'Figma - read files, components, styles, export assets',
     icon: 'palette', category: 'design', author: 'Figma', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'figma-mcp'],
     configFields: [{ key: 'FIGMA_ACCESS_TOKEN', label: 'Personal Access Token', type: 'password', placeholder: 'figd_...', required: true }],
@@ -800,7 +800,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-cloudinary', name: 'Cloudinary', npmPackage: 'cloudinary-mcp',
-    description: 'Cloudinary — upload, transform, optimize images and videos',
+    description: 'Cloudinary - upload, transform, optimize images and videos',
     icon: 'image', category: 'design', author: 'Cloudinary', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'cloudinary-mcp'],
     configFields: [{ key: 'CLOUDINARY_URL', label: 'Cloudinary URL', type: 'password', placeholder: 'cloudinary://api_key:api_secret@cloud_name', required: true }],
@@ -811,7 +811,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── SECURITY & AUTH ───────────────────────────────────
   {
     id: 'mcp-vault', name: 'HashiCorp Vault', npmPackage: 'vault-mcp',
-    description: 'HashiCorp Vault — secrets management, dynamic credentials',
+    description: 'HashiCorp Vault - secrets management, dynamic credentials',
     icon: 'lock', category: 'coding', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'vault-mcp'],
     configFields: [
@@ -823,7 +823,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-1password', name: '1Password', npmPackage: '1password-mcp',
-    description: '1Password — read secrets, vaults, items securely',
+    description: '1Password - read secrets, vaults, items securely',
     icon: 'lock', category: 'data', author: '1Password', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '1password-mcp'],
     configFields: [{ key: 'OP_SERVICE_ACCOUNT_TOKEN', label: 'Service Account Token', type: 'password', placeholder: 'ops_...', required: true }],
@@ -834,7 +834,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── DATA & ETL ────────────────────────────────────────
   {
     id: 'mcp-snowflake', name: 'Snowflake', npmPackage: 'snowflake-mcp',
-    description: 'Snowflake data warehouse — queries, tables, schemas, warehouses',
+    description: 'Snowflake data warehouse - queries, tables, schemas, warehouses',
     icon: 'database', category: 'data', author: 'Snowflake', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'snowflake-mcp'],
     configFields: [
@@ -847,7 +847,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-bigquery', name: 'BigQuery', npmPackage: 'bigquery-mcp',
-    description: 'Google BigQuery — run SQL queries, manage datasets and tables',
+    description: 'Google BigQuery - run SQL queries, manage datasets and tables',
     icon: 'database', category: 'data', author: 'Google', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'bigquery-mcp'],
     configFields: [
@@ -859,7 +859,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-elasticsearch', name: 'Elasticsearch', npmPackage: 'elasticsearch-mcp',
-    description: 'Elasticsearch — search, index, aggregate, analyze data',
+    description: 'Elasticsearch - search, index, aggregate, analyze data',
     icon: 'search', category: 'data', author: 'Elastic', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'elasticsearch-mcp'],
     configFields: [
@@ -873,7 +873,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── MESSAGING QUEUES ──────────────────────────────────
   {
     id: 'mcp-rabbitmq', name: 'RabbitMQ', npmPackage: 'rabbitmq-mcp',
-    description: 'RabbitMQ — queues, exchanges, publish/consume messages',
+    description: 'RabbitMQ - queues, exchanges, publish/consume messages',
     icon: 'send', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'rabbitmq-mcp'],
     configFields: [{ key: 'RABBITMQ_URL', label: 'Connection URL', type: 'password', placeholder: 'amqp://user:pass@localhost:5672', required: true }],
@@ -882,7 +882,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-kafka', name: 'Kafka', npmPackage: 'kafka-mcp',
-    description: 'Apache Kafka — topics, produce/consume, consumer groups',
+    description: 'Apache Kafka - topics, produce/consume, consumer groups',
     icon: 'send', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'kafka-mcp'],
     configFields: [{ key: 'KAFKA_BROKERS', label: 'Brokers (comma-separated)', type: 'text', placeholder: 'localhost:9092', required: true }],
@@ -893,7 +893,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── FINANCE & BUSINESS ────────────────────────────────
   {
     id: 'mcp-plaid', name: 'Plaid', npmPackage: 'plaid-mcp',
-    description: 'Plaid financial data — bank accounts, transactions, balances',
+    description: 'Plaid financial data - bank accounts, transactions, balances',
     icon: 'credit-card', category: 'data', author: 'Plaid', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'plaid-mcp'],
     configFields: [
@@ -904,7 +904,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-quickbooks', name: 'QuickBooks', npmPackage: 'quickbooks-mcp',
-    description: 'QuickBooks — invoices, expenses, customers, reports',
+    description: 'QuickBooks - invoices, expenses, customers, reports',
     icon: 'receipt', category: 'data', author: 'Intuit', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'quickbooks-mcp'],
     configFields: [
@@ -916,7 +916,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-xero', name: 'Xero', npmPackage: 'xero-mcp',
-    description: 'Xero accounting — invoices, contacts, bank transactions, reports',
+    description: 'Xero accounting - invoices, contacts, bank transactions, reports',
     icon: 'receipt', category: 'data', author: 'Xero', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'xero-mcp'],
     configFields: [
@@ -930,7 +930,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── CMS & CONTENT ─────────────────────────────────────
   {
     id: 'mcp-wordpress', name: 'WordPress', npmPackage: 'wordpress-mcp',
-    description: 'WordPress — posts, pages, media, comments via REST API',
+    description: 'WordPress - posts, pages, media, comments via REST API',
     icon: 'file-text', category: 'writing', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'wordpress-mcp'],
     configFields: [
@@ -943,7 +943,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-contentful', name: 'Contentful', npmPackage: 'contentful-mcp',
-    description: 'Contentful — content types, entries, assets, spaces',
+    description: 'Contentful - content types, entries, assets, spaces',
     icon: 'file-text', category: 'writing', author: 'Contentful', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'contentful-mcp'],
     configFields: [
@@ -955,7 +955,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-sanity', name: 'Sanity', npmPackage: 'sanity-mcp',
-    description: 'Sanity CMS — documents, GROQ queries, assets, mutations',
+    description: 'Sanity CMS - documents, GROQ queries, assets, mutations',
     icon: 'file-text', category: 'writing', author: 'Sanity', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'sanity-mcp'],
     configFields: [
@@ -969,7 +969,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   // ─── MISC / UTILITY ────────────────────────────────────
   {
     id: 'mcp-weather', name: 'Weather', npmPackage: 'weather-mcp',
-    description: 'Weather data — current conditions, forecasts, historical data',
+    description: 'Weather data - current conditions, forecasts, historical data',
     icon: 'cloud', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'weather-mcp'],
     configFields: [{ key: 'OPENWEATHER_API_KEY', label: 'OpenWeatherMap API Key', type: 'password', placeholder: '', required: true }],
@@ -978,7 +978,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-wolfram', name: 'Wolfram Alpha', npmPackage: 'wolfram-mcp',
-    description: 'Wolfram Alpha computational intelligence — math, science, data',
+    description: 'Wolfram Alpha computational intelligence - math, science, data',
     icon: 'calculator', category: 'research', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'wolfram-mcp'],
     configFields: [{ key: 'WOLFRAM_APP_ID', label: 'App ID', type: 'password', placeholder: '', required: true }],
@@ -987,7 +987,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-whois', name: 'WHOIS', npmPackage: 'whois-mcp',
-    description: 'Domain WHOIS lookup — registration, expiry, nameservers',
+    description: 'Domain WHOIS lookup - registration, expiry, nameservers',
     icon: 'globe', category: 'research', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'whois-mcp'],
     configFields: [],
@@ -996,7 +996,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-mermaid', name: 'Mermaid', npmPackage: 'mermaid-mcp',
-    description: 'Generate Mermaid diagrams — flowcharts, sequence, gantt, class',
+    description: 'Generate Mermaid diagrams - flowcharts, sequence, gantt, class',
     icon: 'workflow', category: 'design', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'mermaid-mcp'],
     configFields: [],
@@ -1005,7 +1005,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-screenshot', name: 'Screenshot', npmPackage: 'screenshot-mcp',
-    description: 'Take screenshots of websites — full page, element, viewport',
+    description: 'Take screenshots of websites - full page, element, viewport',
     icon: 'camera', category: 'research', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'screenshot-mcp'],
     configFields: [],
@@ -1032,7 +1032,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-s3', name: 'S3 / Object Storage', npmPackage: 's3-mcp',
-    description: 'S3-compatible storage — list, read, write, delete objects',
+    description: 'S3-compatible storage - list, read, write, delete objects',
     icon: 'hard-drive', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 's3-mcp'],
     configFields: [
@@ -1059,7 +1059,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-terraform', name: 'Terraform', npmPackage: 'terraform-mcp',
-    description: 'Terraform — plan, apply, state, modules, resources',
+    description: 'Terraform - plan, apply, state, modules, resources',
     icon: 'server', category: 'coding', author: 'HashiCorp', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'terraform-mcp'],
     configFields: [],
@@ -1068,7 +1068,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-prometheus', name: 'Prometheus', npmPackage: 'prometheus-mcp',
-    description: 'Prometheus — PromQL queries, metrics, alerts, targets',
+    description: 'Prometheus - PromQL queries, metrics, alerts, targets',
     icon: 'bar-chart', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'prometheus-mcp'],
     configFields: [{ key: 'PROMETHEUS_URL', label: 'URL', type: 'url', placeholder: 'http://localhost:9090', required: true }],
@@ -1077,7 +1077,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-intercom', name: 'Intercom', npmPackage: 'intercom-mcp',
-    description: 'Intercom — conversations, contacts, companies, articles',
+    description: 'Intercom - conversations, contacts, companies, articles',
     icon: 'message-circle', category: 'data', author: 'Intercom', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'intercom-mcp'],
     configFields: [{ key: 'INTERCOM_TOKEN', label: 'Access Token', type: 'password', placeholder: '', required: true }],
@@ -1086,7 +1086,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-zendesk', name: 'Zendesk', npmPackage: 'zendesk-mcp',
-    description: 'Zendesk — tickets, users, organizations, search',
+    description: 'Zendesk - tickets, users, organizations, search',
     icon: 'headphones', category: 'data', author: 'Zendesk', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'zendesk-mcp'],
     configFields: [
@@ -1099,7 +1099,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-freshdesk', name: 'Freshdesk', npmPackage: 'freshdesk-mcp',
-    description: 'Freshdesk — tickets, contacts, groups, canned responses',
+    description: 'Freshdesk - tickets, contacts, groups, canned responses',
     icon: 'headphones', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'freshdesk-mcp'],
     configFields: [
@@ -1111,7 +1111,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-clickup', name: 'ClickUp', npmPackage: 'clickup-mcp',
-    description: 'ClickUp — tasks, lists, spaces, goals, docs, time tracking',
+    description: 'ClickUp - tasks, lists, spaces, goals, docs, time tracking',
     icon: 'check-square', category: 'coding', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'clickup-mcp'],
     configFields: [{ key: 'CLICKUP_TOKEN', label: 'Personal API Token', type: 'password', placeholder: 'pk_...', required: true }],
@@ -1120,7 +1120,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-trello', name: 'Trello', npmPackage: 'trello-mcp',
-    description: 'Trello — boards, lists, cards, checklists, members',
+    description: 'Trello - boards, lists, cards, checklists, members',
     icon: 'layout', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'trello-mcp'],
     configFields: [
@@ -1132,7 +1132,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-monday', name: 'Monday.com', npmPackage: 'monday-mcp',
-    description: 'Monday.com — boards, items, columns, updates, automations',
+    description: 'Monday.com - boards, items, columns, updates, automations',
     icon: 'layout', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'monday-mcp'],
     configFields: [{ key: 'MONDAY_API_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true }],
@@ -1141,7 +1141,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-github-actions', name: 'GitHub Actions', npmPackage: 'github-actions-mcp',
-    description: 'GitHub Actions — workflows, runs, jobs, artifacts, secrets',
+    description: 'GitHub Actions - workflows, runs, jobs, artifacts, secrets',
     icon: 'play-circle', category: 'coding', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'github-actions-mcp'],
     configFields: [{ key: 'GITHUB_TOKEN', label: 'Personal Access Token', type: 'password', placeholder: 'ghp_...', required: true }],
@@ -1150,7 +1150,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-circleci', name: 'CircleCI', npmPackage: 'circleci-mcp',
-    description: 'CircleCI — pipelines, jobs, workflows, orbs, insights',
+    description: 'CircleCI - pipelines, jobs, workflows, orbs, insights',
     icon: 'play-circle', category: 'coding', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'circleci-mcp'],
     configFields: [{ key: 'CIRCLECI_TOKEN', label: 'Personal API Token', type: 'password', placeholder: '', required: true }],
@@ -1159,7 +1159,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-upstash', name: 'Upstash', npmPackage: '@upstash/mcp-server',
-    description: 'Upstash — serverless Redis and Kafka, QStash message queue',
+    description: 'Upstash - serverless Redis and Kafka, QStash message queue',
     icon: 'database', category: 'data', author: 'Upstash', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@upstash/mcp-server'],
     configFields: [
@@ -1170,7 +1170,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-sendgrid', name: 'SendGrid', npmPackage: 'sendgrid-mcp',
-    description: 'SendGrid — send transactional emails, manage templates, contacts',
+    description: 'SendGrid - send transactional emails, manage templates, contacts',
     icon: 'mail', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'sendgrid-mcp'],
     configFields: [{ key: 'SENDGRID_API_KEY', label: 'API Key', type: 'password', placeholder: 'SG.', required: true }],
@@ -1179,7 +1179,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-resend', name: 'Resend', npmPackage: 'resend-mcp',
-    description: 'Resend — send emails with React Email templates',
+    description: 'Resend - send emails with React Email templates',
     icon: 'mail', category: 'data', author: 'Resend', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'resend-mcp'],
     configFields: [{ key: 'RESEND_API_KEY', label: 'API Key', type: 'password', placeholder: 're_...', required: true }],
@@ -1196,7 +1196,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-graphql', name: 'GraphQL', npmPackage: 'graphql-mcp',
-    description: 'Query any GraphQL endpoint — introspection, queries, mutations',
+    description: 'Query any GraphQL endpoint - introspection, queries, mutations',
     icon: 'globe', category: 'coding', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', 'graphql-mcp'],
     configFields: [
@@ -1208,7 +1208,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-coda', name: 'Coda', npmPackage: 'coda-mcp',
-    description: 'Coda docs — tables, rows, formulas, pages, automations',
+    description: 'Coda docs - tables, rows, formulas, pages, automations',
     icon: 'file-text', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'coda-mcp'],
     configFields: [{ key: 'CODA_API_TOKEN', label: 'API Token', type: 'password', placeholder: '', required: true }],
@@ -1217,7 +1217,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-segment', name: 'Segment', npmPackage: 'segment-mcp',
-    description: 'Segment — track events, identify users, manage sources & destinations',
+    description: 'Segment - track events, identify users, manage sources & destinations',
     icon: 'bar-chart', category: 'data', author: 'Twilio', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'segment-mcp'],
     configFields: [{ key: 'SEGMENT_WRITE_KEY', label: 'Write Key', type: 'password', placeholder: '', required: true }],
@@ -1226,7 +1226,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-amplitude', name: 'Amplitude', npmPackage: 'amplitude-mcp',
-    description: 'Amplitude — events, user analytics, cohorts, retention',
+    description: 'Amplitude - events, user analytics, cohorts, retention',
     icon: 'bar-chart', category: 'data', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'amplitude-mcp'],
     configFields: [
@@ -1277,7 +1277,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-e2b', name: 'E2B Code Interpreter', npmPackage: '@e2b/mcp-server',
-    description: 'Sandboxed code execution — run Python, JS, and more in secure cloud sandbox',
+    description: 'Sandboxed code execution - run Python, JS, and more in secure cloud sandbox',
     icon: 'terminal', category: 'coding', author: 'E2B', transport: 'stdio',
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@e2b/mcp-server'],
     configFields: [{ key: 'E2B_API_KEY', label: 'API Key', type: 'password', placeholder: 'e2b_...', required: true }],
@@ -1285,7 +1285,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-hubspot-dev', name: 'HubSpot Developer', npmPackage: '@hubspot/mcp-server',
-    description: 'HubSpot developer tools — CMS, projects, functions, deploy',
+    description: 'HubSpot developer tools - CMS, projects, functions, deploy',
     icon: 'hexagon', category: 'domain', author: 'HubSpot', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', '@hubspot/mcp-server'],
     configFields: [{ key: 'HUBSPOT_PORTAL_ID', label: 'Portal ID', type: 'text', placeholder: '', required: true }],
@@ -1302,7 +1302,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
   },
   {
     id: 'mcp-legal', name: 'Legal Research', npmPackage: 'legal-mcp',
-    description: 'Legal document search — case law, statutes, regulations',
+    description: 'Legal document search - case law, statutes, regulations',
     icon: 'scale', category: 'domain', author: 'Community', transport: 'stdio',
     runtimes: ['claude', 'amp'], command: 'npx', defaultArgs: ['-y', 'legal-mcp'],
     configFields: [],

@@ -51,9 +51,9 @@ function createMockExportConfig(overrides: Partial<ExportConfig> = {}): ExportCo
       model: 'claude-3-sonnet',
     },
     workflowSteps: [
-      { title: 'Understand', description: 'Analyze the user request' },
-      { title: 'Plan', description: 'Create a strategy' },
-      { title: 'Execute', description: 'Perform the task' },
+      { id: 'step-1', label: 'Understand', action: 'Analyze the user request' },
+      { id: 'step-2', label: 'Plan', action: 'Create a strategy' },
+      { id: 'step-3', label: 'Execute', action: 'Perform the task' },
     ],
     mcpServers: [
       { id: 'test-server', name: 'Test MCP Server', enabled: true, added: true, connected: false, icon: '🔧', capabilities: ['tool'], category: 'development', description: 'A test MCP server' },
