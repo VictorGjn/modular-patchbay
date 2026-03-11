@@ -12,6 +12,13 @@ vi.mock('@huggingface/transformers', () => ({
   env: { allowLocalModels: false, useBrowserCache: false },
 }));
 
+// Mock sqliteStore
+vi.mock('../../server/services/sqliteStore.js', () => ({
+  getCachedEmbedding: vi.fn().mockResolvedValue(null),
+  setCachedEmbedding: vi.fn().mockResolvedValue(undefined),
+  getEmbeddingCacheSize: vi.fn().mockResolvedValue(0),
+}));
+
 describe('EmbeddingService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -184,17 +191,20 @@ describe('EmbeddingService', () => {
   });
 
   describe('getHealth', () => {
-    it('should return health status', () => {
-      const health = embeddingService.getHealth();
+    it('should return health status', async () => {
+      const health = await embeddingService.getHealth();
       expect(health.model).toBe('Xenova/all-MiniLM-L6-v2');
       expect(typeof health.cacheSize).toBe('number');
       expect(typeof health.maxCacheSize).toBe('number');
+      expect(typeof health.sqliteCacheSize).toBe('number');
     });
 
     it('should reflect ready state', async () => {
-      expect(embeddingService.getHealth().ready).toBe(false);
+      const health1 = await embeddingService.getHealth();
+      expect(health1.ready).toBe(false);
       await embeddingService.initialize();
-      expect(embeddingService.getHealth().ready).toBe(true);
+      const health2 = await embeddingService.getHealth();
+      expect(health2.ready).toBe(true);
     });
   });
 });
