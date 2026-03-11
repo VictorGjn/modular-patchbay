@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { startServer } from '../server/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const rootDir = join(__dirname, '..');
+// In dev: bin/ is 1 level deep. In published: dist-server/bin/ is 2 levels deep.
+// Detect by checking if we're inside dist-server/
+const rootDir = __dirname.includes('dist-server') ? join(__dirname, '..', '..') : join(__dirname, '..');
 
 function showHelp() {
   console.log(`
@@ -33,7 +35,9 @@ function parseArgs(argv: string[]): { port: number; open: boolean } {
       showHelp();
       process.exit(0);
     } else if (argv[i] === '--version' || argv[i] === '-v') {
-      console.log('modular-studio v0.2.0');
+      const pkgPath = join(rootDir, 'package.json');
+      const pkg = existsSync(pkgPath) ? JSON.parse(readFileSync(pkgPath, 'utf8')) : { version: 'unknown' };
+      console.log(`modular-studio v${pkg.version}`);
       process.exit(0);
     } else if (argv[i] === '--port' && argv[i + 1]) {
       port = parseInt(argv[i + 1], 10);
@@ -49,11 +53,19 @@ function parseArgs(argv: string[]): { port: number; open: boolean } {
 async function main() {
   const { port, open } = parseArgs(process.argv);
 
-  // Build frontend if dist/ doesn't exist
+  // Verify frontend build exists
   const distPath = join(rootDir, 'dist');
   if (!existsSync(distPath)) {
-    console.log('Building frontend...');
-    execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
+    // In dev mode, try building
+    const tsconfigPath = join(rootDir, 'tsconfig.json');
+    if (existsSync(tsconfigPath)) {
+      console.log('Building frontend...');
+      execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
+    } else {
+      console.error('Error: Frontend build not found at', distPath);
+      console.error('If installed via npm, try reinstalling: npm install -g modular-studio');
+      process.exit(1);
+    }
   }
 
   startServer(port);
