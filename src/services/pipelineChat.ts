@@ -45,7 +45,7 @@ export interface PipelineChatOptions {
   agentMeta: { name: string; description: string; avatar?: string; tags?: string[] };
   providerId: string;
   model: string;
-  navigationMode?: 'manual' | 'agent-driven';
+  navigationMode?: 'manual' | 'agent-driven' | 'tree-aware';
   agentId?: string;
   sandboxRunId?: string;
   onChunk: (chunk: string) => void;
