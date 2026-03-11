@@ -720,16 +720,11 @@ function McpServersTab() {
     }
   }, [loaded, loading, loadServers]);
 
-  useEffect(() => {
-    for (const server of mergedServers) {
-      upsertMcpServer({
-        id: server.id,
-        name: server.name,
-        description: server.description || server.command,
-        connected: server.status === 'connected',
-      });
-    }
-  }, [mergedServers, upsertMcpServer]);
+  // Note: sync between mcpStore (runtime) and consoleStore (agent config)
+  // is handled by the stores themselves, not by a React effect.
+  // A useEffect here caused an infinite render loop (GitHub Issue #12):
+  // mergedServers is a new array each render → effect fires → upsertMcpServer
+  // mutates store → re-render → new mergedServers → effect fires → ∞
 
   const handleAddServer = useCallback(async () => {
     if (!newName.trim() || !newCommand.trim()) return;
