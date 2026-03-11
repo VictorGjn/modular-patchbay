@@ -94,6 +94,12 @@ export function createApp() {
   app.use('/api/embeddings', embeddingRoutes);
   app.use('/api/conversations', conversationRoutes);
 
+  // API 404 catch-all — log unmatched API routes for debugging
+  app.use('/api', (_req: express.Request, res: express.Response) => {
+    console.warn(`[API 404] ${_req.method} ${_req.originalUrl}`);
+    res.status(404).json({ status: 'error', error: `Not found: ${_req.method} ${_req.path}` });
+  });
+
   // Global error handler — prevent server crashes
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Unhandled error:', err.message);
