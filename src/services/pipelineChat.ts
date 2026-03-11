@@ -213,7 +213,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     // 5. Build messages array
     const msgs = [
       { role: 'system' as const, content: systemPrompt },
-      ...history.map(m => ({ role: m.role as 'system' | 'user', content: m.content })),
+      ...history.filter(m => m.content.trim() !== '').map(m => ({ role: m.role, content: m.content })),
       { role: 'user' as const, content: userMessage },
     ];
 
