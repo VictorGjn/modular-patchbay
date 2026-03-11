@@ -46,6 +46,7 @@ class EmbeddingServiceImpl implements EmbeddingService {
       const startTime = Date.now();
       
       // Dynamic import to avoid top-level side effects and enable mocking in tests
+      // Note: sharp (image processing) is stubbed by postinstall script — we only need text embeddings
       const { pipeline, env } = await import('@huggingface/transformers');
       env.allowLocalModels = false;
       env.useBrowserCache = false;
