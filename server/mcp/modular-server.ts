@@ -25,6 +25,7 @@ import { allocateBudgets, type BudgetSource, type BudgetAllocation } from '../..
 import { resolveContradictions } from '../../src/services/contradictionDetector.js';
 import { extractFacts, type ExtractedFact } from '../services/factExtractor.js';
 import { rankFacts } from '../services/memoryScorer.js';
+import { validateFilePath, validateFilePaths } from '../utils/pathSecurity.js';
 
 export interface ModularContextInput {
   sources: Array<{
@@ -74,6 +75,16 @@ async function processModularContext(input: ModularContextInput): Promise<Modula
     tree: TreeIndex;
     classification: ClassificationResult;
   }> = [];
+
+  // SECURITY: Validate all source paths first
+  try {
+    validateFilePaths(sources.map(s => s.path));
+  } catch (error) {
+    throw new McpError(
+      ErrorCode.InvalidRequest,
+      `Path validation failed: ${error}`
+    );
+  }
 
   for (const source of sources) {
     try {
@@ -406,6 +417,13 @@ export function createModularServer(): Server {
             throw new McpError(ErrorCode.InvalidParams, 'path is required');
           }
 
+          // SECURITY: Validate file path
+          try {
+            validateFilePath(filePath);
+          } catch (error) {
+            throw new McpError(ErrorCode.InvalidRequest, `${error}`);
+          }
+
           const content = await fs.readFile(filePath, 'utf-8');
           const tree = indexMarkdown(filePath, content);
 
@@ -434,6 +452,12 @@ export function createModularServer(): Server {
 
           let textContent = content;
           if (!textContent && filePath) {
+            // SECURITY: Validate file path
+            try {
+              validateFilePath(filePath);
+            } catch (error) {
+              throw new McpError(ErrorCode.InvalidRequest, `${error}`);
+            }
             textContent = await fs.readFile(filePath, 'utf-8');
           }
 

@@ -362,6 +362,7 @@ export function parseSimpleYaml(text: string): Record<string, unknown> {
     if (colonIdx === -1) continue;
 
     const key = trimmed.slice(0, colonIdx).trim();
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
     const value = trimmed.slice(colonIdx + 1).trim();
 
     if (!value) {
@@ -551,10 +552,17 @@ export async function importAgentFromZip(file: File): Promise<void> {
     const JSZip = (await import('jszip')).default;
     const zip = new JSZip();
     
+    // Reject oversized ZIPs (10MB max)
+    const MAX_ZIP_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_ZIP_SIZE) {
+      throw new Error(`ZIP file too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is 10MB.`);
+    }
+
     // Load ZIP file
     const zipContent = await zip.loadAsync(file);
     
-    // Extract files
+    // Extract files with per-file size limit
+    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB per file
     const files: Record<string, string> = {};
     const expectedFiles = ['agent.yaml', 'SOUL.md', 'INSTRUCTIONS.md', 'TOOLS.md', 'KNOWLEDGE.md', 'MEMORY.md'];
     
@@ -564,7 +572,12 @@ export async function importAgentFromZip(file: File): Promise<void> {
       const fileName = path.split('/').pop() || '';
       if (expectedFiles.includes(fileName)) {
         try {
-          files[fileName] = await zipEntry.async('text');
+          const content = await zipEntry.async('text');
+          if (content.length > MAX_FILE_SIZE) {
+            console.warn(`Skipping ${fileName}: exceeds 2MB limit`);
+            continue;
+          }
+          files[fileName] = content;
         } catch (err) {
           console.warn(`Failed to read ${fileName}:`, err);
         }
