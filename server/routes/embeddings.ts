@@ -33,6 +33,15 @@ router.get('/health', async (_req, res) => {
  */
 router.post('/embed', async (req, res) => {
   try {
+    // Check model readiness before processing
+    const health = await embeddingService.getHealth();
+    if (!health.ready) {
+      return res.status(503).json({
+        error: 'Embedding model is still loading. Retry in a few seconds.',
+        retryAfter: 3,
+      });
+    }
+
     const { texts } = req.body;
     
     if (!texts || !Array.isArray(texts)) {
@@ -71,8 +80,14 @@ router.post('/embed', async (req, res) => {
       return res.json({ embeddings: texts.map(() => []) });
     }
     
+    // Truncate texts that exceed model input limit (~512 tokens ≈ 2048 chars)
+    const MAX_TEXT_LENGTH = 2048;
+    const truncatedTexts = validTexts.map(t =>
+      t.length > MAX_TEXT_LENGTH ? t.slice(0, MAX_TEXT_LENGTH) : t
+    );
+
     // Generate embeddings for valid texts only
-    const validEmbeddings = await embeddingService.embedBatch(validTexts);
+    const validEmbeddings = await embeddingService.embedBatch(truncatedTexts);
     
     // Reconstruct full array with empty vectors for empty texts
     const embeddings: number[][] = texts.map(() => []);

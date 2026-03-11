@@ -172,9 +172,10 @@ export function extractTreeAwareChunks(
 }
 
 /**
- * Call the embedding service to embed texts
+ * Call the embedding service to embed texts.
+ * Retries on 503 (model loading) with exponential backoff.
  */
-async function callEmbeddingService(texts: string[]): Promise<number[][]> {
+async function callEmbeddingService(texts: string[], retries = 2): Promise<number[][]> {
   if (texts.length === 0) return [];
   
   // Filter empty texts — map back to original positions after
@@ -193,6 +194,13 @@ async function callEmbeddingService(texts: string[]): Promise<number[][]> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ texts: validTexts }),
   });
+
+  // Model still loading — retry after delay
+  if (response.status === 503 && retries > 0) {
+    const retryAfter = 3000;
+    await new Promise(r => setTimeout(r, retryAfter));
+    return callEmbeddingService(texts, retries - 1);
+  }
   
   if (!response.ok) {
     throw new Error(`Embedding service error: ${response.status} ${response.statusText}`);
