@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useConversationStore } from '../store/conversationStore';
@@ -355,7 +357,57 @@ function ChatSection() {
               borderBottomRightRadius: msg.role === 'user' ? 4 : 12,
               borderBottomLeftRadius: msg.role === 'assistant' ? 4 : 12,
             }}>
-            {msg.content || (streaming && msg.role === 'assistant' ? '...' : '')}
+            {msg.role === 'assistant' ? (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  // Style code blocks
+                  pre: ({ children }) => (
+                    <pre style={{
+                      background: t.isDark ? '#0d0d10' : '#e8e8f0',
+                      borderRadius: 6, padding: '8px 12px', overflowX: 'auto',
+                      fontSize: 13, margin: '8px 0',
+                    }}>{children}</pre>
+                  ),
+                  code: ({ children, className }) => {
+                    const isInline = !className;
+                    return isInline
+                      ? <code style={{ background: t.isDark ? '#0d0d10' : '#e8e8f0', borderRadius: 3, padding: '1px 4px', fontSize: 13 }}>{children}</code>
+                      : <code style={{ fontFamily: "'Geist Mono', monospace" }}>{children}</code>;
+                  },
+                  // Style links
+                  a: ({ href, children }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#FE5000', textDecoration: 'underline' }}>{children}</a>
+                  ),
+                  // Style headings smaller in chat context
+                  h1: ({ children }) => <h1 style={{ fontSize: 16, fontWeight: 600, margin: '8px 0 4px' }}>{children}</h1>,
+                  h2: ({ children }) => <h2 style={{ fontSize: 15, fontWeight: 600, margin: '8px 0 4px' }}>{children}</h2>,
+                  h3: ({ children }) => <h3 style={{ fontSize: 14, fontWeight: 600, margin: '6px 0 2px' }}>{children}</h3>,
+                  // Lists
+                  ul: ({ children }) => <ul style={{ paddingLeft: 20, margin: '4px 0' }}>{children}</ul>,
+                  ol: ({ children }) => <ol style={{ paddingLeft: 20, margin: '4px 0' }}>{children}</ol>,
+                  li: ({ children }) => <li style={{ marginBottom: 2 }}>{children}</li>,
+                  // Blockquotes
+                  blockquote: ({ children }) => (
+                    <blockquote style={{ borderLeft: '3px solid #FE5000', paddingLeft: 12, margin: '8px 0', color: t.textDim }}>{children}</blockquote>
+                  ),
+                  // Tables
+                  table: ({ children }) => (
+                    <table style={{ borderCollapse: 'collapse', width: '100%', margin: '8px 0', fontSize: 13 }}>{children}</table>
+                  ),
+                  th: ({ children }) => (
+                    <th style={{ border: `1px solid ${t.border}`, padding: '4px 8px', textAlign: 'left', fontWeight: 600 }}>{children}</th>
+                  ),
+                  td: ({ children }) => (
+                    <td style={{ border: `1px solid ${t.border}`, padding: '4px 8px' }}>{children}</td>
+                  ),
+                }}
+              >
+                {msg.content || (streaming ? '...' : '')}
+              </ReactMarkdown>
+            ) : (
+              msg.content || ''
+            )}
           </div>
         ))}
         <div ref={messagesEndRef} />
