@@ -48,6 +48,7 @@ export interface KnowledgeResult {
   knowledgeBlock: string;
   pipelineResult: PipelineResult | null;
   provenance: ProvenanceSummary | null;
+  retrievalResult?: import('./treeAwareRetriever').RetrievalResult;
 }
 
 // ── Provenance metadata helpers ──
@@ -389,6 +390,7 @@ export async function compressKnowledge(
   let knowledgeBlock = residualKnowledgeBlock;
   let pipelineResult: PipelineResult | null = null;
   let provenance: ProvenanceSummary | null = null;
+  let retrievalResult: import('./treeAwareRetriever').RetrievalResult | undefined;
 
   // 2c. Build pipeline sources from indexed content (regular channels only)
   //     Supports three paths: inline content, file-backed tree index, metadata-only fallback
@@ -457,16 +459,14 @@ export async function compressKnowledge(
           durationMs: 0, // Will be updated below
         });
         
-        const retrievalStart = Date.now();
-        const retrievalResult = await treeAwareRetrieve(userMessage, indexedSources, totalBudget);
-        const retrievalMs = Date.now() - retrievalStart;
+        retrievalResult = await treeAwareRetrieve(userMessage, indexedSources, totalBudget);
         
         traceStore.addEvent(traceId, {
           kind: 'retrieval',
           sourceName: 'tree-aware-retrieval',
           query: userMessage,
           resultCount: retrievalResult.chunks.length,
-          durationMs: retrievalMs,
+          durationMs: retrievalResult.retrievalMs,
         });
         
         if (retrievalResult.chunks.length > 0) {
@@ -502,8 +502,8 @@ export async function compressKnowledge(
             timing: {
               indexMs: 0,
               navigationMs: 0,
-              compressionMs: retrievalMs,
-              totalMs: retrievalMs,
+              compressionMs: retrievalResult.retrievalMs,
+              totalMs: retrievalResult.retrievalMs,
             },
           };
           
@@ -754,5 +754,5 @@ export async function compressKnowledge(
     });
   }
 
-  return { knowledgeBlock, pipelineResult, provenance };
+  return { knowledgeBlock, pipelineResult, provenance, retrievalResult };
 }

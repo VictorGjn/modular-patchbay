@@ -19,6 +19,8 @@ export interface ChunkMetadata {
   depth: number;
   knowledgeType: KnowledgeType;
   embedding?: number[];
+  inclusionReason?: 'direct' | 'parent-expansion' | 'sibling-coherence';
+  relevanceScore?: number; // persist the score for UI display
 }
 
 export interface RetrievalResult {
@@ -27,6 +29,10 @@ export interface RetrievalResult {
   collapseWarning: boolean;
   totalChunks: number;
   queryType: QueryType;
+  retrievalMs: number;        // how long retrieval took
+  embeddingMs: number;        // how long embedding took
+  budgetUsed: number;         // tokens used
+  budgetTotal: number;        // total budget available
 }
 
 export type QueryType = 'factual' | 'analytical' | 'exploratory';
@@ -294,6 +300,8 @@ export async function treeAwareRetrieve(
   indexedSources: { treeIndex: TreeIndex; knowledgeType: KnowledgeType }[],
   budget: number
 ): Promise<RetrievalResult> {
+  const retrievalStart = Date.now();
+  
   // Step 1: Extract chunks using tree-aware chunking
   const chunks = extractTreeAwareChunks(indexedSources);
   
@@ -304,12 +312,18 @@ export async function treeAwareRetrieve(
       collapseWarning: false,
       totalChunks: 0,
       queryType: classifyQuery(query),
+      retrievalMs: Date.now() - retrievalStart,
+      embeddingMs: 0,
+      budgetUsed: 0,
+      budgetTotal: budget,
     };
   }
   
   // Step 2: Embed query and all chunks
+  const embeddingStart = Date.now();
   const allTexts = [query, ...chunks.map(c => c.content)];
   const embeddings = await callEmbeddingService(allTexts);
+  const embeddingMs = Date.now() - embeddingStart;
   
   const queryEmbedding = embeddings[0];
   const chunkEmbeddings = embeddings.slice(1);
@@ -325,6 +339,7 @@ export async function treeAwareRetrieve(
     .map(chunk => ({
       ...chunk,
       relevanceScore: chunk.embedding ? cosineSimilarity(queryEmbedding, chunk.embedding) : 0,
+      inclusionReason: 'direct' as const,
     }))
     .filter(chunk => chunk.relevanceScore > relevantThreshold);
   
@@ -345,6 +360,7 @@ export async function treeAwareRetrieve(
           expandedChunks.set(parent.nodeId, {
             ...parent,
             relevanceScore: parentScore,
+            inclusionReason: 'parent-expansion' as const,
           });
         }
       }
@@ -352,11 +368,15 @@ export async function treeAwareRetrieve(
   }
   
   // Step 5: Add sibling context for cluster coherence
-  const siblingThreshold = 0.5;
+  // A sibling is included when it's semantically close to a high-scoring direct chunk
+  // (sibling↔direct similarity > 0.4), even if it has low query relevance.
+  // This captures contextually related content that complements the direct hit.
+  const siblingDirectThreshold = 0.5; // scored chunk must be highly relevant to trigger sibling check
+  const siblingCoherenceThreshold = 0.4; // sibling must be similar to the direct chunk (not query)
   
   for (const chunk of scoredChunks) {
-    if (chunk.relevanceScore > siblingThreshold && chunk.parentNodeId) {
-      // Find siblings with the same parent
+    if (chunk.relevanceScore > siblingDirectThreshold && chunk.parentNodeId && chunk.embedding) {
+      // Find siblings with the same parent that aren't already selected
       const siblings = chunks.filter(c => 
         c.parentNodeId === chunk.parentNodeId && 
         c.nodeId !== chunk.nodeId &&
@@ -365,11 +385,15 @@ export async function treeAwareRetrieve(
       
       for (const sibling of siblings) {
         if (sibling.embedding) {
-          const siblingScore = cosineSimilarity(queryEmbedding, sibling.embedding);
-          if (siblingScore > siblingThreshold) {
+          // Measure similarity to the DIRECT chunk, not the query
+          // This catches content that complements the direct hit even if it doesn't match the query directly
+          const siblingToDirectSim = cosineSimilarity(chunk.embedding, sibling.embedding);
+          if (siblingToDirectSim > siblingCoherenceThreshold) {
+            const queryScore = cosineSimilarity(queryEmbedding, sibling.embedding);
             expandedChunks.set(sibling.nodeId, {
               ...sibling,
-              relevanceScore: siblingScore,
+              relevanceScore: queryScore,
+              inclusionReason: 'sibling-coherence' as const,
             });
           }
         }
@@ -387,11 +411,22 @@ export async function treeAwareRetrieve(
   const diversityScore = computeDiversityScore(selectedChunks);
   const collapseWarning = diversityScore < 0.3;
   
+  // Calculate budget used (rough token estimate)
+  const budgetUsed = selectedChunks.reduce((sum, chunk) => 
+    sum + Math.ceil(chunk.content.length / 4), 0
+  );
+  
+  const retrievalMs = Date.now() - retrievalStart;
+  
   return {
     chunks: selectedChunks,
     diversityScore,
     collapseWarning,
     totalChunks: chunks.length,
     queryType,
+    retrievalMs,
+    embeddingMs,
+    budgetUsed,
+    budgetTotal: budget,
   };
 }
