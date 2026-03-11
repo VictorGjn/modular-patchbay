@@ -14,6 +14,10 @@ import type { ApiResponse } from '../types.js';
 
 const router = Router();
 
+// ── Dynamic Base URL ──
+const PORT = parseInt(process.env.PORT || '4800', 10);
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+
 // ── Types ──
 
 interface ConnectorAuth {
@@ -46,28 +50,28 @@ const OAUTH_CONFIGS: Record<string, Omit<OAuthConfig, 'clientId' | 'clientSecret
     authUrl: 'https://api.notion.com/v1/oauth/authorize',
     tokenUrl: 'https://api.notion.com/v1/oauth/token',
     scopes: [],
-    redirectUri: 'http://localhost:4800/api/connectors/oauth/callback',
+    redirectUri: `${BASE_URL}/api/connectors/oauth/callback`,
   },
   github: {
     service: 'github',
     authUrl: 'https://github.com/login/oauth/authorize',
     tokenUrl: 'https://github.com/login/oauth/access_token',
     scopes: ['repo', 'read:org'],
-    redirectUri: 'http://localhost:4800/api/connectors/oauth/callback',
+    redirectUri: `${BASE_URL}/api/connectors/oauth/callback`,
   },
   slack: {
     service: 'slack',
     authUrl: 'https://slack.com/oauth/v2/authorize',
     tokenUrl: 'https://slack.com/api/oauth.v2.access',
     scopes: ['channels:read', 'channels:history', 'chat:write'],
-    redirectUri: 'http://localhost:4800/api/connectors/oauth/callback',
+    redirectUri: `${BASE_URL}/api/connectors/oauth/callback`,
   },
   'google-drive': {
     service: 'google-drive',
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token',
     scopes: ['https://www.googleapis.com/auth/drive.readonly'],
-    redirectUri: 'http://localhost:4800/api/connectors/oauth/callback',
+    redirectUri: `${BASE_URL}/api/connectors/oauth/callback`,
   },
 };
 

@@ -11,7 +11,7 @@ let db: Database | null = null;
 export async function getDb(): Promise<Database> {
   if (db) return db;
   const SQL = await initSqlJs();
-  if (!existsSync(DB_DIR)) mkdirSync(DB_DIR, { recursive: true });
+  if (!existsSync(DB_DIR)) mkdirSync(DB_DIR, { recursive: true, mode: 0o755 });
   if (existsSync(DB_PATH)) {
     const buffer = readFileSync(DB_PATH);
     db = new SQL.Database(buffer);
@@ -41,7 +41,7 @@ export function saveDb(): void {
   if (!db) return;
   const data = db.export();
   const buffer = Buffer.from(data);
-  if (!existsSync(DB_DIR)) mkdirSync(DB_DIR, { recursive: true });
+  if (!existsSync(DB_DIR)) mkdirSync(DB_DIR, { recursive: true, mode: 0o755 });
   writeFileSync(DB_PATH, buffer);
 }
 

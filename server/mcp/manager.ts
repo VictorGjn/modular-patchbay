@@ -19,7 +19,7 @@ export class McpManager {
 
   // Allowlist of safe MCP executables - SECURITY FIX
   private readonly ALLOWED_MCP_COMMANDS = new Set([
-    'npx', 'node', 'python', 'python3', 'uvx', 'uv', 'deno', 'bun'
+    'npx', 'node', 'nodejs', 'python', 'python3', 'uvx', 'uv', 'deno', 'bun'
   ]);
 
   // Dangerous environment variables to block - SECURITY FIX

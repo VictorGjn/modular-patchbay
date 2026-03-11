@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock child_process, fs, and repoIndexer before imports
 vi.mock('node:child_process', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:child_process')>();
-  return { ...actual, execSync: vi.fn() };
+  return { ...actual, execSync: vi.fn(), execFileSync: vi.fn() };
 });
 
 vi.mock('node:fs', async (importOriginal) => {
@@ -64,7 +64,7 @@ vi.mock('../../server/services/repoIndexer.js', () => ({
 }));
 
 import { indexGitHubRepo, indexMultipleRepos } from '../../server/services/githubIndexer';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { existsSync, rmSync } from 'node:fs';
 
 describe('githubIndexer', () => {
@@ -76,10 +76,13 @@ describe('githubIndexer', () => {
     it('clones repo with shallow depth', async () => {
       const result = await indexGitHubRepo({ url: 'https://github.com/owner/test-repo' });
 
-      expect(execSync).toHaveBeenCalledOnce();
-      const cloneCmd = (execSync as any).mock.calls[0][0] as string;
-      expect(cloneCmd).toContain('--depth 1');
-      expect(cloneCmd).toContain('https://github.com/owner/test-repo.git');
+      expect(execFileSync).toHaveBeenCalled();
+      const calls = (execFileSync as any).mock.calls;
+      const cloneCall = calls.find((c: any[]) => c[1]?.includes('clone'));
+      expect(cloneCall).toBeDefined();
+      expect(cloneCall[1]).toContain('--depth');
+      expect(cloneCall[1]).toContain('1');
+      expect(cloneCall[1]).toContain('https://github.com/owner/test-repo.git');
       expect(result.name).toBe('test-repo');
       expect(result.baseUrl).toBe('https://github.com/owner/test-repo/blob/HEAD/');
     });
@@ -87,8 +90,10 @@ describe('githubIndexer', () => {
     it('passes branch ref to git clone', async () => {
       const result = await indexGitHubRepo({ url: 'https://github.com/owner/repo', ref: 'develop' });
 
-      const cloneCmd = (execSync as any).mock.calls[0][0] as string;
-      expect(cloneCmd).toContain('--branch develop');
+      const calls = (execFileSync as any).mock.calls;
+      const cloneCall = calls.find((c: any[]) => c[1]?.includes('clone'));
+      expect(cloneCall[1]).toContain('--branch');
+      expect(cloneCall[1]).toContain('develop');
       expect(result.baseUrl).toBe('https://github.com/owner/repo/blob/develop/');
     });
 
@@ -163,10 +168,12 @@ describe('githubIndexer', () => {
     it('handles .git suffix in URL', async () => {
       await indexGitHubRepo({ url: 'https://github.com/owner/repo.git' });
 
-      const cloneCmd = (execSync as any).mock.calls[0][0] as string;
+      const calls = (execFileSync as any).mock.calls;
+      const cloneCall = calls.find((c: any[]) => c[1]?.includes('clone'));
+      const urlArg = cloneCall[1].find((a: string) => a.includes('github.com'));
       // Should not double the .git
-      expect(cloneCmd).toContain('https://github.com/owner/repo.git');
-      expect(cloneCmd).not.toContain('.git.git');
+      expect(urlArg).toContain('repo.git');
+      expect(urlArg).not.toContain('.git.git');
     });
   });
 
@@ -178,14 +185,17 @@ describe('githubIndexer', () => {
       ]);
 
       expect(results.size).toBe(2);
-      expect(execSync).toHaveBeenCalledTimes(2);
+      // Each repo does clone + checkout = 2 execFileSync calls per repo
+      const cloneCalls = (execFileSync as any).mock.calls.filter((c: any[]) => c[1]?.includes('clone'));
+      expect(cloneCalls.length).toBe(2);
     });
 
     it('returns partial results on failures', async () => {
-      // First call succeeds, second throws
-      (execSync as any)
-        .mockImplementationOnce(() => {}) // success
-        .mockImplementationOnce(() => { throw new Error('clone failed'); }); // fail
+      // First calls succeed, then one throws
+      (execFileSync as any)
+        .mockImplementationOnce(() => {}) // clone success
+        .mockImplementationOnce(() => {}) // checkout success
+        .mockImplementationOnce(() => { throw new Error('clone failed'); }); // clone fail
 
       const results = await indexMultipleRepos([
         { url: 'https://github.com/owner/good-repo' },

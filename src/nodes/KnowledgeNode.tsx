@@ -242,7 +242,7 @@ export const KnowledgeNode = memo(function KnowledgeNode() {
                     scope={c.hint}
                     onClick={() => toggleConnector(c.id)}
                     onScopeChange={(scope) => useConsoleStore.getState().updateConnectorScope(c.id, scope)}
-                    onOpenSettings={() => useConsoleStore.getState().setShowSettings(true, 'mcp')}
+                    onOpenSettings={() => useConsoleStore.getState().setShowConnectionPicker(true)}
                   />
                 ))}
               </div>

@@ -667,13 +667,45 @@ function McpServerRow({ server }: { server: McpServerState }) {
 
 function McpServersTab() {
   const t = useTheme();
-  const servers = useMcpStore((s) => s.servers);
+  
+  // Agent config (source of truth for "which servers are configured")
+  const agentMcpServers = useConsoleStore((s) => s.mcpServers);
+  
+  // Runtime status (for connection state, tools, errors)
+  const runtimeServers = useMcpStore((s) => s.servers);
   const loaded = useMcpStore((s) => s.loaded);
   const loading = useMcpStore((s) => s.loading);
   const loadServers = useMcpStore((s) => s.loadServers);
   const addServer = useMcpStore((s) => s.addServer);
   const error = useMcpStore((s) => s.error);
   const upsertMcpServer = useConsoleStore((s) => s.upsertMcpServer);
+  
+  // Merge: agent config + runtime status
+  const mergedServers = agentMcpServers.map(agent => {
+    const runtime = runtimeServers.find(r => r.id === agent.id);
+    return {
+      ...agent,
+      status: runtime?.status || 'disconnected',
+      tools: runtime?.tools || [],
+      lastError: runtime?.lastError || undefined,
+      // Keep other runtime properties
+      command: runtime?.command || agent.description || '',
+      args: runtime?.args || [],
+      env: runtime?.env || {},
+    };
+  });
+  
+  // Also show runtime-only servers that aren't in agent config
+  const runtimeOnly = runtimeServers.filter(r => 
+    !agentMcpServers.some(a => a.id === r.id)
+  ).map(runtime => ({
+    ...runtime,
+    // Mark these as runtime-only so we can style them differently
+    isRuntimeOnly: true,
+  }));
+  
+  // Combined list for rendering
+  const servers = [...mergedServers, ...runtimeOnly];
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
@@ -689,15 +721,15 @@ function McpServersTab() {
   }, [loaded, loading, loadServers]);
 
   useEffect(() => {
-    for (const server of servers) {
+    for (const server of mergedServers) {
       upsertMcpServer({
         id: server.id,
         name: server.name,
-        description: server.command,
+        description: server.description || server.command,
         connected: server.status === 'connected',
       });
     }
-  }, [servers, upsertMcpServer]);
+  }, [mergedServers, upsertMcpServer]);
 
   const handleAddServer = useCallback(async () => {
     if (!newName.trim() || !newCommand.trim()) return;

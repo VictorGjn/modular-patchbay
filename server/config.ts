@@ -13,7 +13,7 @@ const DEFAULT_CONFIG: AppConfig = {
 
 function ensureDir(): void {
   if (!existsSync(CONFIG_DIR)) {
-    mkdirSync(CONFIG_DIR, { recursive: true });
+    mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o755 });
   }
 }
 

@@ -12,7 +12,7 @@ const AGENTS_DIR = join(homedir(), '.modular-studio', 'agents');
 
 function ensureDir(): void {
   if (!existsSync(AGENTS_DIR)) {
-    mkdirSync(AGENTS_DIR, { recursive: true });
+    mkdirSync(AGENTS_DIR, { recursive: true, mode: 0o755 });
   }
 }
 

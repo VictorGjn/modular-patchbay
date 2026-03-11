@@ -279,7 +279,7 @@ export function ConnectorPicker() {
   };
 
   const openSettings = () => {
-    useConsoleStore.getState().setShowSettings(true);
+    useConsoleStore.getState().setShowConnectionPicker(true);
     setShowConnectorPicker(false);
   };
 

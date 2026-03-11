@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+const [major] = process.versions.node.split('.').map(Number);
+if (major < 18) {
+  console.error('modular-studio requires Node.js 18 or higher. You are running Node.js ' + process.versions.node);
+  process.exit(1);
+}
+
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';

@@ -319,6 +319,7 @@ router.post('/skills/:id/update', async (req, res) => {
   try {
     const { stdout } = await exec('npx', ['skills', 'update', id, '--dry-run'], {
       timeout: 30000,
+      shell: true,
       env: { ...process.env, NO_COLOR: '1' },
     });
     const hasUpdate = stdout.toLowerCase().includes('update available') || stdout.toLowerCase().includes('newer');

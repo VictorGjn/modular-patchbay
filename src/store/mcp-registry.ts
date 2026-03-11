@@ -22,6 +22,7 @@ export interface McpRegistryEntry {
   repo?: string;
   tags: string[];
   sameServiceAs?: string;
+  installHint?: { macos?: string; linux?: string; windows?: string };
 }
 
 export const MCP_REGISTRY: McpRegistryEntry[] = [
@@ -61,6 +62,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     configFields: [{ key: 'GIT_REPO_PATH', label: 'Repository Path', type: 'text', placeholder: '/path/to/repo', required: false }],
     repo: 'https://github.com/modelcontextprotocol/servers', tags: ['git', 'version-control', 'diff', 'log'],
     authMethod: 'none',
+    installHint: { macos: 'brew install uv', linux: 'curl -LsSf https://astral.sh/uv/install.sh | sh', windows: 'pip install uv' },
   },
   {
     id: 'mcp-sequential-thinking', name: 'Sequential Thinking', npmPackage: '@modelcontextprotocol/server-sequential-thinking',
