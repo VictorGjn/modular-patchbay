@@ -65,7 +65,7 @@ export interface ConsolidationResult {
 /**
  * Core context engineering pipeline
  */
-async function processModularContext(input: ModularContextInput): Promise<ModularContextOutput> {
+export async function processModularContext(input: ModularContextInput): Promise<ModularContextOutput> {
   const { sources, task, tokenBudget = 32000 } = input;
 
   // Step 1: Index all sources
