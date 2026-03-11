@@ -174,10 +174,12 @@ process.on('unhandledRejection', (err) => {
 });
 
 // Start when run directly via `npm run server` or `tsx server/index.ts`
-// Check URL (Unix) or backslash-encoded URL (Windows) or argv for direct invocation
+// Only auto-start if NOT imported by the modular-studio binary
 const selfUrl = import.meta.url || '';
-const isMainModule = selfUrl.includes('server/index') || selfUrl.includes('server%5Cindex') || selfUrl.includes('server\\index');
-if (isMainModule) {
+const isMainModule = (selfUrl.includes('server/index') || selfUrl.includes('server%5Cindex') || selfUrl.includes('server\\index'))
+  && !process.argv.some(a => a.includes('modular-studio'));
+if (isMainModule && !(globalThis as any).__modularStudioStarted) {
+  (globalThis as any).__modularStudioStarted = true;
   const server = startServer();
   // Prevent Node from exiting — keep-alive interval + signal handlers
   const keepAlive = setInterval(() => {}, 1 << 30); // ~12 days
