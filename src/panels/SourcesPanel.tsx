@@ -242,7 +242,7 @@ function KnowledgeSection() {
   const addChannel = useConsoleStore(s => s.addChannel);
   const setChannelKnowledgeType = useConsoleStore(s => s.setChannelKnowledgeType);
   const setShowFilePicker = useConsoleStore(s => s.setShowFilePicker);
-  const setShowConnectorPicker = useConsoleStore(s => s.setShowConnectorPicker);
+  const setShowConnectionPicker = useConsoleStore(s => s.setShowConnectionPicker);
   const connectors = useConsoleStore(s => s.connectors);
   const removeConnector = useConsoleStore(s => s.removeConnector);
   const treeIndexes = useTreeIndexStore(s => s.indexes);
@@ -618,7 +618,7 @@ function KnowledgeSection() {
         >
           <Plus size={10} /> Files
         </button>
-        <button type="button" aria-label="Add connector" onClick={() => setShowConnectorPicker(true)}
+        <button type="button" aria-label="Add connection" onClick={() => setShowConnectionPicker(true)}
           className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[12px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
           style={{
             background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
@@ -629,7 +629,7 @@ function KnowledgeSection() {
           onFocus={e => { e.currentTarget.style.borderColor = '#9b59b6'; e.currentTarget.style.color = '#9b59b6'; }}
           onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
-          <Plug size={10} /> Connect
+          <Plus size={10} /> Connect
         </button>
         <button type="button" aria-label="Index repository" onClick={() => setRepoPrompt(!repoPrompt)}
           className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[12px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
@@ -717,7 +717,6 @@ function McpSection() {
   const mcpServers = useConsoleStore(s => s.mcpServers);
   // const toggleMcp = useConsoleStore(s => s.toggleMcp);
   const removeMcp = useConsoleStore(s => s.removeMcp);
-  const setShowMcpPicker = useConsoleStore(s => s.setShowMcpPicker);
   const mcpState = useMcpStore(s => s.servers);
   const mcpHealth = useHealthStore(s => s.mcpHealth);
   const [collapsed, setCollapsed] = useState(false);
@@ -885,16 +884,7 @@ function McpSection() {
           );
         })}
       </div>
-      <button type="button" aria-label="Open MCP Library" onClick={() => setShowMcpPicker(true)}
-        className="flex items-center justify-center gap-1.5 w-full mt-3 px-3 py-2.5 rounded text-[13px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
-        style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Geist Mono', monospace", transition: 'border-color 150ms, color 150ms' }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-        onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-        onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-      >
-        <Library size={11} /> MCP Library
-      </button>
+
     </Section>
   );
 }

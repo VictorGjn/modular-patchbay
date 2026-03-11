@@ -167,6 +167,7 @@ export interface ConsoleState {
   showSkillPicker: boolean;
   showSaveModal: boolean;
   showConnectorPicker: boolean;
+  showConnectionPicker: boolean;
   showMarketplace: boolean;
   activeMarketplaceTab: 'skills' | 'mcp' | 'presets';
   showSettings: boolean;
@@ -228,6 +229,7 @@ export interface ConsoleState {
   setShowSkillPicker: (show: boolean) => void;
   setShowSaveModal: (show: boolean) => void;
   setShowConnectorPicker: (show: boolean) => void;
+  setShowConnectionPicker: (show: boolean) => void;
   setShowMarketplace: (show: boolean, tab?: 'skills' | 'mcp' | 'presets') => void;
   setShowSettings: (show: boolean, tab?: 'providers' | 'mcp' | 'general') => void;
   setAgentMeta: (meta: Partial<AgentMeta>) => void;
@@ -341,6 +343,7 @@ export const useConsoleStore = create<ConsoleState>()(
   showSkillPicker: false,
   showSaveModal: false,
   showConnectorPicker: false,
+  showConnectionPicker: false,
   showMarketplace: false,
   activeMarketplaceTab: 'skills' as const,
   showSettings: false,
@@ -509,6 +512,7 @@ export const useConsoleStore = create<ConsoleState>()(
   setShowSkillPicker: (show: boolean) => set({ showSkillPicker: show }),
   setShowSaveModal: (show: boolean) => set({ showSaveModal: show }),
   setShowConnectorPicker: (show: boolean) => set({ showConnectorPicker: show }),
+  setShowConnectionPicker: (show: boolean) => set({ showConnectionPicker: show }),
   setShowMarketplace: (show: boolean, tab?: 'skills' | 'mcp' | 'presets') => set({ showMarketplace: show, ...(tab ? { activeMarketplaceTab: tab } : {}) }),
   setShowSettings: (show: boolean, tab?: 'providers' | 'mcp' | 'general') => set({ showSettings: show, ...(tab ? { activeSettingsTab: tab } : {}) }),
   setAgentMeta: (meta: Partial<AgentMeta>) => set({ agentMeta: { ...get().agentMeta, ...meta } }),
