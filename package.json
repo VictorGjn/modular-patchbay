@@ -51,6 +51,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.62",
+    "@huggingface/transformers": "^3.8.1",
     "@modelcontextprotocol/sdk": "^1.27.0",
     "@xyflow/react": "^12.10.1",
     "cors": "^2.8.5",
