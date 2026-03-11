@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -52,12 +52,25 @@ function ensureDirs(): void {
   mkdirSync(TREE_ROOT, { recursive: true });
 }
 
+function parseGitCommand(command: string): string[] {
+  // Simple parser for git commands - splits on space but preserves quoted strings
+  const args: string[] = [];
+  const regex = /[^\s"]+|"([^"]*)"/g;
+  let match;
+  while ((match = regex.exec(command)) !== null) {
+    args.push(match[1] !== undefined ? match[1] : match[0]);
+  }
+  return args;
+}
+
 function run(command: string): void {
-  execSync(command, { stdio: 'pipe', timeout: 120_000 });
+  const args = parseGitCommand(command);
+  execFileSync(args[0], args.slice(1), { stdio: 'pipe', timeout: 120_000 });
 }
 
 function runText(command: string): string {
-  return execSync(command, { stdio: 'pipe', timeout: 120_000 }).toString().trim();
+  const args = parseGitCommand(command);
+  return execFileSync(args[0], args.slice(1), { stdio: 'pipe', timeout: 120_000 }).toString().trim();
 }
 
 function branchExists(gitDir: string, branch: string): boolean {

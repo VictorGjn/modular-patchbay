@@ -80,9 +80,7 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
         t={t}
         ariaLabel="Select AI model"
       >
-        {!hasModels && (
-          <option value="__no_models__">Authenticate a provider to load models</option>
-        )}
+
         {allModels.map((m) => (
           <option key={`${m.providerId}-${m.id}`} value={`${m.providerId}::${m.id}`}>
             {m.providerName} — {m.label}
@@ -91,9 +89,21 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
       </TopbarSelect>
 
       {!hasModels && (
-        <span className="text-[12px]" style={{ color: t.textDim }}>
-          No models loaded — connect a model source in settings
-        </span>
+        <button
+          onClick={() => useConsoleStore.getState().setShowSettings(true, 'providers')}
+          style={{
+            background: 'none',
+            border: `1px solid ${t.border}`,
+            borderRadius: 6,
+            padding: '4px 10px',
+            color: '#FE5000',
+            cursor: 'pointer',
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '12px',
+          }}
+        >
+          ⚡ Connect a model provider
+        </button>
       )}
 
       <div className="flex-1" />

@@ -29,7 +29,7 @@ export interface ContentListItem {
 
 function ensureDir(): void {
   if (!existsSync(CONTENT_DIR)) {
-    mkdirSync(CONTENT_DIR, { recursive: true });
+    mkdirSync(CONTENT_DIR, { recursive: true, mode: 0o755 });
   }
 }
 

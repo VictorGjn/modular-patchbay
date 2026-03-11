@@ -152,11 +152,10 @@ describe('exportGenericJSON', () => {
     expect(parsed.agent.name).toBe('Test Agent');
   });
 
-  it('includes connectors object', () => {
+  it('includes connections array', () => {
     const parsed = JSON.parse(exportGenericJSON(makeConfig()));
-    expect(parsed.agent.connectors).toBeDefined();
-    expect(parsed.agent.connectors.read).toBeDefined();
-    expect(parsed.agent.connectors.write).toBeDefined();
+    expect(parsed.agent.connections).toBeDefined();
+    expect(Array.isArray(parsed.agent.connections)).toBe(true);
   });
 });
 

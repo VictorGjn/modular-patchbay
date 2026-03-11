@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, type KeyboardEvent as ReactKeyboardEvent, type CSSProperties } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
-import { useMcpStore } from '../store/mcpStore';
-import { MARKETPLACE_CATEGORIES, RUNTIME_INFO, REGISTRY_PRESETS, type MarketplaceCategory, type Runtime, type InstallScope, type ConfigField } from '../store/registry';
+// useMcpStore removed — MCP tab now redirects to ConnectionPicker
+import { MARKETPLACE_CATEGORIES, RUNTIME_INFO, REGISTRY_PRESETS, type MarketplaceCategory, type Runtime, type InstallScope } from '../store/registry';
 import { RegistryIcon } from './icons/SectionIcons';
 import { useTheme } from '../theme';
 import { X, Search, Check, Loader2, ChevronDown, ChevronUp, Terminal, ExternalLink, Download, Zap } from 'lucide-react';
@@ -23,9 +23,7 @@ export function Marketplace() {
   const activeTab = useConsoleStore((s) => s.activeMarketplaceTab);
   const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
   const registrySkills = useConsoleStore((s) => s.registrySkills);
-  const registryMcpServers = useConsoleStore((s) => s.registryMcpServers);
   const installRegistrySkill = useConsoleStore((s) => s.installRegistrySkill);
-  const installRegistryMcp = useConsoleStore((s) => s.installRegistryMcp);
   const upsertSkill = useConsoleStore((s) => s.upsertSkill);
   const librarySkills = useConsoleStore((s) => s.skills);
 
@@ -38,7 +36,7 @@ export function Marketplace() {
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [remoteError, setRemoteError] = useState<string | null>(null);
   const [installDropdown, setInstallDropdown] = useState<string | null>(null);
-  const [configuring, setConfiguring] = useState<string | null>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const t = useTheme();
@@ -74,7 +72,6 @@ export function Marketplace() {
       setRemoteLoading(false);
       setRemoteError(null);
       setInstallDropdown(null);
-      setConfiguring(null);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [showMarketplace]);
@@ -129,22 +126,7 @@ export function Marketplace() {
     }
   }, [upsertSkill]);
 
-  const handleMcpInstall = useCallback(async (mcpId: string, envVars: Record<string, string>) => {
-    setInstallingId(mcpId);
-    const mcpEntry = registryMcpServers.find((m) => m.id === mcpId);
-    if (!mcpEntry) { setInstallingId(null); return; }
-    const added = await useMcpStore.getState().addServer({
-      id: mcpEntry.id,
-      name: mcpEntry.name,
-      command: mcpEntry.command,
-      args: mcpEntry.defaultArgs,
-      env: envVars,
-    });
-    if (added) await useMcpStore.getState().connectServer(added.id);
-    installRegistryMcp(mcpId);
-    setInstallingId(null);
-    setConfiguring(null);
-  }, [installRegistryMcp, registryMcpServers]);
+
 
   useEffect(() => {
     if (!showMarketplace || activeTab !== 'skills') {
@@ -209,9 +191,7 @@ export function Marketplace() {
   const filteredSkills = registrySkills.filter((s) =>
     matchesFilter(s.name, s.description) && (category === 'all' || s.category === category)
   );
-  const filteredMcp = registryMcpServers.filter((s) =>
-    matchesFilter(s.name, s.description) && (category === 'all' || s.category === category)
-  );
+
   const filteredPresets = REGISTRY_PRESETS.filter((p) => matchesFilter(p.name, p.description));
 
   const skillGridStyle: CSSProperties = {
@@ -506,23 +486,22 @@ export function Marketplace() {
             )}
 
             {activeTab === 'mcp' && (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {filteredMcp.map((mcp) => (
-                  <McpRow
-                    key={mcp.id}
-                    mcp={mcp}
-                    installing={installingId === mcp.id}
-                    configuringOpen={configuring === mcp.id}
-                    onToggleConfigure={() => setConfiguring(configuring === mcp.id ? null : mcp.id)}
-                    onInstall={handleMcpInstall}
-                    t={t}
-                  />
-                ))}
-                {filteredMcp.length === 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
-                    <span style={{ fontSize: 14, color: t.textFaint }}>No MCP servers match your search</span>
-                  </div>
-                )}
+              <div style={{ textAlign: 'center', padding: 40 }}>
+                <p style={{ color: t.textDim, marginBottom: 12 }}>Browse and connect MCP servers</p>
+                <button
+                  onClick={() => { setShowMarketplace(false); useConsoleStore.getState().setShowConnectionPicker(true); }}
+                  style={{
+                    background: '#FE5000',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontFamily: "'Geist Mono', monospace"
+                  }}
+                >
+                  Open Connection Picker
+                </button>
               </div>
             )}
 
@@ -885,234 +864,7 @@ function RemoteSkillCard({ skill, installing, installed, onInstall, t }: {
   );
 }
 
-/* ──────── MCP Row (list item, 48px) ──────── */
-
-function McpRow({ mcp, installing, configuringOpen, onToggleConfigure, onInstall, t }: {
-  mcp: (typeof import('../store/registry'))['REGISTRY_MCP_SERVERS'][number];
-  installing: boolean;
-  configuringOpen: boolean;
-  onToggleConfigure: () => void;
-  onInstall: (id: string, envVars: Record<string, string>) => void;
-  t: ReturnType<typeof useTheme>;
-}) {
-  const mcpServers = useMcpStore((s) => s.servers);
-  const isInstalled = mcp.installed || mcpServers.some((s) => s.name === mcp.name);
-  return (
-    <div
-      style={{
-        position: 'relative',
-        borderBottom: `1px solid ${t.borderSubtle}`
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '0 16px',
-          height: 48,
-          transition: 'background 100ms ease'
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-      >
-        {/* Icon */}
-        <div style={{
-          width: 20,
-          height: 20,
-          borderRadius: 4,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          background: t.surfaceElevated
-        }}>
-          <RegistryIcon icon={mcp.icon} size={13} style={{ color: t.textSecondary }} />
-        </div>
-
-        {/* Name + transport */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 14, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.textPrimary }} spellCheck={false}>
-              {mcp.name}
-            </span>
-            <span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.textDim }}>
-              {mcp.author}
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
-            {mcp.runtimes.map((rt) => (
-              <div key={rt} style={{ borderRadius: 2, width: 16, height: 3, background: RUNTIME_INFO[rt].color }} title={RUNTIME_INFO[rt].label} />
-            ))}
-            <span style={{
-              fontSize: 12,
-              marginLeft: 4,
-              textTransform: 'uppercase',
-              color: mcp.transport === 'stdio' ? t.statusInfo : t.statusWarning,
-              fontFamily: "'Geist Mono', monospace"
-            }}>
-              {mcp.transport}
-            </span>
-          </div>
-        </div>
-
-        {/* Description */}
-        <span style={{
-          fontSize: 13,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          flexShrink: 0,
-          color: t.textMuted,
-          maxWidth: 200
-        }} title={mcp.description} spellCheck={false}>
-          {mcp.description}
-        </span>
-
-        {/* Action */}
-        {isInstalled ? (
-          <span style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            fontSize: 12,
-            padding: '4px 8px',
-            borderRadius: 6,
-            flexShrink: 0,
-            color: t.statusSuccess,
-            background: t.statusSuccessBg
-          }}>
-            <Check size={10} /> Installed
-          </span>
-        ) : installing ? (
-          <span style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            fontSize: 12,
-            padding: '4px 8px',
-            borderRadius: 6,
-            flexShrink: 0,
-            color: '#FE5000',
-            background: '#FE500010'
-          }}>
-            <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} /> Configuring
-          </span>
-        ) : (
-          <button
-            type="button"
-            onClick={onToggleConfigure}
-            style={{
-              fontSize: 12,
-              padding: '4px 8px',
-              borderRadius: 6,
-              cursor: 'pointer',
-              flexShrink: 0,
-              background: 'transparent',
-              border: `1px solid ${t.border}`,
-              color: t.textSecondary,
-              transition: 'border-color 150ms ease, color 150ms ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-            onMouseLeave={(e) => { if (!configuringOpen) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; } }}
-          >
-            Configure
-          </button>
-        )}
-      </div>
-
-      {/* Config form dropdown */}
-      {configuringOpen && (
-        <McpConfigForm mcp={mcp} onInstall={onInstall} t={t} />
-      )}
-    </div>
-  );
-}
-
-/* ──────── MCP Config Form ──────── */
-
-function McpConfigForm({ mcp, onInstall, t }: {
-  mcp: { id: string; configFields: ConfigField[]; installCmd: string };
-  onInstall: (id: string, envVars: Record<string, string>) => void;
-  t: ReturnType<typeof useTheme>;
-}) {
-  const [envValues, setEnvValues] = useState<Record<string, string>>({});
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        right: 16,
-        marginTop: 0,
-        borderRadius: 6,
-        padding: 12,
-        zIndex: 10,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-        background: t.surfaceOpaque,
-        border: `1px solid ${t.border}`,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-        width: 260,
-        top: 48
-      }}
-    >
-      {mcp.configFields.length > 0 ? (
-        mcp.configFields.map((field) => (
-          <div key={field.key}>
-            <label style={{ fontSize: 12, fontWeight: 500, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
-              {field.label}
-            </label>
-            <input
-              type={field.type === 'password' ? 'password' : 'text'}
-              placeholder={field.placeholder}
-              value={envValues[field.key] || ''}
-              onChange={(e) => setEnvValues({ ...envValues, [field.key]: e.target.value })}
-              style={{
-                width: '100%',
-                fontSize: 13,
-                padding: '4px 8px',
-                borderRadius: 6,
-                outline: 'none',
-                marginTop: 2,
-                background: t.inputBg,
-                border: `1px solid ${t.border}`,
-                color: t.textPrimary
-              }}
-            />
-          </div>
-        ))
-      ) : (
-        <span style={{ fontSize: 13, color: t.textMuted }}>No configuration needed</span>
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 6, background: t.inputBg }}>
-        <Terminal size={9} style={{ color: t.textDim }} />
-        <code style={{ fontSize: 13, color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
-          {mcp.installCmd}
-        </code>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => onInstall(mcp.id, envValues)}
-        style={{
-          width: '100%',
-          padding: '6px 0',
-          borderRadius: 6,
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: 'pointer',
-          border: 'none',
-          background: '#FE5000',
-          color: '#fff'
-        }}
-      >
-        Save & Install
-      </button>
-    </div>
-  );
-}
+/* McpRow and McpConfigForm removed — MCP tab now redirects to ConnectionPicker */
 
 /* ──────── Preset Row (list item) ──────── */
 

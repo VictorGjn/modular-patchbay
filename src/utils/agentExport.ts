@@ -42,7 +42,13 @@ interface AgentData {
   token_budget: number;
   prompt: string;
   system: string;
-  connectors: { read: { service: string; config: Record<string, string> }[]; write: { service: string; config: Record<string, string> }[] };
+  connections: Array<{
+    service: string;
+    direction?: string;
+    config?: Record<string, string>;
+    type: 'connector' | 'mcp';
+    id?: string;
+  }>;
 }
 
 function compileSystemFromInstructions(inst: InstructionState | undefined, fallbackPrompt: string): string {
@@ -107,8 +113,20 @@ function buildAgentData(config: ExportConfig): AgentData {
   const temperature = config.agentConfig?.temperature ?? 0.7;
   const planningMode = config.agentConfig?.planningMode ?? 'single-shot';
 
-  const readConnectors = (config.connectors ?? []).filter((c) => c.enabled && c.direction === 'read').map((c) => ({ service: c.service, config: c.config }));
-  const writeConnectors = (config.connectors ?? []).filter((c) => c.enabled && c.direction === 'write').map((c) => ({ service: c.service, config: c.config }));
+  // Instead of separate readConnectors/writeConnectors:
+  const connections = [
+    ...(config.connectors ?? []).filter(c => c.enabled).map(c => ({
+      service: c.service,
+      direction: c.direction,
+      config: c.config,
+      type: 'connector' as const,
+    })),
+    ...(config.mcpServers ?? []).filter(s => s.enabled !== false).map(s => ({
+      service: s.name || s.id,
+      type: 'mcp' as const,
+      id: s.id,
+    })),
+  ];
 
   return {
     name,
@@ -125,7 +143,7 @@ function buildAgentData(config: ExportConfig): AgentData {
     token_budget: config.tokenBudget,
     prompt: config.prompt,
     system: systemParts.join('\n\n'),
-    connectors: { read: readConnectors, write: writeConnectors },
+    connections,
   };
 }
 
@@ -435,7 +453,7 @@ export function exportGenericJSON(config: ExportConfig): string {
       mcp_servers: data.mcp_servers,
       output_formats: data.output_format,
       token_budget: data.token_budget,
-      connectors: data.connectors,
+      connections: data.connections,
       ...(config.instructionState ? { instructionState: config.instructionState } : {}),
       ...(config.workflowSteps && config.workflowSteps.length > 0 ? { workflowSteps: config.workflowSteps } : {}),
       ...(templates && Object.keys(templates).length > 0 ? { output: { templates } } : {}),

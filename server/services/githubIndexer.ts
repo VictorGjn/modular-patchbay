@@ -8,7 +8,7 @@
  * "get a tree-indexed knowledge base for an agent."
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -142,10 +142,11 @@ export async function indexGitHubRepo(request: GitHubIndexRequest): Promise<GitH
     const branchArg = ref ? `--branch ${ref}` : '';
 
     try {
-      execSync(
-        `git clone ${depthArg} ${branchArg} --single-branch "${cloneUrl}" "${tempDir}"`,
-        { stdio: 'pipe', timeout: 60_000 },
-      );
+      const cloneArgs = ['clone'];
+      if (depthArg) cloneArgs.push(...depthArg.split(' ').filter(Boolean));
+      if (branchArg) cloneArgs.push(...branchArg.split(' ').filter(Boolean));
+      cloneArgs.push('--single-branch', cloneUrl, tempDir);
+      execFileSync('git', cloneArgs, { stdio: 'pipe', timeout: 60_000 });
     } catch (cloneErr: unknown) {
       // On Windows, filenames with colons (e.g. timestamps) cause checkout
       // failures even though the clone (object fetch) succeeds. Detect this
@@ -154,7 +155,7 @@ export async function indexGitHubRepo(request: GitHubIndexRequest): Promise<GitH
       if (existsSync(gitDir)) {
         // Best-effort checkout of whatever files Windows can handle
         try {
-          execSync('git checkout HEAD -- .', { cwd: tempDir, stdio: 'pipe', timeout: 30_000 });
+          execFileSync('git', ['checkout', 'HEAD', '--', '.'], { cwd: tempDir, stdio: 'pipe', timeout: 30_000 });
         } catch {
           // Some files still fail — that's fine, we index what we can
         }
