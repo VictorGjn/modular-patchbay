@@ -325,7 +325,6 @@ export async function treeAwareRetrieve(
   const validChunks = chunks.filter(c => c.content && c.content.trim().length > 0);
   if (validChunks.length === 0) {
     return {
-      selectedChunks: 0,
       chunks: [],
       diversityScore: 1.0,
       collapseWarning: false,
