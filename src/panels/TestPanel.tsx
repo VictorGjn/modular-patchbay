@@ -18,6 +18,7 @@ import { TraceViewer } from './TraceViewer';
 import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
 import { CapabilityGate } from '../components/CapabilityGate';
 import { RuntimeResults } from './RuntimePanel';
+import { PipelineTraceView } from '../components/PipelineTraceView';
 import { API_BASE } from '../config';
 import { runTeam as runTeamService, type RunTeamConfig } from '../services/runtimeService';
 import { useRuntimeStore } from '../store/runtimeStore';
@@ -40,8 +41,79 @@ function PipelineStatsBar() {
   const DEPTH_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e67e22', '#999'];
   const DEPTH_LABELS = ['Full', 'Detail', 'Summary', 'Headlines', 'Mention'];
 
+  // Colors for various UI elements
+  const getDiversityColor = (score: number) => score > 0.5 ? '#2ecc71' : score > 0.3 ? '#f1c40f' : '#e74c3c';
+  const getQueryTypeColor = (queryType: string) => {
+    switch (queryType) {
+      case 'factual': return '#3498db';
+      case 'analytical': return '#e67e22';
+      case 'exploratory': return '#9b59b6';
+      default: return t.textDim;
+    }
+  };
+
   return (
     <div style={{ borderTop: `1px solid ${t.border}` }}>
+      {/* Context Health - always visible when retrieval data exists */}
+      {stats.retrieval && (
+        <div className="flex items-center gap-3 px-4 py-1.5" style={{ 
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: 11,
+          borderBottom: `1px solid ${t.border}30`,
+        }}>
+          {/* Diversity gauge */}
+          <div className="flex items-center gap-1.5">
+            <span style={{ color: t.textDim }}>Diversity</span>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: '#333', overflow: 'hidden' }}>
+              <div style={{ 
+                width: `${stats.retrieval.diversityScore * 100}%`, 
+                height: '100%', 
+                background: getDiversityColor(stats.retrieval.diversityScore),
+                borderRadius: 2 
+              }} />
+            </div>
+            <span style={{ 
+              fontFamily: "'Geist Mono', monospace", 
+              color: getDiversityColor(stats.retrieval.diversityScore),
+              fontSize: 11,
+            }}>
+              {(stats.retrieval.diversityScore * 100).toFixed(0)}%
+            </span>
+          </div>
+
+          {/* Chunks */}
+          <span style={{ color: t.textDim }}>
+            {stats.retrieval.selectedChunks}/{stats.retrieval.totalChunks} chunks
+          </span>
+
+          {/* Budget */}
+          <span style={{ color: t.textDim }}>
+            Budget {Math.round((stats.retrieval.budgetUsed / stats.retrieval.budgetTotal) * 100)}%
+          </span>
+
+          {/* Query type badge */}
+          <span style={{ 
+            fontSize: 10, 
+            padding: '1px 5px', 
+            borderRadius: 3, 
+            background: getQueryTypeColor(stats.retrieval.queryType) + '15', 
+            color: getQueryTypeColor(stats.retrieval.queryType) 
+          }}>
+            {stats.retrieval.queryType}
+          </span>
+
+          {/* Timing */}
+          <span style={{ fontSize: 11, color: t.textFaint, marginLeft: 'auto' }}>
+            {stats.retrieval.embeddingMs + stats.retrieval.retrievalMs}ms
+          </span>
+
+          {/* Collapse warning */}
+          {stats.retrieval.collapseWarning && (
+            <span style={{ fontSize: 11, color: '#e74c3c' }}>⚠ Low diversity</span>
+          )}
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
@@ -65,51 +137,61 @@ function PipelineStatsBar() {
         <ChevronDown size={8} className="ml-auto" style={{ transform: expanded ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms' }} />
       </button>
 
-      {/* Depth Heatmap */}
-      {expanded && stats.heatmap.length > 0 && (
-        <div className="px-4 pb-2 flex flex-col gap-2">
-          {stats.heatmap.map(src => (
-            <div key={src.path}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[12px] font-medium" style={{ color: t.textPrimary }}>{src.name}</span>
-                <span className="text-[12px] px-1.5 py-0.5 rounded"
-                  style={{ fontFamily: "'Geist Mono', monospace", background: DEPTH_COLORS[src.depth] + '18', color: DEPTH_COLORS[src.depth] }}>
-                  {DEPTH_LABELS[src.depth]}
-                </span>
-                <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
-                  {fmtTokens(src.filteredTokens)}/{fmtTokens(src.totalTokens)}
-                </span>
-              </div>
-              {/* Heading-level heatmap bars */}
-              {src.headings.length > 0 && (
-                <div className="flex flex-col gap-0.5 pl-2">
-                  {src.headings.slice(0, 8).map(h => {
-                    const maxTokens = Math.max(...src.headings.map(x => x.tokens), 1);
-                    const pct = Math.max(5, (h.tokens / maxTokens) * 100);
-                    const barColor = DEPTH_COLORS[Math.min(h.depth, 4)];
-                    return (
-                      <div key={h.nodeId} className="flex items-center gap-1.5">
-                        <span className="text-[12px] truncate w-24 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
-                          {h.title}
-                        </span>
-                        <div style={{ flex: 1, height: 4, background: `${barColor}18`, borderRadius: 2, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 2 }} />
-                        </div>
-                        <span className="text-[7px] w-6 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
-                          {fmtTokens(h.tokens)}
-                        </span>
+      {/* Pipeline Trace View or Depth Heatmap */}
+      {expanded && (
+        <div>
+          {/* Show Pipeline Trace View when retrieval data is available */}
+          {stats.retrieval ? (
+            <PipelineTraceView retrieval={stats.retrieval} />
+          ) : (
+            /* Fall back to depth heatmap when no retrieval data */
+            stats.heatmap.length > 0 && (
+              <div className="px-4 pb-2 flex flex-col gap-2">
+                {stats.heatmap.map(src => (
+                  <div key={src.path}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[12px] font-medium" style={{ color: t.textPrimary }}>{src.name}</span>
+                      <span className="text-[12px] px-1.5 py-0.5 rounded"
+                        style={{ fontFamily: "'Geist Mono', monospace", background: DEPTH_COLORS[src.depth] + '18', color: DEPTH_COLORS[src.depth] }}>
+                        {DEPTH_LABELS[src.depth]}
+                      </span>
+                      <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
+                        {fmtTokens(src.filteredTokens)}/{fmtTokens(src.totalTokens)}
+                      </span>
+                    </div>
+                    {/* Heading-level heatmap bars */}
+                    {src.headings.length > 0 && (
+                      <div className="flex flex-col gap-0.5 pl-2">
+                        {src.headings.slice(0, 8).map(h => {
+                          const maxTokens = Math.max(...src.headings.map(x => x.tokens), 1);
+                          const pct = Math.max(5, (h.tokens / maxTokens) * 100);
+                          const barColor = DEPTH_COLORS[Math.min(h.depth, 4)];
+                          return (
+                            <div key={h.nodeId} className="flex items-center gap-1.5">
+                              <span className="text-[12px] truncate w-24 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
+                                {h.title}
+                              </span>
+                              <div style={{ flex: 1, height: 4, background: `${barColor}18`, borderRadius: 2, overflow: 'hidden' }}>
+                                <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 2 }} />
+                              </div>
+                              <span className="text-[7px] w-6 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
+                                {fmtTokens(h.tokens)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {src.headings.length > 8 && (
+                          <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
+                            +{src.headings.length - 8} more
+                          </span>
+                        )}
                       </div>
-                    );
-                  })}
-                  {src.headings.length > 8 && (
-                    <span className="text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
-                      +{src.headings.length - 8} more
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          )}
         </div>
       )}
     </div>

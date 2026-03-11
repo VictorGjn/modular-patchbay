@@ -296,6 +296,139 @@ describe('treeAwareRetrieve', () => {
     expect(result.diversityScore).toBe(1.0);
     expect(result.collapseWarning).toBe(false);
     expect(result.totalChunks).toBe(0);
+    expect(result.retrievalMs).toBeGreaterThanOrEqual(0);
+    expect(result.embeddingMs).toBe(0);
+    expect(result.budgetUsed).toBe(0);
+    expect(result.budgetTotal).toBe(1000);
+  });
+
+  it('should set inclusionReason correctly for direct, parent, and sibling chunks', async () => {
+    // Create a hierarchical structure with parent and siblings
+    const parentNode: TreeNode = {
+      nodeId: 'parent',
+      title: 'Parent Section',
+      depth: 1,
+      text: 'Parent context content.',
+      tokens: 10,
+      totalTokens: 30,
+      children: [{
+        nodeId: 'child1',
+        title: 'Child Section 1',
+        depth: 2,
+        text: 'Highly relevant child content.',
+        tokens: 10,
+        totalTokens: 10,
+        children: [],
+      }, {
+        nodeId: 'child2',
+        title: 'Child Section 2',
+        depth: 2,
+        text: 'Also relevant sibling content.',
+        tokens: 10,
+        totalTokens: 10,
+        children: [],
+      }],
+    };
+
+    const treeIndex: TreeIndex = {
+      source: 'test.md',
+      sourceType: 'markdown',
+      root: {
+        nodeId: 'root',
+        title: 'test.md',
+        depth: 0,
+        text: '',
+        tokens: 0,
+        totalTokens: 30,
+        children: [parentNode],
+      },
+      totalTokens: 30,
+      nodeCount: 4,
+      created: Date.now(),
+    };
+
+    // Mock embeddings designed to trigger all 3 inclusion reasons:
+    // - child1: high cosine with query → "direct" (and score*0.6 > 0.3 triggers parent expansion)
+    // - parent: low cosine with query (< 0.3), but gets pulled in via parent expansion
+    // - child2: low cosine with query (< 0.3 → NOT direct), but HIGH cosine with child1 (> 0.4 → sibling-coherence)
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        embeddings: [
+          // Chunk order from stack-based DFS: query, parent, child2, child1
+          [1.0, 0.0, 0.0],   // Query
+          [0.1, 0.1, 0.98],  // Parent: cosine ~0.1 with query (below 0.3) → parent-expansion via child1
+          [0.2, 0.95, 0.0],  // Child2 ("Also relevant sibling"): cosine ~0.20 with query (below 0.3 → NOT direct)
+                              //   but cosine with child1 ≈ 0.56 → sibling-coherence
+          [0.95, 0.3, 0.0],  // Child1 ("Highly relevant child"): cosine ~0.95 with query → direct
+        ],
+      }),
+    });
+
+    const result = await treeAwareRetrieve(
+      'relevant content',
+      [{ treeIndex, knowledgeType: 'signal' }],
+      1000
+    );
+
+    // Log result for debugging
+    console.log('Chunks returned:', result.chunks.map(c => ({
+      content: c.content.slice(0, 30),
+      nodeId: c.nodeId,
+      parentNodeId: c.parentNodeId,
+      inclusionReason: c.inclusionReason,
+      relevanceScore: c.relevanceScore
+    })));
+
+    // Find chunks by content
+    const directChunk = result.chunks.find(c => c.content.includes('Highly relevant child'));
+    const parentChunk = result.chunks.find(c => c.content.includes('Parent context'));
+    const siblingChunk = result.chunks.find(c => c.content.includes('Also relevant sibling'));
+
+    // Verify inclusion reasons
+    expect(directChunk?.inclusionReason).toBe('direct');
+    expect(parentChunk?.inclusionReason).toBe('parent-expansion');
+    expect(siblingChunk?.inclusionReason).toBe('sibling-coherence');
+  });
+
+  it('should populate retrievalMs and embeddingMs timing fields', async () => {
+    const treeIndex = createSimpleIndex('test.md', [
+      { title: 'Test Section', content: 'Test content for timing.' },
+    ]);
+
+    const result = await treeAwareRetrieve(
+      'test content',
+      [{ treeIndex, knowledgeType: 'signal' }],
+      1000
+    );
+
+    expect(result.retrievalMs).toBeGreaterThanOrEqual(0);
+    expect(result.embeddingMs).toBeGreaterThanOrEqual(0);
+    expect(typeof result.retrievalMs).toBe('number');
+    expect(typeof result.embeddingMs).toBe('number');
+  });
+
+  it('should calculate budget usage correctly', async () => {
+    const treeIndex = createSimpleIndex('test.md', [
+      { title: 'Section 1', content: 'A'.repeat(40) }, // ~10 tokens
+      { title: 'Section 2', content: 'B'.repeat(40) }, // ~10 tokens
+    ]);
+
+    const result = await treeAwareRetrieve(
+      'content',
+      [{ treeIndex, knowledgeType: 'signal' }],
+      1000
+    );
+
+    expect(result.budgetUsed).toBeGreaterThan(0);
+    expect(result.budgetTotal).toBe(1000);
+    expect(typeof result.budgetUsed).toBe('number');
+    
+    // Budget used should be roughly the sum of token estimates for selected chunks
+    const expectedBudget = result.chunks.reduce((sum, chunk) => 
+      sum + Math.ceil(chunk.content.length / 4), 0
+    );
+    expect(result.budgetUsed).toBe(expectedBudget);
   });
 
   it('should respect budget constraints', async () => {

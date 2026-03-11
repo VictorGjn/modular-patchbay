@@ -62,6 +62,25 @@ export interface PipelineChatStats {
   toolCalls?: ToolCallResult[];
   toolTurns?: number;
   memory?: import('./postProcessor').MemoryStats;
+  retrieval?: {
+    queryType: string;
+    diversityScore: number;
+    collapseWarning: boolean;
+    totalChunks: number;
+    selectedChunks: number;
+    budgetUsed: number;
+    budgetTotal: number;
+    retrievalMs: number;
+    embeddingMs: number;
+    chunks: Array<{
+      section: string;
+      source: string;
+      relevanceScore: number;
+      inclusionReason: string;
+      knowledgeType: string;
+      tokens: number;
+    }>;
+  };
 }
 
 // ── Provider/model resolution (shared by all tester surfaces) ──
@@ -124,10 +143,10 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         : { frameworkBlock: '', frameworkSummary: undefined, regularChannels: [], residualKnowledgeBlock: '' };
 
     // 3. Compress knowledge: pipeline + optional agent navigation
-    let { knowledgeBlock, pipelineResult, provenance } =
+    let { knowledgeBlock, pipelineResult, provenance, retrievalResult } =
       activeChannels.length > 0
         ? await compressKnowledge(channels, regularChannels, residualKnowledgeBlock, { userMessage, navigationMode: options.navigationMode, providerId, model }, traceId)
-        : { knowledgeBlock: '', pipelineResult: null, provenance: null };
+        : { knowledgeBlock: '', pipelineResult: null, provenance: null, retrievalResult: undefined };
 
     // 3a. Append connector references (services like Notion, Slack, HubSpot)
     const activeConnectors = (options.connectors || []).filter(c => c.enabled && c.direction !== 'write');
@@ -225,6 +244,26 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       history.reduce((s, m) => s + estimateTokens(m.content), 0) +
       estimateTokens(userMessage);
 
+    const retrievalStats = retrievalResult ? {
+      queryType: retrievalResult.queryType,
+      diversityScore: retrievalResult.diversityScore,
+      collapseWarning: retrievalResult.collapseWarning,
+      totalChunks: retrievalResult.totalChunks,
+      selectedChunks: retrievalResult.chunks.length,
+      budgetUsed: retrievalResult.budgetUsed,
+      budgetTotal: retrievalResult.budgetTotal,
+      retrievalMs: retrievalResult.retrievalMs,
+      embeddingMs: retrievalResult.embeddingMs,
+      chunks: retrievalResult.chunks.map(chunk => ({
+        section: chunk.section,
+        source: chunk.source,
+        relevanceScore: chunk.relevanceScore || 0,
+        inclusionReason: chunk.inclusionReason || 'unknown',
+        knowledgeType: chunk.knowledgeType,
+        tokens: Math.ceil(chunk.content.length / 4),
+      })),
+    } : undefined;
+
     onDone({
       pipeline: pipelineResult,
       systemTokens,
@@ -234,6 +273,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       toolCalls: toolCallResults.length > 0 ? toolCallResults : undefined,
       toolTurns: toolTurns > 0 ? toolTurns : undefined,
       memory: updatedMemoryStats,
+      retrieval: retrievalStats,
     });
 
   } catch (err) {
