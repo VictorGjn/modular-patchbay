@@ -15,6 +15,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: number;
+  pipelineStats?: PipelineChatStats;
 }
 
 export interface TestCase {
@@ -53,6 +54,7 @@ export interface ConversationState {
   setInputText: (text: string) => void;
   addMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   updateLastAssistant: (content: string) => void;
+  updateMessagePipelineStats: (messageId: string, stats: PipelineChatStats) => void;
   clearMessages: () => void;
   setStreaming: (streaming: boolean) => void;
   setLastPipelineStats: (stats: PipelineChatStats | null) => void;
@@ -125,6 +127,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
     }
     set({ messages: msgs });
+  },
+
+  updateMessagePipelineStats: (messageId, stats) => {
+    set({
+      messages: get().messages.map(msg => 
+        msg.id === messageId ? { ...msg, pipelineStats: stats } : msg
+      ),
+    });
   },
 
   clearMessages: () => set({ messages: [], lastPipelineStats: null }),
