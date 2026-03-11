@@ -7,6 +7,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { getCachedEmbedding, setCachedEmbedding, getEmbeddingCacheSize } from './sqliteStore.js';
 
 export interface EmbeddingService {
   initialize(): Promise<void>;
@@ -103,6 +104,15 @@ class EmbeddingServiceImpl implements EmbeddingService {
       return cached.embedding;
     }
 
+    // Check L2 cache (SQLite) on L1 miss
+    const sqliteCached = await getCachedEmbedding(hash);
+    if (sqliteCached) {
+      const embedding = Array.from(sqliteCached);
+      if (this.cache.size >= this.maxCacheSize) this.evictOldestCacheEntry();
+      this.cache.set(hash, { embedding, lastAccessed: Date.now() });
+      return embedding;
+    }
+
     // Generate embedding
     const result = await this.model(text, { pooling: 'mean', normalize: true });
     const embedding = Array.from(result.data) as number[];
@@ -116,6 +126,8 @@ class EmbeddingServiceImpl implements EmbeddingService {
       embedding,
       lastAccessed: Date.now(),
     });
+
+    await setCachedEmbedding(hash, 'Xenova/all-MiniLM-L6-v2', embedding, text).catch(() => {});
 
     return embedding;
   }
@@ -238,12 +250,14 @@ class EmbeddingServiceImpl implements EmbeddingService {
   }
 
   // Health check information
-  getHealth() {
+  async getHealth() {
+    const sqliteCacheSize = await getEmbeddingCacheSize().catch(() => 0);
     return {
       ready: this.ready,
       model: 'Xenova/all-MiniLM-L6-v2',
       cacheSize: this.cache.size,
       maxCacheSize: this.maxCacheSize,
+      sqliteCacheSize
     };
   }
 }

@@ -9,6 +9,8 @@ import { API_BASE } from '../config';
 import { useConsoleStore } from '../store/consoleStore';
 import type { ChannelConfig } from '../store/knowledgeBase';
 
+const fileContentCache = new Map<string, string>();
+
 export interface BuiltinTool {
   name: string;
   description: string;
@@ -324,9 +326,28 @@ async function searchKnowledge(args: Record<string, unknown>): Promise<string> {
     // Gather chunk texts from active channels
     const chunks: { text: string; source: string }[] = [];
     for (const ch of channels) {
-      if (ch.content) {
+      let text = ch.content;
+      
+      // If channel has path but no content, fetch from server
+      if (!text && ch.path) {
+        if (fileContentCache.has(ch.path)) {
+          text = fileContentCache.get(ch.path);
+        } else {
+          try {
+            const resp = await fetch(`${API_BASE}/knowledge/read?path=${encodeURIComponent(ch.path)}`);
+            if (resp.ok) {
+              text = await resp.text();
+              fileContentCache.set(ch.path, text);
+            }
+          } catch (error) {
+            console.error(`Failed to fetch content for ${ch.path}:`, error);
+          }
+        }
+      }
+      
+      if (text) {
         // Split by headings for granularity
-        const sections = ch.content.split(/(?=^#{1,3}\s)/m).filter(s => s.trim());
+        const sections = text.split(/(?=^#{1,3}\s)/m).filter(s => s.trim());
         for (const section of sections) {
           if (section.trim().length > 20) {
             chunks.push({ text: section.trim().slice(0, 1024), source: ch.name });

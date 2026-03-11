@@ -1,6 +1,6 @@
 {
   "name": "modular-studio",
-  "version": "0.2.4",
+  "version": "1.0.0",
   "description": "Context engineering IDE for AI agents. Design knowledge pipelines, not just prompts.",
   "type": "module",
   "license": "Apache-2.0",
@@ -16,7 +16,6 @@
   "engines": {
     "node": ">=18"
   },
-
   "keywords": [
     "ai",
     "agent",
@@ -68,6 +67,7 @@
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "sql.js": "^1.14.1",
     "zod": "^4.0.0",
     "zustand": "^5.0.11"
   },
@@ -80,6 +80,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/sql.js": "^1.4.9",
     "@vitejs/plugin-react": "^5.1.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",

@@ -15,6 +15,13 @@ vi.mock('@huggingface/transformers', () => ({
   },
 }));
 
+// Mock sqliteStore
+vi.mock('../sqliteStore.js', () => ({
+  getCachedEmbedding: vi.fn().mockResolvedValue(null),
+  setCachedEmbedding: vi.fn().mockResolvedValue(undefined),
+  getEmbeddingCacheSize: vi.fn().mockResolvedValue(0),
+}));
+
 describe('EmbeddingService', () => {
   const mockModel = vi.fn();
 
@@ -235,33 +242,35 @@ describe('EmbeddingService', () => {
       }
       
       // Check that cache has some entries
-      const health = embeddingService.getHealth();
+      const health = await embeddingService.getHealth();
       expect(health.cacheSize).toBeGreaterThan(0);
       expect(health.cacheSize).toBeLessThanOrEqual(health.maxCacheSize);
     });
   });
 
   describe('getHealth', () => {
-    it('should return health status', () => {
-      const health = embeddingService.getHealth();
+    it('should return health status', async () => {
+      const health = await embeddingService.getHealth();
       
       expect(health).toHaveProperty('ready');
       expect(health).toHaveProperty('model');
       expect(health).toHaveProperty('cacheSize');
       expect(health).toHaveProperty('maxCacheSize');
+      expect(health).toHaveProperty('sqliteCacheSize');
       
       expect(health.model).toBe('Xenova/all-MiniLM-L6-v2');
       expect(typeof health.cacheSize).toBe('number');
       expect(typeof health.maxCacheSize).toBe('number');
+      expect(typeof health.sqliteCacheSize).toBe('number');
     });
 
     it('should reflect ready state', async () => {
-      let health = embeddingService.getHealth();
+      let health = await embeddingService.getHealth();
       expect(health.ready).toBe(false);
       
       await embeddingService.initialize();
       
-      health = embeddingService.getHealth();
+      health = await embeddingService.getHealth();
       expect(health.ready).toBe(true);
     });
   });

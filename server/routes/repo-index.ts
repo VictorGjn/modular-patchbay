@@ -203,9 +203,10 @@ router.post('/index-github', async (req, res) => {
     return;
   }
 
-  // Basic validation: must look like a git URL
-  if (!url.includes('github.com') && !url.endsWith('.git')) {
-    res.status(400).json({ status: 'error', error: 'URL must be a GitHub URL or end with .git' } satisfies ApiResponse);
+  // Basic validation: must look like a GitHub URL
+  const GITHUB_URL_REGEX = /^https?:\/\/(www\.)?github\.com\/[\w.-]+\/[\w.-]+(\.git)?(\/.*)?$/i;
+  if (!GITHUB_URL_REGEX.test(url)) {
+    res.status(400).json({ status: 'error', error: 'URL must be a valid GitHub URL' } satisfies ApiResponse);
     return;
   }
 

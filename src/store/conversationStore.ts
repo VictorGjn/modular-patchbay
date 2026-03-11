@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import type { PipelineChatStats } from '../services/pipelineChat';
 
+const API_BASE = import.meta.env.VITE_API_BASE || '';
+
+interface ConversationSummary {
+  id: string;
+  title: string;
+  lastModified: number;
+  messageCount: number;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -24,6 +33,8 @@ export interface ConversationState {
   activeTab: 'chat' | 'tests' | 'history';
 
   // Chat
+  conversationId: string | null;
+  conversations: ConversationSummary[];
   messages: ChatMessage[];
   inputText: string;
   streaming: boolean;
@@ -45,6 +56,11 @@ export interface ConversationState {
   clearMessages: () => void;
   setStreaming: (streaming: boolean) => void;
   setLastPipelineStats: (stats: PipelineChatStats | null) => void;
+  
+  // Persistence
+  saveToServer: () => Promise<void>;
+  listFromServer: () => Promise<void>;
+  loadFromServer: (id: string) => Promise<void>;
 
   // Test cases
   addTestCase: (tc: Omit<TestCase, 'id'>) => void;
@@ -54,10 +70,14 @@ export interface ConversationState {
   saveCurrentAsTest: (name: string, expectedBehavior: string) => void;
 }
 
+let saveTimeout: NodeJS.Timeout | null = null;
+
 export const useConversationStore = create<ConversationState>((set, get) => ({
   panelOpen: false,
   panelHeight: 40,
   activeTab: 'chat',
+  conversationId: null,
+  conversations: [],
   messages: [],
   inputText: '',
   streaming: false,
@@ -70,13 +90,31 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   setInputText: (text) => set({ inputText: text }),
 
-  addMessage: (msg) => set({
-    messages: [...get().messages, {
+  addMessage: (msg) => {
+    const state = get();
+    const newMsg = {
       ...msg,
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       timestamp: Date.now(),
-    }],
-  }),
+    };
+    
+    // Generate conversation ID on first message
+    let conversationId = state.conversationId;
+    if (!conversationId && state.messages.length === 0) {
+      conversationId = `conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+    
+    set({
+      messages: [...state.messages, newMsg],
+      conversationId,
+    });
+    
+    // Debounced save to server
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      get().saveToServer().catch(console.error);
+    }, 1000);
+  },
 
   updateLastAssistant: (content) => {
     const msgs = [...get().messages];
@@ -112,5 +150,55 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const lastUser = [...msgs].reverse().find((m) => m.role === 'user');
     if (!lastUser) return;
     get().addTestCase({ name, input: lastUser.content, expectedBehavior, passed: null });
+  },
+
+  // Persistence actions
+  saveToServer: async () => {
+    const state = get();
+    if (!state.conversationId || state.messages.length === 0) return;
+    
+    try {
+      const title = state.messages[0]?.content?.slice(0, 50) || 'Untitled Conversation';
+      await fetch(`${API_BASE}/api/conversations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: state.conversationId,
+          title,
+          messages: state.messages,
+          lastModified: Date.now(),
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to save conversation:', error);
+    }
+  },
+
+  listFromServer: async () => {
+    try {
+      const resp = await fetch(`${API_BASE}/api/conversations`);
+      if (resp.ok) {
+        const conversations = await resp.json();
+        set({ conversations });
+      }
+    } catch (error) {
+      console.error('Failed to list conversations:', error);
+    }
+  },
+
+  loadFromServer: async (id: string) => {
+    try {
+      const resp = await fetch(`${API_BASE}/api/conversations/${id}`);
+      if (resp.ok) {
+        const conversation = await resp.json();
+        set({
+          conversationId: conversation.id,
+          messages: conversation.messages || [],
+          lastPipelineStats: null,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    }
   },
 }));

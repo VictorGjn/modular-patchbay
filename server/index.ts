@@ -24,6 +24,7 @@ import agentRoutes from './routes/agents.js';
 import mcpOAuthRoutes from './routes/mcp-oauth.js';
 import pipelineRoutes from './routes/pipeline.js';
 import embeddingRoutes from './routes/embeddings.js';
+import conversationRoutes from './routes/conversations.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -91,6 +92,7 @@ export function createApp() {
   app.use('/api/agents', agentRoutes);
   app.use('/api/pipeline', pipelineRoutes);
   app.use('/api/embeddings', embeddingRoutes);
+  app.use('/api/conversations', conversationRoutes);
 
   // Global error handler — prevent server crashes
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
