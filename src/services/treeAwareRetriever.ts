@@ -1,0 +1,397 @@
+/**
+ * Tree-Aware Retriever — Semantic retrieval that respects document structure
+ *
+ * This is the differentiator from flat-chunk RAG. The tree structure matters.
+ * When a child node is relevant, we also consider parent context.
+ * When siblings are related, we include them for cluster coherence.
+ */
+
+import type { TreeNode, TreeIndex } from './treeIndexer';
+import type { KnowledgeType } from '../store/knowledgeBase';
+import { API_BASE } from '../config';
+
+export interface ChunkMetadata {
+  content: string;
+  nodeId: string;
+  source: string;
+  section: string;
+  parentNodeId?: string;
+  depth: number;
+  knowledgeType: KnowledgeType;
+  embedding?: number[];
+}
+
+export interface RetrievalResult {
+  chunks: ChunkMetadata[];
+  diversityScore: number;
+  collapseWarning: boolean;
+  totalChunks: number;
+  queryType: QueryType;
+}
+
+export type QueryType = 'factual' | 'analytical' | 'exploratory';
+
+/**
+ * Classify query type for dynamic λ in MMR
+ */
+export function classifyQuery(query: string): QueryType {
+  const q = query.toLowerCase();
+  
+  // Analytical: "compare", "evaluate", "pros and cons", "should we", "tradeoffs" (check first)
+  if (/\b(compare|vs|versus|evaluate|pros and cons|advantages|disadvantages|should we|tradeoffs?|better|worse|choose|decide|recommend)\b/.test(q)) {
+    return 'analytical';
+  }
+  
+  // Factual: short queries, "what is", "how does X work", specific entity questions
+  if (q.length < 50 || 
+      /\b(what is|how does|who is|when did|where is|define|definition)\b/.test(q) ||
+      /\b(version|spec|api|format|syntax|command)\b/.test(q)) {
+    return 'factual';
+  }
+  
+  // Default to exploratory for longer, open-ended queries
+  return 'exploratory';
+}
+
+/**
+ * Get dynamic λ for MMR based on query type
+ */
+function getMMRLambda(queryType: QueryType): number {
+  switch (queryType) {
+    case 'factual': return 0.9;    // High relevance, low diversity
+    case 'analytical': return 0.5; // Balanced relevance and diversity
+    case 'exploratory': return 0.7; // Moderate relevance, some diversity
+  }
+}
+
+/**
+ * Split large leaf nodes into paragraph chunks
+ */
+function splitLargeNode(node: TreeNode, maxTokens = 500): ChunkMetadata[] {
+  if (node.tokens <= maxTokens) {
+    return [{
+      content: node.text,
+      nodeId: node.nodeId,
+      source: '',
+      section: node.title,
+      parentNodeId: undefined,
+      depth: node.depth,
+      knowledgeType: 'signal', // Will be set properly later
+    }];
+  }
+  
+  // Split by paragraphs (double newline)
+  const paragraphs = node.text.split(/\n\s*\n/);
+  const chunks: ChunkMetadata[] = [];
+  
+  let currentChunk = '';
+  let chunkIndex = 0;
+  
+  for (const paragraph of paragraphs) {
+    const testChunk = currentChunk ? `${currentChunk}\n\n${paragraph}` : paragraph;
+    const testTokens = Math.ceil(testChunk.length / 4); // Rough token estimate
+    
+    if (testTokens > maxTokens && currentChunk) {
+      // Flush current chunk
+      chunks.push({
+        content: currentChunk.trim(),
+        nodeId: `${node.nodeId}-${chunkIndex++}`,
+        source: '',
+        section: `${node.title} (part ${chunkIndex})`,
+        parentNodeId: node.nodeId,
+        depth: node.depth + 1,
+        knowledgeType: 'signal',
+      });
+      currentChunk = paragraph;
+    } else {
+      currentChunk = testChunk;
+    }
+  }
+  
+  // Don't forget the last chunk
+  if (currentChunk.trim()) {
+    chunks.push({
+      content: currentChunk.trim(),
+      nodeId: `${node.nodeId}-${chunkIndex}`,
+      source: '',
+      section: `${node.title} (part ${chunkIndex + 1})`,
+      parentNodeId: node.nodeId,
+      depth: node.depth + 1,
+      knowledgeType: 'signal',
+    });
+  }
+  
+  return chunks;
+}
+
+/**
+ * Extract chunks from tree indexes using tree-aware chunking
+ */
+export function extractTreeAwareChunks(
+  indexes: { treeIndex: TreeIndex; knowledgeType: KnowledgeType }[]
+): ChunkMetadata[] {
+  const chunks: ChunkMetadata[] = [];
+  
+  for (const { treeIndex, knowledgeType } of indexes) {
+    const nodeStack: { node: TreeNode; parentId?: string }[] = [
+      { node: treeIndex.root }
+    ];
+    
+    while (nodeStack.length > 0) {
+      const { node, parentId } = nodeStack.pop()!;
+      
+      // For leaf nodes or nodes with content, extract chunks
+      if (node.children.length === 0 || (node.text && node.text.trim().length > 0)) {
+        // Only extract chunks if there's actual text content
+        if (node.text && node.text.trim().length > 0) {
+          const nodeChunks = splitLargeNode(node);
+          
+          for (const chunk of nodeChunks) {
+            chunk.source = treeIndex.source;
+            chunk.knowledgeType = knowledgeType;
+            chunk.parentNodeId = parentId;
+            chunks.push(chunk);
+          }
+        }
+      }
+      
+      // Add children to stack (for all nodes, regardless of content)
+      for (const child of node.children) {
+        nodeStack.push({ node: child, parentId: node.nodeId });
+      }
+    }
+  }
+  
+  return chunks;
+}
+
+/**
+ * Call the embedding service to embed texts
+ */
+async function callEmbeddingService(texts: string[]): Promise<number[][]> {
+  if (texts.length === 0) return [];
+  
+  const response = await fetch(`${API_BASE}/embeddings/embed`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ texts }),
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Embedding service error: ${response.status} ${response.statusText}`);
+  }
+  
+  const result = await response.json();
+  return result.embeddings;
+}
+
+/**
+ * Compute cosine similarity between two vectors
+ */
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length || a.length === 0) return 0;
+  
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  
+  const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
+  return magnitude === 0 ? 0 : dotProduct / magnitude;
+}
+
+/**
+ * Compute diversity score: 1 - mean(pairwise_similarities)
+ */
+function computeDiversityScore(chunks: ChunkMetadata[]): number {
+  if (chunks.length <= 1) return 1.0;
+  
+  const embeddings = chunks.map(c => c.embedding!).filter(e => e);
+  if (embeddings.length <= 1) return 1.0;
+  
+  let totalSim = 0;
+  let pairCount = 0;
+  
+  for (let i = 0; i < embeddings.length; i++) {
+    for (let j = i + 1; j < embeddings.length; j++) {
+      totalSim += cosineSimilarity(embeddings[i], embeddings[j]);
+      pairCount++;
+    }
+  }
+  
+  return pairCount === 0 ? 1.0 : 1.0 - (totalSim / pairCount);
+}
+
+/**
+ * Apply MMR (Maximal Marginal Relevance) for diversity
+ */
+function applyMMR(
+  chunks: Array<ChunkMetadata & { relevanceScore: number }>,
+  lambda: number,
+  budget: number
+): ChunkMetadata[] {
+  if (chunks.length === 0) return [];
+  
+  const selected: ChunkMetadata[] = [];
+  const candidates = [...chunks];
+  let currentTokens = 0;
+  
+  while (candidates.length > 0 && currentTokens < budget) {
+    let bestScore = -Infinity;
+    let bestIndex = -1;
+    
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      if (!candidate.embedding) continue;
+      
+      // Estimate tokens for this chunk
+      const chunkTokens = Math.ceil(candidate.content.length / 4);
+      if (currentTokens + chunkTokens > budget) continue;
+      
+      // Relevance score
+      const relevance = candidate.relevanceScore;
+      
+      // Diversity score: max similarity to already selected chunks
+      let maxSim = 0;
+      for (const selectedChunk of selected) {
+        if (selectedChunk.embedding) {
+          const sim = cosineSimilarity(candidate.embedding, selectedChunk.embedding);
+          maxSim = Math.max(maxSim, sim);
+        }
+      }
+      
+      // MMR score: λ * relevance - (1-λ) * max_similarity_to_selected
+      const mmrScore = lambda * relevance - (1 - lambda) * maxSim;
+      
+      if (mmrScore > bestScore) {
+        bestScore = mmrScore;
+        bestIndex = i;
+      }
+    }
+    
+    if (bestIndex === -1) break;
+    
+    const selectedCandidate = candidates.splice(bestIndex, 1)[0];
+    const chunkTokens = Math.ceil(selectedCandidate.content.length / 4);
+    
+    selected.push(selectedCandidate);
+    currentTokens += chunkTokens;
+  }
+  
+  return selected;
+}
+
+/**
+ * Main tree-aware retrieval function
+ */
+export async function treeAwareRetrieve(
+  query: string,
+  indexedSources: { treeIndex: TreeIndex; knowledgeType: KnowledgeType }[],
+  budget: number
+): Promise<RetrievalResult> {
+  // Step 1: Extract chunks using tree-aware chunking
+  const chunks = extractTreeAwareChunks(indexedSources);
+  
+  if (chunks.length === 0) {
+    return {
+      chunks: [],
+      diversityScore: 1.0,
+      collapseWarning: false,
+      totalChunks: 0,
+      queryType: classifyQuery(query),
+    };
+  }
+  
+  // Step 2: Embed query and all chunks
+  const allTexts = [query, ...chunks.map(c => c.content)];
+  const embeddings = await callEmbeddingService(allTexts);
+  
+  const queryEmbedding = embeddings[0];
+  const chunkEmbeddings = embeddings.slice(1);
+  
+  // Attach embeddings to chunks
+  chunks.forEach((chunk, i) => {
+    chunk.embedding = chunkEmbeddings[i];
+  });
+  
+  // Step 3: Score each chunk for relevance
+  const relevantThreshold = 0.3;
+  const scoredChunks = chunks
+    .map(chunk => ({
+      ...chunk,
+      relevanceScore: chunk.embedding ? cosineSimilarity(queryEmbedding, chunk.embedding) : 0,
+    }))
+    .filter(chunk => chunk.relevanceScore > relevantThreshold);
+  
+  // Step 4: Add parent context for relevant chunks
+  const chunkMap = new Map(chunks.map(c => [c.nodeId, c]));
+  const expandedChunks = new Map<string, ChunkMetadata & { relevanceScore: number }>();
+  
+  for (const chunk of scoredChunks) {
+    // Add the chunk itself
+    expandedChunks.set(chunk.nodeId, chunk);
+    
+    // Add parent context at reduced weight if it has a parent
+    if (chunk.parentNodeId) {
+      const parent = chunkMap.get(chunk.parentNodeId);
+      if (parent && parent.embedding && !expandedChunks.has(parent.nodeId)) {
+        const parentScore = chunk.relevanceScore * 0.6;
+        if (parentScore > relevantThreshold) {
+          expandedChunks.set(parent.nodeId, {
+            ...parent,
+            relevanceScore: parentScore,
+          });
+        }
+      }
+    }
+  }
+  
+  // Step 5: Add sibling context for cluster coherence
+  const siblingThreshold = 0.5;
+  
+  for (const chunk of scoredChunks) {
+    if (chunk.relevanceScore > siblingThreshold && chunk.parentNodeId) {
+      // Find siblings with the same parent
+      const siblings = chunks.filter(c => 
+        c.parentNodeId === chunk.parentNodeId && 
+        c.nodeId !== chunk.nodeId &&
+        !expandedChunks.has(c.nodeId)
+      );
+      
+      for (const sibling of siblings) {
+        if (sibling.embedding) {
+          const siblingScore = cosineSimilarity(queryEmbedding, sibling.embedding);
+          if (siblingScore > siblingThreshold) {
+            expandedChunks.set(sibling.nodeId, {
+              ...sibling,
+              relevanceScore: siblingScore,
+            });
+          }
+        }
+      }
+    }
+  }
+  
+  // Step 6: Apply MMR for diversity
+  const queryType = classifyQuery(query);
+  const lambda = getMMRLambda(queryType);
+  const allExpandedChunks = Array.from(expandedChunks.values());
+  const selectedChunks = applyMMR(allExpandedChunks, lambda, budget);
+  
+  // Step 7: Compute diversity score and collapse warning
+  const diversityScore = computeDiversityScore(selectedChunks);
+  const collapseWarning = diversityScore < 0.3;
+  
+  return {
+    chunks: selectedChunks,
+    diversityScore,
+    collapseWarning,
+    totalChunks: chunks.length,
+    queryType,
+  };
+}

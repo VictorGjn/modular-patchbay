@@ -9,7 +9,7 @@ import type { ChannelConfig, KnowledgeType } from '../store/knowledgeBase';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { useTraceStore } from '../store/traceStore';
-import { indexMarkdown, estimateTokens, type TreeNode } from './treeIndexer';
+import { indexMarkdown, estimateTokens, type TreeNode, type TreeIndex } from './treeIndexer';
 import { renderFilteredMarkdown, applyDepthFilter } from '../utils/depthFilter';
 import { allocateBudgets, DEPTH_MULTIPLIERS, type BudgetSource } from './budgetAllocator';
 import {
@@ -23,6 +23,9 @@ import {
   shouldActivateContrastiveRetrieval,
   type ChunkWithMetadata,
 } from './contrastiveRetrieval';
+import {
+  treeAwareRetrieve,
+} from './treeAwareRetriever';
 import {
   extractHeadlines,
   buildNavigationPrompt,
@@ -240,7 +243,7 @@ function enhanceWithContrastiveRetrieval(
 
 interface KnowledgePipelineOptions {
   userMessage: string;
-  navigationMode?: 'manual' | 'agent-driven';
+  navigationMode?: 'manual' | 'agent-driven' | 'tree-aware';
   providerId: string;
   model: string;
 }
@@ -380,7 +383,7 @@ export async function compressKnowledge(
 ): Promise<KnowledgeResult> {
   const treeStore = useTreeIndexStore.getState();
   const traceStore = useTraceStore.getState();
-  const { userMessage, navigationMode, providerId, model } = options;
+  const { userMessage, navigationMode = 'tree-aware', providerId, model } = options;
   const activeChannels = channels.filter(ch => ch.enabled);
 
   let knowledgeBlock = residualKnowledgeBlock;
@@ -422,8 +425,117 @@ export async function compressKnowledge(
     // else: metadata-only fallback — no content to add, handled by buildKnowledgeFallback
   }
 
-  // 2d. Run pipeline if we have indexed content
-  if (sourcesWithContent.length > 0) {
+  // 2d. Tree-aware retrieval path (NEW DEFAULT)
+  if (navigationMode === 'tree-aware' && regularChannels.length > 0) {
+    const totalBudget = activeChannels.reduce((sum, ch) => sum + ch.baseTokens, 0);
+    
+    // Build tree indexes for tree-aware retrieval
+    const indexedSources: { treeIndex: TreeIndex; knowledgeType: KnowledgeType }[] = [];
+    
+    for (const ch of regularChannels) {
+      if (ch.content) {
+        // Inline content path
+        const virtualPath = `content://${ch.contentSourceId || ch.sourceId}`;
+        const treeIndex = indexMarkdown(virtualPath, ch.content);
+        indexedSources.push({ treeIndex, knowledgeType: ch.knowledgeType });
+      } else if (ch.path) {
+        // File-backed path
+        const treeIndex = treeStore.getIndex(ch.path);
+        if (treeIndex) {
+          indexedSources.push({ treeIndex, knowledgeType: ch.knowledgeType });
+        }
+      }
+    }
+    
+    if (indexedSources.length > 0) {
+      try {
+        traceStore.addEvent(traceId, {
+          kind: 'retrieval',
+          sourceName: 'tree-aware-retrieval',
+          query: userMessage,
+          resultCount: indexedSources.length,
+          durationMs: 0, // Will be updated below
+        });
+        
+        const retrievalStart = Date.now();
+        const retrievalResult = await treeAwareRetrieve(userMessage, indexedSources, totalBudget);
+        const retrievalMs = Date.now() - retrievalStart;
+        
+        traceStore.addEvent(traceId, {
+          kind: 'retrieval',
+          sourceName: 'tree-aware-retrieval',
+          query: userMessage,
+          resultCount: retrievalResult.chunks.length,
+          durationMs: retrievalMs,
+        });
+        
+        if (retrievalResult.chunks.length > 0) {
+          // Format the tree-aware retrieval results
+          const formattedChunks = retrievalResult.chunks.map(chunk =>
+            wrapWithProvenance(
+              chunk.content,
+              chunk.source,
+              chunk.section,
+              chunk.knowledgeType,
+              chunk.depth.toString(),
+              'tree-aware'
+            )
+          );
+          
+          const sourceAnnotations = indexedSources
+            .map(s => `${s.treeIndex.source} (${s.knowledgeType}, ${s.treeIndex.totalTokens} tokens, ${s.treeIndex.nodeCount} nodes)`)
+            .join(', ');
+          
+          const contextMetadata = `Query type: ${retrievalResult.queryType}, Diversity: ${retrievalResult.diversityScore.toFixed(2)}, Total chunks: ${retrievalResult.totalChunks}`;
+          
+          knowledgeBlock = `<knowledge sources="${sourceAnnotations}" method="tree-aware" metadata="${contextMetadata}">\n${formattedChunks.join('\n\n')}\n</knowledge>`;
+          
+          // Build a minimal pipeline result for provenance tracking
+          pipelineResult = {
+            context: formattedChunks.join('\n\n'),
+            sources: indexedSources.map(s => ({
+              name: s.treeIndex.source,
+              type: s.treeIndex.sourceType,
+              totalTokens: s.treeIndex.totalTokens,
+              indexedNodes: s.treeIndex.nodeCount,
+            })),
+            timing: {
+              indexMs: 0,
+              navigationMs: 0,
+              compressionMs: retrievalMs,
+              totalMs: retrievalMs,
+            },
+          };
+          
+          // Build provenance for tree-aware retrieval
+          if (pipelineResult) {
+            provenance = buildProvenanceSummary(pipelineResult, regularChannels);
+          }
+          
+          if (retrievalResult.collapseWarning) {
+            traceStore.addEvent(traceId, {
+              kind: 'error',
+              errorMessage: `Low diversity score (${retrievalResult.diversityScore.toFixed(2)}) - chunks may be too similar`,
+              durationMs: 0,
+            });
+          }
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        traceStore.addEvent(traceId, {
+          kind: 'error',
+          errorMessage: `Tree-aware retrieval failed: ${message} — falling back to pipeline`,
+          durationMs: 0,
+        });
+        
+        // Fall back to regular pipeline on error
+        // (Continue to the existing pipeline logic below)
+      }
+    }
+  }
+
+  // 2d. Run pipeline if we have indexed content (traditional pipeline or fallback)
+  if (sourcesWithContent.length > 0 && (navigationMode !== 'tree-aware' || !knowledgeBlock)) {
     const totalBudget = activeChannels.reduce((sum, ch) => sum + ch.baseTokens, 0);
 
     // Budget allocation - create BudgetSource[] from sourcesWithContent
