@@ -147,7 +147,7 @@ function PipelineStatsBar() {
 
       {/* Pipeline Trace View or Depth Heatmap */}
       {expanded && (
-        <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+        <div style={{ maxHeight: 280, overflowY: 'auto', borderBottom: `1px solid ${t.border}30` }}>
           {/* Show Pipeline Trace View when retrieval data is available */}
           {stats.retrieval ? (
             <PipelineTraceView retrieval={stats.retrieval} />
@@ -176,13 +176,13 @@ function PipelineStatsBar() {
                           const barColor = DEPTH_COLORS[Math.min(h.depth, 4)];
                           return (
                             <div key={h.nodeId} className="flex items-center gap-1.5">
-                              <span className="text-[12px] truncate w-24 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
+                              <span className="text-[10px] truncate w-20 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
                                 {h.title}
                               </span>
-                              <div style={{ flex: 1, height: 4, background: `${barColor}18`, borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 2 }} />
+                              <div style={{ flex: 1, height: 3, background: `${barColor}18`, borderRadius: 1, overflow: 'hidden' }}>
+                                <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 1 }} />
                               </div>
-                              <span className="text-[7px] w-6 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
+                              <span className="text-[8px] w-6 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
                                 {fmtTokens(h.tokens)}
                               </span>
                             </div>
