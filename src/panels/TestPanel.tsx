@@ -18,6 +18,7 @@ import {
   Maximize2, Minimize2,
 } from 'lucide-react';
 import { TraceViewer } from './TraceViewer';
+import { InlineTraceView } from '../components/InlineTraceView';
 import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
 import { CapabilityGate } from '../components/CapabilityGate';
 import { RuntimeResults } from './RuntimePanel';
@@ -219,6 +220,7 @@ function ChatSection() {
   const setStreaming = useConversationStore(s => s.setStreaming);
   const updateLastAssistant = useConversationStore(s => s.updateLastAssistant);
   const setLastPipelineStats = useConversationStore(s => s.setLastPipelineStats);
+  const updateMessagePipelineStats = useConversationStore(s => s.updateMessagePipelineStats);
 
   const channels = useConsoleStore(s => s.channels);
   const connectors = useConsoleStore(s => s.connectors);
@@ -272,7 +274,15 @@ function ChatSection() {
         model,
         navigationMode,
         onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
-        onDone: (stats) => { setLastPipelineStats(stats); },
+        onDone: (stats) => { 
+          setLastPipelineStats(stats);
+          // Attach stats to the last assistant message
+          const currentMessages = useConversationStore.getState().messages;
+          const lastAssistantMsg = [...currentMessages].reverse().find(m => m.role === 'assistant');
+          if (lastAssistantMsg) {
+            updateMessagePipelineStats(lastAssistantMsg.id, stats);
+          }
+        },
         onError: (err: Error) => { updateLastAssistant(accum + `\n\n_Error: ${err.message}_`); },
       });
     } catch (err) {
@@ -407,6 +417,10 @@ function ChatSection() {
               </ReactMarkdown>
             ) : (
               msg.content || ''
+            )}
+            {/* Inline trace view for assistant messages with pipeline stats */}
+            {msg.role === 'assistant' && msg.pipelineStats && (
+              <InlineTraceView stats={msg.pipelineStats} />
             )}
           </div>
         ))}

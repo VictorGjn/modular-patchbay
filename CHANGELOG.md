@@ -5,6 +5,26 @@ All notable changes to Modular Studio will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2025-03-12
+
+### Fixed
+- **Chat History Preservation** — Assistant role now correctly preserved in conversation history (#10)
+- **Settings MCP Tab** — Removed infinite render loop that caused crashes (#12)  
+- **Embedding Service Reliability** — Added readiness gate and retry logic for model loading (#11)
+- **API Route Handling** — Added 404 catch-all handler to prevent silent failures (#16)
+
+### Added
+- **Markdown Rendering** — Assistant messages now properly render markdown formatting (#13)
+- **Inline Pipeline Traces** — Pipeline statistics now appear inline with chat messages (#14)
+- **Engineering Guidelines** — Added comprehensive development standards and practices
+- **Smoke Test Checklist** — Manual testing checklist for release validation
+
+### Technical Improvements
+- Eliminated unsafe `as` type casts in conversation history handling
+- Stabilized React useEffect dependencies to prevent infinite loops  
+- Enhanced error handling for embedding service initialization
+- Improved API route organization and error reporting
+
 ## [0.2.0] - 2024-03-11
 
 ### Added
