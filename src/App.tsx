@@ -6,6 +6,7 @@ import { McpPicker } from './components/McpPicker';
 import { SkillPicker } from './components/SkillPicker';
 import { Marketplace } from './components/Marketplace';
 import { ConnectorPicker } from './components/ConnectorPicker';
+import { ConnectionPicker } from './components/ConnectionPicker';
 // AgentViz moved to canvas node (AgentPreviewNode)
 import { SettingsPage } from './components/SettingsPage';
 import { SaveAgentModal } from './components/SaveAgentModal';
@@ -25,6 +26,7 @@ export default function App() {
   const setShowMcpPicker = useConsoleStore((s) => s.setShowMcpPicker);
   const setShowSkillPicker = useConsoleStore((s) => s.setShowSkillPicker);
   const setShowConnectorPicker = useConsoleStore((s) => s.setShowConnectorPicker);
+  const setShowConnectionPicker = useConsoleStore((s) => s.setShowConnectionPicker);
   const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
   const run = useConsoleStore((s) => s.run);
   const running = useConsoleStore((s) => s.running);
@@ -59,11 +61,11 @@ export default function App() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setShowFilePicker(!showFilePicker); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (!running) run(); }
-      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); setShowConnectorPicker(false); setShowMarketplace(false); setShowSettings(false); useConsoleStore.getState().setShowSaveModal(false); }
+      if (e.key === 'Escape') { setShowFilePicker(false); setShowMcpPicker(false); setShowSkillPicker(false); setShowConnectorPicker(false); setShowConnectionPicker(false); setShowMarketplace(false); setShowSettings(false); useConsoleStore.getState().setShowSaveModal(false); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, setShowConnectorPicker, setShowMarketplace, run, running]);
+  }, [setShowFilePicker, showFilePicker, setShowMcpPicker, setShowSkillPicker, setShowConnectorPicker, setShowConnectionPicker, setShowMarketplace, run, running]);
 
   // Load MCP servers on app mount
   useEffect(() => {
@@ -109,6 +111,7 @@ export default function App() {
       <McpPicker />
       <SkillPicker />
       <ConnectorPicker />
+      <ConnectionPicker />
       <Marketplace />
       <SettingsPage open={showSettings} onClose={() => setShowSettings(false)} />
       <SaveAgentModal />
