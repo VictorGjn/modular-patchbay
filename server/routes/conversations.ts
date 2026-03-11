@@ -69,19 +69,11 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { id, agentId, agentName, messages } = req.body;
+    const { id, agentId, agentName, title, messages } = req.body;
     
-    if (!agentId || typeof agentId !== 'string') {
-      return res.status(400).json({
-        error: 'agentId is required and must be a string'
-      });
-    }
-    
-    if (!agentName || typeof agentName !== 'string') {
-      return res.status(400).json({
-        error: 'agentName is required and must be a string'
-      });
-    }
+    // Accept either agentId or title — frontend sends title, API contract uses agentId
+    const resolvedAgentId = agentId || 'default';
+    const resolvedAgentName = agentName || title || 'Untitled';
     
     if (!Array.isArray(messages)) {
       return res.status(400).json({
@@ -91,7 +83,7 @@ router.post('/', async (req, res) => {
     
     const conversationId = id || randomUUID();
     
-    await saveConversation(conversationId, agentId, agentName, messages);
+    await saveConversation(conversationId, resolvedAgentId, resolvedAgentName, messages);
     
     res.json({ id: conversationId, success: true });
   } catch (error) {
