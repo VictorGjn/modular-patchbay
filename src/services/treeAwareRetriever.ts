@@ -303,7 +303,7 @@ export async function treeAwareRetrieve(
   const retrievalStart = Date.now();
   
   // Step 1: Extract chunks using tree-aware chunking
-  const chunks = extractTreeAwareChunks(indexedSources);
+  let chunks = extractTreeAwareChunks(indexedSources);
   
   if (chunks.length === 0) {
     return {
@@ -321,6 +321,23 @@ export async function treeAwareRetrieve(
   
   // Step 2: Embed query and all chunks
   const embeddingStart = Date.now();
+  // Filter out chunks with empty content before embedding
+  const validChunks = chunks.filter(c => c.content && c.content.trim().length > 0);
+  if (validChunks.length === 0) {
+    return {
+      selectedChunks: 0,
+      chunks: [],
+      diversityScore: 1.0,
+      collapseWarning: false,
+      totalChunks: chunks.length,
+      queryType: classifyQuery(query),
+      retrievalMs: Date.now() - retrievalStart,
+      embeddingMs: 0,
+      budgetUsed: 0,
+      budgetTotal: budget,
+    };
+  }
+  chunks = validChunks;
   const allTexts = [query, ...chunks.map(c => c.content)];
   const embeddings = await callEmbeddingService(allTexts);
   const embeddingMs = Date.now() - embeddingStart;

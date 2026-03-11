@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { PipelineChatStats } from '../services/pipelineChat';
 
-const API_BASE = import.meta.env.VITE_API_BASE || '';
+const API_BASE = import.meta.env.DEV ? 'http://localhost:4800' : '';
 
 interface ConversationSummary {
   id: string;
