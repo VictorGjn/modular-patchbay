@@ -54,7 +54,7 @@ export type ProgressCallback = (event: {
 function buildTeamFactsBlock(facts: ExtractedFact[]): string {
   if (facts.length === 0) return '';
   const lines = facts.map((f) => `  <fact key="${f.key}" type="${f.epistemicType}">${f.value}</fact>`);
-  return `\n<shared_memory>\n${lines.join('\n')}\n</shared_memory>\n`;
+  return `\n<team_facts>\n${lines.join('\n')}\n</team_facts>\n`;
 }
 
 function buildToolsParam(tools: ToolDef[] | undefined, providerType: string): unknown[] | undefined {

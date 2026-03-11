@@ -6,21 +6,28 @@ describe('MCP Registry', () => {
     expect(MCP_REGISTRY.length).toBeGreaterThanOrEqual(100);
   });
 
+  // Remote entries (streamable-http, sse without command) don't have npmPackage or command
+  const isRemoteEntry = (e: McpRegistryEntry) => !e.command && (e.transport === 'streamable-http' || e.url);
+  const localEntries = () => MCP_REGISTRY.filter(e => !isRemoteEntry(e));
+
   it('all entries have required fields', () => {
     for (const entry of MCP_REGISTRY) {
       expect(entry.id, `${entry.name} missing id`).toBeTruthy();
       expect(entry.name, `${entry.id} missing name`).toBeTruthy();
-      expect(entry.npmPackage, `${entry.id} missing npmPackage`).toBeTruthy();
       expect(entry.description, `${entry.id} missing description`).toBeTruthy();
       expect(entry.icon, `${entry.id} missing icon`).toBeTruthy();
       expect(entry.category, `${entry.id} missing category`).toBeTruthy();
       expect(entry.author, `${entry.id} missing author`).toBeTruthy();
       expect(entry.transport, `${entry.id} missing transport`).toBeTruthy();
-      expect(entry.command, `${entry.id} missing command`).toBeTruthy();
       expect(entry.defaultArgs, `${entry.id} missing defaultArgs`).toBeDefined();
       expect(entry.configFields, `${entry.id} missing configFields`).toBeDefined();
       expect(entry.tags, `${entry.id} missing tags`).toBeDefined();
       expect(entry.runtimes.length, `${entry.id} has no runtimes`).toBeGreaterThan(0);
+      // Local entries must have npmPackage and command
+      if (!isRemoteEntry(entry)) {
+        expect(entry.npmPackage, `${entry.id} missing npmPackage`).toBeTruthy();
+        expect(entry.command, `${entry.id} missing command`).toBeTruthy();
+      }
     }
   });
 
@@ -42,7 +49,7 @@ describe('MCP Registry', () => {
   });
 
   it('transports are valid', () => {
-    const validTransports = ['stdio', 'sse'];
+    const validTransports = ['stdio', 'sse', 'streamable-http'];
     for (const entry of MCP_REGISTRY) {
       expect(validTransports, `${entry.id} has invalid transport: ${entry.transport}`).toContain(entry.transport);
     }
@@ -50,7 +57,7 @@ describe('MCP Registry', () => {
 
   it('commands are valid (npx, uvx, docker, node, python)', () => {
     const validCommands = ['npx', 'uvx', 'docker', 'node', 'python', 'python3', 'deno'];
-    for (const entry of MCP_REGISTRY) {
+    for (const entry of localEntries()) {
       expect(validCommands, `${entry.id} has unexpected command: ${entry.command}`).toContain(entry.command);
     }
   });
@@ -110,7 +117,7 @@ describe('MCP Registry', () => {
   });
 
   it('npmPackage names look valid', () => {
-    for (const entry of MCP_REGISTRY) {
+    for (const entry of localEntries()) {
       // npm packages should start with @, a letter, or a digit
       expect(entry.npmPackage, `${entry.id} has invalid npm package: ${entry.npmPackage}`).toMatch(/^[@a-z0-9]/);
     }

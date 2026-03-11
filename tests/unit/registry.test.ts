@@ -12,8 +12,13 @@ describe('Registry → MCP conversion', () => {
       expect(mcp.id).toBeTruthy();
       expect(mcp.name).toBeTruthy();
       expect(mcp.description).toBeTruthy();
-      expect(mcp.installCmd).toBeTruthy();
-      expect(mcp.command).toBeTruthy();
+      // Remote entries (streamable-http) may not have installCmd or command
+      const source = MCP_REGISTRY.find(r => r.id === mcp.id);
+      const isRemote = source && !source.command && (source.transport === 'streamable-http' || source.url);
+      if (!isRemote) {
+        expect(mcp.installCmd, `${mcp.id} missing installCmd`).toBeTruthy();
+        expect(mcp.command, `${mcp.id} missing command`).toBeTruthy();
+      }
       expect(typeof mcp.installed).toBe('boolean');
       expect(typeof mcp.configured).toBe('boolean');
     }
@@ -21,7 +26,9 @@ describe('Registry → MCP conversion', () => {
 
   it('installCmd is derived from npmPackage', () => {
     for (let i = 0; i < MCP_REGISTRY.length; i++) {
-      expect(REGISTRY_MCP_SERVERS[i].installCmd).toContain(MCP_REGISTRY[i].npmPackage);
+      if (MCP_REGISTRY[i].npmPackage) {
+        expect(REGISTRY_MCP_SERVERS[i].installCmd).toContain(MCP_REGISTRY[i].npmPackage);
+      }
     }
   });
 });

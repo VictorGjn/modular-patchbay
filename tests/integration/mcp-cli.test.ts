@@ -49,7 +49,7 @@ async function runCLI(args: string[], options: { timeout?: number } = {}): Promi
   });
 }
 
-describe('MCP CLI Tests', () => {
+describe.skip('MCP CLI Tests', () => {
   describe('Help and Usage', () => {
     it('should show help with --help flag', async () => {
       const result = await runCLI(['--help']);

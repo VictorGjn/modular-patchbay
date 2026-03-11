@@ -32,18 +32,20 @@ export interface RuntimeAgentState {
 export interface RuntimeRun {
   id: string;
   teamId?: string;
+  featureSpec?: string;
   status: 'idle' | 'running' | 'completed' | 'error';
   agents: RuntimeAgentState[];
   sharedFacts: ExtractedFact[];
+  contractFacts: ExtractedFact[];
   startedAt?: number;
   completedAt?: number;
   error?: string;
 }
 
 export interface RuntimeStore extends RuntimeRun {
-  startRun: (agents: { agentId: string; name: string; isAgentSdk?: boolean }[], teamId?: string) => void;
+  startRun: (agents: { agentId: string; name: string; isAgentSdk?: boolean }[], teamId?: string, featureSpec?: string) => void;
   updateAgent: (agentId: string, patch: Partial<RuntimeAgentState>) => void;
-  addFact: (fact: ExtractedFact, target: 'shared' | { agentId: string }) => void;
+  addFact: (fact: ExtractedFact, target: 'shared' | 'contract' | { agentId: string }) => void;
   setStatus: (status: RuntimeRun['status'], error?: string) => void;
   reset: () => void;
 }
@@ -57,15 +59,17 @@ const initialState: RuntimeRun = {
   status: 'idle',
   agents: [],
   sharedFacts: [],
+  contractFacts: [],
 };
 
 export const useRuntimeStore = create<RuntimeStore>((set) => ({
   ...initialState,
 
-  startRun: (agents, teamId) =>
+  startRun: (agents, teamId, featureSpec) =>
     set({
       id: genRunId(),
       teamId,
+      featureSpec,
       status: 'running',
       agents: agents.map((a) => ({
         agentId: a.agentId,
@@ -77,6 +81,7 @@ export const useRuntimeStore = create<RuntimeStore>((set) => ({
         isAgentSdk: a.isAgentSdk,
       })),
       sharedFacts: [],
+      contractFacts: [],
       startedAt: Date.now(),
       completedAt: undefined,
       error: undefined,
@@ -92,6 +97,7 @@ export const useRuntimeStore = create<RuntimeStore>((set) => ({
   addFact: (fact, target) =>
     set((s) => {
       if (target === 'shared') return { sharedFacts: [...s.sharedFacts, fact] };
+      if (target === 'contract') return { contractFacts: [...s.contractFacts, fact] };
       return {
         agents: s.agents.map((a) =>
           a.agentId === target.agentId
