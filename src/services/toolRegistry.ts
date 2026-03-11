@@ -10,11 +10,12 @@
  */
 
 import { useMcpStore } from '../store/mcpStore';
+import { getBuiltinTools } from './builtinTools';
 
 // ── Canonical tool definition (provider-agnostic) ──
 
 export interface ToolOrigin {
-  kind: 'mcp';
+  kind: 'mcp' | 'builtin';
   serverId: string;
   serverName: string;
 }
@@ -62,6 +63,16 @@ export function getUnifiedTools(): UnifiedTool[] {
     }
   }
 
+  // 2. Built-in tools (knowledge indexing, search)
+  for (const tool of getBuiltinTools()) {
+    raw.push({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+      origin: { kind: 'builtin', serverId: 'modular-studio', serverName: 'Modular Studio' },
+    });
+  }
+
   // Skills are included as context instructions (not callable tools)
   // — they don't have a tool-calling interface, just prompt injection.
   // If skills ever gain a callable API, add them here.
@@ -71,7 +82,7 @@ export function getUnifiedTools(): UnifiedTool[] {
   for (const t of raw) nameCount.set(t.name, (nameCount.get(t.name) ?? 0) + 1);
 
   return raw.map(t => {
-    if ((nameCount.get(t.name) ?? 0) > 1 && t.origin.kind === 'mcp') {
+    if ((nameCount.get(t.name) ?? 0) > 1) {
       // Namespace: "serverId__toolName" to make each tool uniquely addressable
       return { ...t, name: `${t.origin.serverId}__${t.name}` };
     }

@@ -20,6 +20,7 @@ import {
   supportsToolCalling,
   type UnifiedTool,
 } from './toolRegistry';
+import { getBuiltinTools } from './builtinTools';
 import { useMcpStore } from '../store/mcpStore';
 import { useProviderStore } from '../store/providerStore';
 import { useTraceStore } from '../store/traceStore';
@@ -79,7 +80,7 @@ interface LlmTurnResult {
   stopReason: string;
 }
 
-// ── Execute a single tool via MCP ──
+// ── Execute a single tool via MCP or built-in ──
 
 async function executeTool(
   toolName: string,
@@ -91,6 +92,24 @@ async function executeTool(
     return { result: '', serverId: '', error: `Tool "${toolName}" not found in registry` };
   }
 
+  // Handle built-in tools
+  if (origin.kind === 'builtin') {
+    const builtinTools = getBuiltinTools();
+    const tool = builtinTools.find(t => t.name === toolName);
+    if (!tool) {
+      return { result: '', serverId: origin.serverId, error: `Built-in tool "${toolName}" not found` };
+    }
+
+    try {
+      const result = await tool.execute(args);
+      return { result, serverId: origin.serverId };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { result: '', serverId: origin.serverId, error: msg };
+    }
+  }
+
+  // Handle MCP tools
   const mcpStore = useMcpStore.getState();
   try {
     const raw = await mcpStore.callTool(origin.serverId, toolName, args);
