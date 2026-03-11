@@ -20,14 +20,35 @@ interface AvailableConnector {
   directions: ConnectorDirection[];
 }
 
-const BUILT_IN_CONNECTORS: AvailableConnector[] = [
-  { service: 'notion', name: 'Notion', mcpServerId: 'notion', description: 'Read and write Notion pages and databases', directions: ['read', 'write', 'both'] },
-  { service: 'slack', name: 'Slack', mcpServerId: 'slack', description: 'Read channels and send messages', directions: ['read', 'write', 'both'] },
-  { service: 'hubspot', name: 'HubSpot', mcpServerId: 'HubSpotDev', description: 'CRM contacts, companies, and deals', directions: ['read', 'write', 'both'] },
-  { service: 'granola', name: 'Granola', mcpServerId: 'granola', description: 'Meeting transcripts and notes', directions: ['read'] },
-  { service: 'github', name: 'GitHub', mcpServerId: 'mcp-github', description: 'Repos, issues, and pull requests', directions: ['read', 'write', 'both'] },
-  { service: 'google-drive', name: 'Google Drive', mcpServerId: 'mcp-gdrive', description: 'Documents, sheets, and files', directions: ['read', 'write', 'both'] },
-];
+// Map MCP registry entries to connector services
+const MCP_TO_CONNECTOR_SERVICE: Record<string, ConnectorService> = {
+  'mcp-notion': 'notion',
+  'notion-remote': 'notion', 
+  'mcp-slack': 'slack',
+  'mcp-hubspot': 'hubspot',
+  'HubSpotDev': 'hubspot',
+  'granola': 'granola',
+  'mcp-github': 'github',
+  'mcp-gdrive': 'google-drive',
+  'mcp-google-drive': 'google-drive',
+};
+
+// Generate available connectors from MCP registry
+const getBuiltInConnectors = (): AvailableConnector[] => {
+  return MCP_REGISTRY
+    .filter(entry => entry.id in MCP_TO_CONNECTOR_SERVICE)
+    .map(entry => ({
+      service: MCP_TO_CONNECTOR_SERVICE[entry.id],
+      name: entry.name,
+      mcpServerId: entry.id,
+      description: entry.description,
+      directions: ['read', 'write', 'both'] as ConnectorDirection[], // Default to all directions
+    }))
+    .filter((connector, index, arr) => 
+      // Remove duplicates by service (keep first occurrence)
+      arr.findIndex(c => c.service === connector.service) === index
+    );
+};
 
 const DIR_COLORS: Record<ConnectorDirection, { color: string; bg: string; bgHover: string }> = {
   read: { color: '#6aafe6', bg: '#3498db10', bgHover: '#3498db1a' },
@@ -106,7 +127,8 @@ export function ConnectorPicker() {
     });
   }, [showConnectorPicker]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const builtInIds = new Set(BUILT_IN_CONNECTORS.map((c) => c.mcpServerId));
+  const builtInConnectors = getBuiltInConnectors();
+  const builtInIds = new Set(builtInConnectors.map((c) => c.mcpServerId));
 
   const extraMcpConnectors: AvailableConnector[] = mcpServers
     .filter((s) => !builtInIds.has(s.id))
@@ -125,7 +147,7 @@ export function ConnectorPicker() {
 
   // Available = built-in + non-connected extra MCP servers
   const availableConnectors: AvailableConnector[] = [
-    ...BUILT_IN_CONNECTORS,
+    ...builtInConnectors,
     ...extraMcpConnectors.filter((ac) =>
       mcpServers.find((s) => s.id === ac.mcpServerId)?.status !== 'connected'
     ),
@@ -196,7 +218,7 @@ export function ConnectorPicker() {
     const added = isAdded(entry.id as ConnectorService);
 
     return (
-      <div key={entry.id} className="flex items-center gap-3 px-5 py-2.5 hover-row cursor-default">
+      <div key={entry.id} className="flex items-center gap-3 px-4 py-1.5 hover-row cursor-default">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
           style={{ background: t.surfaceElevated }}
@@ -216,22 +238,22 @@ export function ConnectorPicker() {
                 flexShrink: 0,
               }}
             />
-            <span className="text-[17px] font-medium" style={{ color: t.textPrimary }}>{entry.name}</span>
+            <span className="text-[13px] font-medium" style={{ color: t.textPrimary }}>{entry.name}</span>
             <span
-              className="text-[12px] px-1.5 py-0.5 rounded-full uppercase"
+              className="text-[10px] px-1.5 py-0.5 rounded-full uppercase"
               style={{ background: '#FE500010', color: '#FE5000', fontFamily: "'Geist Mono', monospace", fontWeight: 600 }}
             >
               OAuth
             </span>
           </div>
           <div>
-            <span className="text-[14px]" style={{ color: t.textDim }}>{entry.description}</span>
-            {error && <span className="text-[12px] ml-2" style={{ color: '#ff4444' }}>{error}</span>}
+            <span className="text-[11px]" style={{ color: t.textDim }}>{entry.description}</span>
+            {error && <span className="text-[10px] ml-2" style={{ color: '#ff4444' }}>{error}</span>}
           </div>
         </div>
 
         {added ? (
-          <span className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
+          <span className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
             <Check size={12} /> Connected
           </span>
         ) : (
@@ -239,7 +261,7 @@ export function ConnectorPicker() {
             type="button"
             onClick={() => handleOAuthConnect(entry)}
             disabled={loading}
-            className="flex items-center gap-1.5 text-[13px] px-3 py-1 rounded-md cursor-pointer border-none"
+            className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-md cursor-pointer border-none"
             style={{ background: '#FE500018', color: '#FE5000', fontWeight: 600, opacity: loading ? 0.7 : 1 }}
           >
             {loading ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
@@ -269,7 +291,7 @@ export function ConnectorPicker() {
     return (
       <div
         key={ac.service}
-        className="flex items-center gap-3 px-5 py-2.5 hover-row cursor-default"
+        className="flex items-center gap-3 px-4 py-1.5 hover-row cursor-default"
       >
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
@@ -281,12 +303,12 @@ export function ConnectorPicker() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <StatusDot auth={auth} />
-            <span className="text-[17px] font-medium" style={{ color: t.textPrimary }}>{ac.name}</span>
+            <span className="text-[13px] font-medium" style={{ color: t.textPrimary }}>{ac.name}</span>
             <div className="flex gap-1">
               {ac.directions.map((dir) => (
                 <span
                   key={dir}
-                  className="text-[12px] px-1.5 py-0.5 rounded-full uppercase"
+                  className="text-[10px] px-1.5 py-0.5 rounded-full uppercase"
                   style={{
                     background: DIR_COLORS[dir].bg,
                     color: DIR_COLORS[dir].color,
@@ -299,11 +321,11 @@ export function ConnectorPicker() {
               ))}
             </div>
           </div>
-          <span className="text-[14px]" style={{ color: t.textDim }}>{ac.description}</span>
+          <span className="text-[11px]" style={{ color: t.textDim }}>{ac.description}</span>
         </div>
 
         {added ? (
-          <span className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
+          <span className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
             <Check size={12} /> Added
           </span>
         ) : connected ? (
@@ -313,7 +335,7 @@ export function ConnectorPicker() {
                 key={dir}
                 type="button"
                 onClick={() => handleAdd(ac, dir)}
-                className="flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
+                className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
                 style={{
                   color: DIR_COLORS[dir].color,
                   background: DIR_COLORS[dir].bg,
@@ -332,7 +354,7 @@ export function ConnectorPicker() {
               <button
                 type="button"
                 onClick={() => handleAdd(ac, 'both')}
-                className="flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
+                className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md cursor-pointer border-none uppercase"
                 style={{
                   color: DIR_COLORS.both.color,
                   background: DIR_COLORS.both.bg,
@@ -350,11 +372,11 @@ export function ConnectorPicker() {
           </div>
         ) : (
           <div className="flex items-center gap-1.5">
-            <span className="text-[12px]" style={{ color: t.textFaint }}>Setup required</span>
+            <span className="text-[10px]" style={{ color: t.textFaint }}>Setup required</span>
             <button
               type="button"
               onClick={openSettings}
-              className="text-[12px] px-2 py-0.5 rounded cursor-pointer border-none"
+              className="text-[10px] px-2 py-0.5 rounded cursor-pointer border-none"
               style={{ background: '#FE500012', color: '#FE5000' }}
             >
               Configure in Settings
