@@ -491,14 +491,28 @@ export async function compressKnowledge(
           knowledgeBlock = `<knowledge sources="${sourceAnnotations}" method="tree-aware" metadata="${contextMetadata}">\n${formattedChunks.join('\n\n')}\n</knowledge>`;
           
           // Build a minimal pipeline result for provenance tracking
+          const contextText = formattedChunks.join('\n\n');
+          const contextTokens = estimateTokens(contextText);
           pipelineResult = {
-            context: formattedChunks.join('\n\n'),
+            context: contextText,
+            tokens: contextTokens,
+            utilization: totalBudget > 0 ? contextTokens / totalBudget : 0,
             sources: indexedSources.map(s => ({
               name: s.treeIndex.source,
               type: s.treeIndex.sourceType,
               totalTokens: s.treeIndex.totalTokens,
               indexedNodes: s.treeIndex.nodeCount,
             })),
+            navigation: {
+              selections: [],
+            },
+            compression: {
+              originalTokens: retrievalResult.totalChunks > 0 ? indexedSources.reduce((s, ix) => s + ix.treeIndex.totalTokens, 0) : 0,
+              compressedTokens: contextTokens,
+              ratio: totalBudget > 0 ? contextTokens / Math.max(1, indexedSources.reduce((s, ix) => s + ix.treeIndex.totalTokens, 0)) : 1,
+              removals: { duplicates: 0, filler: 0, codeComments: 0 },
+            },
+            indexes: indexedSources.map(s => s.treeIndex),
             timing: {
               indexMs: 0,
               navigationMs: 0,
