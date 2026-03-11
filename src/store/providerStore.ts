@@ -244,7 +244,7 @@ function loadProviders(): ProviderConfig[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_PROVIDERS;
     const saved = JSON.parse(raw) as Partial<ProviderConfig>[];
-    return DEFAULT_PROVIDERS.map((def) => {
+    const merged = DEFAULT_PROVIDERS.map((def) => {
       const s = saved.find((p) => p.id === def.id);
       if (!s) return def;
       const authMethod = (s.authMethod ?? def.authMethod) as AuthMethod;
@@ -273,6 +273,16 @@ function loadProviders(): ProviderConfig[] {
         } as ProviderConfig;
       })
     );
+    // Deduplicate by id (last wins) — prevents duplicate key warnings in React
+    const seen = new Set<string>();
+    const deduped: ProviderConfig[] = [];
+    for (let i = merged.length - 1; i >= 0; i--) {
+      if (!seen.has(merged[i].id)) {
+        seen.add(merged[i].id);
+        deduped.unshift(merged[i]);
+      }
+    }
+    return deduped;
   } catch {
     return DEFAULT_PROVIDERS;
   }

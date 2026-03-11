@@ -51,22 +51,34 @@ router.post('/embed', async (req, res) => {
       });
     }
     
-    // Validate that all texts are non-empty strings
+    // Filter and validate texts — skip empty strings instead of rejecting
+    const validTexts: string[] = [];
+    const indexMap: number[] = []; // maps validTexts index → original index
     for (let i = 0; i < texts.length; i++) {
       if (typeof texts[i] !== 'string') {
         return res.status(400).json({
           error: `Text at index ${i} must be a string`
         });
       }
-      if (texts[i].trim().length === 0) {
-        return res.status(400).json({
-          error: `Text at index ${i} cannot be empty`
-        });
+      if (texts[i].trim().length > 0) {
+        validTexts.push(texts[i]);
+        indexMap.push(i);
       }
     }
     
-    // Generate embeddings
-    const embeddings = await embeddingService.embedBatch(texts);
+    if (validTexts.length === 0) {
+      // All texts were empty — return zero vectors
+      return res.json({ embeddings: texts.map(() => []) });
+    }
+    
+    // Generate embeddings for valid texts only
+    const validEmbeddings = await embeddingService.embedBatch(validTexts);
+    
+    // Reconstruct full array with empty vectors for empty texts
+    const embeddings: number[][] = texts.map(() => []);
+    for (let i = 0; i < indexMap.length; i++) {
+      embeddings[indexMap[i]] = validEmbeddings[i];
+    }
     
     res.json({ embeddings });
   } catch (error) {
