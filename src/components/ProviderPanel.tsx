@@ -386,9 +386,11 @@ export function ProviderPanel() {
       </div>
 
       {/* Provider list */}
-      {providers.map((p) => (
-        <ProviderRow key={p.id} provider={p} />
-      ))}
+      {providers
+        .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
+        .map((p) => (
+          <ProviderRow key={p.id} provider={p} />
+        ))}
 
       {/* Add custom */}
       <button
