@@ -382,9 +382,11 @@ function ProvidersTab() {
   return (
     <div className="flex flex-col">
       <div className="flex flex-col">
-        {providers.map((p) => (
-          <ProviderRow key={p.id} provider={p} />
-        ))}
+        {providers
+          .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
+          .map((p) => (
+            <ProviderRow key={p.id} provider={p} />
+          ))}
       </div>
       <div className="p-4">
         <button
