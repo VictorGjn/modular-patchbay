@@ -131,15 +131,15 @@ function PipelineStatsBar() {
         aria-expanded={expanded}
       >
         <Zap size={9} style={{ color: '#FE5000', flexShrink: 0 }} />
-        <span>ctx: {fmtTokens(stats.totalContextTokens)}</span>
-        <span>sys: {fmtTokens(stats.systemTokens)}</span>
+        <span title="Total context tokens sent to LLM">Context: {fmtTokens(stats.totalContextTokens)}</span>
+        <span title="System prompt tokens (persona + instructions)">System: {fmtTokens(stats.systemTokens)}</span>
         {p && (
           <>
-            <span style={{ color: p.compression.ratio < 0.8 ? '#2ecc71' : t.textDim }}>
-              compress: {Math.round((1 - p.compression.ratio) * 100)}%
+            <span title="How much the knowledge was compressed before sending" style={{ color: p.compression.ratio < 0.8 ? '#2ecc71' : t.textDim }}>
+              Compressed: {Math.round((1 - p.compression.ratio) * 100)}%
             </span>
-            <span>{p.sources.length} src</span>
-            <span>{p.timing.totalMs}ms</span>
+            <span title="Number of knowledge sources indexed">{p.sources.length} source{p.sources.length !== 1 ? 's' : ''}</span>
+            <span title="Pipeline processing time">{p.timing.totalMs}ms</span>
           </>
         )}
         <ChevronDown size={8} className="ml-auto" style={{ transform: expanded ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms' }} />
@@ -147,7 +147,7 @@ function PipelineStatsBar() {
 
       {/* Pipeline Trace View or Depth Heatmap */}
       {expanded && (
-        <div>
+        <div style={{ maxHeight: 420, overflowY: 'auto' }}>
           {/* Show Pipeline Trace View when retrieval data is available */}
           {stats.retrieval ? (
             <PipelineTraceView retrieval={stats.retrieval} />

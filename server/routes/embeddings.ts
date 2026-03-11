@@ -13,7 +13,7 @@ const router = Router();
  */
 router.get('/health', async (_req, res) => {
   try {
-    const health = embeddingService.getHealth();
+    const health = await embeddingService.getHealth();
     res.json(health);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
