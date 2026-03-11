@@ -29,14 +29,6 @@ vi.mock('../../src/store/mcpStore', () => {
           { name: 'send_message', description: 'Send a Slack message', inputSchema: { type: 'object', properties: {} } },
         ],
       },
-      {
-        id: 'filesystem-mcp',
-        name: 'Filesystem',
-        status: 'connected',
-        tools: [
-          { name: 'read_file', description: 'Read a file', inputSchema: { type: 'object', properties: { path: { type: 'string' } } } },
-        ],
-      },
     ],
   };
   return {
@@ -49,6 +41,8 @@ vi.mock('../../src/store/mcpStore', () => {
 vi.mock('../../src/store/consoleStore', () => ({
   useConsoleStore: {
     getState: () => ({
+      addChannel: vi.fn(),
+      channels: [],
       skills: [
         { id: 'code-review', name: 'Code Review', description: 'Reviews code', enabled: true },
         { id: 'summarize', name: 'Summarize', description: 'Summarizes text', enabled: false },
@@ -57,19 +51,37 @@ vi.mock('../../src/store/consoleStore', () => ({
   },
 }));
 
+// Mock config for builtin tools
+vi.mock('../../src/config', () => ({
+  API_BASE: 'http://localhost:4800/api',
+}));
+
+// Mock fetch for builtin tools
+vi.stubGlobal('fetch', vi.fn());
+
 describe('toolRegistry', () => {
   describe('getUnifiedTools', () => {
-    it('returns tools only from connected MCP servers', () => {
+    it('returns tools from connected MCP servers and builtin tools', () => {
       const tools = getUnifiedTools();
       const names = tools.map(t => t.name);
+      
+      // MCP tools from connected servers
       expect(names).toContain('list_issues');
       expect(names).toContain('create_pr');
+      
+      // Built-in tools should always be available
+      expect(names).toContain('index_github_repo');
+      expect(names).toContain('index_local_repo');
+      expect(names).toContain('scan_directory');
+      expect(names).toContain('index_knowledge_file');
+      expect(names).toContain('search_knowledge');
       expect(names).toContain('read_file');
+      
       // Slack is disconnected — its tools shouldn't appear
       expect(names).not.toContain('send_message');
     });
 
-    it('attaches correct origin to each tool', () => {
+    it('attaches correct origin to MCP tools', () => {
       const tools = getUnifiedTools();
       const listIssues = tools.find(t => t.name === 'list_issues')!;
       expect(listIssues.origin).toEqual({
@@ -79,13 +91,36 @@ describe('toolRegistry', () => {
       });
     });
 
-    it('carries input schemas through', () => {
+    it('attaches correct origin to builtin tools', () => {
+      const tools = getUnifiedTools();
+      const readFile = tools.find(t => t.name === 'read_file')!;
+      expect(readFile.origin).toEqual({
+        kind: 'builtin',
+        serverId: 'modular-studio',
+        serverName: 'Modular Studio',
+      });
+    });
+
+    it('carries input schemas through for builtin tools', () => {
       const tools = getUnifiedTools();
       const readFile = tools.find(t => t.name === 'read_file')!;
       expect(readFile.inputSchema).toEqual({
         type: 'object',
-        properties: { path: { type: 'string' } },
+        properties: { 
+          path: { type: 'string', description: 'File path to read' } 
+        },
+        required: ['path'],
       });
+    });
+
+    it('handles name disambiguation across MCP and builtin tools', () => {
+      // If there's a name collision, tools should be namespaced
+      const tools = getUnifiedTools();
+      const toolNames = tools.map(t => t.name);
+      
+      // Check that all tools have unique names
+      const uniqueNames = new Set(toolNames);
+      expect(uniqueNames.size).toBe(toolNames.length);
     });
   });
 

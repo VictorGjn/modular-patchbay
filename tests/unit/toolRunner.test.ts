@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockCallTool = vi.fn();
 const mockAddEvent = vi.fn();
 const mockEndTrace = vi.fn();
+const mockAddChannel = vi.fn();
 
 vi.mock('../../src/store/mcpStore', () => ({
   useMcpStore: {
@@ -17,6 +18,15 @@ vi.mock('../../src/store/mcpStore', () => ({
           { name: 'get_weather', description: 'Get weather', inputSchema: { type: 'object', properties: { city: { type: 'string' } } } },
         ],
       }],
+    }),
+  },
+}));
+
+vi.mock('../../src/store/consoleStore', () => ({
+  useConsoleStore: {
+    getState: () => ({
+      addChannel: mockAddChannel,
+      channels: [],
     }),
   },
 }));
@@ -255,34 +265,181 @@ describe('toolRunner', () => {
     });
   });
 
-  it('reports error when no tools and provider supports tools', async () => {
-    // Override to return no tools
-    const origGetState = (await import('../../src/store/mcpStore')).useMcpStore.getState;
+  it('dispatches builtin tools correctly', async () => {
+    // Mock model requesting a builtin tool
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [{
+            message: {
+              content: 'Let me read that file.',
+              tool_calls: [{
+                id: 'call_builtin',
+                function: { name: 'read_file', arguments: '{"path":"/test/file.txt"}' },
+              }],
+            },
+            finish_reason: 'tool_calls',
+          }],
+          usage: { prompt_tokens: 10, completion_tokens: 8 },
+        }),
+      })
+      // Mock file read response
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => 'File content here',
+      })
+      // Mock final model response
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [{ 
+            message: { content: 'The file contains: File content here' }, 
+            finish_reason: 'stop' 
+          }],
+          usage: { prompt_tokens: 20, completion_tokens: 10 },
+        }),
+      });
 
-    // Temporarily mock empty servers
-    vi.spyOn(
-      (await import('../../src/store/mcpStore')).useMcpStore,
-      'getState'
-    ).mockReturnValueOnce({
-      callTool: mockCallTool,
-      servers: [],
-    } as any);
+    const toolResults: any[] = [];
 
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
       runToolLoop({
         providerId: 'openai-1',
         model: 'gpt-4',
-        messages: [{ role: 'user', content: 'test' }],
-        traceId: 'trace-5',
+        messages: [{ role: 'user', content: 'Read /test/file.txt' }],
+        traceId: 'trace-builtin',
         callbacks: {
           onChunk: () => {},
           onToolCallStart: () => {},
-          onToolCallEnd: () => {},
-          onDone: () => { throw new Error('should not reach onDone'); },
-          onError: (err) => {
-            expect(err.message).toContain('No tools available');
+          onToolCallEnd: (result) => toolResults.push(result),
+          onDone: (stats) => {
+            expect(stats.toolCalls).toHaveLength(1);
+            expect(stats.toolCalls[0].name).toBe('read_file');
+            expect(stats.toolCalls[0].result).toBe('File content here');
+            expect(stats.toolCalls[0].serverId).toBe('modular-studio');
             resolve();
           },
+          onError: reject,
+        },
+      });
+    });
+
+    // Verify the builtin tool was called correctly
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://localhost:4800/api/knowledge/read?path=%2Ftest%2Ffile.txt'
+    );
+  });
+
+  it('handles builtin tool errors gracefully', async () => {
+    // Mock model requesting a builtin tool
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [{
+            message: {
+              content: '',
+              tool_calls: [{
+                id: 'call_error',
+                function: { name: 'read_file', arguments: '{"path":"/nonexistent.txt"}' },
+              }],
+            },
+            finish_reason: 'tool_calls',
+          }],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+      })
+      // Mock file read error
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: async () => 'File not found',
+      })
+      // Mock model handling error
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [{ 
+            message: { content: 'Sorry, the file could not be found.' }, 
+            finish_reason: 'stop' 
+          }],
+          usage: { prompt_tokens: 15, completion_tokens: 8 },
+        }),
+      });
+
+    const toolResults: any[] = [];
+
+    await new Promise<void>((resolve, reject) => {
+      runToolLoop({
+        providerId: 'openai-1',
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: 'Read nonexistent file' }],
+        traceId: 'trace-error',
+        callbacks: {
+          onChunk: () => {},
+          onToolCallStart: () => {},
+          onToolCallEnd: (result) => toolResults.push(result),
+          onDone: (stats) => {
+            expect(stats.toolCalls[0].error).toContain('Failed to read file: 404 File not found');
+            resolve();
+          },
+          onError: reject,
+        },
+      });
+    });
+
+    expect(toolResults[0].error).toContain('Failed to read file: 404 File not found');
+  });
+
+  it('handles unknown builtin tool', async () => {
+    // Mock model requesting unknown builtin tool
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [{
+            message: {
+              content: '',
+              tool_calls: [{
+                id: 'call_unknown',
+                function: { name: 'unknown_builtin_tool', arguments: '{}' },
+              }],
+            },
+            finish_reason: 'tool_calls',
+          }],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+      })
+      // Mock model handling tool not found
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [{ 
+            message: { content: 'Tool not available.' }, 
+            finish_reason: 'stop' 
+          }],
+          usage: { prompt_tokens: 15, completion_tokens: 3 },
+        }),
+      });
+
+    const toolResults: any[] = [];
+
+    await new Promise<void>((resolve, reject) => {
+      runToolLoop({
+        providerId: 'openai-1',
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: 'Use unknown tool' }],
+        traceId: 'trace-unknown',
+        callbacks: {
+          onChunk: () => {},
+          onToolCallStart: () => {},
+          onToolCallEnd: (result) => toolResults.push(result),
+          onDone: (stats) => {
+            expect(stats.toolCalls[0].error).toContain('Tool "unknown_builtin_tool" not found in registry');
+            resolve();
+          },
+          onError: reject,
         },
       });
     });
