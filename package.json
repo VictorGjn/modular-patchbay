@@ -1,6 +1,6 @@
 {
   "name": "modular-studio",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Context engineering IDE for AI agents. Design knowledge pipelines, not just prompts.",
   "type": "module",
   "license": "Apache-2.0",
@@ -16,6 +16,7 @@
   "engines": {
     "node": ">=18"
   },
+
   "keywords": [
     "ai",
     "agent",
@@ -31,6 +32,7 @@
   "files": [
     "dist/",
     "dist-server/",
+    "scripts/",
     "package.json",
     "README.md",
     "LICENSE"
@@ -44,6 +46,7 @@
     "preview": "vite preview",
     "server": "node --import tsx/esm server/index.ts",
     "studio": "node --import tsx/esm bin/modular-studio.ts",
+    "postinstall": "node scripts/stub-sharp.cjs",
     "prepublishOnly": "npm run build:all",
     "test": "vitest run",
     "test:watch": "vitest",
