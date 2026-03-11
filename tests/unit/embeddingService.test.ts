@@ -81,9 +81,24 @@ describe('EmbeddingService', () => {
 
   describe('embedBatch', () => {
     beforeEach(async () => {
-      mockModel.mockImplementation(async (text: string) => ({
-        data: new Float32Array([text.length * 0.1, text.length * 0.2, text.length * 0.3]),
-      }));
+      // Mock must handle both single string (embed) and array of strings (embedBatch native)
+      mockModel.mockImplementation(async (input: string | string[]) => {
+        if (Array.isArray(input)) {
+          // Native batch: return flat Float32Array with 3 dims per text
+          const dim = 3;
+          const flat = new Float32Array(input.length * dim);
+          for (let i = 0; i < input.length; i++) {
+            flat[i * dim + 0] = input[i].length * 0.1;
+            flat[i * dim + 1] = input[i].length * 0.2;
+            flat[i * dim + 2] = input[i].length * 0.3;
+          }
+          return { data: flat, dims: [input.length, dim] };
+        }
+        // Single text
+        return {
+          data: new Float32Array([input.length * 0.1, input.length * 0.2, input.length * 0.3]),
+        };
+      });
       await embeddingService.initialize();
     });
 

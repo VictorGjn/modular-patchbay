@@ -51,11 +51,16 @@ router.post('/embed', async (req, res) => {
       });
     }
     
-    // Validate that all texts are strings
+    // Validate that all texts are non-empty strings
     for (let i = 0; i < texts.length; i++) {
       if (typeof texts[i] !== 'string') {
         return res.status(400).json({
           error: `Text at index ${i} must be a string`
+        });
+      }
+      if (texts[i].trim().length === 0) {
+        return res.status(400).json({
+          error: `Text at index ${i} cannot be empty`
         });
       }
     }

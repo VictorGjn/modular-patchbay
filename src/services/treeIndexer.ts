@@ -50,9 +50,19 @@ export interface TreeIndex {
 }
 
 /** Rough token estimate: ~4 chars per token for English text */
+/**
+ * Estimate token count from text.
+ * Uses word-boundary split (~1.3 tokens per word for English)
+ * with adjustment for code blocks (~0.4 tokens per char).
+ */
 export function estimateTokens(text: string): number {
   if (!text) return 0;
-  return Math.ceil(text.length / 4);
+  // Code blocks are denser (more tokens per char)
+  const codeBlockMatch = text.match(/```[\s\S]*?```/g);
+  const codeChars = codeBlockMatch ? codeBlockMatch.reduce((s, b) => s + b.length, 0) : 0;
+  const proseChars = text.length - codeChars;
+  // Prose: ~4 chars/token. Code: ~2.5 chars/token.
+  return Math.ceil(proseChars / 4 + codeChars / 2.5);
 }
 
 function extractFirstSentence(text: string): string {
