@@ -6,7 +6,7 @@
  * When siblings are related, we include them for cluster coherence.
  */
 
-import type { TreeNode, TreeIndex } from './treeIndexer';
+import { type TreeNode, type TreeIndex, estimateTokens } from './treeIndexer';
 import type { KnowledgeType } from '../store/knowledgeBase';
 import { API_BASE } from '../config';
 
@@ -95,7 +95,7 @@ function splitLargeNode(node: TreeNode, maxTokens = 500): ChunkMetadata[] {
   
   for (const paragraph of paragraphs) {
     const testChunk = currentChunk ? `${currentChunk}\n\n${paragraph}` : paragraph;
-    const testTokens = Math.ceil(testChunk.length / 4); // Rough token estimate
+    const testTokens = estimateTokens(testChunk);
     
     if (testTokens > maxTokens && currentChunk) {
       // Flush current chunk
@@ -256,7 +256,7 @@ function applyMMR(
       if (!candidate.embedding) continue;
       
       // Estimate tokens for this chunk
-      const chunkTokens = Math.ceil(candidate.content.length / 4);
+      const chunkTokens = estimateTokens(candidate.content);
       if (currentTokens + chunkTokens > budget) continue;
       
       // Relevance score
@@ -283,7 +283,7 @@ function applyMMR(
     if (bestIndex === -1) break;
     
     const selectedCandidate = candidates.splice(bestIndex, 1)[0];
-    const chunkTokens = Math.ceil(selectedCandidate.content.length / 4);
+    const chunkTokens = estimateTokens(selectedCandidate.content);
     
     selected.push(selectedCandidate);
     currentTokens += chunkTokens;
@@ -413,7 +413,7 @@ export async function treeAwareRetrieve(
   
   // Calculate budget used (rough token estimate)
   const budgetUsed = selectedChunks.reduce((sum, chunk) => 
-    sum + Math.ceil(chunk.content.length / 4), 0
+    sum + estimateTokens(chunk.content), 0
   );
   
   const retrievalMs = Date.now() - retrievalStart;

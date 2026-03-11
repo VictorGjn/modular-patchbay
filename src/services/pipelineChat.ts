@@ -260,7 +260,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         relevanceScore: chunk.relevanceScore || 0,
         inclusionReason: chunk.inclusionReason || 'unknown',
         knowledgeType: chunk.knowledgeType,
-        tokens: Math.ceil(chunk.content.length / 4),
+        tokens: estimateTokens(chunk.content),
       })),
     } : undefined;
 

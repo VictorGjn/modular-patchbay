@@ -124,7 +124,14 @@ class EmbeddingServiceImpl implements EmbeddingService {
       throw new Error('Text cannot be empty');
     }
     
-    return this._embed(text.trim());
+    return this._embed(this.truncateForModel(text.trim()));
+  }
+
+  /** Maximum input length in characters (~256 tokens for all-MiniLM-L6-v2) */
+  private maxInputChars = 1024; // ~256 tokens × 4 chars/token
+
+  private truncateForModel(text: string): string {
+    return text.length > this.maxInputChars ? text.slice(0, this.maxInputChars) : text;
   }
 
   async embedBatch(texts: string[]): Promise<number[][]> {
@@ -132,15 +139,55 @@ class EmbeddingServiceImpl implements EmbeddingService {
       return [];
     }
 
-    // Process in parallel but limit concurrency to avoid memory issues
-    const batchSize = 10;
+    if (!this.ready || !this.model) {
+      await this.initialize();
+    }
+
+    // Split into batches and use native model batching (pass array of strings)
+    const batchSize = 32;
     const results: number[][] = [];
     
     for (let i = 0; i < texts.length; i += batchSize) {
-      const batch = texts.slice(i, i + batchSize);
-      const batchPromises = batch.map(text => this.embed(text));
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults);
+      const batch = texts.slice(i, i + batchSize).map(t => this.truncateForModel(t.trim()));
+      
+      // Check cache for each text, collect uncached
+      const batchResults: (number[] | null)[] = batch.map(t => {
+        const hash = this.hashText(t);
+        const cached = this.cache.get(hash);
+        if (cached) {
+          cached.lastAccessed = Date.now();
+          return cached.embedding;
+        }
+        return null;
+      });
+      
+      const uncachedIndices = batchResults
+        .map((r, idx) => r === null ? idx : -1)
+        .filter(idx => idx >= 0);
+      
+      if (uncachedIndices.length > 0) {
+        // Native batch inference — one model call for all uncached texts
+        const uncachedTexts = uncachedIndices.map(idx => batch[idx]);
+        const batchOutput = await this.model(uncachedTexts, { pooling: 'mean', normalize: true });
+        
+        // batchOutput.data is a flat Float32Array: [dim * N]
+        const dim = batchOutput.dims?.[1] ?? (batchOutput.data.length / uncachedTexts.length);
+        
+        for (let j = 0; j < uncachedIndices.length; j++) {
+          const embedding = Array.from(batchOutput.data.slice(j * dim, (j + 1) * dim)) as number[];
+          const idx = uncachedIndices[j];
+          batchResults[idx] = embedding;
+          
+          // Cache the result
+          const hash = this.hashText(batch[idx]);
+          if (this.cache.size >= this.maxCacheSize) {
+            this.evictOldestCacheEntry();
+          }
+          this.cache.set(hash, { embedding, lastAccessed: Date.now() });
+        }
+      }
+      
+      results.push(...(batchResults as number[][]));
     }
     
     return results;
