@@ -7,6 +7,7 @@ import { TestPanel } from '../panels/TestPanel';
 export function DashboardLayout() {
   const t = useTheme();
   const [testCollapsed, setTestCollapsed] = useState(true);
+  const [testExpanded, setTestExpanded] = useState(false);
 
   return (
     <div
@@ -15,38 +16,42 @@ export function DashboardLayout() {
       style={{ background: t.bg }}
     >
       {/* Left — Sources */}
-      <nav
-        aria-label="Agent sources"
-        className="flex flex-col overflow-y-auto"
-        style={{
-          width: '30%',
-          minWidth: 300,
-          maxWidth: 480,
-          background: t.isDark ? '#161619' : '#f8f8fa',
-          borderRight: `1px solid ${t.border}`,
-        }}
-      >
-        <SourcesPanel />
-      </nav>
+      {!testExpanded && (
+        <nav
+          aria-label="Agent sources"
+          className="flex flex-col overflow-y-auto"
+          style={{
+            width: '30%',
+            minWidth: 300,
+            maxWidth: 480,
+            background: t.isDark ? '#161619' : '#f8f8fa',
+            borderRight: `1px solid ${t.border}`,
+          }}
+        >
+          <SourcesPanel />
+        </nav>
+      )}
 
       {/* Center — Agent Builder */}
-      <section
-        aria-label="Agent builder"
-        className="flex-1 overflow-y-auto"
-        style={{ padding: '24px 32px' }}
-      >
-        <AgentBuilder />
-      </section>
+      {!testExpanded && (
+        <section
+          aria-label="Agent builder"
+          className="flex-1 overflow-y-auto"
+          style={{ padding: '24px 32px' }}
+        >
+          <AgentBuilder />
+        </section>
+      )}
 
       {/* Right — Test & Export */}
       <aside
         aria-label="Test and export"
         className="flex flex-col overflow-hidden"
         style={{
-          width: testCollapsed ? 48 : 400,
-          minWidth: testCollapsed ? 48 : 400,
+          width: testCollapsed ? 48 : testExpanded ? '100%' : 400,
+          minWidth: testCollapsed ? 48 : testExpanded ? '100%' : 400,
           background: t.isDark ? '#161619' : '#f8f8fa',
-          borderLeft: `1px solid ${t.border}`,
+          borderLeft: !testExpanded ? `1px solid ${t.border}` : 'none',
           transition: 'width 200ms ease, min-width 200ms ease',
         }}
       >
@@ -72,7 +77,12 @@ export function DashboardLayout() {
             </span>
           </button>
         ) : (
-          <TestPanel onCollapse={() => setTestCollapsed(true)} />
+          <TestPanel 
+            onCollapse={() => setTestCollapsed(true)} 
+            onExpand={() => setTestExpanded(true)}
+            onMinimize={() => setTestExpanded(false)}
+            isExpanded={testExpanded}
+          />
         )}
       </aside>
     </div>

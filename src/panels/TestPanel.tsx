@@ -13,6 +13,7 @@ import { useMemoryStore } from '../store/memoryStore';
 import {
   Send, Download, Check, FolderOpen, Upload, AlertCircle,
   FileText, FileCode, Zap, ChevronDown, ChevronRight, Users, Plus, X, Play, Square,
+  Maximize2, Minimize2,
 } from 'lucide-react';
 import { TraceViewer } from './TraceViewer';
 import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
@@ -117,9 +118,16 @@ function PipelineStatsBar() {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-3 px-4 py-1.5 text-[13px] w-full border-none cursor-pointer"
-        style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: 'transparent' }}
-        aria-label="Pipeline statistics"
+        className="flex items-center gap-3 px-4 py-1.5 text-[13px] w-full border-none cursor-pointer min-h-[44px]"
+        style={{ 
+          fontFamily: "'Geist Mono', monospace", 
+          color: t.textDim, 
+          background: 'transparent',
+          transition: 'background-color 150ms'
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = t.isDark ? '#ffffff08' : '#00000005'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+        aria-label="Toggle pipeline statistics"
         aria-expanded={expanded}
       >
         <Zap size={9} style={{ color: '#FE5000', flexShrink: 0 }} />
@@ -254,7 +262,9 @@ function ChatSection() {
         userMessage: userMsg,
         channels,
         connectors,
-        history: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
+        history: messages
+          .filter(m => !(m.role === 'assistant' && m.content.trim() === ''))
+          .map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
         agentMeta: { name: agentMeta.name, description: agentMeta.description, avatar: agentMeta.avatar, tags: agentMeta.tags },
         providerId,
         model,
@@ -990,7 +1000,17 @@ function ExportSection() {
 }
 
 /* ── Main TestPanel ── */
-export function TestPanel({ onCollapse }: { onCollapse?: () => void }) {
+export function TestPanel({ 
+  onCollapse, 
+  onExpand, 
+  onMinimize, 
+  isExpanded 
+}: { 
+  onCollapse?: () => void;
+  onExpand?: () => void;
+  onMinimize?: () => void;
+  isExpanded?: boolean;
+}) {
   const t = useTheme();
   const [activeTab, setActiveTab] = useState<'chat' | 'team' | 'traces' | 'export'>('chat');
 
@@ -1025,6 +1045,20 @@ export function TestPanel({ onCollapse }: { onCollapse?: () => void }) {
           </button>
 
         </div>
+        {isExpanded && onMinimize && (
+          <button type="button" onClick={onMinimize} aria-label="Minimize test panel"
+            className="w-7 h-7 rounded-md border-none cursor-pointer flex items-center justify-center"
+            style={{ background: 'transparent', color: t.textDim }}>
+            <Minimize2 size={14} />
+          </button>
+        )}
+        {!isExpanded && onExpand && (
+          <button type="button" onClick={onExpand} aria-label="Expand test panel"
+            className="w-7 h-7 rounded-md border-none cursor-pointer flex items-center justify-center"
+            style={{ background: 'transparent', color: t.textDim }}>
+            <Maximize2 size={14} />
+          </button>
+        )}
         {onCollapse && (
           <button type="button" onClick={onCollapse} aria-label="Collapse test panel"
             className="w-7 h-7 rounded-md border-none cursor-pointer flex items-center justify-center"
