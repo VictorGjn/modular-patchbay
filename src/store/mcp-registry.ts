@@ -21,6 +21,7 @@ export interface McpRegistryEntry {
   website?: string;
   repo?: string;
   tags: string[];
+  sameServiceAs?: string;
 }
 
 export const MCP_REGISTRY: McpRegistryEntry[] = [
@@ -440,6 +441,7 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     authMethod: 'oauth',
     configFields: [],
     website: 'https://notion.so', tags: ['notion', 'docs', 'wiki', 'database', 'pages', 'oauth'],
+    sameServiceAs: 'mcp-notion',
   },
   {
     id: 'mcp-google-drive', name: 'Google Drive', npmPackage: '@modelcontextprotocol/server-gdrive',
