@@ -437,6 +437,7 @@ export async function compressKnowledge(
     for (const ch of regularChannels) {
       if (ch.content) {
         // Inline content path
+        if (ch.content.trim().length === 0) continue; // Skip empty content
         const virtualPath = `content://${ch.contentSourceId || ch.sourceId}`;
         const treeIndex = indexMarkdown(virtualPath, ch.content);
         indexedSources.push({ treeIndex, knowledgeType: ch.knowledgeType });
