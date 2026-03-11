@@ -177,10 +177,21 @@ export function extractTreeAwareChunks(
 async function callEmbeddingService(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
   
+  // Filter empty texts — map back to original positions after
+  const validIndices: number[] = [];
+  const validTexts: string[] = [];
+  for (let i = 0; i < texts.length; i++) {
+    if (texts[i] && texts[i].trim().length > 0) {
+      validIndices.push(i);
+      validTexts.push(texts[i]);
+    }
+  }
+  if (validTexts.length === 0) return texts.map(() => []);
+  
   const response = await fetch(`${API_BASE}/embeddings/embed`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ texts }),
+    body: JSON.stringify({ texts: validTexts }),
   });
   
   if (!response.ok) {
@@ -188,7 +199,13 @@ async function callEmbeddingService(texts: string[]): Promise<number[][]> {
   }
   
   const result = await response.json();
-  return result.embeddings;
+  
+  // Map back to original positions
+  const embeddings: number[][] = texts.map(() => []);
+  for (let i = 0; i < validIndices.length; i++) {
+    embeddings[validIndices[i]] = result.embeddings[i];
+  }
+  return embeddings;
 }
 
 /**
