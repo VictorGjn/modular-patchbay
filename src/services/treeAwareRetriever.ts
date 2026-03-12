@@ -189,24 +189,34 @@ async function callEmbeddingService(texts: string[], retries = 2): Promise<numbe
   }
   if (validTexts.length === 0) return texts.map(() => []);
   
-  const response = await fetch(`${API_BASE}/embeddings/embed`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ texts: validTexts }),
-  });
+  // Batch in groups of 100 to respect server limit
+  const BATCH_SIZE = 100;
+  const allValidEmbeddings: number[][] = [];
+  
+  for (let start = 0; start < validTexts.length; start += BATCH_SIZE) {
+    const batch = validTexts.slice(start, start + BATCH_SIZE);
+    const response = await fetch(`${API_BASE}/embeddings/embed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texts: batch }),
+    });
 
-  // Model still loading — retry after delay
-  if (response.status === 503 && retries > 0) {
-    const retryAfter = 3000;
-    await new Promise(r => setTimeout(r, retryAfter));
-    return callEmbeddingService(texts, retries - 1);
+    // Model still loading — retry after delay
+    if (response.status === 503 && retries > 0) {
+      const retryAfter = 3000;
+      await new Promise(r => setTimeout(r, retryAfter));
+      return callEmbeddingService(texts, retries - 1);
+    }
+    
+    if (!response.ok) {
+      throw new Error(`Embedding service error: ${response.status} ${response.statusText}`);
+    }
+    
+    const batchResult = await response.json();
+    allValidEmbeddings.push(...(batchResult.embeddings || []));
   }
   
-  if (!response.ok) {
-    throw new Error(`Embedding service error: ${response.status} ${response.statusText}`);
-  }
-  
-  const result = await response.json();
+  const result = { embeddings: allValidEmbeddings };
   
   // Map back to original positions
   const embeddings: number[][] = texts.map(() => []);
