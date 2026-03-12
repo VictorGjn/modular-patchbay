@@ -25,6 +25,10 @@ export interface ExportConfig {
   outputTemplateConfig?: Record<string, OutputTemplateConfig>;
   instructionState?: InstructionState;
   workflowSteps?: WorkflowStep[];
+  knowledgeContent?: Array<{ sourceId: string; name: string; path: string; knowledgeType: string; depth: number; tokens: number; content?: string }>;
+  pipelineSnapshot?: { context: string; tokens: number; utilization: number; sources: Array<{ name: string; type: string; totalTokens: number }>; compression: { originalTokens: number; compressedTokens: number; ratio: number }; timing: { totalMs: number } };
+  facts?: Array<{ id: string; text: string; domain: string }>;
+  portable?: boolean;
 }
 
 interface AgentData {
@@ -308,6 +312,29 @@ function buildMarkdownBody(data: AgentData, config: ExportConfig): string {
   body.push(formatLabels.length > 0 ? formatLabels.join(', ') : 'Markdown');
   body.push('');
 
+  if (config.knowledgeContent && config.knowledgeContent.length > 0) {
+    body.push('## Knowledge Sources');
+    for (const k of config.knowledgeContent) {
+      body.push(`- **${k.name}** (${k.knowledgeType}, ${k.tokens} tokens) — \`${k.path}\``);
+      if (config.portable && k.content) {
+        body.push('');
+        body.push('  ```');
+        body.push(k.content.split('\n').map(l => '  ' + l).join('\n'));
+        body.push('  ```');
+        body.push('');
+      }
+    }
+    body.push('');
+  }
+
+  if (config.facts && config.facts.length > 0) {
+    body.push('## Extracted Insights');
+    for (const f of config.facts) {
+      body.push(`- ${f.text}`);
+    }
+    body.push('');
+  }
+
   return body.join('\n');
 }
 
@@ -439,7 +466,20 @@ export function exportGenericJSON(config: ExportConfig): string {
   const templates = config.outputTemplateConfig
     ? Object.fromEntries(Object.entries(config.outputTemplateConfig).map(([k, v]) => [k, templateConfigToSchema(v)]))
     : undefined;
-  const obj = {
+
+  const knowledge = config.knowledgeContent
+    ? config.knowledgeContent.map((k) => ({
+        sourceId: k.sourceId,
+        name: k.name,
+        path: k.path,
+        knowledgeType: k.knowledgeType,
+        depth: k.depth,
+        tokens: k.tokens,
+        ...(config.portable && k.content ? { content: k.content } : {}),
+      }))
+    : data.reads.map((path) => ({ path }));
+
+  const obj: Record<string, unknown> = {
     modular_version: '1.0',
     agent: {
       name: data.name,
@@ -448,7 +488,6 @@ export function exportGenericJSON(config: ExportConfig): string {
       temperature: data.temperature,
       system_prompt: data.system,
       planning_mode: data.planningMode,
-      knowledge: data.reads.map((path) => ({ path })),
       skills: data.tools,
       mcp_servers: data.mcp_servers,
       output_formats: data.output_format,
@@ -458,7 +497,17 @@ export function exportGenericJSON(config: ExportConfig): string {
       ...(config.workflowSteps && config.workflowSteps.length > 0 ? { workflowSteps: config.workflowSteps } : {}),
       ...(templates && Object.keys(templates).length > 0 ? { output: { templates } } : {}),
     },
+    knowledge,
   };
+
+  if (config.pipelineSnapshot) {
+    obj.pipeline_snapshot = config.pipelineSnapshot;
+  }
+
+  if (config.facts && config.facts.length > 0) {
+    obj.facts = config.facts;
+  }
+
   return JSON.stringify(obj, null, 2);
 }
 
