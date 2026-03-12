@@ -758,37 +758,37 @@ function KnowledgeSection() {
 /* ── MCP Servers Section ── */
 function McpSection() {
   const t = useTheme();
-  const mcpServers = useConsoleStore(s => s.mcpServers);
-  // const toggleMcp = useConsoleStore(s => s.toggleMcp);
   const removeMcp = useConsoleStore(s => s.removeMcp);
-  const mcpState = useMcpStore(s => s.servers);
+  const removeServerFromMcpStore = useMcpStore(s => s.removeServer);
+  // Single source of truth: mcpStore.servers (backend state)
+  const mcpServers = useMcpStore(s => s.servers);
   const mcpHealth = useHealthStore(s => s.mcpHealth);
   const [collapsed, setCollapsed] = useState(false);
   const [probing, setProbing] = useState(false);
 
-  const selectedMcpServers = mcpServers.filter(m => m.added);
+  const selectedMcpServers = mcpServers;
   const activeCount = selectedMcpServers.length;
-  const errorCount = selectedMcpServers.filter(m => mcpHealth[m.id]?.status === 'error').length;
+  const connectedCount = selectedMcpServers.filter(m => m.status === 'connected').length;
+  const errorCount = selectedMcpServers.filter(m => m.status === 'error' || mcpHealth[m.id]?.status === 'error').length;
 
-  const resolveStoreServer = (serverId: string, serverName: string) => {
-    return mcpState.find(s => s.id === serverId) ?? mcpState.find(s => s.name === serverName);
-  };
-
-  const getStatus = (serverId: string, serverName: string) => {
-    // Health probe takes priority over mcpStore status
-    const health = mcpHealth[serverId];
+  const getStatus = (server: typeof mcpServers[0]) => {
+    // Health probe takes priority
+    const health = mcpHealth[server.id];
     if (health) {
       if (health.status === 'healthy') return 'ok';
       if (health.status === 'degraded') return 'warn';
       if (health.status === 'error') return 'err';
       if (health.status === 'checking') return 'warn';
     }
-    const state = resolveStoreServer(serverId, serverName);
-    if (!state) return 'off';
-    if (state.status === 'connected') return 'ok';
-    if (state.status === 'error') return 'err';
-    if (state.status === 'connecting') return 'warn';
+    if (server.status === 'connected') return 'ok';
+    if (server.status === 'error') return 'err';
+    if (server.status === 'connecting') return 'warn';
     return 'off';
+  };
+
+  const handleRemove = (serverId: string) => {
+    removeMcp(serverId);            // clean up consoleStore (legacy)
+    removeServerFromMcpStore(serverId); // clean up mcpStore (source of truth)
   };
 
   const handleProbeAll = useCallback(async () => {
@@ -796,23 +796,10 @@ function McpSection() {
     const { setMcpHealth, setMcpChecking } = useHealthStore.getState();
 
     await Promise.allSettled(selectedMcpServers.map(async (server) => {
-      const target = resolveStoreServer(server.id, server.name);
-      if (!target) {
-        setMcpHealth(server.id, {
-          status: 'error',
-          latencyMs: 0,
-          toolCount: 0,
-          tools: [],
-          errorMessage: `Not found: ${server.id}`,
-          checkedAt: Date.now(),
-        });
-        return;
-      }
-
       setMcpChecking(server.id);
       const start = performance.now();
       try {
-        const res = await fetch(`${API_BASE}/health/mcp/${target.id}`, { signal: AbortSignal.timeout(15000) });
+        const res = await fetch(`${API_BASE}/health/mcp/${server.id}`, { signal: AbortSignal.timeout(15000) });
         const latencyMs = Math.round(performance.now() - start);
         const json = await res.json();
         const probe = json.data ?? json;
@@ -837,7 +824,7 @@ function McpSection() {
     }));
 
     setProbing(false);
-  }, [selectedMcpServers, mcpState]);
+  }, [selectedMcpServers]);
 
   const STATUS_COLORS: Record<string, { bg: string; glow: string }> = {
     ok: { bg: '#00ff88', glow: '0 0 6px rgba(0,255,136,0.4)' },
@@ -858,7 +845,7 @@ function McpSection() {
   return (
     <Section
       icon={Plug} label="MCP Servers" color="#2ecc71"
-      badge={errorCount > 0 ? `${activeCount} active · ${errorCount} error` : `${activeCount} active`}
+      badge={errorCount > 0 ? `${connectedCount}/${activeCount} · ${errorCount} error` : `${connectedCount}/${activeCount} connected`}
       collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)}
     >
       {/* Check Health button */}
@@ -869,25 +856,24 @@ function McpSection() {
       )}
       <div className="flex flex-col">
         {selectedMcpServers.map(server => {
-          const status = getStatus(server.id, server.name);
+          const status = getStatus(server);
           const sc = STATUS_COLORS[status];
-          const state = resolveStoreServer(server.id, server.name);
           const health = mcpHealth[server.id];
-          const toolCount = health?.toolCount ?? state?.tools?.length ?? 0;
+          const toolCount = health?.toolCount ?? server.tools?.length ?? 0;
           return (
             <div key={server.id} style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
               <div className="flex items-center gap-2.5 py-2.5">
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: sc.bg, boxShadow: sc.glow, flexShrink: 0 }} />
                 <span className="flex-1 text-[14px]" style={{ color: t.textPrimary }}>{server.name}</span>
-                {(server as any).type && (
+                {server.type && (
                   <span className="text-[12px] px-1.5 py-0.5 rounded" style={{ fontFamily: "'Geist Mono', monospace", background: t.badgeBg, color: t.textDim }}>
-                    {(server as any).type}
+                    {server.type}
                   </span>
                 )}
                 {toolCount > 0 && (
                   <span className="text-[12px]" style={{ color: t.textDim }}>{toolCount} tools</span>
                 )}
-                <button type="button" aria-label={`Remove ${server.name}`} onClick={() => removeMcp(server.id)} className="border-none bg-transparent cursor-pointer p-2 rounded hover:bg-[#ff000010] min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: t.textFaint }}>
+                <button type="button" aria-label={`Remove ${server.name}`} onClick={() => handleRemove(server.id)} className="border-none bg-transparent cursor-pointer p-2 rounded hover:bg-[#ff000010] min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: t.textFaint }}>
                   <X size={10} />
                 </button>
               </div>
