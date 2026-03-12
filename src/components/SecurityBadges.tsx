@@ -19,6 +19,32 @@ interface SkillAuditResult {
 
 // Module-level cache — survives re-renders, avoids duplicate fetches
 const auditCache = new Map<string, SkillAuditResult>();
+const notFound = new Set<string>();
+const installedSkills = new Set<string>();
+let installedLoaded = false;
+let installedLoadingPromise: Promise<void> | null = null;
+
+function normalizeSkillPath(skillPath: string): string {
+  // Strip scope prefix: 'global:audit-website' -> 'audit-website'
+  const afterColon = skillPath.includes(':') ? skillPath.split(':').pop()! : skillPath;
+  // Strip URL segments: 'foo/bar/baz' -> 'baz'
+  return afterColon.includes('/') ? afterColon.split('/').pop()! : afterColon;
+}
+
+function loadInstalledSkills(): Promise<void> {
+  if (installedLoaded) return Promise.resolve();
+  if (installedLoadingPromise) return installedLoadingPromise;
+  installedLoadingPromise = fetch(`${API_BASE}/health/skills`)
+    .then((r) => r.json())
+    .then((resp: { status: string; data?: { id: string }[] }) => {
+      if (resp.status === 'ok' && Array.isArray(resp.data)) {
+        resp.data.forEach((s) => installedSkills.add(s.id));
+      }
+      installedLoaded = true;
+    })
+    .catch(() => { installedLoaded = true; });
+  return installedLoadingPromise;
+}
 
 interface SecurityBadgesProps {
   skillPath: string; // skill directory name, e.g. 'frontend-design'
@@ -33,30 +59,56 @@ function statusColor(status: SkillAuditResult['status'] | null): string {
 
 export function SecurityBadges({ skillPath }: SecurityBadgesProps) {
   const t = useTheme();
-  const [result, setResult] = useState<SkillAuditResult | null>(() => auditCache.get(skillPath) ?? null);
+  const normalized = normalizeSkillPath(skillPath);
+  const [result, setResult] = useState<SkillAuditResult | null>(() => auditCache.get(normalized) ?? null);
+  const [loading, setLoading] = useState(() => !auditCache.has(normalized) && !notFound.has(normalized));
   const [tooltip, setTooltip] = useState<string | null>(null);
 
   useEffect(() => {
-    if (auditCache.has(skillPath)) {
-      setResult(auditCache.get(skillPath)!);
+    if (auditCache.has(normalized)) {
+      setResult(auditCache.get(normalized)!);
+      setLoading(false);
+      return;
+    }
+    if (notFound.has(normalized)) {
+      setLoading(false);
       return;
     }
 
     let cancelled = false;
-    fetch(`${API_BASE}/health/skills/${encodeURIComponent(skillPath)}`)
-      .then((r) => r.json())
-      .then((resp: { status: string; data?: SkillAuditResult }) => {
-        if (cancelled) return;
-        if (resp.status === 'ok' && resp.data) {
-          auditCache.set(skillPath, resp.data);
-          setResult(resp.data);
-        }
-      })
-      .catch(() => { /* leave result as null on network error */ });
+    loadInstalledSkills().then(() => {
+      if (cancelled) return;
+      if (!installedSkills.has(normalized)) {
+        notFound.add(normalized);
+        setLoading(false);
+        return;
+      }
+      fetch(`${API_BASE}/health/skills/${encodeURIComponent(normalized)}`)
+        .then((r) => {
+          if (r.status === 404) {
+            notFound.add(normalized);
+            if (!cancelled) setLoading(false);
+            return null;
+          }
+          return r.json();
+        })
+        .then((resp: { status: string; data?: SkillAuditResult } | null) => {
+          if (cancelled || resp === null) return;
+          if (resp.status === 'ok' && resp.data) {
+            auditCache.set(normalized, resp.data);
+            setResult(resp.data);
+          }
+          setLoading(false);
+        })
+        .catch(() => { if (!cancelled) setLoading(false); });
+    });
     return () => { cancelled = true; };
-  }, [skillPath]);
+  }, [normalized]);
 
-  const isLoading = result === null;
+  // Don't render anything if fetch is done and no data found
+  if (!loading && result === null) return null;
+
+  const isLoading = loading && result === null;
   const isUndocumented = result?.securityIssues.some(s => s.includes('undocumented')) ?? false;
 
   const badges = [
