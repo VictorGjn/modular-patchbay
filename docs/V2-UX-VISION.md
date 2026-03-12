@@ -327,8 +327,9 @@ Three distinct modes, not three panels side by side.
 
 ---
 
-## Open Questions
-1. Should the wizard enforce linear order, or allow any-order access?
-2. Should we keep the current layout as a "power user" / "compact" mode?
-3. How do we handle "Load agent" — does it jump to Review directly?
-4. Does the Test tab persist between sessions, or reset each time?
+## Design Decisions (Resolved)
+
+1. **Wizard order:** Linear from 1→4 (must complete each step), then free access to any tab including 5 (Review) and 6 (Test). Once generated, all tabs unlocked.
+2. **Current layout:** Keep as "Compact Mode" toggle for power users. Don't delete the code — just add the wizard as default.
+3. **Load agent:** Jumps directly to Review (tab 5). From there, user can navigate back into any tab to edit.
+4. **Test persistence:** Test tab (conversation, trace, context state) persists until user clicks "New" agent. New agent resets everything back to Describe (tab 1).
