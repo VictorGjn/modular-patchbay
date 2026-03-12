@@ -215,11 +215,16 @@ router.post('/install', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'skillId required' });
     return;
   }
+  // Security: validate skillId format (owner/repo@name or alphanumeric with hyphens)
+  if (!/^[a-z0-9@/_.-]+$/i.test(skillId) || skillId.includes('..')) {
+    res.status(400).json({ error: 'Invalid skill ID format' });
+    return;
+  }
 
   try {
     const args = ['skills', 'add', skillId, '-y'];
     if (scope === 'global') args.push('-g');
-    const { stdout, stderr } = await exec('npx', args, { timeout: 60000, shell: true });
+    const { stdout, stderr } = await exec('npx', args, { timeout: 60000 });
     res.json({ status: 'ok', output: stdout + stderr });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Install failed';
