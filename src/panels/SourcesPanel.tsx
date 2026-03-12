@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { SecurityBadges } from '../components/SecurityBadges';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMemoryStore, type MemoryDomain } from '../store/memoryStore';
@@ -944,6 +945,7 @@ function SkillsSection() {
             style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px rgba(0,255,136,0.4)', flexShrink: 0 }} />
             <span className="flex-1 text-[13px] truncate" style={{ color: t.textPrimary }}>{skill.name}</span>
+            <SecurityBadges skillPath={skill.id} />
             <button type="button" aria-label={`Remove ${skill.name}`} onClick={() => removeSkill(skill.id)}
               className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
               style={{ color: t.textFaint, width: 20, height: 20, padding: 0 }}>
