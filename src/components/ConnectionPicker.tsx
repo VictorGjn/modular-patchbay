@@ -224,25 +224,25 @@ export function ConnectionPicker() {
       connected: false,
     });
     
-    // If it has config fields and values are provided, add to MCP store
+    // Always register in backend MCP store
+    const env: Record<string, string> = {};
     if (entry.configFields && entry.configFields.length > 0) {
-      const env: Record<string, string> = {};
       entry.configFields.forEach(field => {
-        if (configValues[field.key]) {
-          env[field.key] = configValues[field.key];
-        }
-      });
-      
-      await mcpStoreAddServer({
-        id: entry.id,
-        name: entry.name,
-        type: entry.transport === 'stdio' ? 'stdio' : 'http',
-        command: entry.command || '',
-        args: entry.defaultArgs || [],
-        env,
-        autoConnect: true,
+        const val = configValues[field.key];
+        if (val) env[field.key] = val;
       });
     }
+
+    await mcpStoreAddServer({
+      id: entry.id,
+      name: entry.name,
+      type: entry.transport === 'stdio' ? 'stdio' : 'http',
+      command: entry.command || '',
+      args: entry.defaultArgs || [],
+      env,
+      autoConnect: true,
+      ...(entry.url ? { url: entry.url } : {}),
+    });
     
     // Collapse the config section
     setConfigEntries(prev => ({
