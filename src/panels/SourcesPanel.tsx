@@ -222,7 +222,23 @@ function GeneratorSection({ onGapsChange }: { onGapsChange: (gaps: KnowledgeGap[
 function MissingSources({ gaps }: { gaps: KnowledgeGap[] }) {
   const t = useTheme();
   const setShowFilePicker = useConsoleStore(s => s.setShowFilePicker);
-  if (gaps.length === 0) return null;
+  const agentMeta = useConsoleStore(s => s.agentMeta);
+  const generatorHasRun = agentMeta.name !== '';
+  if (gaps.length === 0) {
+    if (!generatorHasRun) return null;
+    return (
+      <div style={{ borderBottom: `1px solid ${t.isDark ? '#1e1e22' : '#e8e8ec'}`, borderLeft: '3px solid #2ecc71' }}>
+        <div className="px-5 py-3" style={{ background: t.isDark ? '#0f1a0f' : '#f0fdf0' }}>
+          <span
+            className="text-[12px] font-bold tracking-[0.08em] uppercase"
+            style={{ fontFamily: "'Geist Mono', monospace", color: '#2ecc71' }}
+          >
+            ✅ No missing sources detected
+          </span>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{ borderBottom: `1px solid ${t.isDark ? '#1e1e22' : '#e8e8ec'}`, borderLeft: '3px solid #e74c3c' }}>
       <div className="px-5 py-3" style={{ background: t.isDark ? '#1a1a1e' : '#fff5f5' }}>

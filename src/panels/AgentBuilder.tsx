@@ -426,8 +426,8 @@ export function AgentBuilder() {
   const tokenBudget = useConsoleStore(s => s.tokenBudget);
   const facts = useMemoryStore(s => s.facts);
 
-  // Tags raw-input state (committed on blur)
-  const [rawTags, setRawTags] = useState(() => agentMeta.tags.join(', '));
+  // Tags chip input state
+  const [tagInput, setTagInput] = useState('');
 
   // Collapse state
   const [identityOpen, setIdentityOpen] = useState(true);
@@ -531,6 +531,15 @@ export function AgentBuilder() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Panel Header */}
+      <div style={{ paddingBottom: 10, borderBottom: `1px solid ${t.border}` }}>
+        <span
+          className="text-[11px] font-bold uppercase tracking-[0.12em]"
+          style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
+        >
+          Agent Configuration
+        </span>
+      </div>
       <AgentActionBar />
       {/* Agent Card */}
       <div className="rounded-xl overflow-hidden" style={{ background: t.surfaceOpaque, border: `1px solid ${t.border}`, boxShadow: `0 2px 12px ${t.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)'}` }}>
@@ -595,9 +604,53 @@ export function AgentBuilder() {
             <TextArea label="Description" value={agentMeta.description}
               onChange={e => setAgentMeta({ description: e.target.value })}
               placeholder="One-line summary of what this agent does..." style={{ minHeight: 40 }} />
-            <Input label="Tags" value={rawTags} onChange={e => setRawTags(e.target.value)}
-              onBlur={() => { setAgentMeta({ tags: rawTags.split(',').map(t => t.trim()).filter(Boolean) }); }}
-              placeholder="pm, analysis, competitor" />
+            {/* Tags chip input */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[13px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>Tags</span>
+              <div
+                className="flex flex-wrap gap-1.5 px-2 py-1.5 rounded-lg min-h-[36px]"
+                style={{ background: t.inputBg, border: `1px solid ${t.border}` }}
+              >
+                {agentMeta.tags.map((tag, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px]"
+                    style={{ fontFamily: "'Geist Mono', monospace", background: '#FE500015', color: '#FE5000', border: '1px solid #FE500030' }}
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => setAgentMeta({ tags: agentMeta.tags.filter((_, j) => j !== i) })}
+                      className="flex items-center justify-center border-none bg-transparent cursor-pointer p-0"
+                      style={{ color: '#FE5000', lineHeight: 1 }}
+                      aria-label={`Remove tag ${tag}`}
+                    >
+                      <X size={10} />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      const newTag = tagInput.trim().replace(/,$/, '');
+                      if (newTag && !agentMeta.tags.includes(newTag)) {
+                        setAgentMeta({ tags: [...agentMeta.tags, newTag] });
+                      }
+                      setTagInput('');
+                    } else if (e.key === 'Backspace' && tagInput === '' && agentMeta.tags.length > 0) {
+                      setAgentMeta({ tags: agentMeta.tags.slice(0, -1) });
+                    }
+                  }}
+                  placeholder={agentMeta.tags.length === 0 ? 'pm, analysis, competitor' : ''}
+                  className="flex-1 min-w-[100px] text-[12px] outline-none border-none bg-transparent"
+                  style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
+                />
+              </div>
+            </div>
           </div>
         )}
 
