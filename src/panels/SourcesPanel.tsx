@@ -286,9 +286,6 @@ function KnowledgeSection() {
   const addChannel = useConsoleStore(s => s.addChannel);
   const setChannelKnowledgeType = useConsoleStore(s => s.setChannelKnowledgeType);
   const setShowFilePicker = useConsoleStore(s => s.setShowFilePicker);
-  const setShowConnectionPicker = useConsoleStore(s => s.setShowConnectionPicker);
-  const connectors = useConsoleStore(s => s.connectors);
-  const removeConnector = useConsoleStore(s => s.removeConnector);
   const treeIndexes = useTreeIndexStore(s => s.indexes);
   const treeLoading = useTreeIndexStore(s => s.loading);
   const treeErrors = useTreeIndexStore(s => s.errors);
@@ -297,8 +294,7 @@ function KnowledgeSection() {
   const [repoScanning, setRepoScanning] = useState(false);
   const [repoPath, setRepoPath] = useState('');
   const [repoPrompt, setRepoPrompt] = useState(false);
-  const [authExpanded, setAuthExpanded] = useState<string | null>(null);
-  const [authStatuses, setAuthStatuses] = useState<Record<string, ConnectorAuthStatus>>({});
+
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
 
   const DETAIL_LABELS = ['Maximum', 'High', 'Normal', 'Low', 'Minimal'] as const;
@@ -430,12 +426,7 @@ function KnowledgeSection() {
 
   const DEPTH_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e67e22', '#999'];
 
-  // Load connector auth statuses on mount
-  useEffect(() => {
-    fetch(`${API_BASE}/connectors/auth`).then(r => r.json()).then((json: any) => {
-      if (json.data) setAuthStatuses(json.data);
-    }).catch(() => {});
-  }, []);
+
 
   return (
     <Section
@@ -585,69 +576,7 @@ function KnowledgeSection() {
         })}
       </div>
 
-      {/* Connectors */}
-      {connectors.filter(c => c.enabled && c.direction !== 'write').length > 0 && (
-        <div className="mt-2 pt-2" style={{ borderTop: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
-          <div className="text-[13px] tracking-[0.1em] uppercase mb-1.5" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
-            Connectors
-          </div>
-          {connectors.filter(c => c.enabled && c.direction !== 'write').map(conn => {
-            const SERVICE_COLORS: Record<string, string> = {
-              notion: '#000', slack: '#4A154B', hubspot: '#FF7A59',
-              github: '#24292F', granola: '#8B5CF6', 'google-drive': '#4285F4',
-            };
-            const color = SERVICE_COLORS[conn.service] || '#666';
-            const auth = authStatuses[conn.service];
-            const isConnected = auth?.status === 'connected';
-            const isAuthOpen = authExpanded === conn.service;
-            return (
-              <div key={conn.id}>
-                <div className="flex items-center gap-2 py-2"
-                  style={{ borderBottom: isAuthOpen ? 'none' : `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
-                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-                    <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%',
-                      background: isConnected ? '#00ff88' : auth?.hasApiKey ? '#ffaa00' : '#666' }} />
-                  </div>
-                  <span className="flex-1 truncate text-[14px]" style={{ color: t.textPrimary }}>
-                    {conn.name}
-                  </span>
-                  <span className="text-[12px] px-1.5 py-0.5 rounded-full uppercase"
-                    style={{ fontFamily: "'Geist Mono', monospace", color: conn.direction === 'both' ? '#b88ad4' : '#6aafe6', background: conn.direction === 'both' ? '#9b59b610' : '#3498db10' }}>
-                    {conn.direction}
-                  </span>
-                  <button type="button" aria-label={`Configure ${conn.name} credentials`}
-                    onClick={() => setAuthExpanded(isAuthOpen ? null : conn.service)}
-                    className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    style={{ color: isConnected ? '#00ff88' : t.textDim }}>
-                    <KeyRound size={10} />
-                  </button>
-                  <button type="button" aria-label={`Remove ${conn.name}`} onClick={() => removeConnector(conn.id)}
-                    className="border-none bg-transparent cursor-pointer p-2.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-[#ff000010]" style={{ color: t.textFaint }}>
-                    <X size={10} />
-                  </button>
-                </div>
-                {/* Auth status line */}
-                {isAuthOpen && (
-                  <div className="flex items-center gap-2 pb-2 pl-4"
-                    style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
-                    <span className="text-[13px]" style={{ color: t.textDim }}>
-                      {isConnected ? '✓ Connected' : 'Authentication required'}
-                    </span>
-                    <button type="button" onClick={() => useConsoleStore.getState().setShowSettings(true)}
-                      className="text-[13px] px-2 py-1 rounded cursor-pointer border-none"
-                      style={{ background: '#FE500012', color: '#FE5000' }}>
-                      Open Settings
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Add buttons */}
+      {/* Add buttons — Files and Repo only (connectors moved to MCP section) */}
       <div className="flex gap-2 mt-3">
         <button type="button" onClick={() => setShowFilePicker(true)}
           className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer"
@@ -661,19 +590,6 @@ function KnowledgeSection() {
           onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
         >
           <Plus size={10} /> Files
-        </button>
-        <button type="button" aria-label="Add connection" onClick={() => setShowConnectionPicker(true)}
-          className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[12px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
-          style={{
-            background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
-            fontFamily: "'Geist Mono', monospace", transition: 'border-color 150ms, color 150ms',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#9b59b6'; e.currentTarget.style.color = '#9b59b6'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-          onFocus={e => { e.currentTarget.style.borderColor = '#9b59b6'; e.currentTarget.style.color = '#9b59b6'; }}
-          onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-        >
-          <Plus size={10} /> Connect
         </button>
         <button type="button" aria-label="Index repository" onClick={() => setRepoPrompt(!repoPrompt)}
           className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[12px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
@@ -913,6 +829,21 @@ function McpSection() {
             </div>
           );
         })}
+      </div>
+
+      {/* Add MCP Server button */}
+      <div className="mt-3">
+        <button type="button" onClick={() => useConsoleStore.getState().setShowConnectionPicker(true)}
+          className="flex items-center justify-center gap-1.5 w-full px-2.5 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer"
+          style={{
+            background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
+            fontFamily: "'Geist Mono', monospace", transition: 'border-color 150ms, color 150ms',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#2ecc71'; e.currentTarget.style.color = '#2ecc71'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+        >
+          <Plus size={10} /> Connect
+        </button>
       </div>
 
     </Section>
