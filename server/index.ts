@@ -24,6 +24,7 @@ import agentRoutes from './routes/agents.js';
 import mcpOAuthRoutes from './routes/mcp-oauth.js';
 import pipelineRoutes from './routes/pipeline.js';
 import embeddingRoutes from './routes/embeddings.js';
+import embeddingService from './services/embeddingService.js';
 import conversationRoutes from './routes/conversations.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -158,6 +159,10 @@ export function startServer(port: number = 4800) {
   }
   const registeredServerIds = loadSavedServers();
   void autoConnectSavedServers(registeredServerIds);
+  // Initialize embedding model in background (non-blocking)
+  embeddingService.initialize().catch(err => {
+    console.error('[Embedding] Background init failed:', err.message);
+  });
   const app = createApp();
   const server = app.listen(port, () => {
     const addr = server.address();
