@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTheme, type ThemePalette } from '../theme';
 import { useConsoleStore, collectFullState, agentNameToId } from '../store/consoleStore';
 import { useMemoryStore } from '../store/memoryStore';
+import { useConversationStore } from '../store/conversationStore';
 import { Input } from '../components/ds/Input';
 import { TextArea } from '../components/ds/TextArea';
 import { Toggle } from '../components/ds/Toggle';
@@ -96,12 +97,48 @@ function AgentActionBar() {
 
   const handleExport = () => {
     const store = useConsoleStore.getState();
+    const convStore = useConversationStore.getState();
+    const memStore = useMemoryStore.getState();
+
+    const knowledgeContent = channels
+      .filter((ch) => ch.enabled)
+      .map((ch) => ({
+        sourceId: ch.sourceId,
+        name: ch.name,
+        path: ch.path,
+        knowledgeType: ch.knowledgeType,
+        depth: ch.depth,
+        tokens: ch.baseTokens,
+        content: ch.content,
+      }));
+
+    const pipelineResult = convStore.lastPipelineStats?.pipeline;
+    const pipelineSnapshot = pipelineResult
+      ? {
+          context: pipelineResult.context,
+          tokens: pipelineResult.tokens,
+          utilization: pipelineResult.utilization,
+          sources: pipelineResult.sources.map((s) => ({ name: s.name, type: s.type, totalTokens: s.totalTokens })),
+          compression: {
+            originalTokens: pipelineResult.compression.originalTokens,
+            compressedTokens: pipelineResult.compression.compressedTokens,
+            ratio: pipelineResult.compression.ratio,
+          },
+          timing: { totalMs: pipelineResult.timing.totalMs },
+        }
+      : undefined;
+
+    const facts = memStore.facts.map((f) => ({ id: f.id, text: f.content, domain: f.domain }));
+
     const content = exportAsAgent({
       channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta,
       agentConfig: store.agentConfig,
       connectors: store.connectors,
       instructionState: store.instructionState,
       workflowSteps: store.workflowSteps,
+      knowledgeContent,
+      pipelineSnapshot,
+      facts: facts.length > 0 ? facts : undefined,
     });
     const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? 'modular-agent';
     downloadAgentFile(content, name);
