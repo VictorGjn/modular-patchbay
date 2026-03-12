@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTheme, type ThemePalette } from '../theme';
 import { useConsoleStore, collectFullState, agentNameToId } from '../store/consoleStore';
+import { useMemoryStore } from '../store/memoryStore';
 import { Input } from '../components/ds/Input';
 import { TextArea } from '../components/ds/TextArea';
 import { Toggle } from '../components/ds/Toggle';
@@ -423,6 +424,7 @@ export function AgentBuilder() {
   const mcpServers = useConsoleStore(s => s.mcpServers);
   const skills = useConsoleStore(s => s.skills);
   const tokenBudget = useConsoleStore(s => s.tokenBudget);
+  const facts = useMemoryStore(s => s.facts);
 
   // Tags raw-input state (committed on blur)
   const [rawTags, setRawTags] = useState(() => agentMeta.tags.join(', '));
@@ -869,6 +871,11 @@ export function AgentBuilder() {
             </span>
           ))}
         </div>
+        {facts.length > 0 && (
+          <div className="mt-2 text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+            💡 Based on {facts.length} insight{facts.length !== 1 ? 's' : ''}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1370,7 +1370,7 @@ function FactInsightsSection() {
   const addChannel = useConsoleStore(s => s.addChannel);
   const checkpoint = useVersionStore(s => s.checkpoint);
 
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(facts.length === 0);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<FactAnalysisResult | null>(null);
   const [applied, setApplied] = useState<Set<string>>(new Set());
@@ -1722,11 +1722,11 @@ export function SourcesPanel() {
       <ContextActionBar />
       <GeneratorSection onGapsChange={setKnowledgeGaps} />
       <MissingSources gaps={knowledgeGaps} />
+      <FactInsightsSection />
       <KnowledgeSection />
       <McpSection />
       <SkillsSection />
       <MemorySection />
-      <FactInsightsSection />
     </div>
   );
 }
