@@ -35,7 +35,7 @@ export function DashboardLayout() {
       {/* Center — Agent Builder */}
       {!testExpanded && (
         <section
-          aria-label="Agent builder"
+          aria-label="Agent configuration"
           className="flex-1 overflow-y-auto"
           style={{ padding: '24px 32px' }}
         >
