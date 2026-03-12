@@ -424,6 +424,9 @@ export function AgentBuilder() {
   const skills = useConsoleStore(s => s.skills);
   const tokenBudget = useConsoleStore(s => s.tokenBudget);
 
+  // Tags raw-input state (committed on blur)
+  const [rawTags, setRawTags] = useState(() => agentMeta.tags.join(', '));
+
   // Collapse state
   const [identityOpen, setIdentityOpen] = useState(true);
   const [personaOpen, setPersonaOpen] = useState(true);
@@ -594,7 +597,8 @@ export function AgentBuilder() {
             <TextArea label="Description" value={agentMeta.description}
               onChange={e => setAgentMeta({ description: e.target.value })}
               placeholder="One-line summary of what this agent does..." style={{ minHeight: 40 }} />
-            <Input label="Tags" value={agentMeta.tags.join(', ')} onChange={e => handleTagsChange(e.target.value)}
+            <Input label="Tags" value={rawTags} onChange={e => setRawTags(e.target.value)}
+              onBlur={() => { setAgentMeta({ tags: rawTags.split(',').map(t => t.trim()).filter(Boolean) }); }}
               placeholder="pm, analysis, competitor" />
           </div>
         )}
@@ -637,8 +641,7 @@ export function AgentBuilder() {
         )}
 
         {/* ── 3. CONSTRAINTS ── */}
-        <SectionHeader label="Constraints" color="#2ecc71" collapsed={!constraintsOpen} onToggle={() => setConstraintsOpen(!constraintsOpen)} t={t}
-          right={<GenerateBtn loading={refining === 'constraints'} onClick={() => {}} />} />
+        <SectionHeader label="Constraints" color="#2ecc71" collapsed={!constraintsOpen} onToggle={() => setConstraintsOpen(!constraintsOpen)} t={t} />
         {constraintsOpen && (
           <div className="px-5 py-4 flex flex-col gap-3">
             {/* Safety Profile */}
@@ -714,8 +717,7 @@ export function AgentBuilder() {
         )}
 
         {/* ── 4. OBJECTIVES ── */}
-        <SectionHeader label="Objectives" color="#e74c3c" collapsed={!objectivesOpen} onToggle={() => setObjectivesOpen(!objectivesOpen)} t={t}
-          right={<GenerateBtn loading={refining === 'objectives'} onClick={() => {}} />} />
+        <SectionHeader label="Objectives" color="#e74c3c" collapsed={!objectivesOpen} onToggle={() => setObjectivesOpen(!objectivesOpen)} t={t} />
         {objectivesOpen && (
           <div className="px-5 py-4 flex flex-col gap-4">
             <TextArea label="Primary Objective" value={objectives.primary}
