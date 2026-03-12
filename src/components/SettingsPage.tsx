@@ -3,7 +3,7 @@ import {
   X, Eye, EyeOff, ExternalLink, CheckCircle, XCircle, Loader2, Plus,
   Trash2, Server, Plug, PlugZap, Sun, Moon, Monitor, Grid3X3, Minimize2,
   Waypoints, GitBranch, ArrowDownRight, Cpu, Terminal,
-  Settings,
+  Settings, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { useTheme } from '../theme';
 import { API_BASE } from '../config';
@@ -407,29 +407,12 @@ function ProvidersTab() {
 
 function McpServerRow({ server }: { server: McpServerState }) {
   const t = useTheme();
-  const [expanded, setExpanded] = useState(false);
-  const [localName, setLocalName] = useState(server.name);
-  const [localCommand, setLocalCommand] = useState(server.command);
-  const [localArgs, setLocalArgs] = useState(server.args.join('\n'));
-  const [localEnv, setLocalEnv] = useState(
-    Object.entries(server.env).map(([k, v]) => `${k}=${v}`).join('\n')
-  );
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [showTools, setShowTools] = useState(false);
 
   const connectServer = useMcpStore((s) => s.connectServer);
   const disconnectServer = useMcpStore((s) => s.disconnectServer);
-  const updateServer = useMcpStore((s) => s.updateServer);
   const removeServer = useMcpStore((s) => s.removeServer);
-  const upsertMcpServer = useConsoleStore((s) => s.upsertMcpServer);
   const removeMcpServer = useConsoleStore((s) => s.removeMcpServer);
-
-  useEffect(() => {
-    setLocalName(server.name);
-    setLocalCommand(server.command);
-    setLocalArgs(server.args.join('\n'));
-    setLocalEnv(Object.entries(server.env).map(([k, v]) => `${k}=${v}`).join('\n'));
-  }, [server.name, server.command, server.args, server.env]);
 
   const handleConnect = useCallback(() => {
     if (server.status === 'connected') {
@@ -439,74 +422,15 @@ function McpServerRow({ server }: { server: McpServerState }) {
     }
   }, [server.id, server.status, connectServer, disconnectServer]);
 
-  const handleSave = useCallback(async () => {
-    setSaving(true);
-    setSaved(false);
-
-    const args = localArgs.split('\n').map((s) => s.trim()).filter(Boolean);
-    const env: Record<string, string> = {};
-    for (const line of localEnv.split('\n')) {
-      const [key, ...valueParts] = line.split('=');
-      if (key?.trim() && valueParts.length > 0) {
-        env[key.trim()] = valueParts.join('=').trim();
-      }
-    }
-
-    const wasConnected = server.status === 'connected';
-
-    const updated = await updateServer(server.id, {
-      name: localName.trim(),
-      command: localCommand.trim(),
-      args,
-      env,
-    });
-
-    if (updated) {
-      upsertMcpServer({
-        id: updated.id,
-        name: updated.name,
-        description: updated.command,
-        connected: updated.status === 'connected',
-      });
-
-      if (wasConnected) {
-        await connectServer(server.id);
-      }
-
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
-    }
-
-    setSaving(false);
-  }, [localArgs, localCommand, localEnv, localName, server.id, server.status, updateServer, upsertMcpServer, connectServer]);
-
-  const inputStyle = {
-    background: t.inputBg,
-    border: `1px solid ${t.border}`,
-    color: t.textPrimary,
-    fontFamily: "'Geist Sans', sans-serif",
-  };
-
   return (
-    <div
-      style={{
-        background: expanded ? t.surfaceElevated : 'transparent',
-        borderBottom: `1px solid ${t.borderSubtle}`
-      }}
-    >
+    <div style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
       {/* Header row */}
-      <div
-        role="button"
-        tabIndex={0}
-        className="nodrag nowheel w-full flex items-center gap-3 px-4 py-3 cursor-pointer border-none bg-transparent text-left"
-        onClick={() => setExpanded(!expanded)}
-        style={{ color: t.textPrimary }}
-      >
+      <div className="nodrag nowheel w-full flex items-center gap-3 px-4 py-3">
         <div
           className="w-2 h-2 rounded-full shrink-0"
           style={{
             background: statusColor(server.status, t),
-            boxShadow: `0 0 6px ${statusColor(server.status, t)}40`
+            boxShadow: `0 0 6px ${statusColor(server.status, t)}40`,
           }}
         />
         <Server size={14} style={{ color: t.textDim }} />
@@ -528,10 +452,12 @@ function McpServerRow({ server }: { server: McpServerState }) {
           </div>
           <div className="text-[12px]" style={{ color: t.textMuted }}>
             {server.status === 'connected'
-              ? `${server.tools.length} tools available`
+              ? `Connected · ${server.tools.length} tool${server.tools.length !== 1 ? 's' : ''}${server.uptime ? ` · ${Math.round(server.uptime / 1000)}s uptime` : ''}`
+              : server.status === 'connecting'
+              ? 'Connecting…'
               : server.status === 'error'
               ? (server.lastError || 'Connection error')
-              : 'Not connected'
+              : 'Disconnected'
             }
           </div>
         </div>
@@ -547,118 +473,45 @@ function McpServerRow({ server }: { server: McpServerState }) {
           {server.status === 'connecting' ? <Loader2 size={10} className="animate-spin" />
             : server.status === 'connected' ? <PlugZap size={10} /> : <Plug size={10} />}
           {server.status === 'connecting' ? 'Connecting...'
-            : server.status === 'connected' ? 'Disconnect' : 'Connect'}
+            : server.status === 'connected' ? 'Disconnect' : 'Reconnect'}
         </button>
-        <Settings size={12} style={{ color: t.textDim }} />
+        <button
+          type="button"
+          onClick={() => { removeServer(server.id); removeMcpServer(server.id); }}
+          className="nodrag nowheel flex items-center gap-1 text-[13px] px-2 py-1 rounded-lg cursor-pointer border-none"
+          style={{ color: t.statusError, background: t.statusErrorBg }}
+          title="Remove server"
+        >
+          <Trash2 size={10} />
+        </button>
       </div>
 
-      {/* Expanded config */}
-      {expanded && (
-        <div className="px-4 pb-4 flex flex-col gap-3">
-          {/* Name */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
-              Name
-            </label>
-            <input
-              type="text"
-              value={localName}
-              onChange={(e) => setLocalName(e.target.value)}
-              className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none"
-              style={inputStyle}
-            />
-          </div>
-
-          {/* Command */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
-              Command
-            </label>
-            <input
-              type="text"
-              value={localCommand}
-              onChange={(e) => setLocalCommand(e.target.value)}
-              className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none"
-              style={inputStyle}
-            />
-          </div>
-
-          {/* Args */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
-              Arguments (one per line)
-            </label>
-            <textarea
-              value={localArgs}
-              onChange={(e) => setLocalArgs(e.target.value)}
-              className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none resize-none"
-              style={{ ...inputStyle, minHeight: '60px' }}
-              rows={3}
-            />
-          </div>
-
-          {/* Environment */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
-              Environment (key=value, one per line)
-            </label>
-            <textarea
-              value={localEnv}
-              onChange={(e) => setLocalEnv(e.target.value)}
-              className="nodrag nowheel w-full text-[14px] px-3 py-2 rounded-lg outline-none resize-none"
-              style={{ ...inputStyle, minHeight: '60px' }}
-              rows={3}
-            />
-          </div>
-
-          {/* Tools */}
-          {server.tools.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <label className="text-[12px] tracking-wider uppercase" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>
-                Available Tools
-              </label>
-              <div className="flex flex-wrap gap-1">
-                {server.tools.map((tool) => (
-                  <span
-                    key={tool.name}
-                    className="text-[12px] px-2 py-0.5 rounded"
-                    style={{
-                      background: '#FE500015',
-                      color: '#FE5000',
-                      fontFamily: "'Geist Mono', monospace"
-                    }}
-                  >
-                    {tool.name}
-                  </span>
-                ))}
-              </div>
+      {/* View Tools */}
+      {server.tools.length > 0 && (
+        <div className="px-4 pb-3">
+          <button
+            type="button"
+            onClick={() => setShowTools(!showTools)}
+            className="nodrag nowheel flex items-center gap-1 text-[12px] cursor-pointer border-none bg-transparent"
+            style={{ color: t.textDim }}
+          >
+            {showTools ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            View Tools ({server.tools.length})
+          </button>
+          {showTools && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {server.tools.map((tool) => (
+                <span
+                  key={tool.name}
+                  className="text-[12px] px-2 py-0.5 rounded"
+                  style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Geist Mono', monospace" }}
+                  title={tool.description}
+                >
+                  {tool.name}
+                </span>
+              ))}
             </div>
           )}
-
-          {/* Actions */}
-          <div className="flex items-center gap-2 mt-1">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="nodrag nowheel flex items-center gap-1 text-[13px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
-              style={{ color: '#fff', background: '#FE5000', opacity: saving ? 0.7 : 1 }}
-            >
-              {saving ? 'Saving...' : saved ? 'Saved' : 'Save'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                removeServer(server.id);
-                removeMcpServer(server.id);
-              }}
-              className="nodrag nowheel flex items-center gap-1 text-[13px] px-2.5 py-1.5 rounded-lg cursor-pointer border-none"
-              style={{ color: t.statusError, background: t.statusErrorBg }}
-            >
-              <Trash2 size={10} />
-              Delete
-            </button>
-          </div>
         </div>
       )}
     </div>
@@ -776,6 +629,13 @@ function McpServersTab() {
 
   return (
     <div className="flex flex-col">
+      <div
+        className="mx-4 mt-3 mb-1 px-3 py-2 rounded-lg text-[12px]"
+        style={{ background: t.surfaceElevated, color: t.textMuted, border: `1px solid ${t.borderSubtle}` }}
+      >
+        Configure new connections in the Connection Picker. This tab shows runtime status.
+      </div>
+
       {loading && (
         <div className="px-4 py-8 text-center text-[14px]" style={{ color: t.textMuted }}>
           <Loader2 size={16} className="animate-spin mx-auto mb-2" />

@@ -712,6 +712,29 @@ export const useConsoleStore = create<ConsoleState>()(
         const json = await res.json();
         const state = json.data ?? json;
         get().restoreFullState(state);
+
+        // Auto-reconnect previously-connected MCP servers (fire-and-forget)
+        try {
+          const { useMcpStore } = await import('./mcpStore');
+          const mcpState = useMcpStore.getState();
+          const savedServers = (state.mcpServers as Array<{ id: string; name: string; connected?: boolean; enabled?: boolean }> | undefined) ?? [];
+          for (const srv of savedServers) {
+            if (!srv.connected && !srv.enabled) continue;
+            const existing = mcpState.servers.find((s) => s.id === srv.id);
+            if (existing) {
+              if (existing.status !== 'connected') {
+                mcpState.connectServer(srv.id);
+              }
+            } else {
+              const added = await mcpState.addServer({ id: srv.id, name: srv.name, command: '', args: [], env: {} });
+              if (added) {
+                mcpState.connectServer(srv.id);
+              }
+            }
+          }
+        } catch {
+          // silent fail
+        }
       } catch {
         // silent fail — backend may not be available yet
       }
