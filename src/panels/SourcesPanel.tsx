@@ -9,7 +9,7 @@ import { TextArea } from '../components/ds/TextArea';
 import { Input } from '../components/ds/Input';
 import { Toggle } from '../components/ds/Toggle';
 import { Select } from '../components/ds/Select';
-import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
+import { generateFullAgent, type GeneratedAgentConfig, type KnowledgeGap } from '../utils/generateAgent';
 import { generateMemoryConfig } from '../utils/generateSection';
 import { analyzeFactsForPromotion, type FactPromotion, type FactAnalysisResult } from '../utils/analyzeFactsForPromotion';
 import { useVersionStore } from '../store/versionStore';
@@ -89,7 +89,7 @@ function Section({
 }
 
 /* ── Generator Section ── */
-function GeneratorSection() {
+function GeneratorSection({ onGapsChange }: { onGapsChange: (gaps: KnowledgeGap[]) => void }) {
   const t = useTheme();
   const hydrateFromGenerated = useConsoleStore(s => s.hydrateFromGenerated);
   const setSessionConfig = useMemoryStore(s => s.setSessionConfig);
@@ -107,6 +107,7 @@ function GeneratorSection() {
     try {
       const config = await generateFullAgent(brainDump);
       setLastConfig(config);
+      onGapsChange(config.knowledgeGaps || []);
       hydrateFromGenerated(config);
       if (config.memoryConfig) {
         setSessionConfig({
@@ -196,23 +197,6 @@ function GeneratorSection() {
             ))}
           </div>
         )}
-        {lastConfig?.knowledgeGaps && lastConfig.knowledgeGaps.length > 0 && (
-          <div className="flex flex-col gap-1 px-2 py-2 rounded" style={{ background: '#e74c3c10', border: '1px solid #e74c3c20' }}>
-            <span className="text-[13px] font-bold uppercase tracking-wider" style={{ color: '#e74c3c', fontFamily: "'Geist Mono', monospace" }}>
-              Missing Sources
-            </span>
-            {lastConfig.knowledgeGaps.map((gap, i) => (
-              <div key={i} className="flex items-start gap-1.5 text-[12px]" style={{ color: t.textSecondary }}>
-                <AlertCircle size={10} style={{ color: '#e74c3c', marginTop: 2, flexShrink: 0 }} />
-                <div>
-                  <span style={{ color: t.textPrimary, fontWeight: 600 }}>{gap.name}</span>
-                  <span style={{ color: t.textDim }}> ({gap.type})</span>
-                  {gap.description && <div style={{ color: t.textDim, fontSize: 13, marginTop: 1 }}>{gap.description}</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
         <div className="flex gap-2">
           <button type="button" onClick={handleGenerate} disabled={generating || !brainDump.trim()}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded text-[13px] font-semibold tracking-wider uppercase cursor-pointer border-none flex-1 justify-center"
@@ -221,13 +205,56 @@ function GeneratorSection() {
             {generating ? 'Generating...' : lastConfig ? 'Regenerate' : 'Generate'}
           </button>
           {lastConfig && (
-            <button type="button" onClick={() => { setBrainDump(''); setLastConfig(null); setError(''); }}
+            <button type="button" onClick={() => { setBrainDump(''); setLastConfig(null); onGapsChange([]); setError(''); }}
               className="flex items-center gap-1 px-2 py-2 rounded text-[12px]"
               style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, cursor: 'pointer' }}>
               <RotateCcw size={10} />
             </button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Missing Sources ── */
+function MissingSources({ gaps }: { gaps: KnowledgeGap[] }) {
+  const t = useTheme();
+  const setShowFilePicker = useConsoleStore(s => s.setShowFilePicker);
+  if (gaps.length === 0) return null;
+  return (
+    <div style={{ borderBottom: `1px solid ${t.isDark ? '#1e1e22' : '#e8e8ec'}`, borderLeft: '3px solid #e74c3c' }}>
+      <div className="px-5 py-3" style={{ background: t.isDark ? '#1a1a1e' : '#fff5f5' }}>
+        <span
+          className="text-[12px] font-bold tracking-[0.08em] uppercase"
+          style={{ fontFamily: "'Geist Mono', monospace", color: '#e74c3c' }}
+        >
+          ⚠ {gaps.length} MISSING SOURCES
+        </span>
+      </div>
+      <div className="px-5 pb-4 flex flex-col gap-3">
+        {gaps.map((gap, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <span style={{ color: '#e74c3c', fontSize: 10, marginTop: 3, flexShrink: 0 }}>●</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px]">
+                <span style={{ fontWeight: 700, color: t.textPrimary }}>{gap.name}</span>
+                <span style={{ color: t.textDim }}> ({gap.type})</span>
+              </div>
+              {gap.description && (
+                <div className="text-[12px] mt-0.5" style={{ color: t.textDim }}>{gap.description}</div>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowFilePicker(true)}
+                className="mt-1.5 text-[12px] px-2 py-0.5 rounded cursor-pointer border-none"
+                style={{ background: '#e74c3c15', color: '#e74c3c', fontFamily: "'Geist Mono', monospace", border: '1px solid #e74c3c30' }}
+              >
+                + Add source
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1689,10 +1716,12 @@ function ContextActionBar() {
 }
 
 export function SourcesPanel() {
+  const [knowledgeGaps, setKnowledgeGaps] = useState<KnowledgeGap[]>([]);
   return (
     <div className="flex flex-col">
       <ContextActionBar />
-      <GeneratorSection />
+      <GeneratorSection onGapsChange={setKnowledgeGaps} />
+      <MissingSources gaps={knowledgeGaps} />
       <KnowledgeSection />
       <McpSection />
       <SkillsSection />
