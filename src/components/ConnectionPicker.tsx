@@ -24,17 +24,21 @@ const getBadgeColor = (authMethod: string = 'none') => {
 };
 
 // Status dots
-function StatusDot({ mcpConnected }: { mcpConnected?: boolean }) {
-  let color = '#555';
-  let title = 'Not configured';
-  
-  if (mcpConnected) {
-    color = '#00cc66';
-    title = 'Connected';
-  }
-  
+function StatusDot({ status }: { status?: 'disconnected' | 'connecting' | 'connected' | 'error' }) {
+  const color =
+    status === 'connected' ? '#00cc66' :
+    status === 'connecting' ? '#f5a623' :
+    status === 'error' ? '#ff4444' :
+    '#555';
+  const title =
+    status === 'connected' ? 'Connected' :
+    status === 'connecting' ? 'Connecting…' :
+    status === 'error' ? 'Error' :
+    'Disconnected';
+
   return (
     <span
+      className={status === 'connecting' ? 'animate-pulse' : ''}
       style={{
         display: 'inline-block',
         width: 7,
@@ -259,6 +263,11 @@ export function ConnectionPicker() {
     return mcpServer?.status === 'connected';
   };
 
+  const getMcpStatus = (entryId: string): 'disconnected' | 'connecting' | 'connected' | 'error' => {
+    const server = mcpServers.find(s => s.id === entryId);
+    return server?.status ?? 'disconnected';
+  };
+
   const renderOAuthEntry = (entry: McpRegistryEntry & { url: string }) => {
     const connected = oauthStatuses[entry.url] ?? false;
     const loading = oauthLoading[entry.url] ?? false;
@@ -277,7 +286,7 @@ export function ConnectionPicker() {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <StatusDot mcpConnected={connected} />
+            <StatusDot status={connected ? 'connected' : 'disconnected'} />
             <span className="text-[13px] font-medium" style={{ color: t.textPrimary }}>{entry.name}</span>
             <span
               className="text-[10px] px-1.5 py-0.5 rounded-full uppercase"
@@ -340,15 +349,15 @@ export function ConnectionPicker() {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <StatusDot mcpConnected={connected} />
+              <StatusDot status={connected ? 'connected' : 'disconnected'} />
               <span className="text-[13px] font-medium" style={{ color: t.textPrimary }}>{entry.name}</span>
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded-full uppercase"
-                style={{ 
-                  background: badge.bg, 
-                  color: badge.color, 
-                  fontFamily: "'Geist Mono', monospace", 
-                  fontWeight: 600 
+                style={{
+                  background: badge.bg,
+                  color: badge.color,
+                  fontFamily: "'Geist Mono', monospace",
+                  fontWeight: 600
                 }}
               >
                 {badge.text}
@@ -388,15 +397,15 @@ export function ConnectionPicker() {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <StatusDot mcpConnected={connected} />
+              <StatusDot status={getMcpStatus(entry.id)} />
               <span className="text-[13px] font-medium" style={{ color: t.textPrimary }}>{entry.name}</span>
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded-full uppercase"
-                style={{ 
-                  background: badge.bg, 
-                  color: badge.color, 
-                  fontFamily: "'Geist Mono', monospace", 
-                  fontWeight: 600 
+                style={{
+                  background: badge.bg,
+                  color: badge.color,
+                  fontFamily: "'Geist Mono', monospace",
+                  fontWeight: 600
                 }}
               >
                 {badge.text}
