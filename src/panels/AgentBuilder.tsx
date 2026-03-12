@@ -499,10 +499,6 @@ export function AgentBuilder() {
     setConstraintModalConfig(null);
   };
 
-  // Handlers
-  const handleTagsChange = (val: string) => {
-    setAgentMeta({ tags: val.split(',').map(t => t.trim()).filter(Boolean) });
-  };
 
   const handleRefineAll = useCallback(async () => {
     setRefining('all');

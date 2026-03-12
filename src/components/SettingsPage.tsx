@@ -3,7 +3,7 @@ import {
   X, Eye, EyeOff, ExternalLink, CheckCircle, XCircle, Loader2, Plus,
   Trash2, Server, Plug, PlugZap, Sun, Moon, Monitor, Grid3X3, Minimize2,
   Waypoints, GitBranch, ArrowDownRight, Cpu, Terminal,
-  Settings, ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { useTheme } from '../theme';
 import { API_BASE } from '../config';

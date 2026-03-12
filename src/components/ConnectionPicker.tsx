@@ -258,11 +258,6 @@ export function ConnectionPicker() {
     return mcpServers.some(s => s.id === entryId) || connectors.some(c => c.mcpServerId === entryId);
   };
 
-  const isConnected = (entryId: string) => {
-    const mcpServer = mcpServers.find(s => s.id === entryId);
-    return mcpServer?.status === 'connected';
-  };
-
   const getMcpStatus = (entryId: string): 'disconnected' | 'connecting' | 'connected' | 'error' => {
     const server = mcpServers.find(s => s.id === entryId);
     return server?.status ?? 'disconnected';
@@ -380,7 +375,6 @@ export function ConnectionPicker() {
     }
 
     const added = isAdded(entry.id);
-    const connected = isConnected(entry.id);
     const badge = getBadgeColor(entry.authMethod);
     const configEntry = configEntries[entry.id];
     const hasConfig = entry.configFields && entry.configFields.length > 0;
