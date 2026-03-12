@@ -33,13 +33,16 @@ router.get('/health', async (_req, res) => {
  */
 router.post('/embed', async (req, res) => {
   try {
-    // Check model readiness before processing
-    const health = await embeddingService.getHealth();
-    if (!health.ready) {
-      return res.status(503).json({
-        error: 'Embedding model is still loading. Retry in a few seconds.',
-        retryAfter: 3,
-      });
+    // Wait for model to be ready (up to 30s) instead of immediately 503-ing
+    if (!embeddingService.isReady()) {
+      try {
+        await embeddingService.initialize();
+      } catch {
+        return res.status(503).json({
+          error: 'Embedding model failed to load.',
+          retryAfter: 5,
+        });
+      }
     }
 
     const { texts } = req.body;
