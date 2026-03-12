@@ -293,6 +293,11 @@ router.get('/skills', (_req, res) => {
  */
 router.get('/skills/:id', (req, res) => {
   const { id } = req.params;
+  // Security: validate skill ID to prevent path traversal / injection
+  if (!/^[a-z0-9_-]+$/i.test(id)) {
+    res.status(400).json({ status: 'error', error: 'Invalid skill ID' } satisfies ApiResponse);
+    return;
+  }
   const skillsDirs = [
     join(homedir(), '.agents', 'skills'),
     join(homedir(), '.modular-studio', 'skills'),
@@ -316,10 +321,14 @@ router.get('/skills/:id', (req, res) => {
  */
 router.post('/skills/:id/update', async (req, res) => {
   const { id } = req.params;
+  // Security: validate skill ID
+  if (!/^[a-z0-9_-]+$/i.test(id)) {
+    res.status(400).json({ status: 'error', error: 'Invalid skill ID' } satisfies ApiResponse);
+    return;
+  }
   try {
     const { stdout } = await exec('npx', ['skills', 'update', id, '--dry-run'], {
       timeout: 30000,
-      shell: true,
       env: { ...process.env, NO_COLOR: '1' },
     });
     const hasUpdate = stdout.toLowerCase().includes('update available') || stdout.toLowerCase().includes('newer');
