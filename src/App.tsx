@@ -14,7 +14,7 @@ import { useMcpStore } from './store/mcpStore';
 import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
 
-import { DashboardLayout } from './layouts/DashboardLayout';
+import { WizardLayout } from './layouts/WizardLayout';
 
 export default function App() {
   const t = useTheme();
@@ -84,7 +84,7 @@ export default function App() {
         onSettingsClick={() => setShowSettings(true, 'providers')}
       />
 
-      <DashboardLayout />
+      <WizardLayout />
 
       {/* Accessibility: aria-live region for canvas state announcements */}
       <div

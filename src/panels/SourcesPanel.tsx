@@ -20,14 +20,14 @@ import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/know
 import { TYPE_WEIGHTS } from '../services/budgetAllocator';
 import { Tooltip } from '../components/ds/Tooltip';
 import { API_BASE } from '../config';
-import { type ConnectorAuthStatus } from '../services/connectorAuth';
+
 // import { formatTokens } from '../utils/formatTokens';
 import {
   Wand2, Sparkles, Loader2, RotateCcw,
   ChevronDown, ChevronRight,
   Database, Plug, Zap, Brain,
   Plus, X, Minus, Library,
-  Lightbulb, ArrowUpRight, Check, AlertCircle, Bot, FolderGit2, KeyRound, Info,
+  Lightbulb, ArrowUpRight, Check, AlertCircle, Bot, FolderGit2, Info,
   Target, Save, FolderOpen, Trash2,
 } from 'lucide-react';
 
@@ -90,7 +90,7 @@ function Section({
 }
 
 /* ── Generator Section ── */
-function GeneratorSection({ onGapsChange }: { onGapsChange: (gaps: KnowledgeGap[]) => void }) {
+export function GeneratorSection({ onGapsChange }: { onGapsChange: (gaps: KnowledgeGap[]) => void }) {
   const t = useTheme();
   const hydrateFromGenerated = useConsoleStore(s => s.hydrateFromGenerated);
   const setSessionConfig = useMemoryStore(s => s.setSessionConfig);

@@ -1,0 +1,594 @@
+import { useState, useCallback } from 'react';
+import { useTheme } from '../theme';
+import { useMemoryStore, type MemoryDomain } from '../store/memoryStore';
+import { generateMemoryConfig } from '../utils/generateSection';
+import { Input } from '../components/ds/Input';
+import { Toggle } from '../components/ds/Toggle';
+import { Select } from '../components/ds/Select';
+import {
+  Brain, Plus, X, Sparkles, Loader2, 
+  ChevronDown, ChevronRight
+} from 'lucide-react';
+
+function GenerateBtn({ loading, onClick, label = 'Generate' }: { loading: boolean; onClick: () => void; label?: string }) {
+  return (
+    <button type="button" onClick={e => { e.stopPropagation(); onClick(); }} disabled={loading} aria-label={label}
+      className="flex items-center gap-1 text-[13px] px-2 py-1 rounded cursor-pointer border-none"
+      style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Geist Mono', monospace", opacity: loading ? 0.6 : 1 }}>
+      {loading ? <Loader2 size={9} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={9} />}
+      {label}
+    </button>
+  );
+}
+
+function Section({
+  icon: Icon, label, color, badge, collapsed, onToggle, children,
+}: {
+  icon: React.ElementType;
+  label: string;
+  color: string;
+  badge?: string;
+  collapsed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  const t = useTheme();
+  return (
+    <div role="region" aria-label={label} className="mb-6" style={{ border: `1px solid ${t.border}`, borderRadius: '8px', overflow: 'hidden' }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={!collapsed}
+        className="flex items-center gap-2 w-full px-5 py-3.5 border-none cursor-pointer select-none"
+        style={{ background: t.surfaceElevated }}
+      >
+        <Icon size={16} style={{ color, flexShrink: 0 }} />
+        {collapsed
+          ? <ChevronRight size={12} style={{ color: t.textDim }} />
+          : <ChevronDown size={12} style={{ color: t.textDim }} />}
+        <span
+          className="text-sm font-semibold flex-1 text-left"
+          style={{ fontFamily: "'Geist Sans', sans-serif", color: t.textPrimary }}
+        >
+          {label}
+        </span>
+        {badge && (
+          <span
+            className="text-[13px] px-2 py-1 rounded-full"
+            style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}
+          >
+            {badge}
+          </span>
+        )}
+      </button>
+      {!collapsed && <div className="px-5 pb-4">{children}</div>}
+    </div>
+  );
+}
+
+function SliderRow({ label, value, min, max, step, onChange, suffix }: {
+  label: string; value: number; min: number; max: number; step: number;
+  onChange: (v: number) => void; suffix?: string;
+}) {
+  const t = useTheme();
+  const display = suffix === 'K' ? `${(value / 1000).toFixed(0)}K` : `${value}`;
+  return (
+    <div className="flex items-center gap-3 mb-3">
+      <span className="text-sm font-medium shrink-0" style={{ color: t.textPrimary, width: 120 }}>
+        {label}
+      </span>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        aria-label={label} className="flex-1" style={{ accentColor: '#FE5000' }} />
+      <span className="text-sm w-12 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}>
+        {display}
+      </span>
+    </div>
+  );
+}
+
+const STRATEGY_OPTIONS = [
+  { value: 'full', label: 'Full History' },
+  { value: 'sliding_window', label: 'Sliding Window' },
+  { value: 'summarize_and_recent', label: 'Summarize + Recent' },
+  { value: 'rag', label: 'RAG over History' },
+];
+
+const STORE_OPTIONS = [
+  { value: 'local_sqlite', label: 'SQLite (local)' },
+  { value: 'postgres', label: 'PostgreSQL' },
+  { value: 'redis', label: 'Redis' },
+  { value: 'chromadb', label: 'ChromaDB' },
+  { value: 'pinecone', label: 'Pinecone' },
+  { value: 'custom', label: 'Custom' },
+];
+
+const EMBEDDING_OPTIONS = [
+  { value: 'text-embedding-3-small', label: 'Ada 3 Small' },
+  { value: 'text-embedding-3-large', label: 'Ada 3 Large' },
+  { value: 'voyage-3', label: 'Voyage 3' },
+  { value: 'custom', label: 'Custom' },
+];
+
+const RECALL_OPTIONS = [
+  { value: 'top_k', label: 'Top-K' },
+  { value: 'threshold', label: 'Threshold' },
+  { value: 'hybrid', label: 'Hybrid' },
+];
+
+const WRITE_MODE_OPTIONS = [
+  { value: 'auto_extract', label: 'Auto Extract' },
+  { value: 'explicit', label: 'Explicit Only' },
+  { value: 'both', label: 'Both' },
+];
+
+const SCOPE_OPTIONS = [
+  { value: 'per_user', label: 'Per User' },
+  { value: 'per_agent', label: 'Per Agent' },
+  { value: 'global', label: 'Global' },
+];
+
+const EXTRACT_TYPES: Array<{ value: string; label: string; color: string }> = [
+  { value: 'user_preferences', label: 'Preferences', color: '#3498db' },
+  { value: 'decisions', label: 'Decisions', color: '#e67e22' },
+  { value: 'facts', label: 'Facts', color: '#2ecc71' },
+  { value: 'feedback', label: 'Feedback', color: '#9b59b6' },
+  { value: 'entities', label: 'Entities', color: '#f1c40f' },
+];
+
+const SANDBOX_OPTIONS = [
+  { value: 'reset_each_run', label: 'Reset Each Run' },
+  { value: 'persistent_sandbox', label: 'Persistent Sandbox' },
+  { value: 'clone_from_shared', label: 'Clone from Shared' },
+];
+
+const DOMAIN_COLORS: Record<string, string> = {
+  shared: '#2ecc71',
+  agent_private: '#3498db',
+  run_scratchpad: '#e67e22',
+};
+
+const FACT_TYPE_COLORS: Record<string, string> = {
+  preference: '#3498db',
+  decision: '#e67e22',
+  fact: '#2ecc71',
+  entity: '#f1c40f',
+  custom: '#999',
+};
+
+export function MemoryTab() {
+  const t = useTheme();
+  const session = useMemoryStore(s => s.session);
+  const longTerm = useMemoryStore(s => s.longTerm);
+  const working = useMemoryStore(s => s.working);
+  const facts = useMemoryStore(s => s.facts);
+  const setSessionConfig = useMemoryStore(s => s.setSessionConfig);
+  const setLongTermConfig = useMemoryStore(s => s.setLongTermConfig);
+  const setRecallConfig = useMemoryStore(s => s.setRecallConfig);
+  const setWriteConfig = useMemoryStore(s => s.setWriteConfig);
+  const toggleExtractType = useMemoryStore(s => s.toggleExtractType);
+  const setWorkingConfig = useMemoryStore(s => s.setWorkingConfig);
+  const addFact = useMemoryStore(s => s.addFact);
+  const removeFact = useMemoryStore(s => s.removeFact);
+  const sandbox = useMemoryStore(s => s.sandbox);
+  const setSandboxConfig = useMemoryStore(s => s.setSandboxConfig);
+  const setSandboxDomain = useMemoryStore(s => s.setSandboxDomain);
+
+  const [sessionCollapsed, setSessionCollapsed] = useState(false);
+  const [longTermCollapsed, setLongTermCollapsed] = useState(false);
+  const [workingCollapsed, setWorkingCollapsed] = useState(false);
+  const [factsCollapsed, setFactsCollapsed] = useState(false);
+  const [sandboxCollapsed, setSandboxCollapsed] = useState(false);
+  const [newFactText, setNewFactText] = useState('');
+  const [newFactDomain, setNewFactDomain] = useState<MemoryDomain>('shared');
+  const [generating, setGenerating] = useState(false);
+
+  const handleGenerate = useCallback(async () => {
+    setGenerating(true);
+    try {
+      const config = await generateMemoryConfig();
+      setSessionConfig({ maxMessages: config.maxMessages, summarizeAfter: config.summarizeAfter, summarizeEnabled: config.summarizeEnabled });
+      for (const fact of config.suggestedFacts || []) {
+        addFact(fact, ['generated']);
+      }
+    } catch { /* silent */ }
+    setGenerating(false);
+  }, [setSessionConfig, addFact]);
+
+  const totalBudget = session.tokenBudget + longTerm.tokenBudget + working.tokenBudget;
+  const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
+
+  // Compute a simple summary line for the badge
+  const features: string[] = [];
+  if (longTerm.enabled) features.push('long-term');
+  if (working.enabled) features.push('scratchpad');
+
+
+  return (
+    <div className="max-w-4xl">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+          Memory Configuration
+        </h1>
+        <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
+          Configure how your agent remembers and manages information across conversations. Set up session memory, long-term storage, working memory, and seed facts.
+        </p>
+      </div>
+
+      {/* Session Memory */}
+      <Section
+        icon={Brain} label="Session Memory" color="#3498db"
+        badge={`${session.windowSize} messages · ${session.strategy}`}
+        collapsed={sessionCollapsed} onToggle={() => setSessionCollapsed(!sessionCollapsed)}
+      >
+        <div className="flex justify-end mb-4">
+          <GenerateBtn loading={generating} onClick={handleGenerate} label="Configure" />
+        </div>
+        
+        <SliderRow 
+          label="Window Size" 
+          value={session.windowSize} 
+          min={5} 
+          max={100} 
+          step={5}
+          onChange={v => setSessionConfig({ windowSize: v })} 
+        />
+        
+        <div className="mb-4">
+          <Select 
+            options={STRATEGY_OPTIONS} 
+            value={session.strategy}
+            onChange={v => setSessionConfig({ strategy: v as any })} 
+            label="Strategy" 
+          />
+        </div>
+
+        {(session.strategy === 'summarize_and_recent') && (
+          <SliderRow 
+            label="Summarize After" 
+            value={session.summarizeAfter} 
+            min={5} 
+            max={session.windowSize} 
+            step={5}
+            onChange={v => setSessionConfig({ summarizeAfter: v })} 
+          />
+        )}
+
+        <div className="mb-4">
+          <Toggle 
+            checked={session.summarizeEnabled} 
+            onChange={v => setSessionConfig({ summarizeEnabled: v })}
+            label="Enable summarization of older messages" 
+          />
+        </div>
+
+        <SliderRow 
+          label="Token Budget" 
+          value={session.tokenBudget} 
+          min={1000} 
+          max={60000} 
+          step={1000}
+          onChange={v => setSessionConfig({ tokenBudget: v })} 
+          suffix="K" 
+        />
+      </Section>
+
+      {/* Long-Term Memory */}
+      <Section
+        icon={Brain} label="Long-Term Memory" color="#2ecc71"
+        badge={longTerm.enabled ? `${longTerm.store} · ${longTerm.maxEntries} max` : 'disabled'}
+        collapsed={longTermCollapsed} onToggle={() => setLongTermCollapsed(!longTermCollapsed)}
+      >
+        <div className="mb-4">
+          <Toggle 
+            checked={longTerm.enabled} 
+            onChange={v => setLongTermConfig({ enabled: v })} 
+            label="Enable long-term memory" 
+          />
+        </div>
+
+        {longTerm.enabled && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select 
+                options={STORE_OPTIONS} 
+                value={longTerm.store}
+                onChange={v => setLongTermConfig({ store: v as any })} 
+                label="Store" 
+              />
+              <Select 
+                options={SCOPE_OPTIONS} 
+                value={longTerm.scope}
+                onChange={v => setLongTermConfig({ scope: v as any })} 
+                label="Scope" 
+              />
+            </div>
+
+            <Select 
+              options={EMBEDDING_OPTIONS} 
+              value={longTerm.embeddingModel}
+              onChange={v => setLongTermConfig({ embeddingModel: v as any })} 
+              label="Embedding Model" 
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select 
+                options={RECALL_OPTIONS} 
+                value={longTerm.recall.strategy}
+                onChange={v => setRecallConfig({ strategy: v as any })} 
+                label="Recall Strategy" 
+              />
+              <SliderRow 
+                label="K" 
+                value={longTerm.recall.k} 
+                min={1} 
+                max={20} 
+                step={1}
+                onChange={v => setRecallConfig({ k: v })} 
+              />
+            </div>
+
+            <SliderRow 
+              label="Min Score" 
+              value={Math.round(longTerm.recall.minScore * 100)} 
+              min={0} 
+              max={100} 
+              step={5}
+              onChange={v => setRecallConfig({ minScore: v / 100 })} 
+            />
+
+            <Select 
+              options={WRITE_MODE_OPTIONS} 
+              value={longTerm.write.mode}
+              onChange={v => setWriteConfig({ mode: v as any })} 
+              label="Write Mode" 
+            />
+
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: t.textPrimary }}>
+                Extract Types
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {EXTRACT_TYPES.map(et => {
+                  const active = longTerm.write.extractTypes.includes(et.value as any);
+                  return (
+                    <button 
+                      key={et.value} 
+                      type="button" 
+                      aria-label={`Toggle ${et.label}`} 
+                      aria-pressed={active}
+                      onClick={() => toggleExtractType(et.value as any)}
+                      className="text-sm px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
+                      style={{
+                        fontFamily: "'Geist Sans', sans-serif",
+                        background: active ? `${et.color}20` : t.isDark ? '#1c1c20' : '#f0f0f5',
+                        color: active ? et.color : t.textDim,
+                        border: `1px solid ${active ? `${et.color}40` : 'transparent'}`,
+                      }}
+                    >
+                      {et.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <SliderRow 
+              label="Max Entries" 
+              value={longTerm.maxEntries} 
+              min={100} 
+              max={10000} 
+              step={100}
+              onChange={v => setLongTermConfig({ maxEntries: v })} 
+            />
+
+            <SliderRow 
+              label="Token Budget" 
+              value={longTerm.tokenBudget} 
+              min={1000} 
+              max={30000} 
+              step={1000}
+              onChange={v => setLongTermConfig({ tokenBudget: v })} 
+              suffix="K" 
+            />
+          </div>
+        )}
+      </Section>
+
+      {/* Working Memory */}
+      <Section
+        icon={Brain} label="Working Memory" color="#f1c40f"
+        badge={working.enabled ? `${fmtTokens(working.maxTokens)} max` : 'disabled'}
+        collapsed={workingCollapsed} onToggle={() => setWorkingCollapsed(!workingCollapsed)}
+      >
+        <div className="mb-4">
+          <Toggle 
+            checked={working.enabled} 
+            onChange={v => setWorkingConfig({ enabled: v })} 
+            label="Enable working memory scratchpad" 
+          />
+        </div>
+
+        {working.enabled && (
+          <SliderRow 
+            label="Max Tokens" 
+            value={working.maxTokens} 
+            min={500} 
+            max={8000} 
+            step={500}
+            onChange={v => setWorkingConfig({ maxTokens: v })} 
+          />
+        )}
+      </Section>
+
+      {/* Seed Facts */}
+      <Section
+        icon={Brain} label="Seed Facts" color="#e74c3c"
+        badge={`${facts.length} facts`}
+        collapsed={factsCollapsed} onToggle={() => setFactsCollapsed(!factsCollapsed)}
+      >
+        <div className="space-y-2 mb-4">
+          {facts.map(fact => {
+            const domainColor = DOMAIN_COLORS[fact.domain] || '#999';
+            return (
+              <div key={fact.id} className="flex items-center gap-2 text-sm py-2 px-3 rounded"
+                style={{ background: t.surfaceElevated }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: FACT_TYPE_COLORS[fact.type] || '#999', flexShrink: 0 }} />
+                <span className="flex-1 truncate" style={{ color: t.textPrimary }}>
+                  {fact.content}
+                </span>
+                <span className="text-xs px-2 py-1 rounded-full"
+                  style={{ background: `${domainColor}15`, color: domainColor, fontFamily: "'Geist Mono', monospace" }}>
+                  {fact.domain.replace('_', ' ')}
+                </span>
+                {fact.tags.length > 0 && fact.tags.map(tag => (
+                  <span key={tag} className="text-xs px-1.5 py-0.5 rounded"
+                    style={{ background: `${FACT_TYPE_COLORS[fact.type] || '#999'}15`, color: FACT_TYPE_COLORS[fact.type] || '#999', fontFamily: "'Geist Mono', monospace" }}>
+                    {tag}
+                  </span>
+                ))}
+                <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)}
+                  className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]" 
+                  style={{ color: t.textFaint }}>
+                  <X size={12} />
+                </button>
+              </div>
+            );
+          })}
+          {facts.length === 0 && (
+            <div className="text-center py-8 text-sm" style={{ color: t.textDim }}>
+              No seed facts added yet. Add facts that your agent should always remember.
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          <Input 
+            value={newFactText} 
+            onChange={e => setNewFactText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && newFactText.trim()) { addFact(newFactText.trim(), [], 'fact', newFactDomain); setNewFactText(''); } }}
+            placeholder="Add a seed fact..." 
+            className="flex-1"
+          />
+          <select 
+            value={newFactDomain} 
+            onChange={e => setNewFactDomain(e.target.value as MemoryDomain)}
+            aria-label="Fact domain"
+            className="text-sm px-3 rounded border-none cursor-pointer"
+            style={{ background: t.surfaceElevated, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
+          >
+            <option value="shared">shared</option>
+            <option value="agent_private">private</option>
+            <option value="run_scratchpad">scratch</option>
+          </select>
+          <button 
+            type="button" 
+            aria-label="Add fact"
+            onClick={() => { if (newFactText.trim()) { addFact(newFactText.trim(), [], 'fact', newFactDomain); setNewFactText(''); } }}
+            className="px-3 border-none rounded cursor-pointer shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            style={{ background: '#FE5000', color: '#fff' }}
+          >
+            <Plus size={12} />
+          </button>
+        </div>
+      </Section>
+
+      {/* Sandbox Configuration */}
+      <Section
+        icon={Brain} label="Sandbox Configuration" color="#9b59b6"
+        badge={sandbox.isolation}
+        collapsed={sandboxCollapsed} onToggle={() => setSandboxCollapsed(!sandboxCollapsed)}
+      >
+        <div className="space-y-4">
+          <Select 
+            options={SANDBOX_OPTIONS} 
+            value={sandbox.isolation}
+            onChange={v => setSandboxConfig({ isolation: v as any })} 
+            label="Isolation" 
+          />
+
+          <div>
+            <Toggle 
+              checked={sandbox.allowPromoteToShared} 
+              onChange={v => setSandboxConfig({ allowPromoteToShared: v })}
+              label="Allow promote to shared memory" 
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: t.textPrimary }}>
+              Memory Domains
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { key: 'shared' as const, label: 'Shared', color: DOMAIN_COLORS.shared },
+                { key: 'agentPrivate' as const, label: 'Agent Private', color: DOMAIN_COLORS.agent_private },
+                { key: 'runScratchpad' as const, label: 'Run Scratchpad', color: DOMAIN_COLORS.run_scratchpad },
+              ]).map(d => {
+                const active = sandbox.domains[d.key].enabled;
+                return (
+                  <button 
+                    key={d.key} 
+                    type="button" 
+                    aria-label={`Toggle ${d.label}`} 
+                    aria-pressed={active}
+                    onClick={() => setSandboxDomain(d.key, !active)}
+                    className="text-sm px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
+                    style={{
+                      fontFamily: "'Geist Sans', sans-serif",
+                      background: active ? `${d.color}20` : t.isDark ? '#1c1c20' : '#f0f0f5',
+                      color: active ? d.color : t.textDim,
+                      border: `1px solid ${active ? `${d.color}40` : 'transparent'}`,
+                    }}
+                  >
+                    {d.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* Memory Budget Allocation */}
+      {totalBudget > 0 && (
+        <div className="mt-6 p-4 rounded-lg" style={{ background: t.surfaceElevated, border: `1px solid ${t.border}` }}>
+          <h3 className="text-sm font-semibold mb-3" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+            Memory Budget Allocation
+          </h3>
+          <div className="flex gap-1 h-2 rounded overflow-hidden mb-3">
+            <div style={{ width: `${(session.tokenBudget / totalBudget) * 100}%`, background: '#3498db', borderRadius: 2 }}
+              title={`Session: ${fmtTokens(session.tokenBudget)}`} />
+            {longTerm.enabled && (
+              <div style={{ width: `${(longTerm.tokenBudget / totalBudget) * 100}%`, background: '#2ecc71', borderRadius: 2 }}
+                title={`Long-term: ${fmtTokens(longTerm.tokenBudget)}`} />
+            )}
+            {working.enabled && (
+              <div style={{ width: `${(working.tokenBudget / totalBudget) * 100}%`, background: '#f1c40f', borderRadius: 2 }}
+                title={`Working: ${fmtTokens(working.tokenBudget)}`} />
+            )}
+          </div>
+          <div className="flex justify-between">
+            <div className="flex gap-4">
+              {[
+                { label: 'Session', color: '#3498db', tokens: session.tokenBudget },
+                ...(longTerm.enabled ? [{ label: 'Long-term', color: '#2ecc71', tokens: longTerm.tokenBudget }] : []),
+                ...(working.enabled ? [{ label: 'Working', color: '#f1c40f', tokens: working.tokenBudget }] : []),
+              ].map(item => (
+                <span key={item.label} className="flex items-center gap-2 text-sm"
+                  style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+                  <div style={{ width: 6, height: 6, borderRadius: 1, background: item.color }} />
+                  {item.label}
+                </span>
+              ))}
+            </div>
+            <span className="text-sm font-semibold" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>
+              {fmtTokens(totalBudget)} total
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
