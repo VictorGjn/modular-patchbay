@@ -5,66 +5,13 @@ import { generateMemoryConfig } from '../utils/generateSection';
 import { Input } from '../components/ds/Input';
 import { Toggle } from '../components/ds/Toggle';
 import { Select } from '../components/ds/Select';
+import { Section } from '../components/ds/Section';
+import { GenerateBtn } from '../components/ds/GenerateBtn';
 import {
-  Brain, Plus, X, Sparkles, Loader2, 
-  ChevronDown, ChevronRight
+  Brain, Plus, X
 } from 'lucide-react';
 
-function GenerateBtn({ loading, onClick, label = 'Generate' }: { loading: boolean; onClick: () => void; label?: string }) {
-  return (
-    <button type="button" onClick={e => { e.stopPropagation(); onClick(); }} disabled={loading} aria-label={label}
-      className="flex items-center gap-1 text-[13px] px-2 py-1 rounded cursor-pointer border-none"
-      style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Geist Mono', monospace", opacity: loading ? 0.6 : 1 }}>
-      {loading ? <Loader2 size={9} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={9} />}
-      {label}
-    </button>
-  );
-}
 
-function Section({
-  icon: Icon, label, color, badge, collapsed, onToggle, children,
-}: {
-  icon: React.ElementType;
-  label: string;
-  color: string;
-  badge?: string;
-  collapsed: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  const t = useTheme();
-  return (
-    <div role="region" aria-label={label} className="mb-6" style={{ border: `1px solid ${t.border}`, borderRadius: '8px', overflow: 'hidden' }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={!collapsed}
-        className="flex items-center gap-2 w-full px-5 py-3.5 border-none cursor-pointer select-none"
-        style={{ background: t.surfaceElevated }}
-      >
-        <Icon size={16} style={{ color, flexShrink: 0 }} />
-        {collapsed
-          ? <ChevronRight size={12} style={{ color: t.textDim }} />
-          : <ChevronDown size={12} style={{ color: t.textDim }} />}
-        <span
-          className="text-sm font-semibold flex-1 text-left"
-          style={{ fontFamily: "'Geist Sans', sans-serif", color: t.textPrimary }}
-        >
-          {label}
-        </span>
-        {badge && (
-          <span
-            className="text-[13px] px-2 py-1 rounded-full"
-            style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}
-          >
-            {badge}
-          </span>
-        )}
-      </button>
-      {!collapsed && <div className="px-5 pb-4">{children}</div>}
-    </div>
-  );
-}
 
 function SliderRow({ label, value, min, max, step, onChange, suffix }: {
   label: string; value: number; min: number; max: number; step: number;
@@ -72,15 +19,40 @@ function SliderRow({ label, value, min, max, step, onChange, suffix }: {
 }) {
   const t = useTheme();
   const display = suffix === 'K' ? `${(value / 1000).toFixed(0)}K` : `${value}`;
+  const sliderId = `slider-${label.toLowerCase().replace(/\s+/g, '-')}`;
+  const valueId = `${sliderId}-value`;
+  
   return (
     <div className="flex items-center gap-3 mb-3">
-      <span className="text-sm font-medium shrink-0" style={{ color: t.textPrimary, width: 120 }}>
+      <label 
+        htmlFor={sliderId}
+        className="text-sm font-medium shrink-0" 
+        style={{ color: t.textPrimary, width: 120 }}
+      >
         {label}
-      </span>
-      <input type="range" min={min} max={max} step={step} value={value}
+      </label>
+      <input 
+        id={sliderId}
+        type="range" 
+        min={min} 
+        max={max} 
+        step={step} 
+        value={value}
         onChange={e => onChange(Number(e.target.value))}
-        aria-label={label} className="flex-1" style={{ accentColor: '#FE5000' }} />
-      <span className="text-sm w-12 text-right" style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}>
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        aria-valuetext={`${display}${suffix ? ' ' + suffix.toLowerCase() : ''}`}
+        aria-describedby={valueId}
+        className="flex-1" 
+        style={{ accentColor: '#FE5000' }} 
+      />
+      <span 
+        id={valueId}
+        className="text-sm w-12 text-right" 
+        style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}
+        aria-live="polite"
+      >
         {display}
       </span>
     </div>
@@ -208,9 +180,9 @@ export function MemoryTab() {
     <div className="max-w-4xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+        <h2 className="text-2xl font-bold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Memory Configuration
-        </h1>
+        </h2>
         <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
           Configure how your agent remembers and manages information across conversations. Set up session memory, long-term storage, working memory, and seed facts.
         </p>
