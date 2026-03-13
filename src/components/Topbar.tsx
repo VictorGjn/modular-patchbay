@@ -1,47 +1,16 @@
 import { useConsoleStore } from '../store/consoleStore';
 import { useThemeStore } from '../store/themeStore';
 import { useTheme } from '../theme';
-import { useMemo } from 'react';
-import { Play, Square, Sun, Moon, Settings, ShoppingBag } from 'lucide-react';
-import { useProviderStore } from '../store/providerStore';
+import { Play, Square, Sun, Moon, Settings } from 'lucide-react';
 
 
-
-function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: string; onChange: (v: string) => void; children: React.ReactNode; t: ReturnType<typeof useTheme>; ariaLabel?: string }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      aria-label={ariaLabel}
-      className="appearance-none cursor-pointer outline-none text-[14px] h-8 pl-3 pr-7 rounded-lg"
-      style={{
-        fontFamily: "'Geist Sans', sans-serif",
-        background: t.surfaceOpaque,
-        border: `1px solid ${t.border}`,
-        color: t.isDark ? t.textSecondary : '#1a1a20',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M0 2l4 4 4-4' fill='none' stroke='%23${t.isDark ? '555' : '999'}' stroke-width='1.5'/%3E%3C/svg%3E")`,
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'right 8px center',
-      }}
-    >
-      {children}
-    </select>
-  );
-}
 
 
 export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
-  const selectedModel = useConsoleStore((s) => s.selectedModel);
-  const setModel = useConsoleStore((s) => s.setModel);
   const running = useConsoleStore((s) => s.running);
   const run = useConsoleStore((s) => s.run);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const t = useTheme();
-  const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
-  const getAllModels = useProviderStore((s) => s.getAllModels);
-  const providers = useProviderStore((s) => s.providers);
-  const allModels = useMemo(() => getAllModels(), [getAllModels, providers]);
-  const hasModels = allModels.length > 0;
 
   return (
     <div
@@ -67,60 +36,7 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
       </div>
 
 
-      {/* Model selector */}
-      <TopbarSelect
-        value={hasModels ? `${useProviderStore.getState().selectedProviderId}::${selectedModel}` : '__no_models__'}
-        onChange={(val) => {
-          if (val === '__no_models__') return;
-          const [providerId, ...rest] = val.split('::');
-          const modelId = rest.join('::');
-          useProviderStore.getState().selectProvider(providerId);
-          setModel(modelId);
-        }}
-        t={t}
-        ariaLabel="Select AI model"
-      >
-
-        {allModels.map((m) => (
-          <option key={`${m.providerId}-${m.id}`} value={`${m.providerId}::${m.id}`}>
-            {m.providerName} — {m.label}
-          </option>
-        ))}
-      </TopbarSelect>
-
-      {!hasModels && (
-        <button
-          onClick={() => useConsoleStore.getState().setShowSettings(true, 'providers')}
-          style={{
-            background: 'none',
-            border: `1px solid ${t.border}`,
-            borderRadius: 6,
-            padding: '4px 10px',
-            color: '#FE5000',
-            cursor: 'pointer',
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: '12px',
-          }}
-        >
-          ⚡ Connect a model provider
-        </button>
-      )}
-
       <div className="flex-1" />
-
-      {/* Marketplace */}
-      <button
-        type="button"
-        onClick={() => setShowMarketplace(true)}
-        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-[14px] font-medium cursor-pointer border-none"
-        style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
-        aria-label="Open Marketplace"
-      >
-        <ShoppingBag size={13} />
-        Marketplace
-      </button>
 
       {/* Settings */}
       <button
