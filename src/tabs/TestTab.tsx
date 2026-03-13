@@ -16,9 +16,9 @@ export function TestTab() {
     <div className="max-w-full h-full flex flex-col">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+        <h2 className="text-2xl font-bold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Test Your Agent
-        </h1>
+        </h2>
         <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
           Test your agent with sample conversations, view execution traces, and analyze performance. Use this to validate your agent's behavior before deployment.
         </p>

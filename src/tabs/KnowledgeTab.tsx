@@ -5,67 +5,15 @@ import { useTreeIndexStore } from '../store/treeIndexStore';
 import { KNOWLEDGE_TYPES, DEPTH_LEVELS, type KnowledgeType } from '../store/knowledgeBase';
 import { TYPE_WEIGHTS } from '../services/budgetAllocator';
 import { Tooltip } from '../components/ds/Tooltip';
+import { Section } from '../components/ds/Section';
+import { GenerateBtn } from '../components/ds/GenerateBtn';
 import { API_BASE } from '../config';
 import {
-  Database, Plus, X, Minus, Info, Sparkles, Loader2, 
-  FolderGit2, ChevronDown, ChevronRight
+  Database, Plus, X, Minus, Info, Loader2, 
+  FolderGit2
 } from 'lucide-react';
 
-function GenerateBtn({ loading, onClick, label = 'Generate' }: { loading: boolean; onClick: () => void; label?: string }) {
-  return (
-    <button type="button" onClick={e => { e.stopPropagation(); onClick(); }} disabled={loading} aria-label={label}
-      className="flex items-center gap-1 text-[13px] px-2 py-1 rounded cursor-pointer border-none"
-      style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Geist Mono', monospace", opacity: loading ? 0.6 : 1 }}>
-      {loading ? <Loader2 size={9} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={9} />}
-      {label}
-    </button>
-  );
-}
 
-function Section({
-  icon: Icon, label, color, badge, collapsed, onToggle, children,
-}: {
-  icon: React.ElementType;
-  label: string;
-  color: string;
-  badge?: string;
-  collapsed: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  const t = useTheme();
-  return (
-    <div role="region" aria-label={label} className="mb-6" style={{ border: `1px solid ${t.border}`, borderRadius: '8px', overflow: 'hidden' }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={!collapsed}
-        className="flex items-center gap-2 w-full px-5 py-3.5 border-none cursor-pointer select-none"
-        style={{ background: t.surfaceElevated }}
-      >
-        <Icon size={16} style={{ color, flexShrink: 0 }} />
-        {collapsed
-          ? <ChevronRight size={12} style={{ color: t.textDim }} />
-          : <ChevronDown size={12} style={{ color: t.textDim }} />}
-        <span
-          className="text-sm font-semibold flex-1 text-left"
-          style={{ fontFamily: "'Geist Sans', sans-serif", color: t.textPrimary }}
-        >
-          {label}
-        </span>
-        {badge && (
-          <span
-            className="text-[13px] px-2 py-1 rounded-full"
-            style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}
-          >
-            {badge}
-          </span>
-        )}
-      </button>
-      {!collapsed && <div className="px-5 pb-4">{children}</div>}
-    </div>
-  );
-}
 
 export function KnowledgeTab() {
   const t = useTheme();
@@ -214,9 +162,9 @@ export function KnowledgeTab() {
     <div className="max-w-6xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+        <h2 className="text-2xl font-bold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Knowledge Sources
-        </h1>
+        </h2>
         <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
           Configure the knowledge sources your agent will use. Different knowledge types serve different purposes in your agent's reasoning process.
         </p>
@@ -230,53 +178,116 @@ export function KnowledgeTab() {
       >
         {/* Add buttons */}
         <div className="flex gap-2 mb-4">
-          <button type="button" onClick={() => setShowFilePicker(true)}
-            className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer"
+          <button 
+            type="button" 
+            onClick={() => setShowFilePicker(true)}
+            aria-label="Add files as knowledge sources"
+            className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer min-h-[44px] transition-colors"
             style={{
-              background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim,
-              fontFamily: "'Geist Mono', monospace", transition: 'border-color 150ms, color 150ms',
+              background: 'transparent', 
+              border: `1px solid ${t.border}`, 
+              color: t.textDim,
+              fontFamily: "'Geist Mono', monospace"
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-            onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+            onMouseEnter={e => { 
+              e.currentTarget.style.borderColor = t.isDark ? '#FF6B1A' : '#FE5000'; 
+              e.currentTarget.style.color = t.isDark ? '#FF6B1A' : '#FE5000'; 
+            }}
+            onMouseLeave={e => { 
+              e.currentTarget.style.borderColor = t.border; 
+              e.currentTarget.style.color = t.textDim; 
+            }}
+            onFocus={e => { 
+              e.currentTarget.style.borderColor = t.isDark ? '#FF6B1A' : '#FE5000'; 
+              e.currentTarget.style.color = t.isDark ? '#FF6B1A' : '#FE5000'; 
+            }}
+            onBlur={e => { 
+              e.currentTarget.style.borderColor = t.border; 
+              e.currentTarget.style.color = t.textDim; 
+            }}
           >
-            <Plus size={10} /> Files
+            <Plus size={10} aria-hidden="true" /> Files
           </button>
-          <button type="button" aria-label="Index repository" onClick={() => setRepoPrompt(!repoPrompt)}
-            className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[12px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
+          <button 
+            type="button" 
+            aria-label={repoPrompt ? "Close repository input" : "Add repository as knowledge source"}
+            onClick={() => setRepoPrompt(!repoPrompt)}
+            aria-expanded={repoPrompt}
+            className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[12px] tracking-wide uppercase cursor-pointer min-h-[44px] transition-colors motion-reduce:transition-none"
             style={{
-              background: repoPrompt ? '#24292F15' : 'transparent', border: `1px solid ${repoPrompt ? '#24292F' : t.border}`, color: repoPrompt ? '#24292F' : t.textDim,
-              fontFamily: "'Geist Mono', monospace", transition: 'border-color 150ms, color 150ms',
+              background: repoPrompt ? '#24292F15' : 'transparent', 
+              border: `1px solid ${repoPrompt ? '#24292F' : t.border}`, 
+              color: repoPrompt ? '#24292F' : t.textDim,
+              fontFamily: "'Geist Mono', monospace"
             }}
-            onMouseEnter={e => { if (!repoPrompt) { e.currentTarget.style.borderColor = '#24292F'; e.currentTarget.style.color = '#24292F'; }}}
-            onMouseLeave={e => { if (!repoPrompt) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}}
-            onFocus={e => { if (!repoPrompt) { e.currentTarget.style.borderColor = '#24292F'; e.currentTarget.style.color = '#24292F'; }}}
-            onBlur={e => { if (!repoPrompt) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}}
+            onMouseEnter={e => { 
+              if (!repoPrompt) { 
+                e.currentTarget.style.borderColor = '#24292F'; 
+                e.currentTarget.style.color = '#24292F'; 
+              }
+            }}
+            onMouseLeave={e => { 
+              if (!repoPrompt) { 
+                e.currentTarget.style.borderColor = t.border; 
+                e.currentTarget.style.color = t.textDim; 
+              }
+            }}
+            onFocus={e => { 
+              if (!repoPrompt) { 
+                e.currentTarget.style.borderColor = '#24292F'; 
+                e.currentTarget.style.color = '#24292F'; 
+              }
+            }}
+            onBlur={e => { 
+              if (!repoPrompt) { 
+                e.currentTarget.style.borderColor = t.border; 
+                e.currentTarget.style.color = t.textDim; 
+              }
+            }}
           >
-            <FolderGit2 size={10} /> Repo
+            <FolderGit2 size={10} aria-hidden="true" /> Repo
           </button>
         </div>
 
         {/* Repo indexer input */}
         {repoPrompt && (
           <div className="mt-2 flex gap-1.5 mb-4">
+            <label htmlFor="repo-path-input" className="sr-only">
+              Repository path or URL
+            </label>
             <input
+              id="repo-path-input"
               type="text"
               value={repoPath}
               onChange={e => setRepoPath(e.target.value)}
               placeholder="/path/to/repo or https://github.com/org/repo"
-              aria-label="Repository path"
+              aria-describedby="repo-path-help"
               className="flex-1 px-2.5 py-1.5 rounded text-[13px] outline-none"
               style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}
-              onKeyDown={e => { if (e.key === 'Enter') handleRepoIndex(); }}
+              onKeyDown={e => { if (e.key === 'Enter' && !repoScanning && repoPath.trim()) handleRepoIndex(); }}
             />
-            <button type="button" onClick={handleRepoIndex} disabled={repoScanning || !repoPath.trim()}
-              className="px-3 py-1.5 rounded text-[12px] font-semibold tracking-wider uppercase cursor-pointer border-none"
-              style={{ background: '#24292F', color: '#fff', fontFamily: "'Geist Mono', monospace", opacity: repoScanning || !repoPath.trim() ? 0.5 : 1 }}
-              aria-label="Index repository"
+            <div id="repo-path-help" className="sr-only">
+              Enter a local file path or GitHub repository URL to index as a knowledge source
+            </div>
+            <button 
+              type="button" 
+              onClick={handleRepoIndex} 
+              disabled={repoScanning || !repoPath.trim()}
+              aria-label={repoScanning ? "Indexing repository..." : "Index repository"}
+              className="px-3 py-1.5 rounded text-[12px] font-semibold tracking-wider uppercase cursor-pointer border-none transition-opacity"
+              style={{ 
+                background: '#24292F', 
+                color: '#fff', 
+                fontFamily: "'Geist Mono', monospace", 
+                opacity: repoScanning || !repoPath.trim() ? 0.5 : 1,
+                cursor: repoScanning || !repoPath.trim() ? 'not-allowed' : 'pointer'
+              }}
             >
-              {repoScanning ? <Loader2 size={10} className="animate-spin motion-reduce:animate-none" /> : 'Index'}
+              {repoScanning ? (
+                <Loader2 size={10} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+              ) : (
+                'Index'
+              )}
             </button>
           </div>
         )}
@@ -301,16 +312,25 @@ export function KnowledgeTab() {
                 style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
                 {/* Level 1: Source name + auto-detected type pill */}
                 <div className="flex items-center gap-1.5">
-                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: kt.color }} />
+                  <div style={{ position: 'relative', flexShrink: 0 }} aria-label={`Knowledge type: ${kt.label}`}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: kt.color }} aria-hidden="true" />
                     {isIndexed && (
-                      <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#00ff88' }} />
+                      <>
+                        <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#00ff88' }} aria-hidden="true" />
+                        <span className="sr-only">Indexed</span>
+                      </>
                     )}
                     {isLoading && (
-                      <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ffaa00' }} />
+                      <>
+                        <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ffaa00' }} aria-hidden="true" />
+                        <span className="sr-only">Indexing in progress</span>
+                      </>
                     )}
                     {hasError && (
-                      <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ff3344' }} />
+                      <>
+                        <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ff3344' }} aria-hidden="true" />
+                        <span className="sr-only">Indexing error</span>
+                      </>
                     )}
                   </div>
                   {/* Clickable name — expands Level 3 panel */}
@@ -322,8 +342,11 @@ export function KnowledgeTab() {
                   </button>
                   {/* Level 2: Knowledge Type pill */}
                   <Tooltip content={`${kt.icon} ${kt.label} — ${kt.instruction}\nBudget: ~${budgetPct}% · Detail: ${DETAIL_LABELS[depth]}`} position="top">
-                    <span className="text-[7px] px-1.5 py-0.5 rounded-full shrink-0 cursor-default select-none"
-                      style={{ fontFamily: "'Geist Mono', monospace", fontWeight: 600, background: `${kt.color}18`, color: kt.color, border: `1px solid ${kt.color}30` }}>
+                    <span 
+                      className="text-[7px] px-1.5 py-0.5 rounded-full shrink-0 cursor-default select-none"
+                      style={{ fontFamily: "'Geist Mono', monospace", fontWeight: 600, background: `${kt.color}18`, color: kt.color, border: `1px solid ${kt.color}30` }}
+                      aria-label={`Knowledge type: ${kt.label}. Budget allocation: ${budgetPct}%. Processing detail: ${DETAIL_LABELS[depth]}.`}
+                    >
                       {kt.label}
                     </span>
                   </Tooltip>
@@ -347,18 +370,45 @@ export function KnowledgeTab() {
 
                 {/* Detail Level bar */}
                 <div className="flex items-center gap-1 mt-0.5 pl-4">
-                  <button type="button" aria-label="Less detail" onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
-                    className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
-                    style={{ color: depth >= 4 ? t.textFaint : t.textDim, width: 20, height: 20, padding: 0 }}>
-                    <Minus size={9} />
+                  <button 
+                    type="button" 
+                    aria-label={`Decrease detail level for ${ch.name} (currently ${DETAIL_LABELS[depth]})`}
+                    onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
+                    disabled={depth >= 4}
+                    className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center transition-colors"
+                    style={{ 
+                      color: depth >= 4 ? t.textFaint : t.textDim, 
+                      width: 20, height: 20, padding: 0,
+                      cursor: depth >= 4 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    <Minus size={9} aria-hidden="true" />
                   </button>
-                  <div className="flex-1" style={{ height: 4, background: `${barColor}18`, borderRadius: 2, overflow: 'hidden' }}>
+                  <div 
+                    className="flex-1" 
+                    style={{ height: 4, background: `${barColor}18`, borderRadius: 2, overflow: 'hidden' }}
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={barPct}
+                    aria-valuetext={`Detail level: ${DETAIL_LABELS[depth]}`}
+                    aria-label={`Processing detail level for ${ch.name}`}
+                  >
                     <div style={{ width: `${barPct}%`, height: '100%', background: barColor, borderRadius: 2, transition: 'width 200ms' }} />
                   </div>
-                  <button type="button" aria-label="More detail" onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
-                    className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center"
-                    style={{ color: depth <= 0 ? t.textFaint : t.textDim, width: 20, height: 20, padding: 0 }}>
-                    <Plus size={9} />
+                  <button 
+                    type="button" 
+                    aria-label={`Increase detail level for ${ch.name} (currently ${DETAIL_LABELS[depth]})`}
+                    onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
+                    disabled={depth <= 0}
+                    className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center transition-colors"
+                    style={{ 
+                      color: depth <= 0 ? t.textFaint : t.textDim, 
+                      width: 20, height: 20, padding: 0,
+                      cursor: depth <= 0 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    <Plus size={9} aria-hidden="true" />
                   </button>
                   <span className="text-[12px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 44, textAlign: 'right' }}>
                     {DETAIL_LABELS[depth]}
@@ -378,15 +428,22 @@ export function KnowledgeTab() {
                           const info = KNOWLEDGE_TYPES[key];
                           const isActive = ch.knowledgeType === key;
                           return (
-                            <button key={key} type="button" onClick={() => setChannelKnowledgeType(ch.sourceId, idx)}
-                              className="text-[7px] px-1.5 py-0.5 rounded-full cursor-pointer border-none"
+                            <button 
+                              key={key} 
+                              type="button" 
+                              onClick={() => setChannelKnowledgeType(ch.sourceId, idx)}
+                              aria-pressed={isActive}
+                              aria-label={`Set knowledge type to ${info.label} for ${ch.name}. ${info.instruction}`}
+                              className="text-[7px] px-1.5 py-0.5 rounded-full cursor-pointer border-none transition-colors"
                               style={{
                                 fontFamily: "'Geist Mono', monospace", fontWeight: 600,
                                 background: isActive ? `${info.color}25` : 'transparent',
                                 color: isActive ? info.color : t.textFaint,
                                 border: `1px solid ${isActive ? `${info.color}40` : 'transparent'}`,
-                              }}>
+                              }}
+                            >
                               {info.label}
+                              {isActive && <span className="sr-only"> (selected)</span>}
                             </button>
                           );
                         })}

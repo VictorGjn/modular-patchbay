@@ -4,67 +4,14 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore } from '../store/mcpStore';
 import { useHealthStore } from '../store/healthStore';
 import { SecurityBadges } from '../components/SecurityBadges';
+import { Section } from '../components/ds/Section';
+import { GenerateBtn } from '../components/ds/GenerateBtn';
 import { API_BASE } from '../config';
 import {
-  Plug, Zap, Plus, X, Sparkles, Loader2, 
-  ChevronDown, ChevronRight, Library
+  Plug, Zap, Plus, X, Library
 } from 'lucide-react';
 
-function GenerateBtn({ loading, onClick, label = 'Generate' }: { loading: boolean; onClick: () => void; label?: string }) {
-  return (
-    <button type="button" onClick={e => { e.stopPropagation(); onClick(); }} disabled={loading} aria-label={label}
-      className="flex items-center gap-1 text-[13px] px-2 py-1 rounded cursor-pointer border-none"
-      style={{ background: '#FE500015', color: '#FE5000', fontFamily: "'Geist Mono', monospace", opacity: loading ? 0.6 : 1 }}>
-      {loading ? <Loader2 size={9} className="animate-spin motion-reduce:animate-none" /> : <Sparkles size={9} />}
-      {label}
-    </button>
-  );
-}
 
-function Section({
-  icon: Icon, label, color, badge, collapsed, onToggle, children,
-}: {
-  icon: React.ElementType;
-  label: string;
-  color: string;
-  badge?: string;
-  collapsed: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  const t = useTheme();
-  return (
-    <div role="region" aria-label={label} className="mb-6" style={{ border: `1px solid ${t.border}`, borderRadius: '8px', overflow: 'hidden' }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={!collapsed}
-        className="flex items-center gap-2 w-full px-5 py-3.5 border-none cursor-pointer select-none"
-        style={{ background: t.surfaceElevated }}
-      >
-        <Icon size={16} style={{ color, flexShrink: 0 }} />
-        {collapsed
-          ? <ChevronRight size={12} style={{ color: t.textDim }} />
-          : <ChevronDown size={12} style={{ color: t.textDim }} />}
-        <span
-          className="text-sm font-semibold flex-1 text-left"
-          style={{ fontFamily: "'Geist Sans', sans-serif", color: t.textPrimary }}
-        >
-          {label}
-        </span>
-        {badge && (
-          <span
-            className="text-[13px] px-2 py-1 rounded-full"
-            style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}
-          >
-            {badge}
-          </span>
-        )}
-      </button>
-      {!collapsed && <div className="px-5 pb-4">{children}</div>}
-    </div>
-  );
-}
 
 export function ToolsTab() {
   const t = useTheme();
@@ -163,9 +110,9 @@ export function ToolsTab() {
     <div className="max-w-4xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+        <h2 className="text-2xl font-bold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Tools & Capabilities
-        </h1>
+        </h2>
         <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
           Configure the tools and capabilities your agent can use. MCP servers provide external integrations, while skills add specialized functionality.
         </p>

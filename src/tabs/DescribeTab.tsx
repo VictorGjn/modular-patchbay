@@ -42,9 +42,9 @@ export function DescribeTab() {
     <div className="max-w-4xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+        <h2 className="text-2xl font-bold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Describe Your Agent
-        </h1>
+        </h2>
         <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
           Start by describing what you want your agent to do. Be specific about its role, capabilities, and the types of tasks it should handle.
         </p>
@@ -52,15 +52,21 @@ export function DescribeTab() {
 
       {/* Quick Templates */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-4" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+        <h3 className="text-lg font-semibold mb-4 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Quick Start Templates
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        </h3>
+        <div 
+          className="grid grid-cols-1 md:grid-cols-2 gap-3"
+          role="group"
+          aria-label="Agent template selection"
+        >
           {QUICK_TEMPLATES.map((template) => (
             <button
               key={template.label}
               type="button"
               onClick={() => handleTemplateSelect(template)}
+              aria-pressed={selectedTemplate === template.label}
+              aria-describedby={`template-desc-${template.label.replace(/\s+/g, '-').toLowerCase()}`}
               className="text-left p-4 rounded-lg border cursor-pointer transition-colors min-h-[44px]"
               style={{
                 background: selectedTemplate === template.label ? '#FE500010' : t.surfaceElevated,
@@ -80,12 +86,19 @@ export function DescribeTab() {
                 }
               }}
             >
-              <h3 className="font-semibold mb-1" style={{ fontFamily: "'Geist Sans', sans-serif", fontSize: '14px' }}>
+              <div className="font-semibold mb-1" style={{ fontFamily: "'Geist Sans', sans-serif", fontSize: '14px' }}>
                 {template.label}
-              </h3>
-              <p className="text-xs" style={{ color: t.textSecondary, lineHeight: 1.4 }}>
+                {selectedTemplate === template.label && (
+                  <span className="sr-only"> (selected)</span>
+                )}
+              </div>
+              <div 
+                id={`template-desc-${template.label.replace(/\s+/g, '-').toLowerCase()}`}
+                className="text-xs" 
+                style={{ color: t.textSecondary, lineHeight: 1.4 }}
+              >
                 {template.description}
-              </p>
+              </div>
             </button>
           ))}
         </div>
@@ -116,9 +129,9 @@ export function DescribeTab() {
         <div className="flex items-start gap-3">
           <Lightbulb size={16} style={{ color: '#FE5000', marginTop: 2, flexShrink: 0 }} />
           <div>
-            <h3 className="font-semibold text-sm mb-2" style={{ color: t.textPrimary }}>
+            <h4 className="font-semibold text-sm mb-2 m-0" style={{ color: t.textPrimary }}>
               Writing Tips
-            </h3>
+            </h4>
             <ul className="text-sm space-y-1" style={{ color: t.textSecondary }}>
               <li>• Be specific about the agent's role and responsibilities</li>
               <li>• Mention the types of inputs and outputs you expect</li>

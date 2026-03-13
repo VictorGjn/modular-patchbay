@@ -26,13 +26,14 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
         <div
           className="w-2 h-2 rounded-full"
           style={{ background: '#FE5000', boxShadow: '0 0 8px rgba(254,80,0,0.4)' }}
+          aria-hidden="true"
         />
-        <span
-          className="text-[17px] font-bold tracking-[3px] uppercase"
+        <h1
+          className="text-[17px] font-bold tracking-[3px] uppercase m-0"
           style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
         >
           MODULAR
-        </span>
+        </h1>
       </div>
 
 

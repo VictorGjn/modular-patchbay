@@ -1,54 +1,12 @@
 import { useState } from 'react';
 import { useTheme } from '../theme';
+import { Section } from '../components/ds/Section';
 import {
   Award, Plus, Play, CheckCircle, XCircle, 
-  Clock, Target, ChevronDown, ChevronRight
+  Clock, Target
 } from 'lucide-react';
 
-function Section({
-  icon: Icon, label, color, badge, collapsed, onToggle, children,
-}: {
-  icon: React.ElementType;
-  label: string;
-  color: string;
-  badge?: string;
-  collapsed: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  const t = useTheme();
-  return (
-    <div role="region" aria-label={label} className="mb-6" style={{ border: `1px solid ${t.border}`, borderRadius: '8px', overflow: 'hidden' }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={!collapsed}
-        className="flex items-center gap-2 w-full px-5 py-3.5 border-none cursor-pointer select-none"
-        style={{ background: t.surfaceElevated }}
-      >
-        <Icon size={16} style={{ color, flexShrink: 0 }} />
-        {collapsed
-          ? <ChevronRight size={12} style={{ color: t.textDim }} />
-          : <ChevronDown size={12} style={{ color: t.textDim }} />}
-        <span
-          className="text-sm font-semibold flex-1 text-left"
-          style={{ fontFamily: "'Geist Sans', sans-serif", color: t.textPrimary }}
-        >
-          {label}
-        </span>
-        {badge && (
-          <span
-            className="text-[13px] px-2 py-1 rounded-full"
-            style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, background: t.badgeBg }}
-          >
-            {badge}
-          </span>
-        )}
-      </button>
-      {!collapsed && <div className="px-5 pb-4">{children}</div>}
-    </div>
-  );
-}
+
 
 // Mock test suites data
 const MOCK_TEST_SUITES = [
@@ -131,9 +89,9 @@ export function QualificationTab() {
     <div className="max-w-4xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+        <h2 className="text-2xl font-bold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Qualification & Testing
-        </h1>
+        </h2>
         <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
           Run comprehensive test suites to validate your agent's performance, reliability, and adherence to requirements before production deployment.
         </p>
