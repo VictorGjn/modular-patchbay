@@ -96,7 +96,7 @@ export function WizardLayout() {
   return (
     <div
       role="main"
-      className="flex-1 flex flex-col overflow-hidden"
+      className="min-h-screen flex flex-col overflow-hidden"
       style={{ background: t.bg }}
     >
       {/* Skip Link */}
@@ -122,7 +122,7 @@ export function WizardLayout() {
           borderColor: t.border,
         }}
       >
-        <div role="tablist" className="flex w-full">
+        <div role="tablist" className="flex w-full max-w-4xl mx-auto">
           {TABS.map((tab, index) => {
             const Icon = tab.icon;
             const isActive = tab.id === activeTab;
@@ -200,45 +200,46 @@ export function WizardLayout() {
         aria-labelledby={`tab-${activeTab}`}
         tabIndex={0}
         className="flex-1 overflow-y-auto focus:outline-none"
-        style={{ padding: '24px 32px' }}
         data-skip-target
       >
-        <ActiveComponent />
-        
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-8 pt-6" style={{ borderTop: `1px solid ${t.border}` }}>
-          <button
-            type="button"
-            onClick={handlePrev}
-            disabled={activeIndex === 0}
-            aria-label={`Go to previous step: ${activeIndex > 0 ? TABS[activeIndex - 1].label : 'none'}`}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-none cursor-pointer min-h-[44px] transition-opacity"
-            style={{
-              background: activeIndex === 0 ? 'transparent' : t.surfaceElevated,
-              color: activeIndex === 0 ? t.textFaint : t.textPrimary,
-              border: `1px solid ${activeIndex === 0 ? 'transparent' : t.border}`,
-              opacity: activeIndex === 0 ? 0.5 : 1,
-              cursor: activeIndex === 0 ? 'not-allowed' : 'pointer',
-            }}
-          >
-            Previous
-          </button>
+        <div className="max-w-4xl mx-auto px-8 py-6">
+          <ActiveComponent />
           
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={activeIndex === TABS.length - 1}
-            aria-label={`Go to next step: ${activeIndex < TABS.length - 1 ? TABS[activeIndex + 1].label : 'none'}`}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-none cursor-pointer min-h-[44px] transition-opacity"
-            style={{
-              background: activeIndex === TABS.length - 1 ? 'transparent' : '#FE5000',
-              color: activeIndex === TABS.length - 1 ? t.textFaint : '#fff',
-              opacity: activeIndex === TABS.length - 1 ? 0.5 : 1,
-              cursor: activeIndex === TABS.length - 1 ? 'not-allowed' : 'pointer',
-            }}
-          >
-            Next
-          </button>
+          {/* Navigation Buttons */}
+          <div className="flex justify-between mt-8 pt-6" style={{ borderTop: `1px solid ${t.border}` }}>
+            <button
+              type="button"
+              onClick={handlePrev}
+              disabled={activeIndex === 0}
+              aria-label={`Go to previous step: ${activeIndex > 0 ? TABS[activeIndex - 1].label : 'none'}`}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-none cursor-pointer min-h-[44px] transition-opacity"
+              style={{
+                background: activeIndex === 0 ? 'transparent' : t.surfaceElevated,
+                color: activeIndex === 0 ? t.textFaint : t.textPrimary,
+                border: `1px solid ${activeIndex === 0 ? 'transparent' : t.border}`,
+                opacity: activeIndex === 0 ? 0.5 : 1,
+                cursor: activeIndex === 0 ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Previous
+            </button>
+            
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={activeIndex === TABS.length - 1}
+              aria-label={`Go to next step: ${activeIndex < TABS.length - 1 ? TABS[activeIndex + 1].label : 'none'}`}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-none cursor-pointer min-h-[44px] transition-opacity"
+              style={{
+                background: activeIndex === TABS.length - 1 ? 'transparent' : '#FE5000',
+                color: activeIndex === TABS.length - 1 ? t.textFaint : '#fff',
+                opacity: activeIndex === TABS.length - 1 ? 0.5 : 1,
+                cursor: activeIndex === TABS.length - 1 ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -86,10 +86,10 @@ export function QualificationTab() {
   const totalTests = allTests.length;
 
   return (
-    <div className="max-w-4xl">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+      <div>
+        <h2 className="text-2xl font-semibold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Qualification & Testing
         </h2>
         <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>

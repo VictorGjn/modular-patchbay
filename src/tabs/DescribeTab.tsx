@@ -39,10 +39,10 @@ export function DescribeTab() {
   };
 
   return (
-    <div className="max-w-4xl">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+      <div>
+        <h2 className="text-2xl font-semibold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Describe Your Agent
         </h2>
         <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
@@ -51,12 +51,12 @@ export function DescribeTab() {
       </div>
 
       {/* Quick Templates */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-4 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+      <div>
+        <h3 className="text-lg font-medium mt-3 mb-4 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Quick Start Templates
         </h3>
         <div 
-          className="grid grid-cols-1 md:grid-cols-2 gap-3"
+          className="grid grid-cols-2 gap-3"
           role="group"
           aria-label="Agent template selection"
         >
@@ -67,9 +67,9 @@ export function DescribeTab() {
               onClick={() => handleTemplateSelect(template)}
               aria-pressed={selectedTemplate === template.label}
               aria-describedby={`template-desc-${template.label.replace(/\s+/g, '-').toLowerCase()}`}
-              className="text-left p-4 rounded-lg border cursor-pointer transition-colors min-h-[44px]"
+              className="text-left p-5 rounded-lg border cursor-pointer transition-colors min-h-[44px]"
               style={{
-                background: selectedTemplate === template.label ? '#FE500010' : t.surfaceElevated,
+                background: selectedTemplate === template.label ? '#FE500010' : t.surface,
                 borderColor: selectedTemplate === template.label ? '#FE5000' : t.border,
                 color: t.textPrimary,
               }}
@@ -105,7 +105,7 @@ export function DescribeTab() {
       </div>
 
       {/* Main Description TextArea */}
-      <div className="mb-6">
+      <div>
         <label htmlFor="agent-description" className="block text-sm font-medium mb-3" style={{ color: t.textPrimary }}>
           Agent Description
         </label>
@@ -125,7 +125,7 @@ export function DescribeTab() {
       </div>
 
       {/* Tips */}
-      <div className="rounded-lg p-4" style={{ background: t.isDark ? '#0a1929' : '#f8fafc', border: `1px solid ${t.border}` }}>
+      <div className="rounded-lg p-5 bg-surface border border-border" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
         <div className="flex items-start gap-3">
           <Lightbulb size={16} style={{ color: '#FE5000', marginTop: 2, flexShrink: 0 }} />
           <div>

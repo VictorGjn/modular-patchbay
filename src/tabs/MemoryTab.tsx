@@ -177,10 +177,10 @@ export function MemoryTab() {
 
 
   return (
-    <div className="max-w-4xl">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+      <div>
+        <h2 className="text-2xl font-semibold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Memory Configuration
         </h2>
         <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
@@ -188,7 +188,11 @@ export function MemoryTab() {
         </p>
       </div>
 
-      {/* Session Memory */}
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
+        {/* Left column - Session Memory + Seed Facts */}
+        <div className="space-y-6">
+          {/* Session Memory */}
       <Section
         icon={Brain} label="Session Memory" color="#3498db"
         badge={`${session.windowSize} messages · ${session.strategy}`}
@@ -246,12 +250,87 @@ export function MemoryTab() {
         />
       </Section>
 
-      {/* Long-Term Memory */}
-      <Section
-        icon={Brain} label="Long-Term Memory" color="#2ecc71"
-        badge={longTerm.enabled ? `${longTerm.store} · ${longTerm.maxEntries} max` : 'disabled'}
-        collapsed={longTermCollapsed} onToggle={() => setLongTermCollapsed(!longTermCollapsed)}
-      >
+          {/* Seed Facts */}
+          <Section
+            icon={Brain} label="Seed Facts" color="#e74c3c"
+            badge={`${facts.length} facts`}
+            collapsed={factsCollapsed} onToggle={() => setFactsCollapsed(!factsCollapsed)}
+          >
+            <div className="space-y-2 mb-4">
+              {facts.map(fact => {
+                const domainColor = DOMAIN_COLORS[fact.domain] || '#999';
+                return (
+                  <div key={fact.id} className="flex items-center gap-2 text-sm py-2 px-3 rounded"
+                    style={{ background: t.surfaceElevated }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: FACT_TYPE_COLORS[fact.type] || '#999', flexShrink: 0 }} />
+                    <span className="flex-1 truncate" style={{ color: t.textPrimary }}>
+                      {fact.content}
+                    </span>
+                    <span className="text-xs px-2 py-1 rounded-full"
+                      style={{ background: `${domainColor}15`, color: domainColor, fontFamily: "'Geist Mono', monospace" }}>
+                      {fact.domain.replace('_', ' ')}
+                    </span>
+                    {fact.tags.length > 0 && fact.tags.map(tag => (
+                      <span key={tag} className="text-xs px-1.5 py-0.5 rounded"
+                        style={{ background: `${FACT_TYPE_COLORS[fact.type] || '#999'}15`, color: FACT_TYPE_COLORS[fact.type] || '#999', fontFamily: "'Geist Mono', monospace" }}>
+                        {tag}
+                      </span>
+                    ))}
+                    <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)}
+                      className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]" 
+                      style={{ color: t.textFaint }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                );
+              })}
+              {facts.length === 0 && (
+                <div className="text-center py-8 text-sm" style={{ color: t.textDim }}>
+                  No seed facts added yet. Add facts that your agent should always remember.
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Input 
+                value={newFactText} 
+                onChange={e => setNewFactText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && newFactText.trim()) { addFact(newFactText.trim(), [], 'fact', newFactDomain); setNewFactText(''); } }}
+                placeholder="Add a seed fact..." 
+                className="flex-1"
+              />
+              <select 
+                value={newFactDomain} 
+                onChange={e => setNewFactDomain(e.target.value as MemoryDomain)}
+                aria-label="Fact domain"
+                className="text-sm px-3 rounded border-none cursor-pointer"
+                style={{ background: t.surfaceElevated, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
+              >
+                <option value="shared">shared</option>
+                <option value="agent_private">private</option>
+                <option value="run_scratchpad">scratch</option>
+              </select>
+              <button 
+                type="button" 
+                aria-label="Add fact"
+                onClick={() => { if (newFactText.trim()) { addFact(newFactText.trim(), [], 'fact', newFactDomain); setNewFactText(''); } }}
+                className="px-3 border-none rounded cursor-pointer shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                style={{ background: '#FE5000', color: '#fff' }}
+              >
+                <Plus size={12} />
+              </button>
+            </div>
+          </Section>
+        </div>
+
+        {/* Right column - Long-Term + Working Memory */}
+        <div className="space-y-6">
+          {/* Long-Term Memory */}
+          <Section
+            icon={Brain} label="Long-Term Memory" color="#2ecc71"
+            badge={longTerm.enabled ? `${longTerm.store} · ${longTerm.maxEntries} max` : 'disabled'}
+            collapsed={longTermCollapsed} onToggle={() => setLongTermCollapsed(!longTermCollapsed)}
+          >
         <div className="mb-4">
           <Toggle 
             checked={longTerm.enabled} 
@@ -368,7 +447,7 @@ export function MemoryTab() {
         )}
       </Section>
 
-      {/* Working Memory */}
+          {/* Working Memory */}
       <Section
         icon={Brain} label="Working Memory" color="#f1c40f"
         badge={working.enabled ? `${fmtTokens(working.maxTokens)} max` : 'disabled'}
@@ -393,78 +472,8 @@ export function MemoryTab() {
           />
         )}
       </Section>
-
-      {/* Seed Facts */}
-      <Section
-        icon={Brain} label="Seed Facts" color="#e74c3c"
-        badge={`${facts.length} facts`}
-        collapsed={factsCollapsed} onToggle={() => setFactsCollapsed(!factsCollapsed)}
-      >
-        <div className="space-y-2 mb-4">
-          {facts.map(fact => {
-            const domainColor = DOMAIN_COLORS[fact.domain] || '#999';
-            return (
-              <div key={fact.id} className="flex items-center gap-2 text-sm py-2 px-3 rounded"
-                style={{ background: t.surfaceElevated }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: FACT_TYPE_COLORS[fact.type] || '#999', flexShrink: 0 }} />
-                <span className="flex-1 truncate" style={{ color: t.textPrimary }}>
-                  {fact.content}
-                </span>
-                <span className="text-xs px-2 py-1 rounded-full"
-                  style={{ background: `${domainColor}15`, color: domainColor, fontFamily: "'Geist Mono', monospace" }}>
-                  {fact.domain.replace('_', ' ')}
-                </span>
-                {fact.tags.length > 0 && fact.tags.map(tag => (
-                  <span key={tag} className="text-xs px-1.5 py-0.5 rounded"
-                    style={{ background: `${FACT_TYPE_COLORS[fact.type] || '#999'}15`, color: FACT_TYPE_COLORS[fact.type] || '#999', fontFamily: "'Geist Mono', monospace" }}>
-                    {tag}
-                  </span>
-                ))}
-                <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)}
-                  className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]" 
-                  style={{ color: t.textFaint }}>
-                  <X size={12} />
-                </button>
-              </div>
-            );
-          })}
-          {facts.length === 0 && (
-            <div className="text-center py-8 text-sm" style={{ color: t.textDim }}>
-              No seed facts added yet. Add facts that your agent should always remember.
-            </div>
-          )}
         </div>
-
-        <div className="flex gap-2">
-          <Input 
-            value={newFactText} 
-            onChange={e => setNewFactText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && newFactText.trim()) { addFact(newFactText.trim(), [], 'fact', newFactDomain); setNewFactText(''); } }}
-            placeholder="Add a seed fact..." 
-            className="flex-1"
-          />
-          <select 
-            value={newFactDomain} 
-            onChange={e => setNewFactDomain(e.target.value as MemoryDomain)}
-            aria-label="Fact domain"
-            className="text-sm px-3 rounded border-none cursor-pointer"
-            style={{ background: t.surfaceElevated, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
-          >
-            <option value="shared">shared</option>
-            <option value="agent_private">private</option>
-            <option value="run_scratchpad">scratch</option>
-          </select>
-          <button 
-            type="button" 
-            aria-label="Add fact"
-            onClick={() => { if (newFactText.trim()) { addFact(newFactText.trim(), [], 'fact', newFactDomain); setNewFactText(''); } }}
-            className="px-3 border-none rounded cursor-pointer shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            style={{ background: '#FE5000', color: '#fff' }}
-          >
-            <Plus size={12} />
-          </button>
-        </div>
-      </Section>
+      </div>
 
       {/* Sandbox Configuration */}
       <Section
