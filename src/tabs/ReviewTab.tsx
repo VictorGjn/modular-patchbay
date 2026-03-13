@@ -148,10 +148,10 @@ export function ReviewTab() {
   };
 
   return (
-    <div className="max-w-4xl">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+      <div>
+        <h2 className="text-2xl font-semibold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Review & Configure
         </h2>
         <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
@@ -159,7 +159,11 @@ export function ReviewTab() {
         </p>
       </div>
 
-      {/* Identity */}
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[11fr_9fr] gap-6">
+        {/* Left column - Identity + Persona + Constraints + Workflow + Model */}
+        <div className="space-y-6">
+          {/* Identity */}
       <Section
         icon={User} label="Identity" color="#3498db"
         collapsed={identityCollapsed} onToggle={() => setIdentityCollapsed(!identityCollapsed)}
@@ -440,8 +444,11 @@ export function ReviewTab() {
           </div>
         </div>
       </Section>
+        </div>
 
-      {/* System Prompt Preview */}
+        {/* Right column - Version + Gaps + Insights + Summaries (System Prompt Preview) */}
+        <div className="space-y-6">
+          {/* System Prompt Preview */}
       <Section
         icon={Eye} label="System Prompt Preview" color="#2ecc71"
         collapsed={previewCollapsed} onToggle={() => setPreviewCollapsed(!previewCollapsed)}
@@ -452,6 +459,8 @@ export function ReviewTab() {
           </pre>
         </div>
       </Section>
+        </div>
+      </div>
 
       {/* Actions */}
       <div className="flex gap-4 mt-8">

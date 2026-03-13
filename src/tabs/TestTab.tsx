@@ -13,10 +13,10 @@ export function TestTab() {
   const handleMinimize = () => setExpanded(false);
 
   return (
-    <div className="max-w-full h-full flex flex-col">
+    <div className="h-full flex flex-col space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+      <div>
+        <h2 className="text-2xl font-semibold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
           Test Your Agent
         </h2>
         <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
