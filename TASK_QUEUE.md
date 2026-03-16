@@ -22,7 +22,7 @@
 - **Gate:** TSC + BUILD
 
 ## Task 2: QualificationTab → QualificationPanel  
-- **Status:** TODO
+- **Status:** DONE — 2026-03-16 23:55
 - **What:** In src/tabs/QualificationTab.tsx, replace the recreated UI with QualificationPanel from src/panels/QualificationPanel.tsx. The panel already has generateSuite, runQualification, applyPatches wired up. Keep the tab wrapper (header, description) but render QualificationPanel as the content.
 - **Gate:** TSC + BUILD
 
