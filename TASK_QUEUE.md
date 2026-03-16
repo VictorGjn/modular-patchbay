@@ -27,7 +27,7 @@
 - **Gate:** TSC + BUILD
 
 ## Task 3: ReviewTab → consoleStore
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 00:29
 - **What:** In src/tabs/ReviewTab.tsx, verify all fields (identity, model, constraints, workflow, output format) read from AND write to consoleStore. Remove any local state that duplicates store state. Test: change a constraint in ReviewTab, switch to another tab, come back — it should persist.
 - **Gate:** TSC + BUILD
 
