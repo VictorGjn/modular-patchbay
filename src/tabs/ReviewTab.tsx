@@ -187,7 +187,6 @@ export function ReviewTab() {
   const [previewCollapsed, setPreviewCollapsed] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [tagInput, setTagInput] = useState('');
-  const [customConstraints, setCustomConstraints] = useState<string[]>([]);
   const [copyText, setCopyText] = useState('Copy');
   const [showExportDropdown, setShowExportDropdown] = useState(false);
 
@@ -259,14 +258,25 @@ export function ReviewTab() {
     }
   };
 
+  // Parse custom constraints from store as array
+  const customConstraints = constraints.customConstraints
+    ? constraints.customConstraints.split('\n').filter(c => c.trim())
+    : [];
+
   const addCustomConstraint = (constraint: string) => {
     if (constraint && !customConstraints.includes(constraint)) {
-      setCustomConstraints([...customConstraints, constraint]);
+      const updated = [...customConstraints, constraint];
+      updateInstruction({
+        constraints: { ...constraints, customConstraints: updated.join('\n') }
+      });
     }
   };
 
   const removeCustomConstraint = (constraint: string) => {
-    setCustomConstraints(customConstraints.filter(c => c !== constraint));
+    const updated = customConstraints.filter(c => c !== constraint);
+    updateInstruction({
+      constraints: { ...constraints, customConstraints: updated.join('\n') }
+    });
   };
 
   const copySystemPrompt = async () => {
@@ -293,14 +303,13 @@ export function ReviewTab() {
       systemPrompt += `You are ${agentMeta.name || 'an AI assistant'}.\n\n${persona}\n\n`;
     }
     
-    if (constraints.customConstraints || customConstraints.length > 0 || constraints.neverMakeUp || constraints.askBeforeActions) {
+    if (customConstraints.length > 0 || constraints.neverMakeUp || constraints.askBeforeActions) {
       systemPrompt += 'CONSTRAINTS:\n';
       if (constraints.neverMakeUp) systemPrompt += '- Never fabricate information. If you don\'t know something, say so.\n';
       if (constraints.askBeforeActions) systemPrompt += '- Always ask for permission before taking actions that could affect the user\'s system.\n';
       if (constraints.stayInScope) systemPrompt += '- Stay within the defined scope of your role and responsibilities.\n';
       if (constraints.useOnlyTools) systemPrompt += '- Only use the tools and information sources provided to you.\n';
       if (constraints.limitWords && constraints.wordLimit > 0) systemPrompt += `- Keep responses concise, under ${constraints.wordLimit} words when possible.\n`;
-      if (constraints.customConstraints) systemPrompt += `${constraints.customConstraints}\n`;
       customConstraints.forEach(constraint => {
         systemPrompt += `- ${constraint}\n`;
       });
@@ -561,7 +570,7 @@ export function ReviewTab() {
                 onChange={(e) => updateInstruction({
                   constraints: { ...constraints, customConstraints: e.target.value }
                 })}
-                placeholder="Add any additional constraints or rules..."
+                placeholder="Add any additional constraints or rules (one per line)..."
                 rows={3}
               />
             </div>
