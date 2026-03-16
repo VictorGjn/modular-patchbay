@@ -37,7 +37,7 @@
 - **Gate:** TSC + BUILD clean
 
 ## Task 4: KnowledgeTab → real stores
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 00:40
 - **What:** In src/tabs/KnowledgeTab.tsx, ensure sources read from treeIndexStore (indexed files, status, progress) and knowledgeStore (types, depth, budget). Remove any hardcoded/mock data. Index button should call real treeIndexer service.
 - **Gate:** TSC + BUILD
 
