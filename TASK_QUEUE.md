@@ -17,7 +17,7 @@
 ---
 
 ## Task 1: TestTab center → TestPanel
-- **Status:** TODO
+- **Status:** DONE — 2026-03-16 23:41
 - **What:** In src/tabs/TestTab.tsx, replace ConversationPanel import/usage with TestPanel from src/panels/TestPanel.tsx in the center panel. TestPanel already has chat, markdown, streaming, input bar. Pass appropriate props (onCollapse, onExpand, onMinimize, isExpanded).
 - **Gate:** TSC + BUILD
 
