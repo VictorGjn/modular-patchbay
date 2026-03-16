@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore } from '../store/mcpStore';
 import { useHealthStore } from '../store/healthStore';
+import { useSkillsStore } from '../store/skillsStore';
 import { SecurityBadges } from '../components/SecurityBadges';
 import { Section } from '../components/ds/Section';
 import { GenerateBtn } from '../components/ds/GenerateBtn';
@@ -43,15 +44,25 @@ export function ToolsTab() {
   const removeServerFromMcpStore = useMcpStore(s => s.removeServer);
   const mcpServers = useMcpStore(s => s.servers);
   const mcpHealth = useHealthStore(s => s.mcpHealth);
-  const skills = useConsoleStore(s => s.skills);
-  const removeSkill = useConsoleStore(s => s.removeSkill);
+  const skillHealth = useHealthStore(s => s.skillHealth);
+  const installedSkills = useSkillsStore(s => s.skills);
+  const skillsLoaded = useSkillsStore(s => s.loaded);
+  const skillsLoading = useSkillsStore(s => s.loading);
+  const loadSkills = useSkillsStore(s => s.loadSkills);
+  const toggleSkill = useSkillsStore(s => s.toggleSkill);
   const setShowSkillPicker = useConsoleStore(s => s.setShowSkillPicker);
 
   const [mcpCollapsed, setMcpCollapsed] = useState(false);
   const [skillsCollapsed, setSkillsCollapsed] = useState(false);
   const [probing, setProbing] = useState(false);
   const [mcpError, setMcpError] = useState<string | null>(null);
-  const [skillsLoading] = useState(false);
+
+  // Load skills on mount if not already loaded
+  useEffect(() => {
+    if (!skillsLoaded && !skillsLoading) {
+      loadSkills();
+    }
+  }, [skillsLoaded, skillsLoading, loadSkills]);
 
   const selectedMcpServers = mcpServers;
   const activeCount = selectedMcpServers.length;
@@ -60,8 +71,8 @@ export function ToolsTab() {
     m.status === 'error' || mcpHealth[m.id]?.status === 'error'
   ).length;
 
-  const selectedSkills = skills.filter(s => s.added);
-  const activeSkillsCount = selectedSkills.length;
+  const activeSkills = installedSkills.filter(s => s.enabled);
+  const activeSkillsCount = activeSkills.length;
 
   const getStatus = (server: typeof mcpServers[0]) => {
     const health = mcpHealth[server.id];
@@ -100,9 +111,10 @@ export function ToolsTab() {
   const handleProbeAll = useCallback(async () => {
     setProbing(true);
     setMcpError(null);
-    const { setMcpHealth, setMcpChecking } = useHealthStore.getState();
+    const { setMcpHealth, setMcpChecking, setSkillHealth, setSkillChecking } = useHealthStore.getState();
 
     try {
+      // Probe MCP servers
       await Promise.allSettled(selectedMcpServers.map(async (server) => {
         setMcpChecking(server.id);
         const start = performance.now();
@@ -132,12 +144,43 @@ export function ToolsTab() {
           });
         }
       }));
+
+      // Probe active skills
+      await Promise.allSettled(activeSkills.map(async (skill) => {
+        setSkillChecking(skill.id);
+        const start = performance.now();
+        try {
+          const res = await fetch(`${API_BASE}/health/skill/${skill.id}`, { 
+            signal: AbortSignal.timeout(10000) 
+          });
+          const latencyMs = Math.round(performance.now() - start);
+          const json = await res.json();
+          const probe = json.data ?? json;
+          setSkillHealth(skill.id, {
+            status: skill.hasSkillMd ? 'healthy' : 'degraded',
+            latencyMs,
+            toolCount: 1, // Each skill counts as one capability
+            tools: [skill.name],
+            errorMessage: probe.errorMessage ?? null,
+            checkedAt: Date.now(),
+          });
+        } catch (err) {
+          setSkillHealth(skill.id, {
+            status: 'error',
+            latencyMs: Math.round(performance.now() - start),
+            toolCount: 0,
+            tools: [],
+            errorMessage: err instanceof Error ? err.message : 'Skill probe failed',
+            checkedAt: Date.now(),
+          });
+        }
+      }));
     } catch (err) {
-      setMcpError(err instanceof Error ? err.message : 'Failed to check MCP servers');
+      setMcpError(err instanceof Error ? err.message : 'Failed to check health');
     } finally {
       setProbing(false);
     }
-  }, [selectedMcpServers]);
+  }, [selectedMcpServers, activeSkills]);
 
   const STATUS_COLORS: Record<string, { bg: string; glow: string }> = {
     ok: { bg: '#00ff88', glow: '0 0 6px rgba(0,255,136,0.4)' },
@@ -258,40 +301,53 @@ export function ToolsTab() {
     );
   };
 
-  const renderSkillItem = (skill: typeof selectedSkills[0]) => (
-    <div 
-      key={skill.id} 
-      className="flex items-center gap-2 py-1.5"
-      style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}
-    >
-      <div style={STATUS_INDICATOR_STYLES}>
-        <div style={{ 
-          width: 8, 
-          height: 8, 
-          borderRadius: '50%', 
-          background: '#00ff88', 
-          boxShadow: '0 0 6px rgba(0,255,136,0.4)', 
-          flexShrink: 0 
-        }} />
-        <span style={{ color: t.textDim, fontSize: '11px' }}>
-          Active
-        </span>
-      </div>
-      <span className="flex-1 text-[13px] truncate" style={{ color: t.textPrimary }}>
-        {skill.name}
-      </span>
-      <SecurityBadges skillPath={skill.id} />
-      <button 
-        type="button" 
-        aria-label={`Remove ${skill.name}`} 
-        onClick={() => removeSkill(skill.id)}
-        className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]"
-        style={{ color: t.textFaint }}
+  const renderSkillItem = (skill: typeof activeSkills[0]) => {
+    const health = skillHealth[skill.id];
+    const status = health?.status === 'healthy' ? 'ok' : 
+                   health?.status === 'error' ? 'err' :
+                   health?.status === 'checking' ? 'warn' : 'ok';
+    const statusColors = {
+      ok: { bg: '#00ff88', glow: '0 0 6px rgba(0,255,136,0.4)' },
+      warn: { bg: '#ffaa00', glow: '0 0 6px rgba(255,170,0,0.4)' },
+      err: { bg: '#ff3344', glow: '0 0 6px rgba(255,51,68,0.4)' },
+    };
+    const sc = statusColors[status];
+
+    return (
+      <div 
+        key={skill.id} 
+        className="flex items-center gap-2 py-1.5"
+        style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}
       >
-        <X size={9} />
-      </button>
-    </div>
-  );
+        <div style={STATUS_INDICATOR_STYLES}>
+          <div style={{ 
+            width: 8, 
+            height: 8, 
+            borderRadius: '50%', 
+            background: sc.bg, 
+            boxShadow: sc.glow, 
+            flexShrink: 0 
+          }} />
+          <span style={{ color: t.textDim, fontSize: '11px' }}>
+            {status === 'ok' ? 'Active' : status === 'warn' ? 'Checking' : 'Error'}
+          </span>
+        </div>
+        <span className="flex-1 text-[13px] truncate" style={{ color: t.textPrimary }}>
+          {skill.name}
+        </span>
+        <SecurityBadges skillPath={skill.path} />
+        <button 
+          type="button" 
+          aria-label={`Disable ${skill.name}`} 
+          onClick={() => toggleSkill(skill.id)}
+          className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]"
+          style={{ color: t.textFaint }}
+        >
+          <X size={9} />
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -335,7 +391,7 @@ export function ToolsTab() {
                   <SkeletonLoader key={i} height={32} variant="rectangular" />
                 ))}
               </div>
-            ) : selectedSkills.length === 0 ? (
+            ) : activeSkills.length === 0 ? (
               <EmptyState
                 icon={<Library size={24} />}
                 title="No Skills Active"
@@ -358,11 +414,11 @@ export function ToolsTab() {
               />
             ) : (
               <div className="flex flex-col">
-                {selectedSkills.map(renderSkillItem)}
+                {activeSkills.map(renderSkillItem)}
               </div>
             )}
 
-            {selectedSkills.length > 0 && (
+            {activeSkills.length > 0 && (
               <button 
                 type="button" 
                 aria-label="Open Skill Library" 
