@@ -347,11 +347,9 @@ export function KnowledgeTab() {
               onClick={handleRepoIndex} 
               disabled={repoScanning || !repoPath.trim()}
               aria-label={repoScanning ? "Indexing repository..." : "Index repository"}
-              className="px-3 py-1.5 rounded text-[12px] font-semibold tracking-wider uppercase cursor-pointer border-none transition-opacity"
+              className="rounded transition-opacity"
               style={{ 
-                background: '#24292F', 
-                color: '#fff', 
-                fontFamily: "'Geist Mono', monospace", 
+                ...repoIndexButtonStyles,
                 opacity: repoScanning || !repoPath.trim() ? 0.5 : 1,
                 cursor: repoScanning || !repoPath.trim() ? 'not-allowed' : 'pointer'
               }}
