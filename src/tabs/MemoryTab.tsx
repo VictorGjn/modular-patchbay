@@ -60,10 +60,10 @@ function SliderRow({ label, value, min, max, step, onChange, suffix }: {
 }
 
 const STRATEGY_OPTIONS = [
-  { value: 'full', label: 'Full History' },
-  { value: 'sliding_window', label: 'Sliding Window' },
-  { value: 'summarize_and_recent', label: 'Summarize + Recent' },
-  { value: 'rag', label: 'RAG over History' },
+  { value: 'full', label: 'Full History', description: 'Keep all conversation messages in memory' },
+  { value: 'sliding_window', label: 'Sliding Window', description: 'Keep only the most recent messages' },
+  { value: 'summarize_and_recent', label: 'Summarize + Recent', description: 'Summarize old messages, keep recent ones' },
+  { value: 'rag', label: 'RAG over History', description: 'Retrieve relevant messages from searchable storage' },
 ];
 
 const STORE_OPTIONS = [
@@ -128,6 +128,65 @@ const FACT_TYPE_COLORS: Record<string, string> = {
   custom: '#999',
 };
 
+// Style constants to extract inline styles
+const containerStyles = {
+  display: 'grid',
+  gridTemplateColumns: '1fr',
+  gap: '1.5rem',
+  '@media (min-width: 1024px)': {
+    gridTemplateColumns: '1fr 1fr',
+  }
+};
+
+const factItemStyles = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  fontSize: '0.875rem',
+  padding: '0.5rem 0.75rem',
+  borderRadius: '0.25rem',
+};
+
+const factDomainBadgeStyles = {
+  fontSize: '0.75rem',
+  padding: '0.25rem 0.5rem',
+  borderRadius: '9999px',
+  fontFamily: "'Geist Mono', monospace",
+};
+
+const factTagStyles = {
+  fontSize: '0.75rem',
+  padding: '0.125rem 0.375rem',
+  borderRadius: '0.25rem',
+  fontFamily: "'Geist Mono', monospace",
+};
+
+const removeButtonStyles = {
+  border: 'none',
+  background: 'transparent',
+  cursor: 'pointer',
+  borderRadius: '0.25rem',
+  flexShrink: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: '44px',
+  minHeight: '44px',
+};
+
+const budgetBarContainerStyles = {
+  display: 'flex',
+  gap: '0.25rem',
+  height: '0.5rem',
+  borderRadius: '0.25rem',
+  overflow: 'hidden',
+  marginBottom: '0.75rem',
+};
+
+const budgetSegmentStyles = {
+  borderRadius: '2px',
+};
+
 export function MemoryTab() {
   const t = useTheme();
   const session = useMemoryStore(s => s.session);
@@ -189,8 +248,8 @@ export function MemoryTab() {
       </div>
 
       {/* Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
-        {/* Left column - Session Memory + Seed Facts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left column - Session Memory + Seed Facts + Sandbox */}
         <div className="space-y-6">
           {/* Session Memory */}
       <Section
@@ -218,6 +277,11 @@ export function MemoryTab() {
             onChange={v => setSessionConfig({ strategy: v as any })} 
             label="Strategy" 
           />
+          {STRATEGY_OPTIONS.find(opt => opt.value === session.strategy)?.description && (
+            <p className="text-xs mt-1" style={{ color: t.textSecondary }}>
+              {STRATEGY_OPTIONS.find(opt => opt.value === session.strategy)?.description}
+            </p>
+          )}
         </div>
 
         {(session.strategy === 'summarize_and_recent') && (
@@ -260,25 +324,32 @@ export function MemoryTab() {
               {facts.map(fact => {
                 const domainColor = DOMAIN_COLORS[fact.domain] || '#999';
                 return (
-                  <div key={fact.id} className="flex items-center gap-2 text-sm py-2 px-3 rounded"
-                    style={{ background: t.surfaceElevated }}>
+                  <div key={fact.id} 
+                    style={{ ...factItemStyles, background: t.surfaceElevated }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: FACT_TYPE_COLORS[fact.type] || '#999', flexShrink: 0 }} />
                     <span className="flex-1 truncate" style={{ color: t.textPrimary }}>
                       {fact.content}
                     </span>
-                    <span className="text-xs px-2 py-1 rounded-full"
-                      style={{ background: `${domainColor}15`, color: domainColor, fontFamily: "'Geist Mono', monospace" }}>
+                    <span 
+                      style={{ 
+                        ...factDomainBadgeStyles,
+                        background: `${domainColor}15`, 
+                        color: domainColor 
+                      }}>
                       {fact.domain.replace('_', ' ')}
                     </span>
                     {fact.tags.length > 0 && fact.tags.map(tag => (
-                      <span key={tag} className="text-xs px-1.5 py-0.5 rounded"
-                        style={{ background: `${FACT_TYPE_COLORS[fact.type] || '#999'}15`, color: FACT_TYPE_COLORS[fact.type] || '#999', fontFamily: "'Geist Mono', monospace" }}>
+                      <span key={tag} 
+                        style={{ 
+                          ...factTagStyles,
+                          background: `${FACT_TYPE_COLORS[fact.type] || '#999'}15`, 
+                          color: FACT_TYPE_COLORS[fact.type] || '#999' 
+                        }}>
                         {tag}
                       </span>
                     ))}
                     <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)}
-                      className="border-none bg-transparent cursor-pointer rounded shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px]" 
-                      style={{ color: t.textFaint }}>
+                      style={{ ...removeButtonStyles, color: t.textFaint }}>
                       <X size={12} />
                     </button>
                   </div>
@@ -321,9 +392,66 @@ export function MemoryTab() {
               </button>
             </div>
           </Section>
+
+          {/* Sandbox Configuration */}
+          <Section
+            icon={Brain} label="Sandbox Configuration" color="#9b59b6"
+            badge={sandbox.isolation}
+            collapsed={sandboxCollapsed} onToggle={() => setSandboxCollapsed(!sandboxCollapsed)}
+          >
+            <div className="space-y-4">
+              <Select 
+                options={SANDBOX_OPTIONS} 
+                value={sandbox.isolation}
+                onChange={v => setSandboxConfig({ isolation: v as any })} 
+                label="Isolation" 
+              />
+
+              <div>
+                <Toggle 
+                  checked={sandbox.allowPromoteToShared} 
+                  onChange={v => setSandboxConfig({ allowPromoteToShared: v })}
+                  label="Allow promote to shared memory" 
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: t.textPrimary }}>
+                  Memory Domains
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { key: 'shared' as const, label: 'Shared', color: DOMAIN_COLORS.shared },
+                    { key: 'agentPrivate' as const, label: 'Agent Private', color: DOMAIN_COLORS.agent_private },
+                    { key: 'runScratchpad' as const, label: 'Run Scratchpad', color: DOMAIN_COLORS.run_scratchpad },
+                  ]).map(d => {
+                    const active = sandbox.domains[d.key].enabled;
+                    return (
+                      <button 
+                        key={d.key} 
+                        type="button" 
+                        aria-label={`Toggle ${d.label}`} 
+                        aria-pressed={active}
+                        onClick={() => setSandboxDomain(d.key, !active)}
+                        className="text-sm px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
+                        style={{
+                          fontFamily: "'Geist Sans', sans-serif",
+                          background: active ? `${d.color}20` : t.isDark ? '#1c1c20' : '#f0f0f5',
+                          color: active ? d.color : t.textDim,
+                          border: `1px solid ${active ? `${d.color}40` : 'transparent'}`,
+                        }}
+                      >
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </Section>
         </div>
 
-        {/* Right column - Long-Term + Working Memory */}
+        {/* Right column - Long-Term + Working Memory + Budget */}
         <div className="space-y-6">
           {/* Long-Term Memory */}
           <Section
@@ -472,104 +600,51 @@ export function MemoryTab() {
           />
         )}
       </Section>
+
+          {/* Memory Budget Allocation */}
+          {totalBudget > 0 && (
+            <div className="mt-6 p-4 rounded-lg" style={{ background: t.surfaceElevated, border: `1px solid ${t.border}` }}>
+              <h3 className="text-sm font-semibold mb-3" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+                Memory Budget Allocation
+              </h3>
+              <div 
+                className="flex gap-1 h-2 rounded overflow-hidden mb-3"
+                aria-label={`Memory budget allocation: Session ${fmtTokens(session.tokenBudget)}, ${longTerm.enabled ? `Long-term ${fmtTokens(longTerm.tokenBudget)}, ` : ''}${working.enabled ? `Working ${fmtTokens(working.tokenBudget)}, ` : ''}Total ${fmtTokens(totalBudget)}`}
+                role="img"
+              >
+                <div style={{ width: `${(session.tokenBudget / totalBudget) * 100}%`, background: '#3498db', borderRadius: 2 }}
+                  title={`Session: ${fmtTokens(session.tokenBudget)}`} />
+                {longTerm.enabled && (
+                  <div style={{ width: `${(longTerm.tokenBudget / totalBudget) * 100}%`, background: '#2ecc71', borderRadius: 2 }}
+                    title={`Long-term: ${fmtTokens(longTerm.tokenBudget)}`} />
+                )}
+                {working.enabled && (
+                  <div style={{ width: `${(working.tokenBudget / totalBudget) * 100}%`, background: '#f1c40f', borderRadius: 2 }}
+                    title={`Working: ${fmtTokens(working.tokenBudget)}`} />
+                )}
+              </div>
+              <div className="flex justify-between">
+                <div className="flex gap-4">
+                  {[
+                    { label: 'Session', color: '#3498db', tokens: session.tokenBudget },
+                    ...(longTerm.enabled ? [{ label: 'Long-term', color: '#2ecc71', tokens: longTerm.tokenBudget }] : []),
+                    ...(working.enabled ? [{ label: 'Working', color: '#f1c40f', tokens: working.tokenBudget }] : []),
+                  ].map(item => (
+                    <span key={item.label} className="flex items-center gap-2 text-sm"
+                      style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+                      <div style={{ width: 6, height: 6, borderRadius: 1, background: item.color }} />
+                      {item.label}
+                    </span>
+                  ))}
+                </div>
+                <span className="text-sm font-semibold" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>
+                  {fmtTokens(totalBudget)} total
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Sandbox Configuration */}
-      <Section
-        icon={Brain} label="Sandbox Configuration" color="#9b59b6"
-        badge={sandbox.isolation}
-        collapsed={sandboxCollapsed} onToggle={() => setSandboxCollapsed(!sandboxCollapsed)}
-      >
-        <div className="space-y-4">
-          <Select 
-            options={SANDBOX_OPTIONS} 
-            value={sandbox.isolation}
-            onChange={v => setSandboxConfig({ isolation: v as any })} 
-            label="Isolation" 
-          />
-
-          <div>
-            <Toggle 
-              checked={sandbox.allowPromoteToShared} 
-              onChange={v => setSandboxConfig({ allowPromoteToShared: v })}
-              label="Allow promote to shared memory" 
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: t.textPrimary }}>
-              Memory Domains
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {([
-                { key: 'shared' as const, label: 'Shared', color: DOMAIN_COLORS.shared },
-                { key: 'agentPrivate' as const, label: 'Agent Private', color: DOMAIN_COLORS.agent_private },
-                { key: 'runScratchpad' as const, label: 'Run Scratchpad', color: DOMAIN_COLORS.run_scratchpad },
-              ]).map(d => {
-                const active = sandbox.domains[d.key].enabled;
-                return (
-                  <button 
-                    key={d.key} 
-                    type="button" 
-                    aria-label={`Toggle ${d.label}`} 
-                    aria-pressed={active}
-                    onClick={() => setSandboxDomain(d.key, !active)}
-                    className="text-sm px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
-                    style={{
-                      fontFamily: "'Geist Sans', sans-serif",
-                      background: active ? `${d.color}20` : t.isDark ? '#1c1c20' : '#f0f0f5',
-                      color: active ? d.color : t.textDim,
-                      border: `1px solid ${active ? `${d.color}40` : 'transparent'}`,
-                    }}
-                  >
-                    {d.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* Memory Budget Allocation */}
-      {totalBudget > 0 && (
-        <div className="mt-6 p-4 rounded-lg" style={{ background: t.surfaceElevated, border: `1px solid ${t.border}` }}>
-          <h3 className="text-sm font-semibold mb-3" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
-            Memory Budget Allocation
-          </h3>
-          <div className="flex gap-1 h-2 rounded overflow-hidden mb-3">
-            <div style={{ width: `${(session.tokenBudget / totalBudget) * 100}%`, background: '#3498db', borderRadius: 2 }}
-              title={`Session: ${fmtTokens(session.tokenBudget)}`} />
-            {longTerm.enabled && (
-              <div style={{ width: `${(longTerm.tokenBudget / totalBudget) * 100}%`, background: '#2ecc71', borderRadius: 2 }}
-                title={`Long-term: ${fmtTokens(longTerm.tokenBudget)}`} />
-            )}
-            {working.enabled && (
-              <div style={{ width: `${(working.tokenBudget / totalBudget) * 100}%`, background: '#f1c40f', borderRadius: 2 }}
-                title={`Working: ${fmtTokens(working.tokenBudget)}`} />
-            )}
-          </div>
-          <div className="flex justify-between">
-            <div className="flex gap-4">
-              {[
-                { label: 'Session', color: '#3498db', tokens: session.tokenBudget },
-                ...(longTerm.enabled ? [{ label: 'Long-term', color: '#2ecc71', tokens: longTerm.tokenBudget }] : []),
-                ...(working.enabled ? [{ label: 'Working', color: '#f1c40f', tokens: working.tokenBudget }] : []),
-              ].map(item => (
-                <span key={item.label} className="flex items-center gap-2 text-sm"
-                  style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
-                  <div style={{ width: 6, height: 6, borderRadius: 1, background: item.color }} />
-                  {item.label}
-                </span>
-              ))}
-            </div>
-            <span className="text-sm font-semibold" style={{ fontFamily: "'Geist Mono', monospace", color: '#FE5000' }}>
-              {fmtTokens(totalBudget)} total
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
