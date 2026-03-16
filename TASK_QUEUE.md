@@ -107,5 +107,52 @@
 
 ---
 
+## Phase 2: UX/UI Improvements (Persona-driven)
+
+Based on competitor analysis (LangFlow, CrewAI, Google ADK, OpenAI Agents SDK) and 3 user personas.
+
+### Persona A — "PM who vibe-codes" (time to value)
+
+## Task 11: Quick Start mode
+- **Status:** TODO
+- **What:** In DescribeTab.tsx, when a template is selected: auto-fill Knowledge tab with sensible defaults for that template type (e.g. "Code Review Agent" → knowledge type: Ground Truth, depth: High), auto-fill Memory strategy (sliding_window for chat agents, rag for research agents), auto-fill a default constraint set. After template selection, show a "Jump to Test →" button that skips directly to the Test tab. Requires reading the template configs and populating the relevant stores.
+- **Gate:** TSC + BUILD
+
+## Task 12: Persistent Run button (FAB)
+- **Status:** TODO
+- **What:** Create src/components/ds/FloatingRunButton.tsx. A fixed-position button (bottom-right, z-50) visible on ALL tabs except Test. Clicking it: switches to Test tab and focuses the chat input. Use Play icon from lucide-react, #FE5000 background, 56px circle, subtle shadow. Add it to WizardLayout.tsx. Must not overlap with sticky prev/next footer.
+- **Gate:** TSC + BUILD
+
+### Persona B — "Context engineering expert" (visibility)
+
+## Task 13: Context Diff view
+- **Status:** TODO
+- **What:** In src/components/test/ContextInspector.tsx, add a "Diff" toggle. When enabled, store the previous run's assembled context (from conversationStore.lastPipelineStats) and show a side-by-side or inline diff with the current run. Highlight added blocks in green, removed in red. Use simple string comparison — no external diff library needed. Show token delta (e.g. "+120 tokens" / "-45 tokens").
+- **Gate:** TSC + BUILD
+
+## Task 14: Token heatmap in Knowledge tab
+- **Status:** TODO
+- **What:** In KnowledgeTab.tsx, for each source in the source list, show a horizontal bar proportional to the tokens that source contributes to the total context budget. Color intensity scales with percentage (< 10% = light, > 30% = bold #FE5000). Requires reading from knowledgeStore or treeIndexStore for per-source token counts if available. If not available, use file size as proxy and note it.
+- **Gate:** TSC + BUILD
+
+### Persona C — "Team lead scaling agents" (quality tracking)
+
+## Task 15: Qualification history sparkline
+- **Status:** TODO
+- **What:** In QualificationTab (after it's wired to QualificationPanel in Task 2), add a small sparkline chart at the top showing qualification scores over time. Read from qualificationStore run history. Use a simple SVG polyline (no charting library). Show last 10 runs. X-axis = run number, Y-axis = pass rate %. Green line if trending up, red if trending down.
+- **Gate:** TSC + BUILD
+
+## Task 16: Agent version indicator in Topbar
+- **Status:** TODO
+- **What:** In src/components/Topbar.tsx, add a version badge next to the agent name. Read from versionStore (already exists). Show "v{number}" badge. On click, show a dropdown with version history (last 5 versions) with timestamp and "Restore" button. Restore loads that version's state into consoleStore. Use existing VersionIndicator component if suitable.
+- **Gate:** TSC + BUILD
+
+## — CHECKPOINT 5: UX IMPROVEMENTS AUDIT —
+- **Status:** TODO
+- **What:** Verify all 6 UX tasks (11-16). Check: components render, no console errors, stores properly connected, responsive on < 1024px. Report pass/fail per task.
+- **Gate:** TSC + BUILD + visual check
+
+---
+
 ## Audit Reports
 (Agents write their findings below)
