@@ -42,7 +42,7 @@
 - **Gate:** TSC + BUILD
 
 ## Task 5: ToolsTab → real stores
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 00:55
 - **What:** In src/tabs/ToolsTab.tsx, ensure MCP servers read from mcpStore.servers (status, tool count, latency). Skills read from skillsStore or healthStore. Probe button calls real healthService. Remove mock data.
 - **Gate:** TSC + BUILD
 
