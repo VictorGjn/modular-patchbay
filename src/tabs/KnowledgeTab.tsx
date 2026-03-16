@@ -7,6 +7,7 @@ import { TYPE_WEIGHTS } from '../services/budgetAllocator';
 import { Tooltip } from '../components/ds/Tooltip';
 import { Section } from '../components/ds/Section';
 import { GenerateBtn } from '../components/ds/GenerateBtn';
+import { StatusIndicator } from '../components/ds/StatusIndicator';
 import { API_BASE } from '../config';
 import {
   Database, Plus, X, Minus, Info, Loader2, 
@@ -14,6 +15,68 @@ import {
 } from 'lucide-react';
 
 
+
+const mainGridStyles = {
+  display: 'grid',
+  gridTemplateColumns: '60% 40%',
+  gap: '1.5rem',
+  '@media (max-width: 1024px)': {
+    gridTemplateColumns: '1fr',
+  },
+} as const;
+
+const addButtonStyles = {
+  background: 'transparent',
+  border: '1px solid',
+  color: '',
+  fontFamily: "'Geist Mono', monospace",
+  minHeight: '44px',
+} as const;
+
+const repoPillStyles = {
+  background: 'transparent',
+  border: '1px solid',
+  color: '',
+  fontFamily: "'Geist Mono', monospace",
+  minHeight: '44px',
+  transition: 'colors',
+} as const;
+
+const typePillStyles = {
+  fontFamily: "'Geist Mono', monospace",
+  fontWeight: 600,
+  minHeight: '44px',
+  border: '1px solid',
+  transition: 'colors',
+} as const;
+
+const expandedPanelStyles = {
+  marginTop: '0.375rem',
+  marginLeft: '1rem',
+  paddingLeft: '0.625rem',
+  paddingRight: '0.625rem',
+  paddingTop: '0.5rem',
+  paddingBottom: '0.5rem',
+  borderRadius: '0.375rem',
+} as const;
+
+const repoIndexButtonStyles = {
+  paddingLeft: '0.75rem',
+  paddingRight: '0.75rem',
+  paddingTop: '0.375rem',
+  paddingBottom: '0.375rem',
+  borderRadius: '0.25rem',
+  fontSize: '12px',
+  fontWeight: 600,
+  letterSpacing: '0.05em',
+  textTransform: 'uppercase' as const,
+  cursor: 'pointer',
+  border: 'none',
+  transition: 'opacity',
+  background: '#24292F',
+  color: '#fff',
+  fontFamily: "'Geist Mono', monospace",
+} as const;
 
 export function KnowledgeTab() {
   const t = useTheme();
@@ -170,7 +233,18 @@ export function KnowledgeTab() {
         </p>
       </div>
 
-      {/* Knowledge Sources */}
+      {/* Two-column layout */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '60% 40%',
+        gap: '1.5rem',
+        '@media (max-width: 1023px)': {
+          gridTemplateColumns: '1fr'
+        }
+      } as any}>
+        {/* Left Column: Source management + knowledge types + depth control */}
+        <div className="space-y-6">
+          {/* Knowledge Sources */}
       <Section
         icon={Database} label="Sources" color="#3498db"
         badge={`${indexedCount}/${enabledCount} indexed · ${fmtTokens(totalTokens)} tokens`}
@@ -182,12 +256,11 @@ export function KnowledgeTab() {
             type="button" 
             onClick={() => setShowFilePicker(true)}
             aria-label="Add files as knowledge sources"
-            className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer min-h-[44px] transition-colors"
+            className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer transition-colors"
             style={{
-              background: 'transparent', 
-              border: `1px solid ${t.border}`, 
+              ...addButtonStyles,
+              borderColor: t.border,
               color: t.textDim,
-              fontFamily: "'Geist Mono', monospace"
             }}
             onMouseEnter={e => { 
               e.currentTarget.style.borderColor = t.isDark ? '#FF6B1A' : '#FE5000'; 
@@ -213,12 +286,12 @@ export function KnowledgeTab() {
             aria-label={repoPrompt ? "Close repository input" : "Add repository as knowledge source"}
             onClick={() => setRepoPrompt(!repoPrompt)}
             aria-expanded={repoPrompt}
-            className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[12px] tracking-wide uppercase cursor-pointer min-h-[44px] transition-colors motion-reduce:transition-none"
+            className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2.5 rounded text-[12px] tracking-wide uppercase cursor-pointer transition-colors motion-reduce:transition-none"
             style={{
+              ...repoPillStyles,
               background: repoPrompt ? '#24292F15' : 'transparent', 
-              border: `1px solid ${repoPrompt ? '#24292F' : t.border}`, 
+              borderColor: repoPrompt ? '#24292F' : t.border, 
               color: repoPrompt ? '#24292F' : t.textDim,
-              fontFamily: "'Geist Mono', monospace"
             }}
             onMouseEnter={e => { 
               if (!repoPrompt) { 
@@ -312,25 +385,28 @@ export function KnowledgeTab() {
                 style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
                 {/* Level 1: Source name + auto-detected type pill */}
                 <div className="flex items-center gap-1.5">
-                  <div style={{ position: 'relative', flexShrink: 0 }} aria-label={`Knowledge type: ${kt.label}`}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                     <div style={{ width: 8, height: 8, borderRadius: 2, background: kt.color }} aria-hidden="true" />
                     {isIndexed && (
-                      <>
-                        <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#00ff88' }} aria-hidden="true" />
-                        <span className="sr-only">Indexed</span>
-                      </>
+                      <StatusIndicator
+                        status="success"
+                        label="Indexed"
+                        size="sm"
+                      />
                     )}
                     {isLoading && (
-                      <>
-                        <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ffaa00' }} aria-hidden="true" />
-                        <span className="sr-only">Indexing in progress</span>
-                      </>
+                      <StatusIndicator
+                        status="loading"
+                        label="Indexing"
+                        size="sm"
+                      />
                     )}
                     {hasError && (
-                      <>
-                        <div style={{ position: 'absolute', top: -2, right: -2, width: 4, height: 4, borderRadius: '50%', background: '#ff3344' }} aria-hidden="true" />
-                        <span className="sr-only">Indexing error</span>
-                      </>
+                      <StatusIndicator
+                        status="error"
+                        label="Error"
+                        size="sm"
+                      />
                     )}
                   </div>
                   {/* Clickable name — expands Level 3 panel */}
@@ -417,7 +493,11 @@ export function KnowledgeTab() {
 
                 {/* Level 3: Expanded panel */}
                 {isExpanded && (
-                  <div className="mt-1.5 ml-4 px-2.5 py-2 rounded-md" style={{ background: t.isDark ? '#1a1a1e' : '#f5f5f8', border: `1px solid ${t.isDark ? '#2a2a30' : '#e0e0e5'}` }}>
+                  <div className="rounded-md" style={{ 
+                    ...expandedPanelStyles,
+                    background: t.isDark ? '#1a1a1e' : '#f5f5f8', 
+                    border: `1px solid ${t.isDark ? '#2a2a30' : '#e0e0e5'}` 
+                  }}>
                     {/* Knowledge Type pill row */}
                     <div className="flex items-center gap-1 mb-2">
                       <span className="text-[12px] tracking-[0.1em] uppercase shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 32 }}>
@@ -434,12 +514,12 @@ export function KnowledgeTab() {
                               onClick={() => setChannelKnowledgeType(ch.sourceId, idx)}
                               aria-pressed={isActive}
                               aria-label={`Set knowledge type to ${info.label} for ${ch.name}. ${info.instruction}`}
-                              className="text-[7px] px-1.5 py-0.5 rounded-full cursor-pointer border-none transition-colors"
+                              className="text-[7px] px-1.5 py-0.5 rounded-full cursor-pointer border-none transition-colors flex items-center justify-center"
                               style={{
-                                fontFamily: "'Geist Mono', monospace", fontWeight: 600,
+                                ...typePillStyles,
                                 background: isActive ? `${info.color}25` : 'transparent',
                                 color: isActive ? info.color : t.textFaint,
-                                border: `1px solid ${isActive ? `${info.color}40` : 'transparent'}`,
+                                borderColor: isActive ? `${info.color}40` : 'transparent',
                               }}
                             >
                               {info.label}
@@ -495,8 +575,11 @@ export function KnowledgeTab() {
           Tree indexing creates hierarchical chunks of your knowledge sources for more efficient retrieval and token usage.
         </p>
       </Section>
+        </div>
 
-      {/* GitHub compression impact card */}
+        {/* Right Column: Budget visualization + fact insights + knowledge gaps */}
+        <div className="space-y-6">
+          {/* GitHub compression impact card */}
       {githubCompressedChannels.length > 0 && (
         <div className="mt-6 px-4 py-3 rounded-lg" style={{ border: `1px solid #24292F30`, background: '#24292F08' }}>
           <div className="flex items-center justify-between">
@@ -548,6 +631,8 @@ export function KnowledgeTab() {
           </div>
         </Section>
       )}
+        </div>
+      </div>
     </div>
   );
 }
