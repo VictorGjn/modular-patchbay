@@ -41,7 +41,7 @@ export function DescribeTab({ onValidationChange }: DescribeTabProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<NodeJS.Timeout>(undefined);
   const radioGroupRef = useRef<HTMLDivElement>(null);
 
   const headerStyles = {

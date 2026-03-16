@@ -51,7 +51,7 @@ export function ToolsTab() {
   const [skillsCollapsed, setSkillsCollapsed] = useState(false);
   const [probing, setProbing] = useState(false);
   const [mcpError, setMcpError] = useState<string | null>(null);
-  const [skillsLoading, setSkillsLoading] = useState(false);
+  const [skillsLoading] = useState(false);
 
   const selectedMcpServers = mcpServers;
   const activeCount = selectedMcpServers.length;

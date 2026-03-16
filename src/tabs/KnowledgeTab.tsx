@@ -16,14 +16,7 @@ import {
 
 
 
-const mainGridStyles = {
-  display: 'grid',
-  gridTemplateColumns: '60% 40%',
-  gap: '1.5rem',
-  '@media (max-width: 1024px)': {
-    gridTemplateColumns: '1fr',
-  },
-} as const;
+// Layout handled via Tailwind: grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6
 
 const addButtonStyles = {
   background: 'transparent',
