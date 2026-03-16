@@ -29,15 +29,7 @@ const descriptionStyle = {
   lineHeight: 1.5,
 };
 
-const gridLayoutStyle = {
-  display: 'grid',
-  gridTemplateColumns: '1fr',
-  gap: '24px',
-};
-
-const gridLayoutLargeStyle = {
-  gridTemplateColumns: '3fr 2fr',
-};
+// Grid layout via Tailwind: grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6
 
 const avatarButtonBaseStyle = {
   display: 'flex',
@@ -343,13 +335,7 @@ export function ReviewTab() {
       </div>
 
       {/* Two-column layout - 60/40 split */}
-      <div 
-        style={{
-          ...gridLayoutStyle,
-          '@media (min-width: 1024px)': gridLayoutLargeStyle
-        }}
-        className="lg:grid-cols-[3fr_2fr]"
-      >
+      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
         {/* Left column - Identity + Persona + Constraints + Workflow + Model */}
         <div className="space-y-6">
           {/* Identity */}

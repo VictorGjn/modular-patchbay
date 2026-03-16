@@ -128,15 +128,7 @@ const FACT_TYPE_COLORS: Record<string, string> = {
   custom: '#999',
 };
 
-// Style constants to extract inline styles
-const containerStyles = {
-  display: 'grid',
-  gridTemplateColumns: '1fr',
-  gap: '1.5rem',
-  '@media (min-width: 1024px)': {
-    gridTemplateColumns: '1fr 1fr',
-  }
-};
+// Layout handled via Tailwind: grid grid-cols-1 lg:grid-cols-2 gap-6
 
 const factItemStyles = {
   display: 'flex',
@@ -174,18 +166,7 @@ const removeButtonStyles = {
   minHeight: '44px',
 };
 
-const budgetBarContainerStyles = {
-  display: 'flex',
-  gap: '0.25rem',
-  height: '0.5rem',
-  borderRadius: '0.25rem',
-  overflow: 'hidden',
-  marginBottom: '0.75rem',
-};
-
-const budgetSegmentStyles = {
-  borderRadius: '2px',
-};
+// Budget bar styles handled inline (≤3 props) or via Tailwind
 
 export function MemoryTab() {
   const t = useTheme();
