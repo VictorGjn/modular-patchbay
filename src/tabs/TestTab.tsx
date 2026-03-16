@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '../theme';
 import { useConversationStore } from '../store/conversationStore';
 import { TracePanel } from '../components/test/TracePanel';
-import { ConversationPanel } from '../components/test/ConversationPanel';
+import { TestPanel } from '../panels/TestPanel';
 import { ContextInspector } from '../components/test/ContextInspector';
 import { PanelDivider } from '../components/ds/PanelDivider';
 import { MessageCircle, Search, Activity } from 'lucide-react';
@@ -71,12 +71,12 @@ export function TestTab() {
 
   if (isMobile) {
     const tabs = [
-      { id: 'conversation', label: 'Conversation', icon: MessageCircle, component: ConversationPanel },
+      { id: 'conversation', label: 'Conversation', icon: MessageCircle, component: TestPanel },
       { id: 'trace', label: 'Trace', icon: Activity, component: TracePanel },
       { id: 'context', label: 'Inspector', icon: Search, component: ContextInspector },
     ];
 
-    const ActiveComponent = tabs[mobileTabIndex]?.component || ConversationPanel;
+    const ActiveComponent = tabs[mobileTabIndex]?.component || TestPanel;
 
     return (
       <div className="h-full flex flex-col">
@@ -123,7 +123,11 @@ export function TestTab() {
 
         {/* Content */}
         <div className="flex-1 overflow-hidden">
-          <ActiveComponent conversationId={conversationId || undefined} />
+          {mobileTabIndex === 0 ? (
+            <TestPanel />
+          ) : (
+            <ActiveComponent conversationId={conversationId || undefined} />
+          )}
         </div>
       </div>
     );
@@ -177,7 +181,11 @@ export function TestTab() {
           className="overflow-hidden"
           style={{ background: t.surface }}
         >
-          <ConversationPanel conversationId={conversationId || undefined} />
+          <TestPanel 
+            isExpanded={!isCollapsed}
+            onExpand={() => setIsCollapsed(false)}
+            onMinimize={() => setIsCollapsed(true)}
+          />
         </div>
 
         {/* Right Divider */}
