@@ -147,4 +147,17 @@
   }
 }
 
+/* Tools grid responsive layout */
+.tools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .tools-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* B14 — Zoom controls: see globals.css for full theme-aware overrides */
