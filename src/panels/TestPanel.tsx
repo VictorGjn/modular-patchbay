@@ -608,8 +608,14 @@ function TeamSection() {
       const convId = convStore.conversationId || `conv-${Date.now()}`;
       const traceId = traceStore.startTrace(convId, agentVersion);
 
+      const addTraceEvent = (event: Parameters<typeof traceStore.addEvent>[1]) => {
+        traceStore.addEvent(traceId, event);
+      };
+
       // 1. Build system frame (identity, constraints, workflow)
+      const frameStart = Date.now();
       let systemFrame = buildSystemFrame();
+      addTraceEvent({ kind: 'retrieval', sourceName: 'System Frame', query: 'identity + constraints + workflow', resultCount: 1, durationMs: Date.now() - frameStart });
 
       // 2. Run knowledge pipeline (same as Chat tab does)
       const consoleStore = useConsoleStore.getState();
@@ -624,9 +630,12 @@ function TeamSection() {
 
         setStatusMessage('Preparing knowledge...');
         
+        const routeStart = Date.now();
         const routeResult = await routeSources(activeChannels, traceId);
         frameworkBlock = routeResult.frameworkBlock;
+        addTraceEvent({ kind: 'retrieval', sourceName: 'Source Router', query: `${activeChannels.length} channels`, resultCount: routeResult.regularChannels?.length ?? 0, durationMs: Date.now() - routeStart });
         
+        const compressStart = Date.now();
         const result = await compressKnowledge(channels, routeResult.regularChannels, routeResult.residualKnowledgeBlock, { 
           userMessage: task, 
           navigationMode: 'manual', 
@@ -635,6 +644,7 @@ function TeamSection() {
         }, traceId);
         knowledgeBlock = result.knowledgeBlock;
         provenance = result.provenance;
+        addTraceEvent({ kind: 'retrieval', sourceName: 'Knowledge Pipeline', query: task.substring(0, 80), resultCount: activeChannels.length, durationMs: Date.now() - compressStart });
       }
 
       // 3. Add connector references (services like Notion, Slack, HubSpot)
@@ -655,6 +665,7 @@ function TeamSection() {
       if (memoryConfig.longTerm.enabled) {
 
         setStatusMessage('Recalling memory...');
+        const memStart = Date.now();
         const memoryResult = await preRecall({ 
           userMessage: task, 
           agentId: 'team', 
@@ -663,6 +674,7 @@ function TeamSection() {
         if (memoryResult.contextBlock) {
           memoryBlock = memoryResult.contextBlock;
         }
+        addTraceEvent({ kind: 'retrieval', sourceName: 'Memory Recall', query: task.substring(0, 80), durationMs: Date.now() - memStart });
       }
       
       // 5. Rebuild system frame with provenance data
@@ -688,6 +700,8 @@ function TeamSection() {
         systemFrame = fullSystemPrompt;
       }
 
+
+      addTraceEvent({ kind: 'llm_call', model, sourceName: 'LLM Request' });
 
       setStatusMessage('Running team...');
       setRunError(null);
