@@ -92,6 +92,7 @@ function SourceAssemblyStage({ data, expanded, onToggle }: {
       <button
         type="button"
         onClick={onToggle}
+        title={expanded ? 'Collapse source assembly' : 'Expand source assembly'}
         className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
         style={{ background: 'transparent', color: t.textPrimary }}
       >
@@ -571,7 +572,7 @@ export function PipelineObservabilityPanel() {
               No pipeline data available
             </div>
             <div className="text-xs mt-2" style={{ color: t.textFaint }}>
-              Execute a pipeline run to see observability data
+              Run a chat in the Test tab to see how your agent processes knowledge through the pipeline.
             </div>
           </div>
         </div>
@@ -600,6 +601,7 @@ export function PipelineObservabilityPanel() {
           <button
             type="button"
             onClick={() => useTraceStore.getState().selectTrace(null)}
+            title="Stop viewing past trace"
             className="text-[10px] px-1.5 py-0.5 rounded border-none cursor-pointer"
             style={{ background: '#3b82f620', color: '#3b82f6', fontFamily: "'Geist Mono', monospace" }}
           >

@@ -323,6 +323,7 @@ function ChatSection() {
                 <button
                   type="button"
                   onClick={() => setInputText("What is this codebase about?")}
+                  title="Ask about codebase"
                   className="px-3 py-2 rounded-lg border cursor-pointer text-[12px] hover:border-[#FE5000] transition-colors"
                   style={{ 
                     background: t.surface, 
@@ -336,6 +337,7 @@ function ChatSection() {
                 <button
                   type="button"
                   onClick={() => setInputText("Explain the main architecture")}
+                  title="Ask about architecture"
                   className="px-3 py-2 rounded-lg border cursor-pointer text-[12px] hover:border-[#FE5000] transition-colors"
                   style={{ 
                     background: t.surface, 
@@ -349,6 +351,7 @@ function ChatSection() {
                 <button
                   type="button"
                   onClick={() => setInputText("What are the key features?")}
+                  title="Ask about features"
                   className="px-3 py-2 rounded-lg border cursor-pointer text-[12px] hover:border-[#FE5000] transition-colors"
                   style={{ 
                     background: t.surface, 
@@ -459,7 +462,7 @@ function ChatSection() {
             fontFamily: "'Geist Sans', sans-serif",
           }}
         />
-        <button type="button" aria-label="Send message" onClick={handleSend} disabled={streaming || !inputText.trim()}
+        <button type="button" aria-label="Send message" title="Send message" onClick={handleSend} disabled={streaming || !inputText.trim()}
           className="px-4 rounded-lg cursor-pointer border-none text-[12px] font-semibold tracking-wider uppercase min-h-[44px] min-w-[44px]"
           style={{ background: '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace", opacity: streaming || !inputText.trim() ? 0.5 : 1 }}>
           <Send size={12} />
@@ -1161,17 +1164,20 @@ export function TestPanel({
         </span>
         <div className="flex gap-0.5 rounded-md overflow-hidden" role="tablist" style={{ border: `1px solid ${t.border}` }}>
           <button type="button" role="tab" id="tab-chat" aria-selected={activeTab === 'chat'} aria-controls="tabpanel-chat" onClick={() => setActiveTab('chat')}
+            title="Chat with agent"
             className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
             style={{ background: activeTab === 'chat' ? '#FE5000' : 'transparent', color: activeTab === 'chat' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
             Chat
           </button>
           <button type="button" role="tab" id="tab-team" aria-selected={activeTab === 'team'} aria-controls="tabpanel-team" onClick={() => setActiveTab('team')}
+            title="Run team mode"
             className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
             style={{ background: activeTab === 'team' ? '#FE5000' : 'transparent', color: activeTab === 'team' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
             Team
           </button>
 
           <button type="button" role="tab" id="tab-export" aria-selected={activeTab === 'export'} aria-controls="tabpanel-export" onClick={() => setActiveTab('export')}
+            title="Export agent"
             className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
             style={{ background: activeTab === 'export' ? '#FE5000' : 'transparent', color: activeTab === 'export' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
             Export
@@ -1179,21 +1185,21 @@ export function TestPanel({
 
         </div>
         {isExpanded && onMinimize && (
-          <button type="button" onClick={onMinimize} aria-label="Minimize test panel"
+          <button type="button" onClick={onMinimize} aria-label="Minimize test panel" title="Minimize panel"
             className="w-7 h-7 rounded-md border-none cursor-pointer flex items-center justify-center"
             style={{ background: 'transparent', color: t.textDim }}>
             <Minimize2 size={14} />
           </button>
         )}
         {!isExpanded && onExpand && (
-          <button type="button" onClick={onExpand} aria-label="Expand test panel"
+          <button type="button" onClick={onExpand} aria-label="Expand test panel" title="Expand panel"
             className="w-7 h-7 rounded-md border-none cursor-pointer flex items-center justify-center"
             style={{ background: 'transparent', color: t.textDim }}>
             <Maximize2 size={14} />
           </button>
         )}
         {onCollapse && (
-          <button type="button" onClick={onCollapse} aria-label="Collapse test panel"
+          <button type="button" onClick={onCollapse} aria-label="Collapse test panel" title="Collapse panel"
             className="w-7 h-7 rounded-md border-none cursor-pointer flex items-center justify-center"
             style={{ background: 'transparent', color: t.textDim }}>
             <ChevronRight size={14} />

@@ -112,6 +112,7 @@ export function IdentitySection({ agentMeta, setAgentMeta, collapsed, onToggle }
               type="button"
               onClick={() => setShowAvatarPicker(!showAvatarPicker)}
               aria-label={`Select agent avatar (currently ${agentMeta.avatar || 'default'})`}
+              title="Choose avatar"
               aria-expanded={showAvatarPicker}
               aria-haspopup="menu"
               style={avatarButtonBaseStyle}
@@ -130,6 +131,7 @@ export function IdentitySection({ agentMeta, setAgentMeta, collapsed, onToggle }
                       setShowAvatarPicker(false);
                     }}
                     aria-label={`Select avatar ${opt.id} as agent avatar`}
+                    title={`Select ${opt.id} avatar`}
                     className="flex items-center justify-center w-12 h-12 rounded-lg cursor-pointer border-none"
                     style={{
                       background: agentMeta.avatar === opt.id ? '#FE500020' : 'transparent',
@@ -157,6 +159,7 @@ export function IdentitySection({ agentMeta, setAgentMeta, collapsed, onToggle }
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
+                title={`Remove ${tag} tag`}
                 className="border-none bg-transparent cursor-pointer p-0 ml-1"
                 style={{ color: '#FE5000' }}
               >
