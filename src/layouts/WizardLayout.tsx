@@ -99,6 +99,19 @@ export function WizardLayout() {
     }
   }, [activeTab]);
 
+  // OAuth tab restoration
+  useEffect(() => {
+    const oauthCompleted = localStorage.getItem('mcp-oauth-completed');
+    const returnTab = localStorage.getItem('mcp-oauth-return-tab');
+    
+    if (oauthCompleted === 'true' && returnTab && TABS.some(tab => tab.id === returnTab)) {
+      // Restore the tab and clear the completion flag
+      setActiveTab(returnTab);
+      localStorage.removeItem('mcp-oauth-completed');
+      localStorage.removeItem('mcp-oauth-return-tab');
+    }
+  }, []); // Run once on mount
+
   const handleNext = () => {
     if (activeIndex < TABS.length - 1) {
       setActiveTab(TABS[activeIndex + 1].id);

@@ -165,7 +165,16 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-github-cloud'],
     url: 'https://api.githubcopilot.com/mcp/',
     authMethod: 'oauth',
-    configFields: [],
+    configFields: [
+      { 
+        key: 'client_id', 
+        label: 'GitHub App Client ID', 
+        type: 'text', 
+        placeholder: 'Iv1.1234567890abcdef', 
+        required: true,
+        helpText: 'Create a GitHub App at https://github.com/settings/apps/new and copy the Client ID'
+      }
+    ],
     website: 'https://github.com', tags: ['github', 'git', 'issues', 'pr', 'code', 'oauth'],
   },
   {
@@ -374,7 +383,16 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     runtimes: ['claude', 'amp', 'codex'], command: '', defaultArgs: [],
     url: 'https://mcp.slack.com/sse',
     authMethod: 'oauth',
-    configFields: [],
+    configFields: [
+      { 
+        key: 'client_id', 
+        label: 'Slack App Client ID', 
+        type: 'text', 
+        placeholder: '1234567890.1234567890123', 
+        required: true,
+        helpText: 'Create a Slack App at https://api.slack.com/apps and copy the Client ID from Basic Information'
+      }
+    ],
     website: 'https://slack.com', tags: ['slack', 'messaging', 'channels', 'team', 'oauth'],
   },
   {

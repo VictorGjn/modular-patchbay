@@ -14,7 +14,8 @@ import { Chip } from '../components/ds/Chip';
 import { PRESET_AVATARS, AvatarIcon } from '../components/ds/AvatarIcon';
 import { VersionIndicator } from '../components/VersionIndicator';
 import { Section } from '../components/ds/Section';
-import { OUTPUT_FORMATS } from '../store/knowledgeBase';
+import { OUTPUT_FORMATS, type OutputFormat } from '../store/knowledgeBase';
+import type { InstructionState } from '../types/console.types';
 import {
   Bot, Download, Save, Eye, Copy, Check, ChevronDown, X,
   User, Shield, Workflow, Settings
@@ -695,7 +696,7 @@ export function ReviewTab() {
                     { value: 'casual', label: 'Casual' },
                   ]}
                   value={tone}
-                  onChange={(value) => updateInstruction({ tone: value as any })}
+                  onChange={(value: InstructionState['tone']) => updateInstruction({ tone: value })}
                 />
                 
                 <div>
@@ -842,7 +843,7 @@ export function ReviewTab() {
                 label="Output Format"
                 options={OUTPUT_FORMATS.map(f => ({ value: f.id, label: f.label }))}
                 value={outputFormat}
-                onChange={(value: string) => setOutputFormat(value as any)}
+                onChange={(value: string) => setOutputFormat(value as OutputFormat)}
               />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
