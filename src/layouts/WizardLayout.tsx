@@ -227,7 +227,7 @@ export function WizardLayout() {
   return (
     <div
       role="main"
-      className="min-h-screen flex flex-col overflow-hidden"
+      className="flex-1 flex flex-col overflow-hidden min-h-0"
       style={{ background: t.bg }}
     >
       {/* Skip Link */}
