@@ -96,6 +96,9 @@ export interface ConsoleState {
   response: string;
   exportTarget: ExportTarget;
 
+  // Knowledge gaps from generator
+  knowledgeGaps: import('../utils/generateAgent').KnowledgeGap[];
+
   // Marketplace registry
   registrySkills: RegistrySkill[];
   registryMcpServers: RegistryMcp[];
@@ -235,6 +238,9 @@ export interface ConsoleState {
   // Generator — hydrate all nodes from AI-generated config
   hydrateFromGenerated: (config: import('../utils/generateAgent').GeneratedAgentConfig) => void;
 
+  // Knowledge gaps actions
+  setKnowledgeGaps: (gaps: import('../utils/generateAgent').KnowledgeGap[]) => void;
+
   // Context and Agent management
   resetAgent: () => void;
   collectContextState: () => { channels: ChannelConfig[]; mcpServers: McpServer[]; skills: Skill[]; connectors: Connector[] };
@@ -271,6 +277,7 @@ export const useConsoleStore = create<ConsoleState>()(
   activeSettingsTab: 'providers' as const,
   response: '',
   exportTarget: 'claude' as ExportTarget,
+  knowledgeGaps: [],
   registrySkills: REGISTRY_SKILLS.map((s) => ({ ...s })),
   registryMcpServers: REGISTRY_MCP_SERVERS.map((s) => ({ ...s })),
   agentConfig: { ...DEFAULT_AGENT_CONFIG },
@@ -681,8 +688,44 @@ export const useConsoleStore = create<ConsoleState>()(
   restoreFullState: (state: Record<string, unknown>) => {
     const patch: Partial<ConsoleState> = {};
 
-    if (state.agentMeta) patch.agentMeta = state.agentMeta as AgentMeta;
-    if (state.instructionState) patch.instructionState = state.instructionState as InstructionState;
+    if (state.agentMeta) {
+      const meta = state.agentMeta as Record<string, unknown>;
+      patch.agentMeta = {
+        name: (meta.name as string) || '',
+        description: (meta.description as string) || '',
+        icon: (meta.icon as string) || 'brain',
+        category: (meta.category as string) || 'general',
+        tags: (meta.tags as string[]) || [],
+        avatar: (meta.avatar as string) || 'bot',
+      } as AgentMeta;
+    }
+    if (state.instructionState) {
+      const raw = state.instructionState as Record<string, unknown>;
+      const rawConstraints = (raw.constraints || {}) as Record<string, unknown>;
+      const rawObjectives = (raw.objectives || {}) as Record<string, unknown>;
+      patch.instructionState = {
+        persona: (raw.persona as string) || '',
+        tone: (raw.tone as 'formal' | 'neutral' | 'casual') || 'neutral',
+        expertise: (raw.expertise as number) || 3,
+        constraints: {
+          neverMakeUp: rawConstraints.neverMakeUp as boolean ?? true,
+          askBeforeActions: rawConstraints.askBeforeActions as boolean ?? false,
+          stayInScope: rawConstraints.stayInScope as boolean ?? true,
+          useOnlyTools: rawConstraints.useOnlyTools as boolean ?? false,
+          limitWords: rawConstraints.limitWords as boolean ?? false,
+          wordLimit: (rawConstraints.wordLimit as number) || 0,
+          customConstraints: (rawConstraints.customConstraints as string) || '',
+          scopeDefinition: (rawConstraints.scopeDefinition as string) || '',
+        },
+        objectives: {
+          primary: (rawObjectives.primary as string) || '',
+          successCriteria: (rawObjectives.successCriteria as string[]) || [],
+          failureModes: (rawObjectives.failureModes as string[]) || [],
+        },
+        rawPrompt: (raw.rawPrompt as string) || '',
+        autoSync: raw.autoSync as boolean ?? true,
+      };
+    }
     if (state.workflowSteps) patch.workflowSteps = state.workflowSteps as WorkflowStep[];
     if (state.mcpServers) patch.mcpServers = state.mcpServers as McpServer[];
     if (state.skills) patch.skills = state.skills as Skill[];
@@ -1088,8 +1131,16 @@ export const useConsoleStore = create<ConsoleState>()(
     }
     // If neither field present, keep existing channels untouched
 
+    // Store knowledge gaps
+    set({ knowledgeGaps: config.knowledgeGaps || [] });
+
     // Clear response
     set({ response: '', selectedPreset: '' });
+  },
+
+  // Knowledge gaps action
+  setKnowledgeGaps: (gaps) => {
+    set({ knowledgeGaps: gaps });
   },
 
   // Demo preset
