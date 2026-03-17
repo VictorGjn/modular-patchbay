@@ -5,7 +5,7 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useProviderStore } from '../store/providerStore';
 import { TracePanel } from '../components/test/TracePanel';
 import { TestPanel } from '../panels/TestPanel';
-import { ContextInspector } from '../components/test/ContextInspector';
+import { PipelineObservabilityPanel } from '../panels/PipelineObservabilityPanel';
 import { PanelDivider } from '../components/ds/PanelDivider';
 import { Select } from '../components/ds/Select';
 import { MessageCircle, Search, Activity } from 'lucide-react';
@@ -91,7 +91,7 @@ export function TestTab() {
     const tabs = [
       { id: 'conversation', label: 'Conversation', icon: MessageCircle, component: TestPanel },
       { id: 'trace', label: 'Trace', icon: Activity, component: TracePanel },
-      { id: 'context', label: 'Inspector', icon: Search, component: ContextInspector },
+      { id: 'pipeline', label: 'Pipeline', icon: Search, component: PipelineObservabilityPanel },
     ];
 
     const ActiveComponent = tabs[mobileTabIndex]?.component || TestPanel;
@@ -260,7 +260,7 @@ export function TestTab() {
           leftWidthPct={100 - panelWidths.right}
         />
 
-        {/* Right Panel - Context Inspector */}
+        {/* Right Panel - Pipeline Observability */}
         <div 
           className="overflow-hidden border-l"
           style={{ 
@@ -269,7 +269,7 @@ export function TestTab() {
             display: panelWidths.right === 0 ? 'none' : 'block'
           }}
         >
-          <ContextInspector conversationId={conversationId || undefined} />
+          <PipelineObservabilityPanel />
         </div>
       </div>
     </div>
