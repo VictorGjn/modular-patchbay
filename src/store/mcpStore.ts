@@ -1,12 +1,10 @@
 import { create } from 'zustand';
+import type { McpTool } from '../types/console.types';
 
 // ── Types ──
 
-export interface McpTool {
-  name: string;
-  description: string;
-  inputSchema: object;
-}
+// Re-export for convenience
+export type { McpTool } from '../types/console.types';
 
 export type McpServerStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -34,7 +32,7 @@ interface McpStore {
   error?: string;
 
   loadServers: () => Promise<void>;
-  syncFromConfig: () => Promise<void>;
+  syncFromConfig: (mcpServers?: Array<{ id: string; name: string; added: boolean; enabled?: boolean }>) => Promise<void>;
   addServer: (config: { id?: string; name: string; type?: 'stdio' | 'sse' | 'http'; command: string; args: string[]; env: Record<string, string>; autoConnect?: boolean; url?: string; headers?: Record<string, string> }) => Promise<McpServerState | null>;
   updateServer: (id: string, patch: Partial<Pick<McpServerState, 'name' | 'command' | 'args' | 'env' | 'autoConnect' | 'url' | 'headers' | 'type'>>) => Promise<McpServerState | null>;
   connectServer: (id: string) => Promise<void>;
