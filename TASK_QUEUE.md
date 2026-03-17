@@ -119,7 +119,7 @@ Based on competitor analysis (LangFlow, CrewAI, Google ADK, OpenAI Agents SDK) a
 - **Gate:** TSC + BUILD
 
 ## Task 12: Persistent Run button (FAB)
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 03:55
 - **What:** Create src/components/ds/FloatingRunButton.tsx. A fixed-position button (bottom-right, z-50) visible on ALL tabs except Test. Clicking it: switches to Test tab and focuses the chat input. Use Play icon from lucide-react, #FE5000 background, 56px circle, subtle shadow. Add it to WizardLayout.tsx. Must not overlap with sticky prev/next footer.
 - **Gate:** TSC + BUILD
 
