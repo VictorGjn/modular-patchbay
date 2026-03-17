@@ -315,12 +315,18 @@ export function ConnectionPicker() {
             type="button"
             onClick={() => handleOAuthConnect(entry)}
             disabled={loading}
-            className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-md cursor-pointer border-none"
+            className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-md cursor-pointer border-none transition-colors"
             style={{ 
               background: '#FE500018', 
               color: '#FE5000', 
               fontWeight: 600, 
               opacity: loading ? 0.7 : 1 
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = '#FE500030';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = '#FE500018';
             }}
           >
             {loading ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
@@ -368,8 +374,14 @@ export function ConnectionPicker() {
           <button
             type="button"
             onClick={() => entry.url && handleOAuthConnect(entry as McpRegistryEntry & { url: string })}
-            className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-md cursor-pointer border-none"
+            className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-md cursor-pointer border-none transition-colors"
             style={{ background: '#FE500018', color: '#FE5000', fontWeight: 600 }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = '#FE500030';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = '#FE500018';
+            }}
           >
             <Plus size={12} />
             Connect via OAuth
@@ -548,12 +560,24 @@ export function ConnectionPicker() {
                       key={category}
                       type="button"
                       onClick={() => setActiveCategory(category)}
-                      className="text-[11px] px-2 py-1 rounded-md cursor-pointer border-none whitespace-nowrap"
+                      className="text-[11px] px-2 py-1 rounded-md cursor-pointer border-none whitespace-nowrap transition-colors"
                       style={{
                         background: activeCategory === category ? '#FE5000' : 'transparent',
                         color: activeCategory === category ? 'white' : t.textDim,
                         fontFamily: "'Geist Mono', monospace",
                         fontWeight: 600,
+                      }}
+                      onMouseEnter={e => {
+                        if (activeCategory !== category) {
+                          e.currentTarget.style.background = '#FE500015';
+                          e.currentTarget.style.color = '#FE5000';
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (activeCategory !== category) {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = t.textDim;
+                        }
                       }}
                     >
                       {category}

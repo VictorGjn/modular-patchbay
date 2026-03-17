@@ -219,17 +219,7 @@ export function Marketplace() {
         }}
         onClick={() => setShowMarketplace(false)}
       >
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: t.isDark ? 'rgba(0,0,0,0.90)' : 'rgba(0,0,0,0.60)',
-            backdropFilter: 'blur(4px)'
-          }}
-        />
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
         <div
           ref={modalRef}
@@ -240,14 +230,14 @@ export function Marketplace() {
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
-            borderRadius: 12,
+            borderRadius: '12px',
             overflow: 'hidden',
             isolation: 'isolate',
             zIndex: 1,
             width: '90vw',
             maxWidth: 1600,
             height: '80vh',
-            background: t.surfaceOpaque,
+            background: t.surface,
             border: `1px solid ${t.border}`,
             boxShadow: '0 24px 48px rgba(0,0,0,0.6)',
             animation: 'modal-in 0.2s ease-out',
@@ -318,6 +308,7 @@ export function Marketplace() {
               <button
                 type="button"
                 onClick={() => setShowMarketplace(false)}
+                className="transition-colors"
                 style={{
                   padding: 4,
                   borderRadius: 6,
@@ -328,6 +319,14 @@ export function Marketplace() {
                   color: t.textDim
                 }}
                 aria-label="Close marketplace"
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#ef444420';
+                  e.currentTarget.style.color = '#ef4444';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = t.textDim;
+                }}
               >
                 <X size={16} />
               </button>
