@@ -63,41 +63,41 @@ export function assembleContext(
   const systemParts: string[] = [];
 
   // Agent Identity
-  if (agentMeta.name || agentConfig?.name) {
+  if (finalAgentMeta.name || agentConfig?.name) {
     const identity = [];
-    identity.push(`Name: ${agentMeta.name || agentConfig?.name || 'Assistant'}`);
-    if (agentMeta.description || agentConfig?.description) {
-      identity.push(`Description: ${agentMeta.description || agentConfig?.description}`);
+    identity.push(`Name: ${finalAgentMeta.name || agentConfig?.name || 'Assistant'}`);
+    if (finalAgentMeta.description || agentConfig?.description) {
+      identity.push(`Description: ${finalAgentMeta.description || agentConfig?.description}`);
     }
-    if (agentMeta.avatar) {
-      identity.push(`Avatar: ${agentMeta.avatar}`);
+    if (finalAgentMeta.avatar) {
+      identity.push(`Avatar: ${finalAgentMeta.avatar}`);
     }
-    if (agentMeta.tags && agentMeta.tags.length > 0) {
-      identity.push(`Tags: ${agentMeta.tags.join(', ')}`);
+    if (finalAgentMeta.tags && finalAgentMeta.tags.length > 0) {
+      identity.push(`Tags: ${finalAgentMeta.tags.join(', ')}`);
     }
     systemParts.push(`<identity>\n${identity.join('\n')}\n</identity>`);
   }
 
   // Instructions
-  if (instructionState.persona || instructionState.objectives.primary) {
+  if (finalInstructionState.persona || finalInstructionState.objectives.primary) {
     const instructions = [];
-    if (instructionState.persona) {
-      instructions.push(`Persona: ${instructionState.persona}`);
+    if (finalInstructionState.persona) {
+      instructions.push(`Persona: ${finalInstructionState.persona}`);
     }
-    if (instructionState.tone !== 'neutral') {
-      instructions.push(`Tone: ${instructionState.tone}`);
+    if (finalInstructionState.tone !== 'neutral') {
+      instructions.push(`Tone: ${finalInstructionState.tone}`);
     }
-    if (instructionState.expertise !== 3) {
+    if (finalInstructionState.expertise !== 3) {
       const expertiseLabels = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Expert'];
-      instructions.push(`Expertise Level: ${expertiseLabels[instructionState.expertise - 1]} (${instructionState.expertise}/5)`);
+      instructions.push(`Expertise Level: ${expertiseLabels[finalInstructionState.expertise - 1]} (${finalInstructionState.expertise}/5)`);
     }
-    if (instructionState.objectives.primary) {
-      instructions.push(`Primary Objective: ${instructionState.objectives.primary}`);
-      if (instructionState.objectives.successCriteria.length > 0) {
-        instructions.push(`Success Criteria:\n${instructionState.objectives.successCriteria.map(c => `- ${c}`).join('\n')}`);
+    if (finalInstructionState.objectives.primary) {
+      instructions.push(`Primary Objective: ${finalInstructionState.objectives.primary}`);
+      if (finalInstructionState.objectives.successCriteria.length > 0) {
+        instructions.push(`Success Criteria:\n${finalInstructionState.objectives.successCriteria.map(c => `- ${c}`).join('\n')}`);
       }
-      if (instructionState.objectives.failureModes.length > 0) {
-        instructions.push(`Failure Modes to Avoid:\n${instructionState.objectives.failureModes.map(f => `- ${f}`).join('\n')}`);
+      if (finalInstructionState.objectives.failureModes.length > 0) {
+        instructions.push(`Failure Modes to Avoid:\n${finalInstructionState.objectives.failureModes.map(f => `- ${f}`).join('\n')}`);
       }
     }
     systemParts.push(`<instructions>\n${instructions.join('\n\n')}\n</instructions>`);
@@ -105,31 +105,31 @@ export function assembleContext(
 
   // Constraints
   const constraints = [];
-  if (instructionState.constraints.neverMakeUp) {
+  if (finalInstructionState.constraints.neverMakeUp) {
     constraints.push('Never fabricate information or make up facts');
   }
-  if (instructionState.constraints.askBeforeActions) {
+  if (finalInstructionState.constraints.askBeforeActions) {
     constraints.push('Ask for permission before taking significant actions');
   }
-  if (instructionState.constraints.stayInScope) {
-    constraints.push(`Stay within the defined scope: ${instructionState.constraints.scopeDefinition || 'as specified'}`);
+  if (finalInstructionState.constraints.stayInScope) {
+    constraints.push(`Stay within the defined scope: ${finalInstructionState.constraints.scopeDefinition || 'as specified'}`);
   }
-  if (instructionState.constraints.useOnlyTools) {
+  if (finalInstructionState.constraints.useOnlyTools) {
     constraints.push('Only use tools and capabilities that are explicitly provided');
   }
-  if (instructionState.constraints.limitWords) {
-    constraints.push(`Keep responses under ${instructionState.constraints.wordLimit} words`);
+  if (finalInstructionState.constraints.limitWords) {
+    constraints.push(`Keep responses under ${finalInstructionState.constraints.wordLimit} words`);
   }
-  if (instructionState.constraints.customConstraints) {
-    constraints.push(`Additional constraints: ${instructionState.constraints.customConstraints}`);
+  if (finalInstructionState.constraints.customConstraints) {
+    constraints.push(`Additional constraints: ${finalInstructionState.constraints.customConstraints}`);
   }
   if (constraints.length > 0) {
     systemParts.push(`<constraints>\n${constraints.map(c => `- ${c}`).join('\n')}\n</constraints>`);
   }
 
   // Workflow
-  if (workflowSteps.length > 0) {
-    const compiledWorkflow = compileWorkflow(workflowSteps as any);
+  if (finalWorkflowSteps.length > 0) {
+    const compiledWorkflow = compileWorkflow(finalWorkflowSteps as any);
     systemParts.push(`<workflow>\n${compiledWorkflow}\n</workflow>`);
   }
 

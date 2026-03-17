@@ -480,6 +480,7 @@ export function ReviewTab() {
                             setAgentMeta({ avatar: opt.id });
                             setShowAvatarPicker(false);
                           }}
+                          aria-label={`Select ${opt.name || `avatar ${opt.id}`} as agent avatar`}
                           className="flex items-center justify-center w-12 h-12 rounded-lg cursor-pointer border-none"
                           style={{
                             background: agentMeta.avatar === opt.id ? '#FE500020' : 'transparent',
