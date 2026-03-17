@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["@playwright/test"],
+    "noEmit": true
+  },
+  "include": ["tests/e2e/**/*"],
+  "exclude": ["tests/unit/**/*", "tests/integration/**/*"]
+}

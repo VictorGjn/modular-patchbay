@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { useConsoleStore, type InstructionState, type WorkflowStep } from './consoleStore';
+import { useConsoleStore } from './consoleStore';
+import type { InstructionState, WorkflowStep } from '../types/console.types';
 import type { ChannelConfig, McpServer, Skill, AgentConfig } from './knowledgeBase';
 
 /**

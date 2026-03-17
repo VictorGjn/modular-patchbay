@@ -2,6 +2,9 @@
 import { MCP_REGISTRY, type McpRegistryEntry } from './mcp-registry';
 import type { MarketplaceCategory, McpTransport, Runtime, InstallScope, ConfigField } from '../types/registry.types';
 
+// Re-export types for convenience
+export type { MarketplaceCategory, McpTransport, Runtime, InstallScope, ConfigField } from '../types/registry.types';
+
 export interface RegistrySkill {
   id: string;
   name: string;
