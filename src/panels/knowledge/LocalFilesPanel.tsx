@@ -3,11 +3,8 @@ import { useTheme } from '../../theme';
 import { useConsoleStore } from '../../store/consoleStore';
 import { useTreeIndexStore } from '../../store/treeIndexStore';
 import { useKnowledgeStore } from '../../store/knowledgeStore';
-import { DEPTH_LEVELS } from '../../store/knowledgeBase';
+import { DEPTH_LEVELS, KNOWLEDGE_TYPES } from '../../store/knowledgeBase';
 import { Plus, X, Minus, FolderOpen, Loader2 } from 'lucide-react';
-import { GenerateBtn } from '../../components/ds/GenerateBtn';
-
-const DETAIL_LABELS = ['Maximum', 'High', 'Normal', 'Low', 'Minimal'] as const;
 
 export function LocalFilesPanel() {
   const t = useTheme();
@@ -135,14 +132,40 @@ export function LocalFilesPanel() {
 
       {/* Index button */}
       <div className="flex justify-end">
-        <GenerateBtn loading={indexing} onClick={handleIndex} label="Index Files" />
+        <button 
+          type="button" 
+          onClick={handleIndex}
+          disabled={indexing || channels.filter(c => c.enabled).length === 0}
+          className="flex items-center gap-2 px-4 py-2.5 rounded text-[13px] font-semibold transition-all duration-200"
+          style={{ 
+            background: indexing ? '#f1c40f' : '#2ecc71',
+            color: '#fff',
+            opacity: channels.filter(c => c.enabled).length === 0 ? 0.5 : 1,
+            fontFamily: "'Geist Sans', sans-serif",
+            cursor: indexing || channels.filter(c => c.enabled).length === 0 ? 'not-allowed' : 'pointer',
+            minWidth: '120px'
+          }}
+        >
+          {indexing ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              Indexing...
+            </>
+          ) : (
+            <>
+              <FolderOpen size={14} />
+              Index Files
+            </>
+          )}
+        </button>
       </div>
 
       {/* File list */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         {channels.map(ch => {
           const depth = ch.depth ?? 0;
-          const barPct = ((4 - depth) / 4) * 100;
+          const knowledgeType = KNOWLEDGE_TYPES[ch.knowledgeType];
+          const depthLevel = DEPTH_LEVELS[depth];
           const barColor = DEPTH_COLORS[depth] || '#999';
           const isIndexed = !!treeIndexes[ch.path];
           const isLoading = !!treeLoading[ch.path];
@@ -150,30 +173,48 @@ export function LocalFilesPanel() {
           const realTokens = getChannelTokens(ch);
 
           return (
-            <div key={ch.sourceId} className="py-2"
-              style={{ borderBottom: `1px solid ${t.isDark ? '#1a1a1e' : '#eee'}` }}>
+            <div key={ch.sourceId} className="p-3 rounded border"
+              style={{ 
+                borderColor: ch.enabled ? t.border : t.borderSubtle,
+                background: ch.enabled ? (t.isDark ? '#ffffff05' : '#00000005') : (t.isDark ? '#ffffff02' : '#00000002')
+              }}>
               
-              {/* File name and tokens */}
-              <div className="flex items-center gap-2 mb-1">
+              {/* Header: name, type badge, tokens, actions */}
+              <div className="flex items-center gap-2 mb-3">
                 <span 
-                  className="flex-1 text-[13px] truncate"
+                  className="flex-1 text-[13px] font-medium truncate"
                   style={{ color: ch.enabled ? t.textPrimary : t.textDim }}
                   title={ch.path}
                 >
                   {ch.name}
                 </span>
                 
+                {/* Knowledge type badge */}
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded"
+                  style={{ 
+                    background: `${knowledgeType.color}15`,
+                    border: `1px solid ${knowledgeType.color}40`
+                  }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: knowledgeType.color }} />
+                  <span className="text-[11px] font-medium" style={{ 
+                    color: knowledgeType.color, 
+                    fontFamily: "'Geist Mono', monospace" 
+                  }}>
+                    {knowledgeType.label}
+                  </span>
+                </div>
+                
                 {isLoading && (
                   <Loader2 size={12} className="animate-spin" style={{ color: t.textDim }} />
                 )}
                 
                 <span 
-                  className="text-[13px] px-2 py-0.5 rounded"
+                  className="text-[12px] px-2 py-0.5 rounded font-medium"
                   style={{ 
                     fontFamily: "'Geist Mono', monospace", 
                     color: isIndexed ? t.textPrimary : t.textDim,
-                    background: isIndexed ? '#2ecc7120' : t.isDark ? '#ffffff12' : '#00000012',
-                    border: `1px solid ${isIndexed ? '#2ecc7140' : t.borderSubtle}`
+                    background: isIndexed ? '#2ecc7115' : t.isDark ? '#ffffff10' : '#00000010',
+                    border: `1px solid ${isIndexed ? '#2ecc7130' : t.borderSubtle}`
                   }}
                   title={isIndexed ? `Indexed: ${treeIndexes[ch.path].index.nodeCount} nodes` : 'Estimated'}
                 >
@@ -183,59 +224,74 @@ export function LocalFilesPanel() {
                 <button 
                   type="button" 
                   onClick={() => removeChannel(ch.sourceId)}
-                  className="p-1 rounded transition-colors"
+                  className="p-1.5 rounded transition-colors"
                   style={{ color: t.textFaint }}
+                  title="Remove source"
                 >
                   <X size={12} />
                 </button>
               </div>
 
               {/* Depth control */}
-              <div className="flex items-center gap-2">
-                <button 
-                  type="button" 
-                  onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
-                  disabled={depth >= 4}
-                  className="p-1 rounded transition-colors"
-                  style={{ 
-                    color: depth >= 4 ? t.textFaint : t.textDim,
-                    cursor: depth >= 4 ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  <Minus size={12} />
-                </button>
-
-                <div 
-                  className="flex-1" 
-                  style={{ height: 4, background: `${barColor}18`, borderRadius: 2, overflow: 'hidden' }}
-                >
-                  <div style={{ width: `${barPct}%`, height: '100%', background: barColor, borderRadius: 2, transition: 'width 200ms' }} />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[12px]">
+                  <span style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                    Depth Level
+                  </span>
+                  <span style={{ color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
+                    {depthLevel.label} ({Math.round(depthLevel.pct * 100)}%)
+                  </span>
                 </div>
+                
+                <div className="flex items-center gap-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
+                    disabled={depth <= 0}
+                    className="p-1 rounded transition-colors"
+                    style={{ 
+                      color: depth <= 0 ? t.textFaint : t.textDim,
+                      cursor: depth <= 0 ? 'not-allowed' : 'pointer'
+                    }}
+                    title="More detailed"
+                  >
+                    <Minus size={12} />
+                  </button>
 
-                <button 
-                  type="button" 
-                  onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
-                  disabled={depth <= 0}
-                  className="p-1 rounded transition-colors"
-                  style={{ 
-                    color: depth <= 0 ? t.textFaint : t.textDim,
-                    cursor: depth <= 0 ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  <Plus size={12} />
-                </button>
+                  <div className="flex-1 h-2 rounded overflow-hidden" style={{ background: t.isDark ? '#ffffff12' : '#00000012' }}>
+                    {[0, 1, 2, 3, 4].map(level => (
+                      <div
+                        key={level}
+                        className="inline-block h-full border-r border-white/10 last:border-r-0 cursor-pointer transition-colors"
+                        style={{ 
+                          width: '20%',
+                          background: level === depth ? barColor : 'transparent',
+                        }}
+                        onClick={() => setChannelDepth(ch.sourceId, level)}
+                        title={DEPTH_LEVELS[level].label}
+                      />
+                    ))}
+                  </div>
 
-                <span 
-                  className="text-[12px] w-12 text-right"
-                  style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}
-                >
-                  {DETAIL_LABELS[depth]}
-                </span>
+                  <button 
+                    type="button" 
+                    onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
+                    disabled={depth >= 4}
+                    className="p-1 rounded transition-colors"
+                    style={{ 
+                      color: depth >= 4 ? t.textFaint : t.textDim,
+                      cursor: depth >= 4 ? 'not-allowed' : 'pointer'
+                    }}
+                    title="Less detailed"
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
               </div>
 
               {/* Error display */}
               {hasError && (
-                <div className="mt-1 text-[11px] px-2 py-1 rounded" style={{ color: '#e74c3c', background: '#e74c3c20' }}>
+                <div className="mt-2 text-[11px] px-2 py-1 rounded" style={{ color: '#e74c3c', background: '#e74c3c15' }}>
                   Error: {treeErrors[ch.path]}
                 </div>
               )}

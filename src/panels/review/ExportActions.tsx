@@ -70,110 +70,102 @@ export function ExportActions({
   }, [onExportFormat]);
 
   return (
-    <div className="space-y-4">
-      {/* Action Buttons */}
-      <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3">
+      <button
+        type="button"
+        onClick={onPromptPreview}
+        className="flex items-center gap-2 px-4 py-2 text-sm rounded border"
+        style={{
+          background: 'transparent',
+          color: t.textSecondary,
+          borderColor: t.border,
+          fontFamily: "'Geist Sans', sans-serif",
+        }}
+      >
+        <Eye size={14} />
+        Prompt Preview
+      </button>
+
+      <div className="relative">
         <button
           type="button"
-          onClick={onPromptPreview}
-          className="flex items-center gap-2 px-4 py-2 text-sm rounded border"
-          style={{
-            background: 'transparent',
-            color: t.textSecondary,
-            borderColor: t.border,
-            fontFamily: "'Geist Sans', sans-serif",
-          }}
+          onClick={() => setShowExportDropdown(!showExportDropdown)}
+          aria-expanded={showExportDropdown}
+          aria-haspopup="menu"
+          aria-label="Export agent configuration in different formats"
+          style={exportButtonStyle}
         >
-          <Eye size={14} />
-          Prompt Preview
+          <Download size={14} />
+          Export
+          <ChevronDown size={12} />
         </button>
 
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowExportDropdown(!showExportDropdown)}
-            aria-expanded={showExportDropdown}
-            aria-haspopup="menu"
-            aria-label="Export agent configuration in different formats"
-            style={exportButtonStyle}
-          >
-            <Download size={14} />
-            Export
-            <ChevronDown size={12} />
-          </button>
-
-          {showExportDropdown && (
-            <div role="menu" style={exportDropdownStyle}>
-              {['JSON', 'YAML', 'Markdown', 'Claude format', 'OpenAI format'].map((format) => (
-                <button
-                  key={format}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => handleExportFormat(format)}
-                  aria-label={`Export agent configuration as ${format}`}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: t.textPrimary,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {format}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {showExportDropdown && (
+          <div role="menu" style={exportDropdownStyle}>
+            {['JSON', 'YAML', 'Markdown', 'Claude format', 'OpenAI format'].map((format) => (
+              <button
+                key={format}
+                type="button"
+                role="menuitem"
+                onClick={() => handleExportFormat(format)}
+                aria-label={`Export agent configuration as ${format}`}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: t.textPrimary,
+                  cursor: 'pointer',
+                }}
+              >
+                {format}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Save Actions */}
-      <div className="flex gap-4">
-        <button type="button" onClick={onExport} style={exportButtonStyle}>
-          <Download size={16} />
-          Export Agent
-        </button>
-        
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            disabled={saveStatus === 'saving'}
-            onClick={() => {
-              const versionStore = useVersionStore.getState();
-              if (!versionStore.agentId) {
-                // Create new agent if no ID exists
-                const newId = `agent-${Date.now()}`;
-                versionStore.setAgentId(newId);
-              }
-              versionStore.saveToServer('Manual save');
-            }}
-            style={{
-              ...saveButtonStyle,
-              opacity: saveStatus === 'saving' ? 0.6 : 1,
-              cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
-            }}
-          >
-            <Save size={16} />
-            {saveStatus === 'saving' ? 'Saving...' : 'Save Draft'}
-          </button>
-          
-          {/* Save Status Indicator */}
-          <div className="flex items-center gap-2 text-sm">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{
-                background: saveStatus === 'saved' ? '#22c55e' :
-                           saveStatus === 'saving' ? '#f59e0b' :
-                           saveStatus === 'error' ? '#ef4444' : '#6b7280',
-              }}
-            />
-            <span style={{ color: t.textSecondary, fontSize: '13px' }}>
-              {saveStatus === 'saved' ? 'Saved' :
-               saveStatus === 'saving' ? 'Saving...' :
-               saveStatus === 'error' ? 'Save failed' : 'Unsaved changes'}
-            </span>
-          </div>
-        </div>
+      <button type="button" onClick={onExport} style={exportButtonStyle}>
+        <Download size={16} />
+        Export Agent
+      </button>
+
+      <button
+        type="button"
+        disabled={saveStatus === 'saving'}
+        onClick={() => {
+          const versionStore = useVersionStore.getState();
+          if (!versionStore.agentId) {
+            // Create new agent if no ID exists
+            const newId = `agent-${Date.now()}`;
+            versionStore.setAgentId(newId);
+          }
+          versionStore.saveToServer('Manual save');
+        }}
+        style={{
+          ...saveButtonStyle,
+          opacity: saveStatus === 'saving' ? 0.6 : 1,
+          cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
+        }}
+      >
+        <Save size={16} />
+        {saveStatus === 'saving' ? 'Saving...' : 'Save Draft'}
+      </button>
+      
+      {/* Save Status Indicator */}
+      <div className="flex items-center gap-2 text-sm">
+        <div
+          className="w-2 h-2 rounded-full"
+          style={{
+            background: saveStatus === 'saved' ? '#22c55e' :
+                       saveStatus === 'saving' ? '#f59e0b' :
+                       saveStatus === 'error' ? '#ef4444' : '#6b7280',
+          }}
+        />
+        <span style={{ color: t.textSecondary, fontSize: '13px' }}>
+          {saveStatus === 'saved' ? 'Saved' :
+           saveStatus === 'saving' ? 'Saving...' :
+           saveStatus === 'error' ? 'Save failed' : 'Unsaved changes'}
+        </span>
       </div>
     </div>
   );
