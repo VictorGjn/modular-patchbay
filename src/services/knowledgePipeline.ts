@@ -44,6 +44,22 @@ import {
 } from './provenanceService';
 import type { ProvenanceSummary } from '../types/provenance';
 
+// ── Pipeline Event Emitters ──
+
+function emitPipelineStage(traceId: string, stage: string, data: any, durationMs?: number) {
+  const traceStore = useTraceStore.getState();
+  traceStore.addEvent(traceId, {
+    kind: 'pipeline_stage',
+    durationMs,
+    provenanceStages: [{
+      stage: stage as any,
+      timestamp: Date.now(),
+      durationMs,
+      data,
+    }],
+  });
+}
+
 export interface KnowledgeResult {
   knowledgeBlock: string;
   pipelineResult: PipelineResult | null;
@@ -451,6 +467,18 @@ export async function compressKnowledge(
     }
     
     if (indexedSources.length > 0) {
+      // Emit source assembly stage event
+      const sourceAssemblyData = {
+        sources: indexedSources.map(source => ({
+          name: source.treeIndex.source,
+          type: source.treeIndex.sourceType,
+          rawTokens: source.treeIndex.totalTokens,
+          included: true,
+          reason: 'Valid indexed source'
+        }))
+      };
+      emitPipelineStage(traceId, 'source_assembly', sourceAssemblyData);
+
       try {
         traceStore.addEvent(traceId, {
           kind: 'retrieval',
@@ -490,6 +518,22 @@ export async function compressKnowledge(
           const contextMetadata = `Query type: ${retrievalResult.queryType}, Diversity: ${retrievalResult.diversityScore.toFixed(2)}, Total chunks: ${retrievalResult.totalChunks}`;
           
           knowledgeBlock = `<knowledge sources="${sourceAnnotations}" method="tree-aware" metadata="${contextMetadata}">\n${formattedChunks.join('\n\n')}\n</knowledge>`;
+          
+          // Emit retrieval stage event
+          const retrievalData = {
+            query: userMessage,
+            queryType: retrievalResult.queryType,
+            chunks: retrievalResult.chunks.map(chunk => ({
+              source: chunk.source,
+              section: chunk.section,
+              relevanceScore: chunk.relevanceScore || 0,
+              inclusionReason: chunk.inclusionReason || 'direct',
+            })),
+            diversityScore: retrievalResult.diversityScore,
+            totalChunks: retrievalResult.totalChunks,
+            selectedChunks: retrievalResult.chunks.length,
+          };
+          emitPipelineStage(traceId, 'retrieval', retrievalData, retrievalResult.retrievalMs);
           
           // Build a minimal pipeline result for provenance tracking
           const contextText = formattedChunks.join('\n\n');
