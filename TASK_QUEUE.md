@@ -138,7 +138,7 @@ Based on competitor analysis (LangFlow, CrewAI, Google ADK, OpenAI Agents SDK) a
 ### Persona C — "Team lead scaling agents" (quality tracking)
 
 ## Task 15: Qualification history sparkline
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 04:40
 - **What:** In QualificationTab (after it's wired to QualificationPanel in Task 2), add a small sparkline chart at the top showing qualification scores over time. Read from qualificationStore run history. Use a simple SVG polyline (no charting library). Show last 10 runs. X-axis = run number, Y-axis = pass rate %. Green line if trending up, red if trending down.
 - **Gate:** TSC + BUILD
 
