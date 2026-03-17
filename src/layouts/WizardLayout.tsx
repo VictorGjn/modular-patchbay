@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { useTheme } from '../theme';
+import { useConsoleStore } from '../store/consoleStore';
+import { useMemoryStore } from '../store/memoryStore';
 import { DescribeTab } from '../tabs/DescribeTab';
 import { KnowledgeTab } from '../tabs/KnowledgeTab';
 import { ToolsTab } from '../tabs/ToolsTab';
@@ -8,7 +10,7 @@ import { ReviewTab } from '../tabs/ReviewTab';
 import { Spinner } from '../components/ds/Spinner';
 import {
   FileText, Database, Wrench, Brain, 
-  CheckSquare, Play, Award
+  CheckSquare, Play, Award, Check
 } from 'lucide-react';
 
 // Code splitting for heavy components
@@ -43,6 +45,8 @@ function LoadingFallback() {
 
 export function WizardLayout() {
   const t = useTheme();
+  const consoleState = useConsoleStore();
+  const memoryState = useMemoryStore();
   const [activeTab, setActiveTab] = useState('describe');
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
@@ -144,6 +148,28 @@ export function WizardLayout() {
     return baseColor;
   };
 
+  // Check tab completion status
+  const isTabComplete = (tabId: string): boolean => {
+    switch (tabId) {
+      case 'describe':
+        return consoleState.prompt.length > 20;
+      case 'knowledge':
+        return consoleState.channels.length > 0;
+      case 'tools':
+        return consoleState.mcpServers.length > 0 || consoleState.skills.length > 0;
+      case 'memory':
+        // Strategy is selected if it's been explicitly set or if there are configured facts
+        return memoryState.session.strategy !== 'summarize_and_recent' || 
+               memoryState.facts.length > 0 || 
+               !memoryState.longTerm.enabled ||
+               memoryState.working.content.length > 0;
+      case 'review':
+        return consoleState.agentMeta.name !== '' && consoleState.agentMeta.name.length > 0;
+      default:
+        return false;
+    }
+  };
+
   const fadeGradientStyles = {
     left: {
       background: `linear-gradient(to right, ${t.surface} 0%, transparent 100%)`,
@@ -210,6 +236,7 @@ export function WizardLayout() {
             const Icon = tab.icon;
             const isActive = tab.id === activeTab;
             const isCompleted = index < activeIndex;
+            const isTabCompleted = isTabComplete(tab.id);
             const accentColor = getContrastColor('#FE5000', t.isDark);
 
             return (
@@ -264,9 +291,17 @@ export function WizardLayout() {
                 <span style={{ fontFamily: "'Geist Sans', sans-serif" }}>
                   {tab.label}
                 </span>
+                {isTabCompleted && (
+                  <Check 
+                    size={12} 
+                    style={{ color: '#2ecc71' }}
+                    aria-hidden="true"
+                  />
+                )}
                 <span className="sr-only">
                   {isActive && ', selected'}
                   {isCompleted && ', completed'}
+                  {isTabCompleted && ', task completed'}
                   . Use arrow keys to navigate tabs.
                 </span>
               </button>

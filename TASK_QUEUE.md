@@ -88,7 +88,7 @@
 - **Gate:** TSC + BUILD
 
 ## Task 10: Step completion indicators
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 03:10
 - **What:** In src/layouts/WizardLayout.tsx, add completion indicators to tab buttons. A tab is "complete" when: Describe has >20 chars prompt, Knowledge has >0 sources, Tools has >0 MCP servers or skills, Memory has a strategy selected, Review has agent name set. Show a small checkmark icon next to completed tab labels. Use Check from lucide-react, 12px, color #2ecc71.
 - **Gate:** TSC + BUILD
 
