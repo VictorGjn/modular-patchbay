@@ -362,10 +362,10 @@ export function WizardLayout() {
         role="tabpanel"
         aria-labelledby={`tab-${activeTab}`}
         tabIndex={0}
-        className="flex-1 overflow-y-auto min-h-0 focus:outline-none"
+        className={`flex-1 min-h-0 focus:outline-none ${activeTab === 'test' ? 'overflow-hidden' : 'overflow-y-auto'}`}
         data-skip-target
       >
-        <div className={activeTab === 'test' ? 'px-2 py-2 h-full' : 'w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-16'}>
+        <div className={activeTab === 'test' ? 'h-full' : 'w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-16'}>
           <Suspense fallback={<LoadingFallback />}>
             {activeTab === 'describe' ? (
               <DescribeTab onNavigateToTest={() => setActiveTab('test')} />
