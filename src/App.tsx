@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Topbar } from './components/Topbar';
 import { TokenBudget } from './components/TokenBudget';
 import { FilePicker } from './components/FilePicker';
@@ -8,6 +8,7 @@ import { ConnectionPicker } from './components/ConnectionPicker';
 // AgentViz moved to canvas node (AgentPreviewNode)
 import { SettingsPage } from './components/SettingsPage';
 import { SaveAgentModal } from './components/SaveAgentModal';
+import { AgentLibrary } from './components/AgentLibrary';
 import './store/versionStore'; // activate version subscription
 import { useConsoleStore } from './store/consoleStore';
 import { useMcpStore } from './store/mcpStore';
@@ -18,6 +19,7 @@ import { WizardLayout } from './layouts/WizardLayout';
 
 export default function App() {
   const t = useTheme();
+  const [view, setView] = useState<'library' | 'editor'>('library');
 
   const showFilePicker = useConsoleStore((s) => s.showFilePicker);
   const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
@@ -30,6 +32,7 @@ export default function App() {
   const showSettings = useConsoleStore((s) => s.showSettings);
   const setShowSettings = useConsoleStore((s) => s.setShowSettings);
   const loadServers = useMcpStore((s) => s.loadServers);
+  const loadAgent = useConsoleStore((s) => s.loadAgent);
   const importInputRef = useRef<HTMLInputElement>(null);
   const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,6 +71,19 @@ export default function App() {
     loadServers();
   }, [loadServers]);
 
+  const handleSelectAgent = (agentId: string) => {
+    loadAgent(agentId);
+    setView('editor');
+  };
+
+  const handleNewAgent = () => {
+    setView('editor');
+  };
+
+  const handleBackToLibrary = () => {
+    setView('library');
+  };
+
   return (
     <div
       data-theme={t.isDark ? 'dark' : 'light'}
@@ -77,11 +93,21 @@ export default function App() {
       }}
     >
       <input ref={importInputRef} type="file" accept=".md,.yaml,.yml,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
-      <Topbar
-        onSettingsClick={() => setShowSettings(true, 'providers')}
-      />
-
-      <WizardLayout />
+      
+      {view === 'library' ? (
+        <AgentLibrary
+          onSelectAgent={handleSelectAgent}
+          onNewAgent={handleNewAgent}
+        />
+      ) : (
+        <>
+          <Topbar
+            onSettingsClick={() => setShowSettings(true, 'providers')}
+            onBack={handleBackToLibrary}
+          />
+          <WizardLayout />
+        </>
+      )}
 
       {/* Accessibility: aria-live region for canvas state announcements */}
       <div

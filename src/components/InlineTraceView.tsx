@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { useTheme } from '../theme';
+import { useTraceStore } from '../store/traceStore';
 import type { PipelineChatStats } from '../services/pipelineChat';
 
 interface InlineTraceViewProps {
   stats: PipelineChatStats;
+  traceId?: string;
 }
 
-export function InlineTraceView({ stats }: InlineTraceViewProps) {
+export function InlineTraceView({ stats, traceId }: InlineTraceViewProps) {
   const [expanded, setExpanded] = useState(false);
   const t = useTheme();
+  const selectTrace = useTraceStore(s => s.selectTrace);
+  const selectedTraceId = useTraceStore(s => s.selectedTraceId);
+  const isSelected = traceId != null && selectedTraceId === traceId;
 
   // Calculate key metrics
   const tokensUsed = stats.totalContextTokens || 0;
@@ -23,25 +28,44 @@ export function InlineTraceView({ stats }: InlineTraceViewProps) {
     <div 
       className="mt-2 border rounded-md overflow-hidden transition-all duration-200"
       style={{ 
-        border: `1px solid ${t.borderSubtle}`,
+        border: `1px solid ${isSelected ? '#FE5000' : t.borderSubtle}`,
         background: t.isDark ? '#0d0d10' : '#f8f8fa',
         fontFamily: "'Geist Mono', monospace"
       }}
     >
       {/* Collapsed view */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:opacity-80 transition-opacity"
-        style={{ color: t.textDim }}
-      >
-        <span>
-          📊 {tokensUsed} tokens • {sourcesCount} sources • {totalMs}ms
-          {toolTurns > 0 && ` • ${toolTurns} tool calls`}
-        </span>
-        <span className="text-[10px]" style={{ color: '#FE5000' }}>
-          {expanded ? '▼' : '▶'}
-        </span>
-      </button>
+      <div className="flex items-center">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex-1 px-3 py-2 text-left text-xs flex items-center justify-between hover:opacity-80 transition-opacity border-none bg-transparent cursor-pointer"
+          style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}
+        >
+          <span>
+            📊 {tokensUsed} tokens • {sourcesCount} sources • {totalMs}ms
+            {toolTurns > 0 && ` • ${toolTurns} tool calls`}
+          </span>
+          <span className="text-[10px]" style={{ color: '#FE5000' }}>
+            {expanded ? '▼' : '▶'}
+          </span>
+        </button>
+        {traceId && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              selectTrace(isSelected ? null : traceId);
+            }}
+            className="px-2 py-1.5 text-[10px] border-none cursor-pointer rounded-r-md transition-colors"
+            style={{
+              background: isSelected ? '#FE500020' : 'transparent',
+              color: isSelected ? '#FE5000' : t.textFaint,
+              fontFamily: "'Geist Mono', monospace",
+            }}
+            title={isSelected ? 'Deselect trace in sidebar' : 'View trace in sidebar'}
+          >
+            {isSelected ? '◉' : '○'}
+          </button>
+        )}
+      </div>
 
       {/* Expanded view */}
       {expanded && (

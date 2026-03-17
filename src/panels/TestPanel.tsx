@@ -23,7 +23,7 @@ import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
 import { CapabilityGate } from '../components/CapabilityGate';
 import { RuntimeResults } from './RuntimePanel';
 import { PipelineTraceView } from '../components/PipelineTraceView';
-import { PipelineObservabilityPanel } from './PipelineObservabilityPanel';
+
 import { API_BASE } from '../config';
 import { runTeam as runTeamService, type RunTeamConfig } from '../services/runtimeService';
 import { useRuntimeStore } from '../store/runtimeStore';
@@ -34,10 +34,7 @@ import { buildOrientationBlock, assemblePipelineContext } from '../services/cont
 import { preRecall } from '../services/memoryPipeline';
 
 /* ── Pipeline Stats Bar ── */
-function PipelineStatsBar({ showObservability, setShowObservability }: {
-  showObservability: boolean;
-  setShowObservability: (show: boolean) => void;
-}) {
+function PipelineStatsBar() {
   const t = useTheme();
   const stats = useConversationStore(s => s.lastPipelineStats);
   const [expanded, setExpanded] = useState(false);
@@ -149,22 +146,7 @@ function PipelineStatsBar({ showObservability, setShowObservability }: {
             <span title="Pipeline processing time">{p.timing.totalMs}ms</span>
           </>
         )}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowObservability(!showObservability);
-          }}
-          className="px-2 py-1 rounded text-xs border-none cursor-pointer"
-          style={{
-            background: showObservability ? '#FE5000' : 'transparent',
-            color: showObservability ? '#fff' : t.textDim,
-            fontFamily: "'Geist Mono', monospace",
-          }}
-          title="Toggle Pipeline Observability"
-        >
-          {showObservability ? 'Hide Pipeline' : 'Show Pipeline'}
-        </button>
+
         <ChevronDown size={8} style={{ transform: expanded ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms' }} />
       </button>
 
@@ -241,8 +223,6 @@ function ChatSection() {
   const updateLastAssistant = useConversationStore(s => s.updateLastAssistant);
   const setLastPipelineStats = useConversationStore(s => s.setLastPipelineStats);
   const updateMessagePipelineStats = useConversationStore(s => s.updateMessagePipelineStats);
-  const [showObservability, setShowObservability] = useState(false);
-
   const channels = useConsoleStore(s => s.channels);
   const connectors = useConsoleStore(s => s.connectors);
   const mcpServers = useConsoleStore(s => s.mcpServers);
@@ -297,11 +277,17 @@ function ChatSection() {
         onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
         onDone: (stats) => { 
           setLastPipelineStats(stats);
-          // Attach stats to the last assistant message
+          // Attach stats + traceId to the last assistant message in a single update
           const currentMessages = useConversationStore.getState().messages;
           const lastAssistantMsg = [...currentMessages].reverse().find(m => m.role === 'assistant');
           if (lastAssistantMsg) {
-            updateMessagePipelineStats(lastAssistantMsg.id, stats);
+            useConversationStore.setState({
+              messages: currentMessages.map(m =>
+                m.id === lastAssistantMsg.id 
+                  ? { ...m, pipelineStats: stats, traceId: stats.traceId } 
+                  : m
+              ),
+            });
           }
         },
         onError: (err: Error) => { updateLastAssistant(accum + `\n\n_Error: ${err.message}_`); },
@@ -441,7 +427,7 @@ function ChatSection() {
             )}
             {/* Inline trace view for assistant messages with pipeline stats */}
             {msg.role === 'assistant' && msg.pipelineStats && (
-              <InlineTraceView stats={msg.pipelineStats} />
+              <InlineTraceView stats={msg.pipelineStats} traceId={msg.traceId} />
             )}
           </div>
         ))}
@@ -456,17 +442,7 @@ function ChatSection() {
       )}
 
       {/* Pipeline Stats */}
-      <PipelineStatsBar 
-        showObservability={showObservability}
-        setShowObservability={setShowObservability}
-      />
-
-      {/* Pipeline Observability Panel */}
-      {showObservability && (
-        <div className="border-t" style={{ borderColor: t.border, maxHeight: '50vh' }}>
-          <PipelineObservabilityPanel />
-        </div>
-      )}
+      <PipelineStatsBar />
 
       {/* Input */}
       <div className="px-4 py-3 flex gap-2" style={{ borderTop: `1px solid ${t.border}` }}>
@@ -1194,11 +1170,7 @@ export function TestPanel({
             style={{ background: activeTab === 'team' ? '#FE5000' : 'transparent', color: activeTab === 'team' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
             Team
           </button>
-          <button type="button" role="tab" id="tab-traces" aria-selected={activeTab === 'traces'} aria-controls="tabpanel-traces" onClick={() => setActiveTab('traces')}
-            className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
-            style={{ background: activeTab === 'traces' ? '#FE5000' : 'transparent', color: activeTab === 'traces' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
-            Traces
-          </button>
+
           <button type="button" role="tab" id="tab-export" aria-selected={activeTab === 'export'} aria-controls="tabpanel-export" onClick={() => setActiveTab('export')}
             className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
             style={{ background: activeTab === 'export' ? '#FE5000' : 'transparent', color: activeTab === 'export' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
@@ -1231,11 +1203,7 @@ export function TestPanel({
 
       {activeTab === 'chat' && <div role="tabpanel" id="tabpanel-chat" aria-labelledby="tab-chat" className="flex flex-col flex-1 min-h-0"><ChatSection /></div>}
       {activeTab === 'team' && <div role="tabpanel" id="tabpanel-team" aria-labelledby="tab-team" className="flex flex-col flex-1 min-h-0"><TeamSection /></div>}
-      {activeTab === 'traces' && (
-        <div role="tabpanel" id="tabpanel-traces" aria-labelledby="tab-traces" className="flex-1 overflow-y-auto">
-          <TraceViewer />
-        </div>
-      )}
+
       {activeTab === 'export' && (
         <div role="tabpanel" id="tabpanel-export" aria-labelledby="tab-export" className="flex-1 overflow-y-auto">
           <ExportSection />

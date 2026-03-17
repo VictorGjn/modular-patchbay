@@ -135,6 +135,16 @@ export function ConstraintsSection({
         </div>
         
         <TextArea
+          label="Scope Definition"
+          value={constraints.scopeDefinition}
+          onChange={(e) => updateInstruction({
+            constraints: { ...constraints, scopeDefinition: e.target.value }
+          })}
+          placeholder="Define the specific scope and boundaries for this agent..."
+          rows={2}
+        />
+        
+        <TextArea
           label="Additional Notes"
           value={constraints.customConstraints}
           onChange={(e) => updateInstruction({

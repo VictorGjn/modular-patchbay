@@ -499,11 +499,12 @@ function ProvenanceStage({ data, expanded, onToggle }: {
 
 export function PipelineObservabilityPanel() {
   const t = useTheme();
-  const getActiveTrace = useTraceStore(s => s.getActiveTrace);
+  const getDisplayTrace = useTraceStore(s => s.getDisplayTrace);
+  const selectedTraceId = useTraceStore(s => s.selectedTraceId);
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  const trace = getActiveTrace();
+  const trace = getDisplayTrace();
   
   // Extract ALL trace events (not just pipeline_stage)
   const allEvents = trace?.events || [];
@@ -591,10 +592,20 @@ export function PipelineObservabilityPanel() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: t.border }}>
-        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+        <div className={`w-2 h-2 rounded-full ${selectedTraceId ? 'bg-blue-500' : 'bg-green-500 animate-pulse'}`} />
         <span className="text-sm font-medium" style={{ color: t.textPrimary }}>
           Pipeline Observability
         </span>
+        {selectedTraceId && (
+          <button
+            type="button"
+            onClick={() => useTraceStore.getState().selectTrace(null)}
+            className="text-[10px] px-1.5 py-0.5 rounded border-none cursor-pointer"
+            style={{ background: '#3b82f620', color: '#3b82f6', fontFamily: "'Geist Mono', monospace" }}
+          >
+            viewing past · ✕
+          </button>
+        )}
         <span className="ml-auto text-xs" style={{ 
           color: t.textDim,
           fontFamily: "'Geist Mono', monospace" 
