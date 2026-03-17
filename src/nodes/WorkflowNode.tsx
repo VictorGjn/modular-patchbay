@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from 'react';
+import { memo, useState, useCallback, useMemo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 
 import { Input } from '../components/ds/Input';
@@ -81,7 +81,8 @@ export const WorkflowNode = memo(function WorkflowNode() {
 
   const mcpServers = useMcpStore((s) => s.servers);
   const connectedServers = mcpServers.filter(s => s.status === 'connected');
-  const skills = useConsoleStore((s) => s.skills.filter(skill => skill.enabled));
+  const allSkills = useConsoleStore((s) => s.skills);
+  const skills = useMemo(() => allSkills.filter(skill => skill.enabled), [allSkills]);
 
   const toolOptions = [
     { value: '', label: '-- no tool --' },

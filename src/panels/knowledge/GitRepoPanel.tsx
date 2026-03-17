@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTheme } from '../../theme';
 import { useConsoleStore } from '../../store/consoleStore';
 import { useTreeIndexStore } from '../../store/treeIndexStore';
@@ -23,7 +23,8 @@ type RepoIndexPayload = GitHubPayload | LocalRepoPayload;
 
 export function GitRepoPanel() {
   const t = useTheme();
-  const channels = useConsoleStore(s => s.channels.filter(c => c.path?.includes('.git') || c.contentSourceId));
+  const allChannels = useConsoleStore(s => s.channels);
+  const channels = useMemo(() => allChannels.filter(c => c.path?.includes('.git') || c.contentSourceId), [allChannels]);
   const addChannel = useConsoleStore(s => s.addChannel);
   const removeChannel = useConsoleStore(s => s.removeChannel);
   const treeIndexes = useTreeIndexStore(s => s.indexes);
