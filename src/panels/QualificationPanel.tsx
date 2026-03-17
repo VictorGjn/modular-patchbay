@@ -68,16 +68,25 @@ function ScoreBadge({ score, threshold }: { score: number; threshold: number }) 
 /* ── Main Panel ── */
 export function QualificationPanel() {
   const t = useTheme();
-  const store = useQualificationStore();
+  const status = useQualificationStore(s => s.status);
+  const suite = useQualificationStore(s => s.suite);
+  const runs = useQualificationStore(s => s.runs);
+  const latestRunId = useQualificationStore(s => s.latestRunId);
+  const publishGated = useQualificationStore(s => s.publishGated);
+  const setMissionBrief = useQualificationStore(s => s.setMissionBrief);
+  const addTestCase = useQualificationStore(s => s.addTestCase);
+  const updateTestCase = useQualificationStore(s => s.updateTestCase);
+  const removeTestCase = useQualificationStore(s => s.removeTestCase);
+  const addScoringDimension = useQualificationStore(s => s.addScoringDimension);
+  const updateScoringDimension = useQualificationStore(s => s.updateScoringDimension);
+  const removeScoringDimension = useQualificationStore(s => s.removeScoringDimension);
+  const setPassThreshold = useQualificationStore(s => s.setPassThreshold);
+  const setStatus = useQualificationStore(s => s.setStatus);
+  const recordRun = useQualificationStore(s => s.recordRun);
+  const storeApplyPatch = useQualificationStore(s => s.applyPatch);
   const agentMeta = useConsoleStore(s => s.agentMeta);
   const selectedModel = useConsoleStore(s => s.selectedModel);
   const instructionState = useConsoleStore(s => s.instructionState);
-  const {
-    status, suite, runs, latestRunId, publishGated,
-    setMissionBrief, addTestCase, updateTestCase, removeTestCase,
-    addScoringDimension, updateScoringDimension, removeScoringDimension,
-    setPassThreshold, setStatus, recordRun, applyPatch: storeApplyPatch,
-  } = store;
 
   const [missionOpen, setMissionOpen] = useState(true);
   const [testsOpen, setTestsOpen] = useState(true);
