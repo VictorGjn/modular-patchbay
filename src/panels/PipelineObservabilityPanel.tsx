@@ -505,13 +505,16 @@ export function PipelineObservabilityPanel() {
   
   const trace = getActiveTrace();
   
-  // Extract pipeline events from trace
-  const pipelineEvents = trace?.events.filter(
+  // Extract ALL trace events (not just pipeline_stage)
+  const allEvents = trace?.events || [];
+  
+  // Extract structured pipeline stages if available
+  const pipelineEvents = allEvents.filter(
     (event): event is TraceEvent & { kind: 'pipeline_stage' } => 
       event.kind === 'pipeline_stage'
-  ) || [];
+  );
 
-  // Group events by stage
+  // Group structured events by stage
   const stages = new Map<string, PipelineStageData>();
   for (const event of pipelineEvents) {
     if (event.provenanceStages) {
@@ -520,6 +523,18 @@ export function PipelineObservabilityPanel() {
       }
     }
   }
+  
+  // If no structured stages, build from regular trace events
+  const hasStructuredStages = stages.size > 0;
+  const eventStages = !hasStructuredStages ? allEvents.map(e => ({
+    kind: e.kind,
+    name: e.sourceName || e.toolName || e.model || e.kind,
+    duration: e.durationMs,
+    query: e.query,
+    resultCount: e.resultCount,
+    tokens: (e.inputTokens || 0) + (e.outputTokens || 0),
+    memoryFacts: e.memoryFactCount,
+  })) : [];
 
   const toggleStage = (stageName: string) => {
     const newExpanded = new Set(expandedStages);
@@ -538,7 +553,9 @@ export function PipelineObservabilityPanel() {
     }
   }, [pipelineEvents.length]);
 
-  if (pipelineEvents.length === 0) {
+  const hasAnyData = pipelineEvents.length > 0 || eventStages.length > 0;
+
+  if (!hasAnyData) {
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: t.border }}>
@@ -561,6 +578,16 @@ export function PipelineObservabilityPanel() {
     );
   }
 
+  // Event kind to color/label mapping
+  const kindMeta: Record<string, { color: string; label: string }> = {
+    retrieval: { color: '#3498db', label: 'Retrieval' },
+    llm_call: { color: '#9b59b6', label: 'LLM' },
+    tool_call: { color: '#2ecc71', label: 'Tool' },
+    error: { color: '#e74c3c', label: 'Error' },
+    fact_extracted: { color: '#FE5000', label: 'Fact' },
+    token_usage: { color: '#f1c40f', label: 'Tokens' },
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: t.border }}>
@@ -577,7 +604,34 @@ export function PipelineObservabilityPanel() {
       </div>
       
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        {/* Source Assembly */}
+        {/* Event Timeline (from regular trace events) */}
+        {eventStages.length > 0 && (
+          <div className="px-4 py-3 space-y-2">
+            {eventStages.map((evt, i) => {
+              const meta = kindMeta[evt.kind] || { color: '#888', label: evt.kind };
+              return (
+                <div key={i} className="flex items-center gap-3 p-2 rounded" style={{ background: t.isDark ? '#ffffff06' : '#00000006' }}>
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: meta.color }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] px-1.5 py-0.5 rounded font-medium" style={{ background: `${meta.color}20`, color: meta.color, fontFamily: "'Geist Mono', monospace" }}>
+                        {meta.label}
+                      </span>
+                      <span className="text-[12px] font-medium truncate" style={{ color: t.textPrimary }}>{evt.name}</span>
+                    </div>
+                    {evt.query && <div className="text-[11px] mt-0.5 truncate" style={{ color: t.textDim }}>{evt.query}</div>}
+                  </div>
+                  <div className="shrink-0 text-right">
+                    {evt.duration != null && <div className="text-[11px]" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>{evt.duration}ms</div>}
+                    {evt.resultCount != null && <div className="text-[10px]" style={{ color: t.textFaint }}>{evt.resultCount} results</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Source Assembly (structured stages) */}
         {stages.has('source_assembly') && (
           <SourceAssemblyStage
             data={stages.get('source_assembly')!.data}
