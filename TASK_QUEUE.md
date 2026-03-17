@@ -62,7 +62,7 @@
 - **Gate:** BUILD + verify chunk sizes in output
 
 ## Task 8: Delete dead files
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 01:55
 - **What:** Remove: src/components/test/ConversationPanel.tsx (replaced by TestPanel), V2_TASK.md, V2_EXECUTION_PLAN.md. Verify no imports reference deleted files.
 - **Gate:** TSC + BUILD
 
