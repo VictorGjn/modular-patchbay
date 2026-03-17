@@ -8,6 +8,7 @@ import { ToolsTab } from '../tabs/ToolsTab';
 import { MemoryTab } from '../tabs/MemoryTab';
 import { ReviewTab } from '../tabs/ReviewTab';
 import { Spinner } from '../components/ds/Spinner';
+import { FloatingRunButton } from '../components/ds/FloatingRunButton';
 import {
   FileText, Database, Wrench, Brain, 
   CheckSquare, Play, Award, Check
@@ -108,6 +109,30 @@ export function WizardLayout() {
     if (activeIndex > 0) {
       setActiveTab(TABS[activeIndex - 1].id);
     }
+  };
+
+  const handleFloatingRunClick = () => {
+    setActiveTab('test');
+    // Focus chat input after tab switch - try multiple selectors
+    setTimeout(() => {
+      const selectors = [
+        '[data-test-chat-input]',
+        'textarea[placeholder*="message"]',
+        'input[placeholder*="message"]',
+        'textarea[placeholder*="chat"]',
+        'input[placeholder*="chat"]',
+        'textarea',
+        'input[type="text"]'
+      ];
+      
+      for (const selector of selectors) {
+        const input = document.querySelector(selector) as HTMLElement;
+        if (input) {
+          input.focus();
+          break;
+        }
+      }
+    }, 100);
   };
 
   const handleTabKeyDown = (e: React.KeyboardEvent, index: number) => {
@@ -378,6 +403,12 @@ export function WizardLayout() {
           </div>
         </div>
       </div>
+
+      {/* Floating Action Button */}
+      <FloatingRunButton 
+        onClick={handleFloatingRunClick}
+        isVisible={activeTab !== 'test'}
+      />
     </div>
   );
 }
