@@ -57,7 +57,7 @@
 - **Gate:** TSC + BUILD
 
 ## Task 7: manualChunks vite.config
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 01:40
 - **What:** In vite.config.ts, add rollupOptions.output.manualChunks to split: react-markdown + remark-gfm → 'markdown' chunk, lucide-react → 'icons' chunk, zustand stores → 'stores' chunk. Target: main index chunk < 500KB.
 - **Gate:** BUILD + verify chunk sizes in output
 
