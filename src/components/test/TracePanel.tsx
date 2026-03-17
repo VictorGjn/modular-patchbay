@@ -25,15 +25,17 @@ export function TracePanel({ conversationId }: TracePanelProps) {
     new Set(EVENT_TYPES.map(et => et.kind))
   );
 
-  const currentTrace = conversationId ? (traces as any)[conversationId] : null;
+  const currentTrace = conversationId 
+    ? traces.find(trace => trace.conversationId === conversationId) 
+    : null;
 
   const tokenStats = useMemo(() => {
     if (!currentTrace) return { input: 0, output: 0, cache: 0 };
     
-    return currentTrace.events.reduce((acc: { input: number; output: number; cache: number }, event: any) => {
+    return currentTrace.events.reduce((acc: { input: number; output: number; cache: number }, event) => {
       if (event.inputTokens) acc.input += event.inputTokens;
       if (event.outputTokens) acc.output += event.outputTokens;
-      if (event.cacheTokens) acc.cache += event.cacheTokens;
+      // Note: cacheTokens is not part of TraceEvent interface, removing this line
       return acc;
     }, { input: 0, output: 0, cache: 0 });
   }, [currentTrace]);
@@ -70,8 +72,7 @@ export function TracePanel({ conversationId }: TracePanelProps) {
           <div className="flex gap-4 text-xs mb-3" style={{ color: t.textSecondary }}>
             <span>Input: {tokenStats.input.toLocaleString()}</span>
             <span>Output: {tokenStats.output.toLocaleString()}</span>
-            <span>Cache: {tokenStats.cache.toLocaleString()}</span>
-            <span>Total: {(tokenStats.input + tokenStats.output + tokenStats.cache).toLocaleString()}</span>
+            <span>Total: {(tokenStats.input + tokenStats.output).toLocaleString()}</span>
           </div>
         )}
 
@@ -79,7 +80,7 @@ export function TracePanel({ conversationId }: TracePanelProps) {
         <div className="flex flex-wrap gap-1">
           {EVENT_TYPES.map(({ kind, label, icon: Icon, color }) => {
             const isEnabled = enabledTypes.has(kind);
-            const eventCount = currentTrace?.events.filter((e: any) => e.kind === kind).length || 0;
+            const eventCount = currentTrace?.events.filter(e => e.kind === kind).length || 0;
             
             return (
               <button
