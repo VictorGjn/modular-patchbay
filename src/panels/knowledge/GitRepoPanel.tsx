@@ -2,8 +2,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTheme } from '../../theme';
 import { useConsoleStore } from '../../store/consoleStore';
 import { useTreeIndexStore } from '../../store/treeIndexStore';
-import { DEPTH_LEVELS } from '../../store/knowledgeBase';
-import { FolderGit2, Loader2, Clock, RefreshCw, X, GitBranch, Github } from 'lucide-react';
+import { DEPTH_LEVELS, KNOWLEDGE_TYPES } from '../../store/knowledgeBase';
+import { FolderGit2, Loader2, Clock, RefreshCw, X, GitBranch, Github, Plus, Minus } from 'lucide-react';
 import { API_BASE } from '../../config';
 
 
@@ -27,6 +27,7 @@ export function GitRepoPanel() {
   const channels = useMemo(() => allChannels.filter(c => c.path?.includes('.git') || c.contentSourceId), [allChannels]);
   const addChannel = useConsoleStore(s => s.addChannel);
   const removeChannel = useConsoleStore(s => s.removeChannel);
+  const setChannelDepth = useConsoleStore(s => s.setChannelDepth);
   const treeIndexes = useTreeIndexStore(s => s.indexes);
 
   const [repoUrl, setRepoUrl] = useState('');
@@ -254,23 +255,27 @@ export function GitRepoPanel() {
       {/* Repository list */}
       <div className="space-y-3">
         {channels.map(ch => {
+          const depth = ch.depth ?? 0;
+          const knowledgeType = KNOWLEDGE_TYPES[ch.knowledgeType];
+          const depthLevel = DEPTH_LEVELS[depth];
           const realTokens = getChannelTokens(ch);
           const repoMeta = ch.repoMeta;
           const isIndexed = !!treeIndexes[ch.path];
+          const DEPTH_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e67e22', '#999'];
           
           return (
-            <div key={ch.sourceId} className="p-3 rounded"
+            <div key={ch.sourceId} className="p-3 rounded border"
               style={{ 
-                border: `1px solid ${t.border}`,
-                background: t.isDark ? '#ffffff05' : '#00000005'
+                borderColor: ch.enabled ? t.border : t.borderSubtle,
+                background: ch.enabled ? (t.isDark ? '#ffffff05' : '#00000005') : (t.isDark ? '#ffffff02' : '#00000002')
               }}>
               
               {/* Header */}
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <Github size={14} style={{ color: t.textDim }} />
-                    <span className="font-medium text-[14px]" style={{ color: t.textPrimary }}>
+                    <span className="font-medium text-[14px] truncate" style={{ color: t.textPrimary }}>
                       {repoMeta?.name || ch.name}
                     </span>
                     {ch.path?.includes('.compressed.md') && (
@@ -286,7 +291,7 @@ export function GitRepoPanel() {
                   </div>
                   
                   {repoMeta?.stack && repoMeta.stack.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 mb-2">
                       {repoMeta.stack.slice(0, 4).map((tech, i) => (
                         <span key={i} className="text-[10px] px-1.5 py-0.5 rounded"
                           style={{ 
@@ -305,15 +310,30 @@ export function GitRepoPanel() {
                       )}
                     </div>
                   )}
+
+                  {/* Knowledge type badge */}
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded w-fit"
+                    style={{ 
+                      background: `${knowledgeType.color}15`,
+                      border: `1px solid ${knowledgeType.color}40`
+                    }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: knowledgeType.color }} />
+                    <span className="text-[11px] font-medium" style={{ 
+                      color: knowledgeType.color, 
+                      fontFamily: "'Geist Mono', monospace" 
+                    }}>
+                      {knowledgeType.label}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] px-2 py-1 rounded"
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-[12px] px-2 py-1 rounded font-medium"
                     style={{ 
                       fontFamily: "'Geist Mono', monospace",
                       color: isIndexed ? t.textPrimary : t.textDim,
-                      background: isIndexed ? '#2ecc7120' : t.isDark ? '#ffffff12' : '#00000012',
-                      border: `1px solid ${isIndexed ? '#2ecc7140' : t.borderSubtle}`
+                      background: isIndexed ? '#2ecc7115' : t.isDark ? '#ffffff10' : '#00000010',
+                      border: `1px solid ${isIndexed ? '#2ecc7130' : t.borderSubtle}`
                     }}>
                     {Math.round(realTokens / 1000)}K
                   </span>
@@ -336,6 +356,63 @@ export function GitRepoPanel() {
                     title="Remove"
                   >
                     <X size={12} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Depth control */}
+              <div className="space-y-2 mb-3">
+                <div className="flex items-center justify-between text-[12px]">
+                  <span style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                    Depth Level
+                  </span>
+                  <span style={{ color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
+                    {depthLevel.label} ({Math.round(depthLevel.pct * 100)}%)
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
+                    disabled={depth <= 0}
+                    className="p-1 rounded transition-colors"
+                    style={{ 
+                      color: depth <= 0 ? t.textFaint : t.textDim,
+                      cursor: depth <= 0 ? 'not-allowed' : 'pointer'
+                    }}
+                    title="More detailed"
+                  >
+                    <Minus size={12} />
+                  </button>
+
+                  <div className="flex-1 h-2 rounded overflow-hidden" style={{ background: t.isDark ? '#ffffff12' : '#00000012' }}>
+                    {[0, 1, 2, 3, 4].map(level => (
+                      <div
+                        key={level}
+                        className="inline-block h-full border-r border-white/10 last:border-r-0 cursor-pointer transition-colors"
+                        style={{ 
+                          width: '20%',
+                          background: level === depth ? DEPTH_COLORS[level] : 'transparent',
+                        }}
+                        onClick={() => setChannelDepth(ch.sourceId, level)}
+                        title={DEPTH_LEVELS[level].label}
+                      />
+                    ))}
+                  </div>
+
+                  <button 
+                    type="button" 
+                    onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
+                    disabled={depth >= 4}
+                    className="p-1 rounded transition-colors"
+                    style={{ 
+                      color: depth >= 4 ? t.textFaint : t.textDim,
+                      cursor: depth >= 4 ? 'not-allowed' : 'pointer'
+                    }}
+                    title="Less detailed"
+                  >
+                    <Plus size={12} />
                   </button>
                 </div>
               </div>
