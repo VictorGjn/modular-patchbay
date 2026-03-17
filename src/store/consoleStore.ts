@@ -416,7 +416,7 @@ export const useConsoleStore = create<ConsoleState>()(
   setChannelDepth: (sourceId: string, depth: number) => {
     set({
       channels: get().channels.map((ch) =>
-        ch.sourceId === sourceId ? { ...ch, depth: Math.max(0, Math.min(4, depth)) } : ch,
+        ch.sourceId === sourceId ? { ...ch, depth: Math.max(10, Math.min(100, depth)) } : ch,
       ),
     });
   },

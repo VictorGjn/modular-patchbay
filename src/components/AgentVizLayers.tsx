@@ -68,7 +68,7 @@ export function AgentVizLayers() {
   const enabledConnectors = useMemo(() => connectors.filter((c) => c.enabled), [connectors]);
 
   const totalTokens = useMemo(() =>
-    activeChannels.reduce((s, c) => s + Math.round(c.baseTokens * (DEPTH_LEVELS[c.depth]?.pct ?? 0.5)), 0),
+    activeChannels.reduce((s, c) => s + Math.round(c.baseTokens * ((c.depth > 4 ? c.depth / 100 : (DEPTH_LEVELS[c.depth]?.pct ?? 0.5)))), 0),
   [activeChannels]);
 
   const budgetMax = agentConfig.maxTokens || 100000;
@@ -77,7 +77,7 @@ export function AgentVizLayers() {
   const tokensByType = useMemo(() => {
     const map: Record<string, number> = {};
     for (const ch of activeChannels) {
-      const tokens = Math.round(ch.baseTokens * (DEPTH_LEVELS[ch.depth]?.pct ?? 0.5));
+      const tokens = Math.round(ch.baseTokens * ((ch.depth > 4 ? ch.depth / 100 : (DEPTH_LEVELS[ch.depth]?.pct ?? 0.5))));
       map[ch.knowledgeType] = (map[ch.knowledgeType] || 0) + tokens;
     }
     return map;
@@ -124,8 +124,8 @@ export function AgentVizLayers() {
             {activeChannels.length === 0 && <span style={{ fontSize: 12, color: t.textFaint }}>No knowledge loaded</span>}
             {[...activeChannels].sort((a, b) => TYPE_ORDER.indexOf(a.knowledgeType) - TYPE_ORDER.indexOf(b.knowledgeType)).map((ch) => {
               const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
-              const pct = (DEPTH_LEVELS[ch.depth]?.pct ?? 0.5) * 100;
-              const tokens = Math.round(ch.baseTokens * (DEPTH_LEVELS[ch.depth]?.pct ?? 0.5));
+              const pct = ((ch.depth > 4 ? ch.depth / 100 : (DEPTH_LEVELS[ch.depth]?.pct ?? 0.5))) * 100;
+              const tokens = Math.round(ch.baseTokens * ((ch.depth > 4 ? ch.depth / 100 : (DEPTH_LEVELS[ch.depth]?.pct ?? 0.5))));
               return (
                 <div key={ch.sourceId} className="flex items-center gap-2">
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: kt.color, flexShrink: 0 }} />

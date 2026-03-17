@@ -2,8 +2,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTheme } from '../../theme';
 import { useConsoleStore } from '../../store/consoleStore';
 import { useTreeIndexStore } from '../../store/treeIndexStore';
-import { DEPTH_LEVELS, KNOWLEDGE_TYPES } from '../../store/knowledgeBase';
-import { FolderGit2, Loader2, Clock, RefreshCw, X, GitBranch, Github, Plus, Minus } from 'lucide-react';
+import { DEPTH_MIN, DEPTH_MAX, DEPTH_STEP, KNOWLEDGE_TYPES } from '../../store/knowledgeBase';
+import { FolderGit2, Loader2, Clock, RefreshCw, X, GitBranch, Github } from 'lucide-react';
 import { API_BASE } from '../../config';
 
 
@@ -38,11 +38,11 @@ export function GitRepoPanel() {
 
   const getChannelTokens = useCallback((ch: typeof channels[number]) => {
     const entry = treeIndexes[ch.path];
+    const fraction = (ch.depth || 100) / 100;
     if (entry) {
-      const depthLevel = DEPTH_LEVELS[ch.depth];
-      return Math.round(entry.index.totalTokens * depthLevel.pct);
+      return Math.round(entry.index.totalTokens * fraction);
     }
-    return ch.baseTokens ?? 0;
+    return Math.round((ch.baseTokens ?? 0) * fraction);
   }, [treeIndexes]);
 
   const handleIndexRepo = useCallback(async () => {
@@ -108,7 +108,7 @@ export function GitRepoPanel() {
             path: filePath,
             category: 'knowledge' as any,
             knowledgeType: 'ground-truth',
-            depth: isGitHub ? 2 : 1,
+            depth: isGitHub ? 50 : 70,
             baseTokens: Math.round(totalTokens / Math.max(json.data.files.length, 1)),
             ...(isOverview && json.data.overviewMarkdown ? { content: json.data.overviewMarkdown } : {}),
             ...(isOverview && scan ? {
@@ -255,13 +255,11 @@ export function GitRepoPanel() {
       {/* Repository list */}
       <div className="space-y-3">
         {channels.map(ch => {
-          const depth = ch.depth ?? 0;
+          const depth = ch.depth || 100;
           const knowledgeType = KNOWLEDGE_TYPES[ch.knowledgeType];
-          const depthLevel = DEPTH_LEVELS[depth];
           const realTokens = getChannelTokens(ch);
           const repoMeta = ch.repoMeta;
           const isIndexed = !!treeIndexes[ch.path];
-          const DEPTH_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#e67e22', '#999'];
           
           return (
             <div key={ch.sourceId} className="p-3 rounded border"
@@ -360,60 +358,36 @@ export function GitRepoPanel() {
                 </div>
               </div>
 
-              {/* Depth control */}
-              <div className="space-y-2 mb-3">
+              {/* Depth control — continuous 10-100% */}
+              <div className="space-y-1 mb-3">
                 <div className="flex items-center justify-between text-[12px]">
                   <span style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
-                    Depth Level
+                    Depth
                   </span>
-                  <span style={{ color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
-                    {depthLevel.label} ({Math.round(depthLevel.pct * 100)}%)
+                  <span style={{ color: '#FE5000', fontFamily: "'Geist Mono', monospace", fontWeight: 600 }}>
+                    {depth}%
                   </span>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <button 
-                    type="button" 
-                    onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
-                    disabled={depth <= 0}
-                    className="p-1 rounded transition-colors"
-                    style={{ 
-                      color: depth <= 0 ? t.textFaint : t.textDim,
-                      cursor: depth <= 0 ? 'not-allowed' : 'pointer'
-                    }}
-                    title="More detailed"
-                  >
-                    <Minus size={12} />
-                  </button>
-
-                  <div className="flex-1 h-2 rounded overflow-hidden" style={{ background: t.isDark ? '#ffffff12' : '#00000012' }}>
-                    {[0, 1, 2, 3, 4].map(level => (
-                      <div
-                        key={level}
-                        className="inline-block h-full border-r border-white/10 last:border-r-0 cursor-pointer transition-colors"
-                        style={{ 
-                          width: '20%',
-                          background: level === depth ? DEPTH_COLORS[level] : 'transparent',
-                        }}
-                        onClick={() => setChannelDepth(ch.sourceId, level)}
-                        title={DEPTH_LEVELS[level].label}
-                      />
-                    ))}
+                  <span className="text-[10px]" style={{ color: t.textFaint }}>10</span>
+                  <div className="flex-1 relative h-2 rounded overflow-hidden" style={{ background: t.isDark ? '#ffffff12' : '#00000012' }}>
+                    <div 
+                      className="absolute left-0 top-0 h-full rounded transition-all"
+                      style={{ width: `${depth}%`, background: '#FE5000' }}
+                    />
+                    <input
+                      type="range"
+                      min={DEPTH_MIN}
+                      max={DEPTH_MAX}
+                      step={DEPTH_STEP}
+                      value={depth}
+                      onChange={e => setChannelDepth(ch.sourceId, Number(e.target.value))}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      aria-label={`Depth level for ${ch.name}: ${depth}%`}
+                    />
                   </div>
-
-                  <button 
-                    type="button" 
-                    onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
-                    disabled={depth >= 4}
-                    className="p-1 rounded transition-colors"
-                    style={{ 
-                      color: depth >= 4 ? t.textFaint : t.textDim,
-                      cursor: depth >= 4 ? 'not-allowed' : 'pointer'
-                    }}
-                    title="Less detailed"
-                  >
-                    <Plus size={12} />
-                  </button>
+                  <span className="text-[10px]" style={{ color: t.textFaint }}>100</span>
                 </div>
               </div>
 

@@ -126,7 +126,7 @@ function KnowledgeBars({ channels }: { channels: { name: string; knowledgeType: 
       {sorted.slice(0, 6).map((ch) => {
         const kt = KNOWLEDGE_TYPES[ch.knowledgeType];
         const pct = DEPTH_BAR_PCT[ch.depth] ?? 50;
-        const tokens = Math.round(ch.baseTokens * (DEPTH_LEVELS[ch.depth]?.pct ?? 0.5));
+        const tokens = Math.round(ch.baseTokens * ((ch.depth > 4 ? ch.depth / 100 : (DEPTH_LEVELS[ch.depth]?.pct ?? 0.5))));
         return (
           <div key={ch.name} className="flex items-center gap-2">
             <span style={{ fontSize: 12, width: 14, textAlign: 'center', flexShrink: 0 }}>{kt.icon}</span>
@@ -218,7 +218,7 @@ export function AgentCard() {
   // Context budget
   const totalTokens = useMemo(() => {
     return channels.filter((c) => c.enabled).reduce((sum, c) => {
-      const pct = DEPTH_LEVELS[c.depth]?.pct ?? 0.5;
+      const pct = (c.depth > 4 ? c.depth / 100 : (DEPTH_LEVELS[c.depth]?.pct ?? 0.5));
       return sum + Math.round(c.baseTokens * pct);
     }, 0);
   }, [channels]);

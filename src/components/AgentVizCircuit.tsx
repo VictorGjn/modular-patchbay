@@ -42,7 +42,7 @@ export function AgentVizCircuit() {
   ];
 
   const totalTokens = useMemo(() =>
-    channels.filter((c) => c.enabled).reduce((s, c) => s + Math.round(c.baseTokens * (DEPTH_LEVELS[c.depth]?.pct ?? 0.5)), 0),
+    channels.filter((c) => c.enabled).reduce((s, c) => s + Math.round(c.baseTokens * ((c.depth > 4 ? c.depth / 100 : (DEPTH_LEVELS[c.depth]?.pct ?? 0.5)))), 0),
   [channels]);
   const budgetPct = Math.min((totalTokens / (agentConfig.maxTokens || 100000)) * 100, 100);
 
