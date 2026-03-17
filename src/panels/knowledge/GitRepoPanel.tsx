@@ -8,6 +8,19 @@ import { API_BASE } from '../../config';
 
 const DETAIL_LABELS = ['Maximum', 'High', 'Normal', 'Low', 'Minimal'] as const;
 
+type GitHubPayload = {
+  url: string;
+  persist: boolean;
+  branch?: string;
+  token?: string;
+};
+
+type LocalRepoPayload = {
+  path: string;
+};
+
+type RepoIndexPayload = GitHubPayload | LocalRepoPayload;
+
 export function GitRepoPanel() {
   const t = useTheme();
   const channels = useConsoleStore(s => s.channels.filter(c => c.path?.includes('.git') || c.contentSourceId));
@@ -39,17 +52,14 @@ export function GitRepoPanel() {
       const isGitHub = /github\.com\//i.test(target) || target.endsWith('.git');
       const endpoint = isGitHub ? `${API_BASE}/repo/index-github` : `${API_BASE}/repo/index`;
       
-      const payload: any = isGitHub 
-        ? { url: target, persist: true } 
+      const payload: RepoIndexPayload = isGitHub 
+        ? { 
+            url: target, 
+            persist: true,
+            ...(branch !== 'main' && { branch }),
+            ...(authToken && { token: authToken })
+          } 
         : { path: target };
-
-      if (branch !== 'main' && isGitHub) {
-        payload.branch = branch;
-      }
-
-      if (authToken && isGitHub) {
-        payload.token = authToken;
-      }
 
       const resp = await fetch(endpoint, {
         method: 'POST',

@@ -81,8 +81,7 @@ export const WorkflowNode = memo(function WorkflowNode() {
 
   const mcpServers = useMcpStore((s) => s.servers);
   const connectedServers = mcpServers.filter(s => s.status === 'connected');
-  const channels = useConsoleStore((s) => s.channels);
-  const skills = useMemo(() => channels.filter(ch => (ch as any).type === 'skill'), [channels]);
+  const skills = useConsoleStore((s) => s.skills.filter(skill => skill.enabled));
 
   const toolOptions = [
     { value: '', label: '-- no tool --' },
