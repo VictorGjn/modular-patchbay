@@ -24,6 +24,8 @@ export function ToolsTab() {
   const loadSkills = useSkillsStore(s => s.loadSkills);
   const toggleSkill = useSkillsStore(s => s.toggleSkill);
   const setShowSkillPicker = useConsoleStore(s => s.setShowSkillPicker);
+  const setShowMarketplace = useConsoleStore(s => s.setShowMarketplace);
+  const consoleSkills = useConsoleStore(s => s.skills);
 
   const [mcpError, setMcpError] = useState<string | null>(null);
 
@@ -34,8 +36,9 @@ export function ToolsTab() {
     }
   }, [skillsLoaded, skillsLoading, loadSkills]);
 
-  // Use useMemo to avoid creating new arrays in render
-  const allSkills = useMemo(() => installedSkills, [installedSkills]);
+  // Only show skills that were explicitly added by the user via SkillPicker
+  const addedSkillIds = useMemo(() => new Set(consoleSkills.filter(s => s.added).map(s => s.id)), [consoleSkills]);
+  const allSkills = useMemo(() => installedSkills.filter(s => addedSkillIds.has(s.id)), [installedSkills, addedSkillIds]);
 
   // Status colors per V2 spec: connected=#22c55e, connecting=#f59e0b, error=#ef4444, disconnected=#6b7280
   const getStatusColor = (server: typeof mcpServers[0]) => {
@@ -246,6 +249,16 @@ export function ToolsTab() {
               <Plus size={16} />
               Add from library
             </button>
+            <button 
+              type="button" 
+              onClick={() => setShowMarketplace(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border transition-colors"
+              style={{ borderColor: t.border, color: t.textSecondary }}
+              onMouseEnter={e => { e.currentTarget.style.background = t.surfaceElevated; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              Marketplace
+            </button>
           </div>
 
           {skillsLoading ? (
@@ -284,6 +297,20 @@ export function ToolsTab() {
                 }}
               >
                 Browse Skills
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMarketplace(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{
+                  background: 'transparent',
+                  color: t.textSecondary,
+                  border: `1px solid ${t.border}`,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = t.surfaceElevated; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                Browse Marketplace
               </button>
             </div>
           ) : (
