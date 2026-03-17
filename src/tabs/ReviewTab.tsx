@@ -14,7 +14,7 @@ import { VersionIndicator } from '../components/VersionIndicator';
 import { Section } from '../components/ds/Section';
 import { OUTPUT_FORMATS } from '../store/knowledgeBase';
 import {
-  Bot, Download, Save, Eye, Copy, Check, ChevronDown,
+  Bot, Download, Save, Eye, Copy, Check, ChevronDown, X,
   User, Shield, Workflow, Settings
 } from 'lucide-react';
 
@@ -70,20 +70,7 @@ const tagStyle = {
   border: '1px solid #FE500030',
 };
 
-const systemPromptPreviewStyle = {
-  padding: '16px',
-  borderRadius: '8px',
-  background: 'var(--bg-preview)',
-  border: '1px solid var(--border)',
-};
 
-const systemPromptTextStyle = {
-  fontSize: '14px',
-  whiteSpace: 'pre-wrap' as const,
-  color: 'var(--text-secondary)',
-  fontFamily: "'Geist Mono', monospace",
-  lineHeight: 1.5,
-};
 
 const exportDropdownStyle = {
   position: 'absolute' as const,
@@ -162,6 +149,113 @@ function ConstraintChipInput({ constraints, onAdd, onRemove }: ConstraintChipInp
   );
 }
 
+interface PromptPreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  prompt: string;
+}
+
+function PromptPreviewModal({ isOpen, onClose, prompt }: PromptPreviewModalProps) {
+  const t = useTheme();
+  const [copyText, setCopyText] = useState('Copy');
+
+  const copySystemPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopyText('Copied!');
+      setTimeout(() => setCopyText('Copy'), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50"
+      style={{
+        background: 'rgba(0, 0, 0, 0.5)',
+        backdropFilter: 'blur(4px)',
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-4xl h-[80vh] m-4 rounded-lg border shadow-lg flex flex-col"
+        style={{
+          background: t.surface,
+          borderColor: t.border,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between p-4 border-b"
+          style={{ borderColor: t.border }}
+        >
+          <h3
+            className="text-lg font-semibold m-0"
+            style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}
+          >
+            System Prompt Preview
+          </h3>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={copySystemPrompt}
+              className="flex items-center gap-2 px-3 py-2 text-sm rounded border"
+              style={{
+                background: 'transparent',
+                color: t.textSecondary,
+                borderColor: t.border,
+              }}
+            >
+              {copyText === 'Copy' ? <Copy size={14} /> : <Check size={14} />}
+              {copyText}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex items-center justify-center w-8 h-8 rounded-md border-none cursor-pointer"
+              style={{
+                background: 'transparent',
+                color: t.textSecondary,
+              }}
+              aria-label="Close modal"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 p-4 overflow-y-auto">
+          <div
+            className="p-4 rounded-lg border h-full"
+            style={{
+              background: t.isDark ? '#0a1929' : '#f8fafc',
+              borderColor: t.border,
+            }}
+          >
+            <pre
+              className="h-full whitespace-pre-wrap"
+              style={{
+                fontSize: '14px',
+                color: t.textSecondary,
+                fontFamily: "'Geist Mono', monospace",
+                lineHeight: 1.5,
+                margin: 0,
+              }}
+            >
+              {prompt || 'No system prompt generated yet. Add persona, constraints, or workflow steps to see the preview.'}
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ReviewTab() {
   const t = useTheme();
   const agentMeta = useConsoleStore(s => s.agentMeta);
@@ -184,11 +278,10 @@ export function ReviewTab() {
   const [constraintsCollapsed, setConstraintsCollapsed] = useState(false);
   const [workflowCollapsed, setWorkflowCollapsed] = useState(false);
   const [outputCollapsed, setOutputCollapsed] = useState(false);
-  const [previewCollapsed, setPreviewCollapsed] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [tagInput, setTagInput] = useState('');
-  const [copyText, setCopyText] = useState('Copy');
   const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [showPromptModal, setShowPromptModal] = useState(false);
 
   const { persona, tone, expertise, constraints, objectives } = instructionState;
 
@@ -279,16 +372,7 @@ export function ReviewTab() {
     });
   };
 
-  const copySystemPrompt = async () => {
-    const prompt = generateSystemPrompt();
-    try {
-      await navigator.clipboard.writeText(prompt);
-      setCopyText('Copied!');
-      setTimeout(() => setCopyText('Copy'), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
+
 
   const collectFullState = useCallback(() => {
     const store = useConsoleStore.getState();
@@ -424,10 +508,64 @@ export function ReviewTab() {
         </p>
       </div>
 
-      {/* Two-column layout - 60/40 split */}
-      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
-        {/* Left column - Identity + Persona + Constraints + Workflow + Model */}
-        <div className="space-y-6">
+      {/* Action Buttons */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setShowPromptModal(true)}
+          className="flex items-center gap-2 px-4 py-2 text-sm rounded border"
+          style={{
+            background: 'transparent',
+            color: t.textSecondary,
+            borderColor: t.border,
+            fontFamily: "'Geist Sans', sans-serif",
+          }}
+        >
+          <Eye size={14} />
+          Prompt Preview
+        </button>
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowExportDropdown(!showExportDropdown)}
+            aria-expanded={showExportDropdown}
+            aria-haspopup="menu"
+            aria-label="Export agent configuration in different formats"
+            style={exportButtonStyle}
+          >
+            <Download size={14} />
+            Export
+            <ChevronDown size={12} />
+          </button>
+
+          {showExportDropdown && (
+            <div role="menu" style={exportDropdownStyle}>
+              {['JSON', 'YAML', 'Markdown', 'Claude format', 'OpenAI format'].map((format) => (
+                <button
+                  key={format}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => handleExportFormat(format)}
+                  aria-label={`Export agent configuration as ${format}`}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: t.textPrimary,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {format}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Single column layout */}
+      <div className="space-y-6">
           {/* Identity */}
           <Section
             icon={User} label="Identity" color="#3498db"
@@ -721,87 +859,6 @@ export function ReviewTab() {
           </Section>
         </div>
 
-        {/* Right column - System Prompt Preview */}
-        <div className="space-y-6">
-          <Section
-            icon={Eye} label="System Prompt Preview" color="#2ecc71"
-            collapsed={previewCollapsed} onToggle={() => setPreviewCollapsed(!previewCollapsed)}
-          >
-            <div className="space-y-3">
-              {/* Copy and Export buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={copySystemPrompt}
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded border"
-                  style={{
-                    background: 'transparent',
-                    color: t.textSecondary,
-                    borderColor: t.border,
-                  }}
-                >
-                  {copyText === 'Copy' ? <Copy size={14} /> : <Check size={14} />}
-                  {copyText}
-                </button>
-
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowExportDropdown(!showExportDropdown)}
-                    aria-expanded={showExportDropdown}
-                    aria-haspopup="menu"
-                    aria-label="Export agent configuration in different formats"
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded border"
-                    style={{
-                      background: 'transparent',
-                      color: t.textSecondary,
-                      borderColor: t.border,
-                    }}
-                  >
-                    <Download size={14} />
-                    Export
-                    <ChevronDown size={12} />
-                  </button>
-
-                  {showExportDropdown && (
-                    <div role="menu" style={exportDropdownStyle}>
-                      {['JSON', 'YAML', 'Markdown', 'Claude format', 'OpenAI format'].map((format) => (
-                        <button
-                          key={format}
-                          type="button"
-                          role="menuitem"
-                          onClick={() => handleExportFormat(format)}
-                          aria-label={`Export agent configuration as ${format}`}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: t.textPrimary,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {format}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* System prompt preview */}
-              <div style={{
-                ...systemPromptPreviewStyle,
-                '--bg-preview': t.isDark ? '#0a1929' : '#f8fafc',
-              } as React.CSSProperties}>
-                <pre style={systemPromptTextStyle}>
-                  {generateSystemPrompt() || 'No system prompt generated yet. Add persona, constraints, or workflow steps to see the preview.'}
-                </pre>
-              </div>
-            </div>
-          </Section>
-        </div>
-      </div>
-
       {/* Actions */}
       <div className="flex gap-4 mt-8">
         <button type="button" onClick={handleExport} style={exportButtonStyle}>
@@ -825,6 +882,13 @@ export function ReviewTab() {
       <div className="mt-4">
         <VersionIndicator />
       </div>
+
+      {/* Prompt Preview Modal */}
+      <PromptPreviewModal
+        isOpen={showPromptModal}
+        onClose={() => setShowPromptModal(false)}
+        prompt={generateSystemPrompt()}
+      />
     </div>
   );
 }

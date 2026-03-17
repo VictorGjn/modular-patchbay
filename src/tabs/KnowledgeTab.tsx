@@ -421,7 +421,7 @@ export function KnowledgeTab() {
                   </Tooltip>
                   {isGithubCompressed && (
                     <span className="text-[12px] px-1 py-0.5 rounded shrink-0"
-                      style={{ fontFamily: "'Geist Mono', monospace", color: '#24292F', background: '#24292F12', border: '1px solid #24292F30' }}
+                      style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary, background: t.isDark ? '#ffffff12' : '#00000012', border: `1px solid ${t.borderSubtle}` }}
                       title="GitHub indexed & compressed context">
                       GH
                     </span>
@@ -623,9 +623,9 @@ export function KnowledgeTab() {
         <div className="space-y-6">
           {/* GitHub compression impact card */}
       {githubCompressedChannels.length > 0 && (
-        <div className="mt-6 px-4 py-3 rounded-lg" style={{ border: `1px solid #24292F30`, background: '#24292F08' }}>
+        <div className="mt-6 px-4 py-3 rounded-lg" style={{ border: `1px solid ${t.borderSubtle}`, background: t.isDark ? '#ffffff08' : '#00000008' }}>
           <div className="flex items-center justify-between">
-            <span className="text-[13px] tracking-[0.1em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: '#24292F' }}>
+            <span className="text-[13px] tracking-[0.1em] uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}>
               GitHub Context Compression
             </span>
             <span className="text-[12px] font-semibold" style={{ color: '#00A86B' }}>

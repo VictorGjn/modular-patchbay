@@ -87,11 +87,12 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
             {/* Version dropdown */}
             {showVersionDropdown && (
               <div
-                className="absolute top-full right-0 mt-1 w-64 rounded-lg border shadow-lg z-50 overflow-hidden"
+                className="absolute top-full right-0 mt-1 w-64 rounded-lg border shadow-lg overflow-hidden"
                 style={{
                   background: t.surface,
                   borderColor: t.border,
                   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  zIndex: 100,
                 }}
               >
                 <div className="p-2 max-h-80 overflow-y-auto">

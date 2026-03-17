@@ -7,7 +7,7 @@ import { Spinner } from '../components/ds/Spinner';
 import { FloatingRunButton } from '../components/ds/FloatingRunButton';
 import {
   FileText, Database, Wrench, Brain, 
-  CheckSquare, Play, Award, Check
+  CheckSquare, Play, Award, Check, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 // Code splitting for heavy components
@@ -344,7 +344,6 @@ export function WizardLayout() {
         tabIndex={0}
         className="flex-1 overflow-y-auto focus:outline-none"
         data-skip-target
-        style={{ paddingBottom: '80px' }} // Space for sticky footer
       >
         <div className="max-w-4xl mx-auto px-8 py-6">
           <Suspense fallback={<LoadingFallback />}>
@@ -357,52 +356,82 @@ export function WizardLayout() {
         </div>
       </div>
 
-      {/* Sticky Footer with Navigation Buttons */}
-      <div 
-        className="sticky bottom-0 border-t shrink-0 bg-opacity-95 backdrop-blur-sm"
-        style={{ 
-          background: `${t.surface}F2`, // 95% opacity
-          borderColor: t.border,
-          backdropFilter: 'blur(8px)',
-        }}
-      >
-        <div className="max-w-4xl mx-auto px-8 py-4">
-          <div className="flex justify-between">
-            <button
-              type="button"
-              onClick={handlePrev}
-              disabled={activeIndex === 0}
-              aria-label={`Go to previous step: ${activeIndex > 0 ? TABS[activeIndex - 1].label : 'none'}`}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-none cursor-pointer min-h-[44px] transition-opacity"
-              style={{
-                background: activeIndex === 0 ? 'transparent' : t.surfaceElevated,
-                color: activeIndex === 0 ? t.textFaint : t.textPrimary,
-                border: `1px solid ${activeIndex === 0 ? 'transparent' : t.border}`,
-                opacity: activeIndex === 0 ? 0.5 : 1,
-                cursor: activeIndex === 0 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              Previous
-            </button>
-            
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={activeIndex === TABS.length - 1}
-              aria-label={`Go to next step: ${activeIndex < TABS.length - 1 ? TABS[activeIndex + 1].label : 'none'}`}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-none cursor-pointer min-h-[44px] transition-opacity"
-              style={{
-                background: activeIndex === TABS.length - 1 ? 'transparent' : '#FE5000',
-                color: activeIndex === TABS.length - 1 ? t.textFaint : '#fff',
-                opacity: activeIndex === TABS.length - 1 ? 0.5 : 1,
-                cursor: activeIndex === TABS.length - 1 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Edge Navigation Arrows */}
+      {activeIndex > 0 && (
+        <button
+          type="button"
+          onClick={handlePrev}
+          aria-label={`Go to previous step: ${TABS[activeIndex - 1].label}`}
+          className="fixed flex items-center justify-center w-10 h-10 rounded-full border-none cursor-pointer transition-all duration-200"
+          style={{
+            position: 'fixed',
+            left: '16px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 30,
+            background: t.isDark ? `${t.surface}CC` : `${t.surface}CC`, // 80% opacity
+            color: t.textPrimary,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = t.isDark ? `${t.surface}E6` : `${t.surface}E6`; // 90% opacity
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = t.isDark ? `${t.surface}CC` : `${t.surface}CC`; // 80% opacity
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+          }}
+          onFocus={e => {
+            e.currentTarget.style.background = t.isDark ? `${t.surface}E6` : `${t.surface}E6`; // 90% opacity
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
+          }}
+          onBlur={e => {
+            e.currentTarget.style.background = t.isDark ? `${t.surface}CC` : `${t.surface}CC`; // 80% opacity
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+          }}
+          title={`Previous: ${TABS[activeIndex - 1].label}`}
+        >
+          <ChevronLeft size={20} />
+        </button>
+      )}
+
+      {activeIndex < TABS.length - 1 && (
+        <button
+          type="button"
+          onClick={handleNext}
+          aria-label={`Go to next step: ${TABS[activeIndex + 1].label}`}
+          className="fixed flex items-center justify-center w-10 h-10 rounded-full border-none cursor-pointer transition-all duration-200"
+          style={{
+            position: 'fixed',
+            right: '16px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 30,
+            background: t.isDark ? `${t.surface}CC` : `${t.surface}CC`, // 80% opacity
+            color: t.textPrimary,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = t.isDark ? `${t.surface}E6` : `${t.surface}E6`; // 90% opacity
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = t.isDark ? `${t.surface}CC` : `${t.surface}CC`; // 80% opacity
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+          }}
+          onFocus={e => {
+            e.currentTarget.style.background = t.isDark ? `${t.surface}E6` : `${t.surface}E6`; // 90% opacity
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
+          }}
+          onBlur={e => {
+            e.currentTarget.style.background = t.isDark ? `${t.surface}CC` : `${t.surface}CC`; // 80% opacity
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+          }}
+          title={`Next: ${TABS[activeIndex + 1].label}`}
+        >
+          <ChevronRight size={20} />
+        </button>
+      )}
 
       {/* Floating Action Button */}
       <FloatingRunButton 

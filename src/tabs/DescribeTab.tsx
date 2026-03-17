@@ -254,6 +254,18 @@ export function DescribeTab({ onValidationChange, onNavigateToTest }: DescribeTa
                   e.currentTarget.style.borderColor = t.border;
                 }
               }}
+              onFocus={e => {
+                if (selectedTemplate !== template.label) {
+                  e.currentTarget.style.background = '#FE500008';
+                  e.currentTarget.style.borderColor = '#FE500050';
+                }
+              }}
+              onBlur={e => {
+                if (selectedTemplate !== template.label) {
+                  e.currentTarget.style.background = t.surfaceElevated;
+                  e.currentTarget.style.borderColor = t.border;
+                }
+              }}
             >
               <div className="font-semibold mb-1" style={templateLabelStyles}>
                 {template.label}
@@ -291,6 +303,12 @@ export function DescribeTab({ onValidationChange, onNavigateToTest }: DescribeTa
                 e.currentTarget.style.background = '#E54800';
               }}
               onMouseLeave={e => {
+                e.currentTarget.style.background = '#FE5000';
+              }}
+              onFocus={e => {
+                e.currentTarget.style.background = '#E54800';
+              }}
+              onBlur={e => {
                 e.currentTarget.style.background = '#FE5000';
               }}
             >
