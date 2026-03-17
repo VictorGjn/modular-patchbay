@@ -9,4 +9,15 @@ export default defineConfig({
       '/api': 'http://localhost:4800',
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'markdown': ['react-markdown', 'remark-gfm'],
+          'icons': ['lucide-react'],
+          'stores': ['zustand'],
+        },
+      },
+    },
+  },
 })
