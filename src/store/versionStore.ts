@@ -438,7 +438,11 @@ export const useVersionStore = create<VersionState>((set, get) => ({
     const changes = detectChanges(prev, next);
     if (changes.length === 0) return;
 
-    set({ dirty: true, saveStatus: 'unsaved' });
+    // Only update if values actually changed to prevent unnecessary re-renders
+    const current = get();
+    if (!current.dirty || current.saveStatus !== 'unsaved') {
+      set({ dirty: true, saveStatus: 'unsaved' });
+    }
 
     if (!get().autoVersion) return;
 

@@ -31,6 +31,7 @@ export function ReviewTab() {
   const tokenBudget = useConsoleStore(s => s.tokenBudget);
   const mcpServers = useConsoleStore(s => s.mcpServers);
   const skills = useConsoleStore(s => s.skills);
+  // saveStatus is read by ExportActions — use a shallow selector to prevent re-render cascades
   const saveStatus = useVersionStore(s => s.saveStatus);
 
   // Local state for collapsible sections
