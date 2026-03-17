@@ -404,6 +404,8 @@ export function KnowledgeTab() {
                   <button type="button" onClick={() => setExpandedChannel(isExpanded ? null : ch.sourceId)}
                     className="flex-1 truncate text-[13px] text-left border-none bg-transparent cursor-pointer p-0"
                     title={ch.name}
+                    aria-label={`${isExpanded ? 'Collapse' : 'Expand'} details for ${ch.name}`}
+                    aria-expanded={isExpanded}
                     style={{ color: ch.enabled ? t.textPrimary : t.textDim, lineHeight: 1.2 }}>
                     {ch.name}
                   </button>

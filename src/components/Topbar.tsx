@@ -69,6 +69,9 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
             <button
               type="button"
               onClick={() => setShowVersionDropdown(!showVersionDropdown)}
+              aria-expanded={showVersionDropdown}
+              aria-haspopup="menu"
+              aria-label={`Version ${currentVersion} dropdown menu`}
               className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer border-none text-[13px] font-semibold"
               style={{
                 background: t.surfaceElevated,
