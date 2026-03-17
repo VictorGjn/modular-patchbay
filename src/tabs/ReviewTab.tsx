@@ -14,6 +14,7 @@ import { ObjectivesSection } from '../panels/review/ObjectivesSection';
 import { WorkflowSection } from '../panels/review/WorkflowSection';
 import { OutputConfigSection } from '../panels/review/OutputConfigSection';
 import { ExportActions } from '../panels/review/ExportActions';
+import { FactInsightsSection } from '../panels/review/FactInsightsSection';
 import { PromptPreviewModal } from '../panels/review/PromptPreviewModal';
 
 export function ReviewTab() {
@@ -266,6 +267,9 @@ export function ReviewTab() {
           onToggle={() => setOutputCollapsed(!outputCollapsed)}
         />
       </div>
+
+      {/* Fact Insights — analyze accumulated facts and promote to agent design */}
+      <FactInsightsSection />
 
       {/* Version indicator */}
       <div className="mt-4">
