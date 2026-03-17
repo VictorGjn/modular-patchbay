@@ -3,7 +3,8 @@ import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMemoryStore } from '../store/memoryStore';
 import { TextArea } from '../components/ds/TextArea';
-import { Lightbulb, ArrowRight } from 'lucide-react';
+import { generateFullAgent, type GeneratedAgentConfig, type KnowledgeGap } from '../utils/generateAgent';
+import { Lightbulb, ArrowRight, Sparkles, Loader2, Check } from 'lucide-react';
 
 const QUICK_TEMPLATES = [
   {
@@ -82,17 +83,26 @@ const MIN_CHARACTERS = 20;
 interface DescribeTabProps {
   onValidationChange?: (isValid: boolean) => void;
   onNavigateToTest?: () => void;
+  onNavigateToNext?: () => void;
 }
 
-export function DescribeTab({ onValidationChange, onNavigateToTest }: DescribeTabProps) {
+export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateToNext }: DescribeTabProps) {
   const t = useTheme();
   const prompt = useConsoleStore(s => s.prompt);
   const setPrompt = useConsoleStore(s => s.setPrompt);
   const updateInstruction = useConsoleStore(s => s.updateInstruction);
+  const hydrateFromGenerated = useConsoleStore(s => s.hydrateFromGenerated);
+  const setKnowledgeGaps = useConsoleStore(s => s.setKnowledgeGaps);
+  const channels = useConsoleStore(s => s.channels);
+  const mcpServers = useConsoleStore(s => s.mcpServers);
+  const skills = useConsoleStore(s => s.skills);
   const setSessionConfig = useMemoryStore(s => s.setSessionConfig);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [generationSuccess, setGenerationSuccess] = useState<GeneratedAgentConfig | null>(null);
   const debounceRef = useRef<NodeJS.Timeout>(undefined);
   const radioGroupRef = useRef<HTMLDivElement>(null);
 
@@ -206,6 +216,39 @@ export function DescribeTab({ onValidationChange, onNavigateToTest }: DescribeTa
 
   const handleValidationTrigger = () => {
     setShowValidation(true);
+  };
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) {
+      setValidationError('Please enter a description before generating');
+      setShowValidation(true);
+      return;
+    }
+
+    setGenerating(true);
+    setGenerationError(null);
+    setGenerationSuccess(null);
+
+    try {
+      const config = await generateFullAgent(prompt, mcpServers, skills, channels);
+      
+      // Store knowledge gaps
+      setKnowledgeGaps(config.knowledgeGaps || []);
+      
+      // Hydrate all stores
+      hydrateFromGenerated(config);
+      
+      setGenerationSuccess(config);
+      
+      // Auto-advance to next tab after 2 seconds
+      setTimeout(() => {
+        onNavigateToNext?.();
+      }, 2000);
+    } catch (error) {
+      setGenerationError(error instanceof Error ? error.message : 'Generation failed');
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -352,6 +395,79 @@ export function DescribeTab({ onValidationChange, onNavigateToTest }: DescribeTa
             {prompt.length} / {CHARACTER_LIMIT}
           </div>
         </div>
+
+        {/* Generate Agent Button */}
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={generating || !prompt.trim()}
+            className="flex items-center gap-3 px-8 py-4 rounded-lg transition-colors font-semibold text-base"
+            style={{
+              background: generating || !prompt.trim() ? '#CC4000' : '#FE5000',
+              color: '#FFFFFF',
+              border: 'none',
+              fontFamily: "'Geist Sans', sans-serif",
+              opacity: generating || !prompt.trim() ? 0.6 : 1,
+              cursor: generating || !prompt.trim() ? 'default' : 'pointer',
+            }}
+            onMouseEnter={e => {
+              if (!generating && prompt.trim()) {
+                e.currentTarget.style.background = '#E54800';
+              }
+            }}
+            onMouseLeave={e => {
+              if (!generating && prompt.trim()) {
+                e.currentTarget.style.background = '#FE5000';
+              }
+            }}
+          >
+            {generating ? (
+              <>
+                <Loader2 size={20} className="animate-spin motion-reduce:animate-none" />
+                Generating Agent...
+              </>
+            ) : generationSuccess ? (
+              <>
+                <Check size={20} />
+                Agent Generated!
+              </>
+            ) : (
+              <>
+                <Sparkles size={20} />
+                Generate Agent
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Generation Status */}
+        {generationError && (
+          <div className="mt-3 p-3 rounded" style={{ background: '#fee2e2', border: '1px solid #fecaca' }}>
+            <div className="text-sm text-red-700">
+              {generationError}
+            </div>
+          </div>
+        )}
+
+        {generationSuccess && (
+          <div className="mt-3 p-4 rounded" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+            <div className="text-sm text-green-800">
+              <div className="font-semibold mb-2">✅ Agent "{generationSuccess.agentMeta.name}" generated successfully!</div>
+              <div className="space-y-1 text-xs">
+                <div>• {generationSuccess.workflowSteps?.length || 0} workflow steps configured</div>
+                <div>• {generationSuccess.skillIds?.length || 0} skills selected</div>
+                <div>• {generationSuccess.mcpServerIds?.length || 0} MCP tools configured</div>
+                {generationSuccess.knowledgeGaps && generationSuccess.knowledgeGaps.length > 0 && (
+                  <div>• {generationSuccess.knowledgeGaps.length} knowledge gap{generationSuccess.knowledgeGaps.length !== 1 ? 's' : ''} identified</div>
+                )}
+              </div>
+              <div className="mt-2 text-xs text-green-600">
+                Advancing to next tab...
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tips */}
