@@ -113,8 +113,8 @@ function SourceAssemblyStage({ data, expanded, onToggle }: {
               key={idx}
               className="flex items-center gap-3 p-3 rounded-lg"
               style={{ 
-                background: source.included ? t.surface : t.surfaceDim,
-                border: `1px solid ${source.included ? t.border : t.borderDim}`
+                background: source.included ? t.surface : t.surfaceElevated,
+                border: `1px solid ${source.included ? t.border : t.borderSubtle}`
               }}
             >
               <div className={`w-2 h-2 rounded-full ${source.included ? 'bg-green-500' : 'bg-gray-400'}`} />
@@ -187,7 +187,7 @@ function BudgetAllocationStage({ data, expanded, onToggle }: {
                     {allocation.usedTokens.toLocaleString()}/{allocation.allocatedTokens.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex gap-1 h-2 rounded" style={{ background: t.surfaceDim }}>
+                <div className="flex gap-1 h-2 rounded" style={{ background: t.surfaceElevated }}>
                   <div 
                     className="h-full rounded"
                     style={{ 
@@ -475,7 +475,7 @@ function ProvenanceStage({ data, expanded, onToggle }: {
                             <span>→</span>
                             <span>{transform.output}</span>
                             <span className="ml-auto text-xs px-1 py-0.5 rounded" style={{
-                              background: t.surfaceDim,
+                              background: t.surfaceElevated,
                               color: t.textDim
                             }}>
                               {transform.method}

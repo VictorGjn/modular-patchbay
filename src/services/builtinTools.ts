@@ -18,11 +18,7 @@ export interface BuiltinTool {
   execute: (args: Record<string, unknown>) => Promise<string>;
 }
 
-interface RepoScanData {
-  totalTokens?: number;
-  totalFiles?: number;
-  baseUrl?: string;
-}
+
 
 interface GitHubRepoResponse {
   status: string;
@@ -51,25 +47,10 @@ interface LocalRepoResponse {
     files: string[];
     totalTokens?: number;
   };
+  error?: string;
 }
 
-interface ScanDirectoryResponse {
-  status: string;
-  data?: {
-    outputDir: string;
-    files: string[];
-    totalFiles: number;
-    totalTokens: number;
-  };
-}
 
-interface KnowledgeFileResponse {
-  status: string;
-  data?: {
-    tokens: number;
-    name: string;
-  };
-}
 
 /**
  * Index a GitHub repository and make its code available as knowledge context.
@@ -149,7 +130,7 @@ async function indexGitHubRepo(args: Record<string, unknown>): Promise<string> {
       channelsAdded++;
     }
 
-    return `Successfully indexed GitHub repository "${extractRepoName(url as string)}". Added ${channelsAdded} knowledge sources:\n` +
+    return `Successfully indexed GitHub repository "${extractRepoName(url)}". Added ${channelsAdded} knowledge sources:\n` +
            data.files.map(f => `- ${f.replace('.compressed.md', '').replace('.md', '').replace(/^\d+-/, '')}`).join('\n') +
            `\n\nRepository stats: ${scan?.totalFiles ?? data.files.length} files, ${normalizedStack.length} tech stack items, ${totalTokens} tokens`;
   } catch (error) {
@@ -179,15 +160,7 @@ async function indexLocalRepo(args: Record<string, unknown>): Promise<string> {
       throw new Error(`Failed to index local repo: ${response.status} ${errorText}`);
     }
 
-    const json = await response.json() as {
-      status: string;
-      data?: {
-        outputDir: string;
-        files: string[];
-        totalTokens?: number;
-      };
-      error?: string;
-    };
+    const json = await response.json() as LocalRepoResponse;
 
     if (json.status !== 'ok' || !json.data) {
       throw new Error(json.error || 'Indexing failed');
