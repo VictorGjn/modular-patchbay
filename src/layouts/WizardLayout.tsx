@@ -3,10 +3,6 @@ import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMemoryStore } from '../store/memoryStore';
 import { DescribeTab } from '../tabs/DescribeTab';
-import { KnowledgeTab } from '../tabs/KnowledgeTab';
-import { ToolsTab } from '../tabs/ToolsTab';
-import { MemoryTab } from '../tabs/MemoryTab';
-import { ReviewTab } from '../tabs/ReviewTab';
 import { Spinner } from '../components/ds/Spinner';
 import { FloatingRunButton } from '../components/ds/FloatingRunButton';
 import {
@@ -17,6 +13,10 @@ import {
 // Code splitting for heavy components
 const TestTab = lazy(() => import('../tabs/TestTab').then(module => ({ default: module.TestTab })));
 const QualificationTab = lazy(() => import('../tabs/QualificationTab').then(module => ({ default: module.QualificationTab })));
+const KnowledgeTab = lazy(() => import('../tabs/KnowledgeTab').then(module => ({ default: module.KnowledgeTab })));
+const ToolsTab = lazy(() => import('../tabs/ToolsTab').then(module => ({ default: module.ToolsTab })));
+const MemoryTab = lazy(() => import('../tabs/MemoryTab').then(module => ({ default: module.MemoryTab })));
+const ReviewTab = lazy(() => import('../tabs/ReviewTab').then(module => ({ default: module.ReviewTab })));
 
 const TABS = [
   { id: 'describe', label: 'Describe', icon: FileText, component: DescribeTab },

@@ -1,10 +1,10 @@
 import { type ChannelConfig, KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
 import { useMcpStore, type McpTool } from '../store/mcpStore';
-import { useConsoleStore } from '../store/consoleStore';
-import { compileWorkflow } from '../nodes/WorkflowNode';
+import type { InstructionState, WorkflowStep, AgentMeta } from '../types/console.types';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { applyDepthFilter, renderFilteredMarkdown } from '../utils/depthFilter';
 import { type TreeNode } from './treeIndexer';
+import { compileWorkflow } from '../utils/workflowCompiler';
 
 export interface AssembledMessage {
   role: 'system' | 'user';
@@ -35,15 +35,29 @@ export function assembleContext(
   channels: ChannelConfig[],
   prompt: string,
   agentConfig?: { name?: string; description?: string },
+  // Accept these as parameters to avoid circular dependency
+  instructionState?: InstructionState,
+  workflowSteps?: WorkflowStep[],
+  agentMeta?: AgentMeta,
 ): AssembledMessage[] {
   const messages: AssembledMessage[] = [];
   const activeChannels = channels.filter((ch) => ch.enabled);
 
-  // Get additional context from console store
-  const consoleState = useConsoleStore.getState();
-  const instructionState = consoleState.instructionState;
-  const workflowSteps = consoleState.workflowSteps;
-  const agentMeta = consoleState.agentMeta;
+  // If not provided, get additional context from console store using dynamic import
+  let consoleState: any;
+  if (!instructionState || !workflowSteps || !agentMeta) {
+    // Dynamic import to break circular dependency
+    consoleState = (globalThis as any).__consoleStore?.getState?.();
+  }
+  
+  const finalInstructionState = instructionState || consoleState?.instructionState || {
+    persona: '', tone: 'neutral' as const, expertise: 3,
+    constraints: { neverMakeUp: false, askBeforeActions: false, stayInScope: false, useOnlyTools: false, limitWords: false, wordLimit: 500, customConstraints: '', scopeDefinition: '' },
+    objectives: { primary: '', successCriteria: [], failureModes: [] },
+    rawPrompt: '', autoSync: true
+  };
+  const finalWorkflowSteps = workflowSteps || consoleState?.workflowSteps || [];
+  const finalAgentMeta = agentMeta || consoleState?.agentMeta || { name: '', description: '', icon: 'brain', category: 'general', tags: [], avatar: 'bot' };
 
   // Build comprehensive system prompt with XML tags
   const systemParts: string[] = [];

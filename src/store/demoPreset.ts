@@ -1,4 +1,4 @@
-import type { AgentMeta, InstructionState, WorkflowStep } from './consoleStore';
+import type { AgentMeta, InstructionState, WorkflowStep } from '../types/console.types';
 import type { ChannelConfig } from './knowledgeBase';
 import type { Skill, McpServer } from './knowledgeBase';
 

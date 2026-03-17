@@ -1,10 +1,6 @@
 // Marketplace registry — curated skills, MCP servers, and presets
 import { MCP_REGISTRY, type McpRegistryEntry } from './mcp-registry';
-
-export type MarketplaceCategory = 'all' | 'research' | 'coding' | 'data' | 'design' | 'writing' | 'domain';
-export type McpTransport = 'stdio' | 'sse' | 'streamable-http';
-export type Runtime = 'claude' | 'amp' | 'codex' | 'openai' | 'gemini';
-export type InstallScope = 'global' | 'project';
+import type { MarketplaceCategory, McpTransport, Runtime, InstallScope, ConfigField } from '../types/registry.types';
 
 export interface RegistrySkill {
   id: string;
@@ -21,13 +17,7 @@ export interface RegistrySkill {
   installedScope?: InstallScope;
 }
 
-export interface ConfigField {
-  key: string;
-  label: string;
-  type: 'text' | 'password' | 'url';
-  placeholder: string;
-  required: boolean;
-}
+
 
 export interface RegistryMcp {
   id: string;
