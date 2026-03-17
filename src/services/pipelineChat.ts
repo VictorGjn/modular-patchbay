@@ -96,11 +96,20 @@ export interface ResolvedProvider {
  * Centralises the logic so ConversationTester and TestPanel behave identically.
  */
 export function resolveProviderAndModel(): ResolvedProvider {
-  const { agentConfig } = useConsoleStore.getState();
-  const { selectedProviderId, providers } = useProviderStore.getState();
+  const { selectedModel, agentConfig } = useConsoleStore.getState();
+  const { providers } = useProviderStore.getState();
 
-  const selected = providers.find((p: any) => p.id === selectedProviderId);
-  const models = Array.isArray(selected?.models) ? selected!.models : [];
+  // selectedModel may be "providerId::modelId" format from the dynamic selector
+  const colonIdx = selectedModel.indexOf('::');
+  const hasPrefix = colonIdx > 0;
+  const targetProviderId = hasPrefix ? selectedModel.slice(0, colonIdx) : '';
+  const targetModelId = hasPrefix ? selectedModel.slice(colonIdx + 2) : (selectedModel || agentConfig.model);
+
+  // Find the provider — prefer the one from selectedModel prefix, fallback to selectedProviderId
+  const { selectedProviderId } = useProviderStore.getState();
+  const providerIdToUse = targetProviderId || selectedProviderId;
+  const selected = providers.find((p) => p.id === providerIdToUse);
+  const models = Array.isArray(selected?.models) ? selected.models : [];
 
   if (!selected || (selected.status !== 'connected' && selected.status !== 'configured') || models.length === 0) {
     return {
@@ -110,10 +119,11 @@ export function resolveProviderAndModel(): ResolvedProvider {
     };
   }
 
-  const hasCurrentModel = models.some((m: any) => m.id === agentConfig.model);
+  // Check if target model exists in this provider's models
+  const hasTarget = models.some((m) => m.id === targetModelId);
   return {
     providerId: selected.id,
-    model: hasCurrentModel ? agentConfig.model : models[0].id,
+    model: hasTarget ? targetModelId : models[0].id,
   };
 }
 

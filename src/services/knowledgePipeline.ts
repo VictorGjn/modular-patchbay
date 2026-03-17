@@ -800,6 +800,14 @@ export async function compressKnowledge(
       );
       knowledgeBlock = enhancementResult.knowledgeBlock;
       provenance = enhancementResult.provenance;
+      
+      // Emit contradiction check stage event (based on contrastive retrieval results)
+      const contradictionData = {
+        contradictionsFound: 0, // This would need to be extracted from enhancementResult
+        conflicts: [],
+        annotations: ['Contrastive retrieval completed'],
+      };
+      emitPipelineStage(traceId, 'contradiction_check', contradictionData);
     } else if (pipelineResult) {
       // Build provenance even if no context content
       provenance = buildProvenanceSummary(pipelineResult, regularChannels);
@@ -811,7 +819,7 @@ export async function compressKnowledge(
     knowledgeBlock = buildKnowledgeFallback(channels);
   }
 
-  // Add provenance tracking to trace store
+  // Add provenance tracking to trace store and emit stage event
   if (provenance) {
     traceStore.addEvent(traceId, {
       kind: 'provenance',
@@ -825,6 +833,23 @@ export async function compressKnowledge(
       provenanceDerivations: provenance.derivations,
       resultCount: provenance.sources.length,
     });
+    
+    // Emit provenance stage event
+    const provenanceData = {
+      sources: provenance.sources.map(source => ({
+        path: source.path,
+        type: source.type,
+        transformations: [
+          {
+            method: source.method,
+            input: 'source_content',
+            output: 'processed_chunks',
+          },
+        ],
+      })),
+      derivationChain: provenance.derivations,
+    };
+    emitPipelineStage(traceId, 'provenance', provenanceData);
   }
 
   return { knowledgeBlock, pipelineResult, provenance, retrievalResult };

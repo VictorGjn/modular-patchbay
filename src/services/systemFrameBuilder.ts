@@ -8,7 +8,7 @@ import { useMcpStore, type McpTool } from '../store/mcpStore';
 import { compileWorkflow } from '../nodes/WorkflowNode';
 import type { ChannelConfig } from '../store/knowledgeBase';
 import type { ProvenanceSummary } from '../types/provenance';
-import type { WorkflowStep } from '../types/console.types';
+
 
 /**
  * Builds a provenance section for the system prompt when provenance data is available

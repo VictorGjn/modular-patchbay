@@ -246,7 +246,7 @@ export function completePipeline(
     // Budget allocation stage
     const budgetAllocationData = {
       totalBudget: options.tokenBudget,
-      allocations: indexes.map((index, i) => ({
+      allocations: indexes.map((index) => ({
         source: index.source,
         allocatedTokens: Math.round(options.tokenBudget / indexes.length),
         usedTokens: finalTokens / indexes.length,
