@@ -3,7 +3,7 @@ import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMemoryStore } from '../store/memoryStore';
 import { useConversationStore } from '../store/conversationStore';
-import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
+import { exportAsAgent, downloadAgentFile, exportForTarget, exportGenericJSON, exportAsYAML } from '../utils/agentExport';
 import { Input } from '../components/ds/Input';
 import { TextArea } from '../components/ds/TextArea';
 import { Toggle } from '../components/ds/Toggle';
@@ -290,10 +290,91 @@ export function ReviewTab() {
     }
   };
 
-  const handleExportFormat = (format: string) => {
-    console.log(`Export as ${format}`);
+  const collectFullState = useCallback(() => {
+    const store = useConsoleStore.getState();
+    const convStore = useConversationStore.getState();
+    const memStore = useMemoryStore.getState();
+
+    const knowledgeContent = channels
+      .filter((ch) => ch.enabled)
+      .map((ch) => ({
+        sourceId: ch.sourceId,
+        name: ch.name,
+        path: ch.path,
+        knowledgeType: ch.knowledgeType,
+        depth: ch.depth,
+        tokens: ch.baseTokens,
+        content: ch.content,
+      }));
+
+    const pipelineResult = convStore.lastPipelineStats?.pipeline;
+    const pipelineSnapshot = pipelineResult
+      ? {
+          context: pipelineResult.context,
+          tokens: pipelineResult.tokens,
+          utilization: pipelineResult.utilization,
+          sources: pipelineResult.sources.map((s) => ({ name: s.name, type: s.type, totalTokens: s.totalTokens })),
+          compression: {
+            originalTokens: pipelineResult.compression.originalTokens,
+            compressedTokens: pipelineResult.compression.compressedTokens,
+            ratio: pipelineResult.compression.ratio,
+          },
+          timing: { totalMs: pipelineResult.timing.totalMs },
+        }
+      : undefined;
+
+    const facts = memStore.facts.map((f) => ({ id: f.id, text: f.content, domain: f.domain }));
+
+    return {
+      channels, 
+      selectedModel, 
+      outputFormat, 
+      outputFormats, 
+      prompt, 
+      tokenBudget, 
+      mcpServers, 
+      skills, 
+      agentMeta,
+      agentConfig: store.agentConfig,
+      connectors: store.connectors,
+      instructionState: store.instructionState,
+      workflowSteps: store.workflowSteps,
+      knowledgeContent,
+      pipelineSnapshot,
+      facts: facts.length > 0 ? facts : undefined,
+    };
+  }, [channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta, workflowSteps]);
+
+  const handleExportFormat = useCallback((format: string) => {
+    const config = collectFullState();
+    const agentName = config.agentMeta.name || 'modular-agent';
+    
+    switch (format) {
+      case 'JSON': {
+        const content = exportGenericJSON(config);
+        downloadAgentFile(content, agentName, '.json');
+        break;
+      }
+      case 'YAML': {
+        const content = exportAsYAML(config);
+        downloadAgentFile(content, agentName, '.yaml');
+        break;
+      }
+      case 'Markdown':
+      case 'Claude format': {
+        const content = exportForTarget('claude', config);
+        downloadAgentFile(content, agentName, '.md');
+        break;
+      }
+      case 'OpenAI format': {
+        const content = exportForTarget('codex', config);
+        downloadAgentFile(content, agentName, '.json');
+        break;
+      }
+    }
+    
     setShowExportDropdown(false);
-  };
+  }, [collectFullState]);
 
   // Generate system prompt preview
   const generateSystemPrompt = () => {

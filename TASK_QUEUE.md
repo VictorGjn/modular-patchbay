@@ -83,7 +83,7 @@
 - **Gate:** All 10 checks pass
 
 ## Task 9: Export handlers ReviewTab
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 02:55
 - **What:** In src/tabs/ReviewTab.tsx, wire export dropdown handlers to real functions from src/utils/agentExport.ts (exportForTarget, downloadAgentFile). JSON export: collectFullState() → JSON.stringify → download. YAML: use agentExportYaml. Markdown: use exportForTarget('claude-code'). Claude/OpenAI formats: use exportForTarget with appropriate target.
 - **Gate:** TSC + BUILD
 
