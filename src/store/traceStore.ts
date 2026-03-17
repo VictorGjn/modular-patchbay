@@ -12,7 +12,8 @@ export type TraceEventKind =
   | 'memory_recall'   // Memory pre-recall: facts injected into context
   | 'memory_write'    // Memory post-write: facts extracted from response
   | 'handoff'         // Cross-agent handoff
-  | 'provenance';     // Provenance chain tracking
+  | 'provenance'      // Provenance chain tracking
+  | 'pipeline_stage'; // Pipeline observability stages
 
 export interface TraceEvent {
   id: string;
@@ -75,6 +76,14 @@ export interface TraceEvent {
     resolvedTo: string;
     reason: string;
     confidence: number;
+  }>;
+
+  // Pipeline stages
+  provenanceStages?: Array<{
+    stage: 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance';
+    timestamp: number;
+    durationMs?: number;
+    data: any;
   }>;
 }
 

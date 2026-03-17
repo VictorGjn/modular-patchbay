@@ -23,6 +23,7 @@ import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
 import { CapabilityGate } from '../components/CapabilityGate';
 import { RuntimeResults } from './RuntimePanel';
 import { PipelineTraceView } from '../components/PipelineTraceView';
+import { PipelineObservabilityPanel } from './PipelineObservabilityPanel';
 import { API_BASE } from '../config';
 import { runTeam as runTeamService, type RunTeamConfig } from '../services/runtimeService';
 import { useRuntimeStore } from '../store/runtimeStore';
@@ -33,7 +34,10 @@ import { buildOrientationBlock, assemblePipelineContext } from '../services/cont
 import { preRecall } from '../services/memoryPipeline';
 
 /* ── Pipeline Stats Bar ── */
-function PipelineStatsBar() {
+function PipelineStatsBar({ showObservability, setShowObservability }: {
+  showObservability: boolean;
+  setShowObservability: (show: boolean) => void;
+}) {
   const t = useTheme();
   const stats = useConversationStore(s => s.lastPipelineStats);
   const [expanded, setExpanded] = useState(false);
@@ -145,7 +149,23 @@ function PipelineStatsBar() {
             <span title="Pipeline processing time">{p.timing.totalMs}ms</span>
           </>
         )}
-        <ChevronDown size={8} className="ml-auto" style={{ transform: expanded ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms' }} />
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowObservability(!showObservability);
+          }}
+          className="px-2 py-1 rounded text-xs border-none cursor-pointer"
+          style={{
+            background: showObservability ? '#FE5000' : 'transparent',
+            color: showObservability ? '#fff' : t.textDim,
+            fontFamily: "'Geist Mono', monospace",
+          }}
+          title="Toggle Pipeline Observability"
+        >
+          {showObservability ? 'Hide Pipeline' : 'Show Pipeline'}
+        </button>
+        <ChevronDown size={8} style={{ transform: expanded ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms' }} />
       </button>
 
       {/* Pipeline Trace View or Depth Heatmap */}
@@ -221,6 +241,7 @@ function ChatSection() {
   const updateLastAssistant = useConversationStore(s => s.updateLastAssistant);
   const setLastPipelineStats = useConversationStore(s => s.setLastPipelineStats);
   const updateMessagePipelineStats = useConversationStore(s => s.updateMessagePipelineStats);
+  const [showObservability, setShowObservability] = useState(false);
 
   const channels = useConsoleStore(s => s.channels);
   const connectors = useConsoleStore(s => s.connectors);
@@ -435,7 +456,17 @@ function ChatSection() {
       )}
 
       {/* Pipeline Stats */}
-      <PipelineStatsBar />
+      <PipelineStatsBar 
+        showObservability={showObservability}
+        setShowObservability={setShowObservability}
+      />
+
+      {/* Pipeline Observability Panel */}
+      {showObservability && (
+        <div className="border-t" style={{ borderColor: t.border, maxHeight: '50vh' }}>
+          <PipelineObservabilityPanel />
+        </div>
+      )}
 
       {/* Input */}
       <div className="px-4 py-3 flex gap-2" style={{ borderTop: `1px solid ${t.border}` }}>

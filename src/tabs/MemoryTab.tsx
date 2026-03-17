@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '../theme';
-import { useMemoryStore, type MemoryDomain } from '../store/memoryStore';
+import { useMemoryStore, type MemoryDomain, type StoreBackend } from '../store/memoryStore';
 import { generateMemoryConfig } from '../utils/generateSection';
 import { Input } from '../components/ds/Input';
 import { Toggle } from '../components/ds/Toggle';
@@ -8,7 +8,7 @@ import { Select } from '../components/ds/Select';
 import { Section } from '../components/ds/Section';
 import { GenerateBtn } from '../components/ds/GenerateBtn';
 import {
-  Brain, Plus, X
+  Brain, Plus, X, Database, CheckCircle, XCircle, AlertCircle, Loader
 } from 'lucide-react';
 
 
@@ -194,6 +194,10 @@ export function MemoryTab() {
   const [newFactText, setNewFactText] = useState('');
   const [newFactDomain, setNewFactDomain] = useState<MemoryDomain>('shared');
   const [generating, setGenerating] = useState(false);
+  const [connectionString, setConnectionString] = useState('');
+  const [backendHealth, setBackendHealth] = useState<any>(null);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
@@ -206,6 +210,63 @@ export function MemoryTab() {
     } catch { /* silent */ }
     setGenerating(false);
   }, [setSessionConfig, addFact]);
+
+  const checkBackendHealth = useCallback(async () => {
+    try {
+      const response = await fetch('/api/memory/health');
+      const result = await response.json();
+      setBackendHealth(result.health);
+      return result.health;
+    } catch (error) {
+      console.error('Health check failed:', error);
+      setBackendHealth({ status: 'error', factCount: 0 });
+      return { status: 'error', factCount: 0 };
+    }
+  }, []);
+
+  const testConnection = useCallback(async (backend: StoreBackend, connStr?: string) => {
+    setTestingConnection(true);
+    setConnectionStatus('testing');
+    try {
+      const response = await fetch('/api/memory/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backend, connectionString: connStr })
+      });
+      const result = await response.json();
+      if (result.status === 'success') {
+        setConnectionStatus('success');
+        setLongTermConfig({ store: backend });
+        await checkBackendHealth();
+      } else {
+        setConnectionStatus('error');
+        console.error('Connection test failed:', result.error);
+      }
+    } catch (error) {
+      setConnectionStatus('error');
+      console.error('Connection test error:', error);
+    }
+    setTestingConnection(false);
+  }, [setLongTermConfig, checkBackendHealth]);
+
+  const handleStoreChange = useCallback(async (newStore: StoreBackend) => {
+    if (newStore === 'postgres') {
+      // Just update the UI, don't test connection yet
+      setLongTermConfig({ store: newStore });
+      setConnectionStatus('idle');
+    } else if (newStore === 'local_sqlite') {
+      await testConnection(newStore);
+    } else {
+      // For other backends (Redis, ChromaDB, Pinecone), just update UI
+      setLongTermConfig({ store: newStore });
+      setConnectionStatus('idle');
+    }
+  }, [setLongTermConfig, testConnection]);
+
+  // Load backend health on mount
+  useEffect(() => {
+    checkBackendHealth();
+  }, [checkBackendHealth]);
 
   const totalBudget = session.tokenBudget + longTerm.tokenBudget + working.tokenBudget;
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
@@ -437,7 +498,10 @@ export function MemoryTab() {
           {/* Long-Term Memory */}
           <Section
             icon={Brain} label="Long-Term Memory" color="#2ecc71"
-            badge={longTerm.enabled ? `${longTerm.store} · ${longTerm.maxEntries} max` : 'disabled'}
+            badge={longTerm.enabled 
+              ? `${longTerm.store}${backendHealth ? ` · ${backendHealth.factCount} facts` : ` · ${longTerm.maxEntries} max`}`
+              : 'disabled'
+            }
             collapsed={longTermCollapsed} onToggle={() => setLongTermCollapsed(!longTermCollapsed)}
           >
         <div className="mb-4">
@@ -454,7 +518,7 @@ export function MemoryTab() {
               <Select 
                 options={STORE_OPTIONS} 
                 value={longTerm.store}
-                onChange={v => setLongTermConfig({ store: v as any })} 
+                onChange={handleStoreChange} 
                 label="Store" 
               />
               <Select 
@@ -464,6 +528,80 @@ export function MemoryTab() {
                 label="Scope" 
               />
             </div>
+
+            {longTerm.store === 'postgres' && (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input 
+                    value={connectionString}
+                    onChange={e => setConnectionString(e.target.value)}
+                    placeholder="postgresql://user:password@localhost:5432/database"
+                    className="flex-1"
+                    type="password"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => testConnection('postgres', connectionString)}
+                    disabled={!connectionString || testingConnection}
+                    className="px-4 py-2 rounded text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px] flex items-center justify-center gap-2"
+                    style={{ 
+                      background: connectionStatus === 'success' ? '#2ecc71' : '#FE5000', 
+                      color: '#fff' 
+                    }}
+                  >
+                    {testingConnection ? (
+                      <>
+                        <Loader size={14} className="animate-spin" />
+                        Testing...
+                      </>
+                    ) : (
+                      'Test Connection'
+                    )}
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  {connectionStatus === 'success' && (
+                    <>
+                      <CheckCircle size={14} style={{ color: '#2ecc71' }} />
+                      <span style={{ color: '#2ecc71' }}>Connected successfully</span>
+                    </>
+                  )}
+                  {connectionStatus === 'error' && (
+                    <>
+                      <XCircle size={14} style={{ color: '#e74c3c' }} />
+                      <span style={{ color: '#e74c3c' }}>Connection failed</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(['redis', 'chromadb', 'pinecone', 'custom'].includes(longTerm.store)) && (
+              <div className="flex items-center gap-2 p-3 rounded" style={{ background: '#f39c1220', border: '1px solid #f39c1240' }}>
+                <AlertCircle size={16} style={{ color: '#f39c12' }} />
+                <span className="text-sm" style={{ color: '#f39c12' }}>Coming soon</span>
+              </div>
+            )}
+
+            {backendHealth && (
+              <div className="flex items-center gap-2 p-3 rounded" 
+                style={{ 
+                  background: backendHealth.status === 'healthy' ? '#2ecc7120' : '#e74c3c20',
+                  border: `1px solid ${backendHealth.status === 'healthy' ? '#2ecc7140' : '#e74c3c40'}`
+                }}>
+                <Database size={16} style={{ 
+                  color: backendHealth.status === 'healthy' ? '#2ecc71' : '#e74c3c' 
+                }} />
+                <span className="text-sm" style={{ 
+                  color: backendHealth.status === 'healthy' ? '#2ecc71' : '#e74c3c' 
+                }}>
+                  {backendHealth.status === 'healthy' 
+                    ? `${backendHealth.factCount} facts stored`
+                    : 'Backend unavailable'
+                  }
+                </span>
+              </div>
+            )}
 
             <Select 
               options={EMBEDDING_OPTIONS} 

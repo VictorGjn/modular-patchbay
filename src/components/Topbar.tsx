@@ -12,11 +12,18 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
   const running = useConsoleStore((s) => s.running);
   const run = useConsoleStore((s) => s.run);
   const agentMeta = useConsoleStore((s) => s.agentMeta);
-  const { currentVersion, versions, restoreVersion } = useVersionStore();
+  const { currentVersion, versions, restoreVersion, agentId, loadVersions } = useVersionStore();
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const [showVersionDropdown, setShowVersionDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useTheme();
+
+  // Load versions when agentId is available
+  useEffect(() => {
+    if (agentId && versions.length === 0) {
+      loadVersions();
+    }
+  }, [agentId, loadVersions]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

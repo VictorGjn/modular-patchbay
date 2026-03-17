@@ -233,12 +233,15 @@ export function parseNavigationResponse(response: string): BranchSelection[] {
     if (!Array.isArray(parsed)) return [];
 
     return parsed
-      .filter((s: any) => s.nodeId && typeof s.depth === 'number')
-      .map((s: any) => ({
-        nodeId: s.nodeId,
-        depth: Math.max(0, Math.min(4, s.depth)),
-        reason: s.reason || '',
-        priority: s.priority ?? 2,
+      .filter((s: unknown): s is Record<string, unknown> => 
+        typeof s === 'object' && s !== null && 
+        'nodeId' in s && 'depth' in s && typeof (s as Record<string, unknown>).depth === 'number'
+      )
+      .map((s) => ({
+        nodeId: s.nodeId as string,
+        depth: Math.max(0, Math.min(4, s.depth as number)),
+        reason: (s.reason as string) || '',
+        priority: (s.priority as number) ?? 2,
       }));
   } catch {
     return [];
@@ -289,7 +292,7 @@ export function parseCritiqueResponse(response: string): string[] {
     if (!Array.isArray(parsed)) return [];
 
     return parsed
-      .filter((gap: any) => typeof gap === 'string' && gap.trim().length > 0)
+      .filter((gap: unknown): gap is string => typeof gap === 'string' && gap.trim().length > 0)
       .slice(0, 3); // Limit to 3 gaps
   } catch {
     return [];
