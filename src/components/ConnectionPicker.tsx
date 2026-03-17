@@ -60,13 +60,16 @@ function SectionHeader({ title, collapsed, onToggle, t }: {
 }) {
   return (
     <div
-      className="flex items-center gap-2 px-5 py-2 cursor-pointer select-none"
+      className="flex items-center gap-2 px-5 py-3 cursor-pointer select-none border-t transition-colors"
       onClick={onToggle}
+      style={{ borderColor: t.borderSubtle }}
+      onMouseEnter={e => { e.currentTarget.style.background = t.isDark ? '#ffffff08' : '#00000008'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
     >
-      {collapsed ? <ChevronRight size={12} style={{ color: t.textDim }} /> : <ChevronDown size={12} style={{ color: t.textDim }} />}
+      {collapsed ? <ChevronRight size={14} style={{ color: t.textSecondary }} /> : <ChevronDown size={14} style={{ color: t.textSecondary }} />}
       <span
-        className="text-[11px] tracking-[0.12em] uppercase font-bold"
-        style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}
+        className="text-[13px] font-semibold"
+        style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}
       >
         {title}
       </span>
