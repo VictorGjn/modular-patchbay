@@ -319,7 +319,7 @@ export function GitRepoPanel() {
 
                   <button 
                     type="button" 
-                    onClick={() => handleReIndex(ch.sourceId, ch.path?.split('/').slice(0, -1).join('/') || '', [ch.path?.split('/').pop() || ''])}
+                    onClick={() => handleReIndex(ch.path?.split('/').slice(0, -1).join('/') || '', [ch.path?.split('/').pop() || ''])}
                     className="p-1.5 rounded transition-colors"
                     style={{ color: t.textDim }}
                     title="Re-index"
