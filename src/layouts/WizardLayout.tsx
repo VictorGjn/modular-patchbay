@@ -254,7 +254,7 @@ export function WizardLayout() {
         <div 
           ref={tabScrollRef}
           role="tablist" 
-          className="flex w-full max-w-4xl mx-auto overflow-x-auto lg:overflow-x-visible tab-scrollbar-hidden"
+          className="flex w-full overflow-x-auto lg:overflow-x-visible tab-scrollbar-hidden"
           onScroll={handleTabScroll}
         >
           {TABS.map((tab, index) => {
@@ -345,7 +345,7 @@ export function WizardLayout() {
         className="flex-1 overflow-y-auto focus:outline-none"
         data-skip-target
       >
-        <div className="max-w-4xl mx-auto px-8 py-6">
+        <div className="px-6 py-6">
           <Suspense fallback={<LoadingFallback />}>
             {activeTab === 'describe' ? (
               <DescribeTab onNavigateToTest={() => setActiveTab('test')} />

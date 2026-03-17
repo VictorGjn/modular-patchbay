@@ -226,7 +226,7 @@ export function Marketplace() {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0,0,0,0.90)',
+            background: t.isDark ? 'rgba(0,0,0,0.90)' : 'rgba(0,0,0,0.60)',
             backdropFilter: 'blur(4px)'
           }}
         />
@@ -240,7 +240,7 @@ export function Marketplace() {
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
-            borderRadius: 6,
+            borderRadius: 12,
             overflow: 'hidden',
             isolation: 'isolate',
             zIndex: 1,
@@ -665,6 +665,8 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
             }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
             onMouseLeave={(e) => { if (!dropdownOpen) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; } }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+            onBlur={(e) => { if (!dropdownOpen) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; } }}
           >
             Install <ChevronDown size={8} />
           </button>
@@ -803,6 +805,8 @@ function RemoteSkillCard({ skill, installing, installed, onInstall, t }: {
             aria-label={`Open ${skill.name} on skills.sh`}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = t.textDim; }}
+            onFocus={(e) => { e.currentTarget.style.color = '#FE5000'; }}
+            onBlur={(e) => { e.currentTarget.style.color = t.textDim; }}
           >
             <ExternalLink size={10} />
           </a>
@@ -959,6 +963,8 @@ function PresetRow({ preset, t, onLoad }: {
         }}
         onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#FE5000'; }}
         onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; e.currentTarget.style.background = 'transparent'; }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#FE5000'; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; e.currentTarget.style.background = 'transparent'; }}
       >
         Load Preset
       </button>

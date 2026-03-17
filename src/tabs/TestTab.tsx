@@ -1,10 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '../theme';
 import { useConversationStore } from '../store/conversationStore';
+import { useConsoleStore } from '../store/consoleStore';
+import { useProviderStore } from '../store/providerStore';
 import { TracePanel } from '../components/test/TracePanel';
 import { TestPanel } from '../panels/TestPanel';
 import { ContextInspector } from '../components/test/ContextInspector';
 import { PanelDivider } from '../components/ds/PanelDivider';
+import { Select } from '../components/ds/Select';
 import { MessageCircle, Search, Activity } from 'lucide-react';
 
 const STORAGE_KEY = 'testTab-panelWidths';
@@ -19,6 +22,9 @@ interface PanelWidths {
 export function TestTab() {
   const t = useTheme();
   const conversationId = useConversationStore(s => s.conversationId);
+  const selectedModel = useConsoleStore(s => s.selectedModel);
+  const setModel = useConsoleStore(s => s.setModel);
+  const getAllModels = useProviderStore(s => s.getAllModels);
   
   const [panelWidths, setPanelWidths] = useState<PanelWidths>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -88,9 +94,36 @@ export function TestTab() {
           >
             Test Your Agent
           </h2>
-          <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
+          <p className="text-sm mb-3" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
             Test your agent with sample conversations, view execution traces, and analyze performance.
           </p>
+          
+          {/* Model Selector */}
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex-1 max-w-xs">
+              <Select
+                options={getAllModels().map(m => ({
+                  value: `${m.providerId}::${m.id}`,
+                  label: `${m.providerName} / ${m.label}`
+                }))}
+                value={selectedModel}
+                onChange={(value: string) => setModel(value)}
+                placeholder="Select model..."
+              />
+            </div>
+            {selectedModel && (
+              <span 
+                className="text-xs px-2 py-1 rounded-full"
+                style={{ 
+                  background: '#FE500015', 
+                  color: '#FE5000',
+                  border: '1px solid #FE500030'
+                }}
+              >
+                Current: {getAllModels().find(m => `${m.providerId}::${m.id}` === selectedModel)?.label || selectedModel}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Tab Bar */}
@@ -143,9 +176,36 @@ export function TestTab() {
         >
           Test Your Agent
         </h2>
-        <p className="text-sm" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
+        <p className="text-sm mb-3" style={{ color: t.textSecondary, lineHeight: 1.5 }}>
           Test your agent with sample conversations, view execution traces, and analyze performance.
         </p>
+        
+        {/* Model Selector */}
+        <div className="flex items-center gap-2 mb-2">
+          <div className="flex-1 max-w-xs">
+            <Select
+              options={getAllModels().map(m => ({
+                value: `${m.providerId}::${m.id}`,
+                label: `${m.providerName} / ${m.label}`
+              }))}
+              value={selectedModel}
+              onChange={(value: string) => setModel(value)}
+              placeholder="Select model..."
+            />
+          </div>
+          {selectedModel && (
+            <span 
+              className="text-xs px-2 py-1 rounded-full"
+              style={{ 
+                background: '#FE500015', 
+                color: '#FE5000',
+                border: '1px solid #FE500030'
+              }}
+            >
+              Current: {getAllModels().find(m => `${m.providerId}::${m.id}` === selectedModel)?.label || selectedModel}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* 3-Panel Layout */}
