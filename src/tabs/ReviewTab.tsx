@@ -465,6 +465,9 @@ export function ReviewTab() {
                   <button
                     type="button"
                     onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                    aria-label={`Select agent avatar (currently ${agentMeta.avatar || 'default'})`}
+                    aria-expanded={showAvatarPicker}
+                    aria-haspopup="menu"
                     style={avatarButtonBaseStyle}
                   >
                     <AvatarIcon avatarId={agentMeta.avatar} size={48} />
@@ -480,7 +483,7 @@ export function ReviewTab() {
                             setAgentMeta({ avatar: opt.id });
                             setShowAvatarPicker(false);
                           }}
-                          aria-label={`Select ${opt.name || `avatar ${opt.id}`} as agent avatar`}
+                          aria-label={`Select avatar ${opt.id} as agent avatar`}
                           className="flex items-center justify-center w-12 h-12 rounded-lg cursor-pointer border-none"
                           style={{
                             background: agentMeta.avatar === opt.id ? '#FE500020' : 'transparent',
