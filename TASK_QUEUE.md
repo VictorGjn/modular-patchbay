@@ -114,7 +114,7 @@ Based on competitor analysis (LangFlow, CrewAI, Google ADK, OpenAI Agents SDK) a
 ### Persona A — "PM who vibe-codes" (time to value)
 
 ## Task 11: Quick Start mode
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 03:40
 - **What:** In DescribeTab.tsx, when a template is selected: auto-fill Knowledge tab with sensible defaults for that template type (e.g. "Code Review Agent" → knowledge type: Ground Truth, depth: High), auto-fill Memory strategy (sliding_window for chat agents, rag for research agents), auto-fill a default constraint set. After template selection, show a "Jump to Test →" button that skips directly to the Test tab. Requires reading the template configs and populating the relevant stores.
 - **Gate:** TSC + BUILD
 
