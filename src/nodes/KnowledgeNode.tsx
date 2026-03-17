@@ -346,7 +346,12 @@ interface LocalFilesSectionProps {
 }
 
 function LocalFilesSection({ channels, grouped, collapsed, dragOverType, viewMode, toggleCollapse, toggleChannel, setChannelDepth, handleDragStart, handleDragOver, handleDragLeave, handleDrop, setShowFilePicker, fmtTokens, theme: t }: LocalFilesSectionProps) {
-  const { tree, scanning, error, loaded, lastDir, scanDirectory } = useKnowledgeStore();
+  const tree = useKnowledgeStore(s => s.tree);
+  const scanning = useKnowledgeStore(s => s.scanning);
+  const error = useKnowledgeStore(s => s.error);
+  const loaded = useKnowledgeStore(s => s.loaded);
+  const lastDir = useKnowledgeStore(s => s.lastDir);
+  const scanDirectory = useKnowledgeStore(s => s.scanDirectory);
   const addFileChannel = useConsoleStore((s) => s.addFileChannel);
   const readFile = useKnowledgeStore((s) => s.readFile);
   const [scanDir, setScanDir] = useState(lastDir);

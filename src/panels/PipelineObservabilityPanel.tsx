@@ -499,7 +499,7 @@ function ProvenanceStage({ data, expanded, onToggle }: {
 
 export function PipelineObservabilityPanel() {
   const t = useTheme();
-  const { getActiveTrace } = useTraceStore();
+  const getActiveTrace = useTraceStore(s => s.getActiveTrace);
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   
