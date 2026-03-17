@@ -61,14 +61,7 @@ export function KnowledgeTab() {
       </div>
 
       {/* Two-column layout */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '60% 40%',
-        gap: '1.5rem',
-        '@media (max-width: 1023px)': {
-          gridTemplateColumns: '1fr'
-        }
-      } as any}>
+      <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
         {/* Left Column: Panel tabs */}
         <div className="space-y-6">
           {/* Tab navigation */}

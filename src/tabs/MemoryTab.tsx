@@ -23,38 +23,40 @@ function SliderRow({ label, value, min, max, step, onChange, suffix }: {
   const valueId = `${sliderId}-value`;
   
   return (
-    <div className="flex items-center gap-3 mb-3">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
       <label 
         htmlFor={sliderId}
-        className="text-sm font-medium shrink-0" 
-        style={{ color: t.textPrimary, width: 120 }}
+        className="text-sm font-medium shrink-0 sm:w-32" 
+        style={{ color: t.textPrimary }}
       >
         {label}
       </label>
-      <input 
-        id={sliderId}
-        type="range" 
-        min={min} 
-        max={max} 
-        step={step} 
-        value={value}
-        onChange={e => onChange(Number(e.target.value))}
-        aria-valuemin={min}
-        aria-valuemax={max}
-        aria-valuenow={value}
-        aria-valuetext={`${display}${suffix ? ' ' + suffix.toLowerCase() : ''}`}
-        aria-describedby={valueId}
-        className="flex-1" 
-        style={{ accentColor: '#FE5000' }} 
-      />
-      <span 
-        id={valueId}
-        className="text-sm w-12 text-right" 
-        style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}
-        aria-live="polite"
-      >
-        {display}
-      </span>
+      <div className="flex items-center gap-3 flex-1">
+        <input 
+          id={sliderId}
+          type="range" 
+          min={min} 
+          max={max} 
+          step={step} 
+          value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={value}
+          aria-valuetext={`${display}${suffix ? ' ' + suffix.toLowerCase() : ''}`}
+          aria-describedby={valueId}
+          className="flex-1" 
+          style={{ accentColor: '#FE5000' }} 
+        />
+        <span 
+          id={valueId}
+          className="text-sm w-12 text-right" 
+          style={{ fontFamily: "'Geist Mono', monospace", color: t.textSecondary }}
+          aria-live="polite"
+        >
+          {display}
+        </span>
+      </div>
     </div>
   );
 }
