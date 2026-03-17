@@ -71,7 +71,7 @@ export default function App() {
   return (
     <div
       data-theme={t.isDark ? 'dark' : 'light'}
-      className="w-screen h-screen flex flex-col overflow-hidden"
+      className="w-full h-full flex flex-col overflow-hidden"
       style={{
         background: t.bg
       }}
