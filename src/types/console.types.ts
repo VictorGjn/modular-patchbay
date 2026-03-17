@@ -103,3 +103,10 @@ export interface EvalCriterion {
 }
 
 export type ExportTarget = 'claude' | 'amp' | 'codex' | 'vibe-kanban' | 'openclaw' | 'generic';
+
+// MCP related types
+export interface McpTool {
+  name: string;
+  description: string;
+  inputSchema: object;
+}

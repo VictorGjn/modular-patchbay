@@ -1,6 +1,5 @@
 import { type ChannelConfig, KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
-import { useMcpStore, type McpTool } from '../store/mcpStore';
-import type { InstructionState, WorkflowStep, AgentMeta } from '../types/console.types';
+import type { InstructionState, WorkflowStep, AgentMeta, McpTool } from '../types/console.types';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { applyDepthFilter, renderFilteredMarkdown } from '../utils/depthFilter';
 import { type TreeNode } from './treeIndexer';
@@ -44,6 +43,7 @@ export function assembleContext(
   workflowSteps: WorkflowStep[] = [],
   agentMeta: AgentMeta = { name: '', description: '', icon: 'brain', category: 'general', tags: [], avatar: 'bot' },
   enabledSkills: Array<{ name: string; description?: string }> = [],
+  connectedTools: McpTool[] = [],
 ): AssembledMessage[] {
   const messages: AssembledMessage[] = [];
   const activeChannels = channels.filter((ch) => ch.enabled);
@@ -173,7 +173,6 @@ export function assembleContext(
   }
 
   // Available Tools
-  const connectedTools: McpTool[] = useMcpStore.getState().getConnectedTools();
 
   if (connectedTools.length > 0 || enabledSkills.length > 0) {
     const toolLines = [];

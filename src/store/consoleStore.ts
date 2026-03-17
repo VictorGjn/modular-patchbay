@@ -54,7 +54,6 @@ import type {
   VerificationConfig,
   ErrorHandling,
   EvaluationConfig,
-  EvalCriterion,
   ExportTarget
 } from '../types/console.types';
 
@@ -70,7 +69,8 @@ export type {
   ErrorHandling,
   EvaluationConfig,
   EvalCriterion,
-  ExportTarget
+  ExportTarget,
+  McpTool
 } from '../types/console.types';
 
 export interface ConsoleState {
@@ -156,7 +156,7 @@ export interface ConsoleState {
   setAgentMeta: (meta: Partial<AgentMeta>) => void;
   setChannelKnowledgeType: (sourceId: string, typeIndex: number) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
-  run: () => void;
+  run: () => Promise<void>;
   cancelRun: () => void;
   clearChannels: () => void;
 
@@ -455,7 +455,7 @@ export const useConsoleStore = create<ConsoleState>()(
     set({ channels, selectedPreset: '' });
   },
 
-  run: () => {
+  run: async () => {
     const { running, prompt, channels } = get();
     if (running) {
       // Clicking while running cancels
@@ -479,6 +479,11 @@ export const useConsoleStore = create<ConsoleState>()(
 
     const state = get();
     const enabledSkills = state.skills.filter(s => s.enabled);
+    
+    // Get connected MCP tools via dynamic import to break circular dependency
+    const { useMcpStore } = await import('./mcpStore');
+    const connectedTools = useMcpStore.getState().getConnectedTools();
+    
     const messages = assembleContext(
       channels, 
       prompt, 
@@ -486,7 +491,8 @@ export const useConsoleStore = create<ConsoleState>()(
       state.instructionState,
       state.workflowSteps, 
       state.agentMeta,
-      enabledSkills
+      enabledSkills,
+      connectedTools
     );
     const model = get().agentConfig.model;
 
