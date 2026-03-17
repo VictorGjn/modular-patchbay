@@ -131,7 +131,7 @@ Based on competitor analysis (LangFlow, CrewAI, Google ADK, OpenAI Agents SDK) a
 - **Gate:** TSC + BUILD
 
 ## Task 14: Token heatmap in Knowledge tab
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 04:25
 - **What:** In KnowledgeTab.tsx, for each source in the source list, show a horizontal bar proportional to the tokens that source contributes to the total context budget. Color intensity scales with percentage (< 10% = light, > 30% = bold #FE5000). Requires reading from knowledgeStore or treeIndexStore for per-source token counts if available. If not available, use file size as proxy and note it.
 - **Gate:** TSC + BUILD
 
