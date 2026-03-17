@@ -246,35 +246,6 @@ export function LocalFilesPanel() {
                 <div className="flex items-center gap-2">
                   <button 
                     type="button" 
-                    onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
-                    disabled={depth <= 0}
-                    className="p-1 rounded transition-colors"
-                    style={{ 
-                      color: depth <= 0 ? t.textFaint : t.textDim,
-                      cursor: depth <= 0 ? 'not-allowed' : 'pointer'
-                    }}
-                    title="More detailed"
-                  >
-                    <Minus size={12} />
-                  </button>
-
-                  <div className="flex-1 h-2 rounded overflow-hidden" style={{ background: t.isDark ? '#ffffff12' : '#00000012' }}>
-                    {[0, 1, 2, 3, 4].map(level => (
-                      <div
-                        key={level}
-                        className="inline-block h-full border-r border-white/10 last:border-r-0 cursor-pointer transition-colors"
-                        style={{ 
-                          width: '20%',
-                          background: level === depth ? barColor : 'transparent',
-                        }}
-                        onClick={() => setChannelDepth(ch.sourceId, level)}
-                        title={DEPTH_LEVELS[level].label}
-                      />
-                    ))}
-                  </div>
-
-                  <button 
-                    type="button" 
                     onClick={() => setChannelDepth(ch.sourceId, Math.min(4, depth + 1))}
                     disabled={depth >= 4}
                     className="p-1 rounded transition-colors"
@@ -282,7 +253,40 @@ export function LocalFilesPanel() {
                       color: depth >= 4 ? t.textFaint : t.textDim,
                       cursor: depth >= 4 ? 'not-allowed' : 'pointer'
                     }}
-                    title="Less detailed"
+                    title="Less detail"
+                    aria-label="Decrease detail level"
+                  >
+                    <Minus size={12} />
+                  </button>
+
+                  <div className="flex-1 h-2 rounded overflow-hidden flex" style={{ background: t.isDark ? '#ffffff12' : '#00000012' }}>
+                    {[0, 1, 2, 3, 4].map(level => (
+                      <div
+                        key={level}
+                        className="h-full border-r border-white/10 last:border-r-0 cursor-pointer transition-colors"
+                        style={{ 
+                          width: '20%',
+                          background: level <= depth ? barColor : 'transparent',
+                        }}
+                        onClick={() => setChannelDepth(ch.sourceId, level)}
+                        title={DEPTH_LEVELS[level].label}
+                        role="button"
+                        aria-label={`Set depth to ${DEPTH_LEVELS[level].label}`}
+                      />
+                    ))}
+                  </div>
+
+                  <button 
+                    type="button" 
+                    onClick={() => setChannelDepth(ch.sourceId, Math.max(0, depth - 1))}
+                    disabled={depth <= 0}
+                    className="p-1 rounded transition-colors"
+                    style={{ 
+                      color: depth <= 0 ? t.textFaint : t.textDim,
+                      cursor: depth <= 0 ? 'not-allowed' : 'pointer'
+                    }}
+                    title="More detail"
+                    aria-label="Increase detail level"
                   >
                     <Plus size={12} />
                   </button>
