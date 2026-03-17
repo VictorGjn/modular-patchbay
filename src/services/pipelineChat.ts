@@ -54,6 +54,7 @@ export interface PipelineChatOptions {
 }
 
 export interface PipelineChatStats {
+  traceId?: string;
   pipeline: PipelineResult | null;
   systemTokens: number;
   totalContextTokens: number;
@@ -275,6 +276,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     } : undefined;
 
     onDone({
+      traceId,
       pipeline: pipelineResult,
       systemTokens,
       totalContextTokens,

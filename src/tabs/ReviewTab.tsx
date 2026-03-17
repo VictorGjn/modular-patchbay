@@ -10,6 +10,7 @@ import { VersionIndicator } from '../components/VersionIndicator';
 import { IdentitySection } from '../panels/review/IdentitySection';
 import { PersonaSection } from '../panels/review/PersonaSection';
 import { ConstraintsSection } from '../panels/review/ConstraintsSection';
+import { ObjectivesSection } from '../panels/review/ObjectivesSection';
 import { WorkflowSection } from '../panels/review/WorkflowSection';
 import { OutputConfigSection } from '../panels/review/OutputConfigSection';
 import { ExportActions } from '../panels/review/ExportActions';
@@ -38,6 +39,7 @@ export function ReviewTab() {
   const [identityCollapsed, setIdentityCollapsed] = useState(false);
   const [personaCollapsed, setPersonaCollapsed] = useState(false);
   const [constraintsCollapsed, setConstraintsCollapsed] = useState(false);
+  const [objectivesCollapsed, setObjectivesCollapsed] = useState(false);
   const [workflowCollapsed, setWorkflowCollapsed] = useState(false);
   const [outputCollapsed, setOutputCollapsed] = useState(false);
   const [showPromptModal, setShowPromptModal] = useState(false);
@@ -240,6 +242,13 @@ export function ReviewTab() {
           removeCustomConstraint={removeCustomConstraint}
           collapsed={constraintsCollapsed}
           onToggle={() => setConstraintsCollapsed(!constraintsCollapsed)}
+        />
+
+        <ObjectivesSection
+          objectives={instructionState.objectives}
+          updateInstruction={updateInstruction}
+          collapsed={objectivesCollapsed}
+          onToggle={() => setObjectivesCollapsed(!objectivesCollapsed)}
         />
 
         <WorkflowSection

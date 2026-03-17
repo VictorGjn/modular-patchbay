@@ -106,6 +106,7 @@ export interface ConversationTrace {
 export interface TraceState {
   traces: ConversationTrace[];
   activeTraceId: string | null;
+  selectedTraceId: string | null;
   maxTraces: number;
 
   // Actions
@@ -114,6 +115,8 @@ export interface TraceState {
   endTrace: (traceId: string) => void;
   getTrace: (traceId: string) => ConversationTrace | undefined;
   getActiveTrace: () => ConversationTrace | undefined;
+  getDisplayTrace: () => ConversationTrace | undefined;
+  selectTrace: (traceId: string | null) => void;
   clearTraces: () => void;
 }
 
@@ -144,6 +147,7 @@ function summarize(events: TraceEvent[]): ConversationTrace['summary'] {
 export const useTraceStore = create<TraceState>((set, get) => ({
   traces: [],
   activeTraceId: null,
+  selectedTraceId: null,
   maxTraces: 50,
 
   startTrace: (conversationId, agentVersion) => {
@@ -158,6 +162,7 @@ export const useTraceStore = create<TraceState>((set, get) => ({
     set(s => ({
       traces: [...s.traces, trace].slice(-s.maxTraces),
       activeTraceId: id,
+      selectedTraceId: null, // Clear selection so sidebar shows the live trace
     }));
     return id;
   },
@@ -174,7 +179,8 @@ export const useTraceStore = create<TraceState>((set, get) => ({
     traces: s.traces.map(t =>
       t.id === traceId ? { ...t, summary: summarize(t.events) } : t
     ),
-    activeTraceId: s.activeTraceId === traceId ? null : s.activeTraceId,
+    // Keep activeTraceId so the observability panel can still display the finished trace
+    activeTraceId: s.activeTraceId,
   })),
 
   getTrace: (traceId) => get().traces.find(t => t.id === traceId),
@@ -182,6 +188,12 @@ export const useTraceStore = create<TraceState>((set, get) => ({
     const id = get().activeTraceId;
     return id ? get().traces.find(t => t.id === id) : undefined;
   },
+  getDisplayTrace: () => {
+    const { selectedTraceId, activeTraceId, traces } = get();
+    const id = selectedTraceId || activeTraceId;
+    return id ? traces.find(t => t.id === id) : undefined;
+  },
+  selectTrace: (traceId) => set({ selectedTraceId: traceId }),
 
-  clearTraces: () => set({ traces: [], activeTraceId: null }),
+  clearTraces: () => set({ traces: [], activeTraceId: null, selectedTraceId: null }),
 }));

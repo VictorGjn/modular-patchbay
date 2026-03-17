@@ -3,12 +3,12 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useVersionStore } from '../store/versionStore';
 import { useThemeStore } from '../store/themeStore';
 import { useTheme } from '../theme';
-import { Play, Square, Sun, Moon, Settings, ChevronDown, RotateCcw } from 'lucide-react';
+import { Play, Square, Sun, Moon, Settings, ChevronDown, RotateCcw, ArrowLeft } from 'lucide-react';
 
 
 
 
-export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
+export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => void; onBack?: () => void }) {
   const running = useConsoleStore((s) => s.running);
   const run = useConsoleStore((s) => s.run);
   const agentMeta = useConsoleStore((s) => s.agentMeta);
@@ -50,8 +50,23 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
         background: t.surface,
         backdropFilter: 'blur(12px)',
         borderColor: t.border,
+        position: 'relative',
+        zIndex: 50,
       }}
     >
+      {/* Back button */}
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover:bg-[#FE500015]"
+          style={{ color: t.textSecondary }}
+          aria-label="Back to library"
+        >
+          <ArrowLeft size={16} />
+        </button>
+      )}
+
       {/* Logo */}
       <div className="flex items-center gap-2 mr-4">
         <div

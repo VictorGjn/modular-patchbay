@@ -5,6 +5,7 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useProviderStore } from '../store/providerStore';
 import { TracePanel } from '../components/test/TracePanel';
 import { TestPanel } from '../panels/TestPanel';
+import { ContextInspector } from '../components/test/ContextInspector';
 import { PipelineObservabilityPanel } from '../panels/PipelineObservabilityPanel';
 import { PanelDivider } from '../components/ds/PanelDivider';
 import { Select } from '../components/ds/Select';
@@ -90,8 +91,8 @@ export function TestTab() {
   if (isMobile) {
     const tabs = [
       { id: 'conversation', label: 'Conversation', icon: MessageCircle, component: TestPanel },
-      { id: 'trace', label: 'Trace', icon: Activity, component: TracePanel },
-      { id: 'pipeline', label: 'Pipeline', icon: Search, component: PipelineObservabilityPanel },
+      { id: 'context', label: 'Context', icon: Search, component: ContextInspector },
+      { id: 'pipeline', label: 'Pipeline', icon: Activity, component: PipelineObservabilityPanel },
     ];
 
     const ActiveComponent = tabs[mobileTabIndex]?.component || TestPanel;
@@ -223,16 +224,16 @@ export function TestTab() {
           gap: 0
         }}
       >
-        {/* Left Panel - Trace */}
+        {/* Left Panel - Context Inspector */}
         <div 
-          className="overflow-hidden border-r"
+          className="overflow-hidden border-r overflow-y-auto"
           style={{ 
             borderColor: t.border, 
             background: t.surface,
             display: panelWidths.left === 0 ? 'none' : 'block'
           }}
         >
-          <TracePanel conversationId={conversationId || undefined} />
+          <ContextInspector conversationId={conversationId || undefined} />
         </div>
 
         {/* Left Divider */}
