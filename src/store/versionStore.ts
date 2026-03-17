@@ -50,6 +50,8 @@ export interface VersionState {
   dirty: boolean; // unsaved changes since last version
   autoVersion: boolean; // auto-create version on every change (debounced)
   maxVersions: number;
+  agentId: string | null; // current agent ID for API calls
+  saveStatus: 'saved' | 'saving' | 'unsaved' | 'error';
 
   // Computed
   latestVersion: () => AgentVersion | undefined;
@@ -61,6 +63,9 @@ export interface VersionState {
   deleteVersion: (id: string) => void;
   setAutoVersion: (auto: boolean) => void;
   setDirty: () => void;
+  setAgentId: (id: string | null) => void;
+  loadVersions: () => Promise<void>;
+  saveToServer: (label?: string) => Promise<void>;
 
   // Internal — called by change detection
   _detectAndVersion: (prev: AgentSnapshot, next: AgentSnapshot) => void;
@@ -208,12 +213,62 @@ function autoLabel(changes: ChangeEntry[]): string {
 
 // ─── Store ──────────────────────────────────────────────────────────
 
+// API helper functions
+async function apiCall(endpoint: string, options: RequestInit = {}): Promise<any> {
+  const response = await fetch(`/api${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
+  
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  }
+  
+  const result = await response.json();
+  if (result.status === 'error') {
+    throw new Error(result.error);
+  }
+  
+  return result.data;
+}
+
+async function saveAgentToServer(agentId: string, snapshot: AgentSnapshot, version: string): Promise<void> {
+  const state = {
+    id: agentId,
+    version,
+    agentMeta: snapshot.agentConfig,
+    instructionState: snapshot.instructionState,
+    workflowSteps: snapshot.workflowSteps,
+    channels: snapshot.channels,
+    mcpServers: snapshot.mcpServers,
+    skills: snapshot.skills,
+    connectors: [],
+    agentConfig: snapshot.agentConfig,
+    exportTarget: 'claude',
+    outputFormat: 'markdown',
+    outputFormats: ['markdown'],
+    tokenBudget: 4000,
+    prompt: snapshot.prompt,
+    selectedModel: snapshot.selectedModel,
+  };
+  
+  await apiCall(`/agents/${agentId}`, {
+    method: 'PUT',
+    body: JSON.stringify(state),
+  });
+}
+
 export const useVersionStore = create<VersionState>((set, get) => ({
   versions: [],
   currentVersion: '0.1.0',
   dirty: false,
   autoVersion: true,
   maxVersions: 50,
+  agentId: null,
+  saveStatus: 'saved',
 
   latestVersion: () => {
     const v = get().versions;
@@ -222,7 +277,45 @@ export const useVersionStore = create<VersionState>((set, get) => ({
 
   getVersion: (version) => get().versions.find((v) => v.version === version),
 
-  checkpoint: (label) => {
+  setAgentId: (id) => {
+    set({ agentId: id });
+    if (id) {
+      get().loadVersions();
+    }
+  },
+
+  loadVersions: async () => {
+    const { agentId } = get();
+    if (!agentId) return;
+    
+    try {
+      const versions = await apiCall(`/agents/${agentId}/versions`);
+      set({ versions: versions || [] });
+    } catch (err) {
+      console.error('Failed to load versions:', err);
+    }
+  },
+
+  saveToServer: async (label) => {
+    const { agentId, currentVersion } = get();
+    if (!agentId) return;
+    
+    set({ saveStatus: 'saving' });
+    
+    try {
+      const snapshot = takeSnapshot();
+      await saveAgentToServer(agentId, snapshot, currentVersion);
+      set({ saveStatus: 'saved', dirty: false });
+      
+      // Reload versions to get the latest list
+      await get().loadVersions();
+    } catch (err) {
+      console.error('Failed to save agent:', err);
+      set({ saveStatus: 'error' });
+    }
+  },
+
+  checkpoint: async (label?: string) => {
     const snapshot = takeSnapshot();
     const prev = get().latestVersion()?.snapshot;
     const changes = prev ? detectChanges(prev, snapshot) : [{ type: 'minor' as const, category: 'init', description: 'Initial version' }];
@@ -243,16 +336,61 @@ export const useVersionStore = create<VersionState>((set, get) => ({
       snapshot,
     };
 
+    // Update local state first for immediate UI feedback
     const versions = [...get().versions, entry].slice(-get().maxVersions);
     set({ versions, currentVersion: bumped.version, dirty: false });
+
+    // Save to server if we have an agent ID
+    if (get().agentId) {
+      try {
+        await get().saveToServer(label || autoLabel(changes));
+      } catch (err) {
+        console.error('Failed to save to server:', err);
+        set({ saveStatus: 'error' });
+      }
+    }
   },
 
-  restoreVersion: (version) => {
+  restoreVersion: async (version) => {
+    const { agentId } = get();
+    
+    // Try server restore first if we have an agent ID
+    if (agentId) {
+      try {
+        await apiCall(`/agents/${agentId}/versions/${version}/restore`, {
+          method: 'POST',
+        });
+        
+        // Reload agent state from server
+        const restored = await apiCall(`/agents/${agentId}`);
+        
+        const store = useConsoleStore.getState();
+        store.clearChannels();
+        for (const ch of restored.channels || []) {
+          store.addChannel(ch);
+          if (!ch.enabled) store.toggleChannel(ch.sourceId);
+        }
+        if (restored.prompt) store.setPrompt(restored.prompt);
+        if (restored.selectedModel) store.setModel(restored.selectedModel);
+        if (restored.instructionState) {
+          store.updateInstruction(restored.instructionState);
+        }
+        if (restored.workflowSteps) {
+          store.updateWorkflowSteps(restored.workflowSteps);
+        }
+
+        set({ currentVersion: version, dirty: false, saveStatus: 'saved' });
+        return;
+      } catch (err) {
+        console.error('Server restore failed, falling back to local:', err);
+      }
+    }
+    
+    // Fallback to local restore
     const target = get().getVersion(version);
     if (!target) return;
 
     const store = useConsoleStore.getState();
-    // Restore all snapshotted fields
     store.clearChannels();
     for (const ch of target.snapshot.channels) {
       store.addChannel(ch);
@@ -274,21 +412,39 @@ export const useVersionStore = create<VersionState>((set, get) => ({
     set({ currentVersion: target.version, dirty: false });
   },
 
-  deleteVersion: (id) => set({ versions: get().versions.filter((v) => v.id !== id) }),
+  deleteVersion: async (id) => {
+    const { agentId, versions } = get();
+    const version = versions.find(v => v.id === id);
+    
+    if (agentId && version) {
+      try {
+        await apiCall(`/agents/${agentId}/versions/${version.version}`, {
+          method: 'DELETE',
+        });
+        await get().loadVersions();
+      } catch (err) {
+        console.error('Failed to delete version from server:', err);
+      }
+    } else {
+      // Fallback to local delete
+      set({ versions: versions.filter((v) => v.id !== id) });
+    }
+  },
+
   setAutoVersion: (auto) => set({ autoVersion: auto }),
-  setDirty: () => set({ dirty: true }),
+  setDirty: () => set({ dirty: true, saveStatus: 'unsaved' }),
 
   _detectAndVersion: (prev, next) => {
     const changes = detectChanges(prev, next);
     if (changes.length === 0) return;
 
-    set({ dirty: true });
+    set({ dirty: true, saveStatus: 'unsaved' });
 
     if (!get().autoVersion) return;
 
     // Debounce: only auto-version if last version was >2s ago
     const latest = get().latestVersion();
-    if (latest && Date.now() - latest.timestamp < 2000) return;
+    if (latest && Date.now() - latest.timestamp < 30000) return; // 30s debounce
 
     get().checkpoint();
   },

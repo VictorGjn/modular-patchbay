@@ -4,6 +4,7 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useProviderStore } from '../store/providerStore';
 import { useMemoryStore } from '../store/memoryStore';
 import { useConversationStore } from '../store/conversationStore';
+import { useVersionStore } from '../store/versionStore';
 import { exportAsAgent, downloadAgentFile, exportForTarget, exportGenericJSON, exportAsYAML } from '../utils/agentExport';
 import { Input } from '../components/ds/Input';
 import { TextArea } from '../components/ds/TextArea';
@@ -273,6 +274,8 @@ export function ReviewTab() {
   const tokenBudget = useConsoleStore(s => s.tokenBudget);
   const mcpServers = useConsoleStore(s => s.mcpServers);
   const skills = useConsoleStore(s => s.skills);
+  
+  const saveStatus = useVersionStore(s => s.saveStatus);
   
   const [identityCollapsed, setIdentityCollapsed] = useState(false);
   const [personaCollapsed, setPersonaCollapsed] = useState(false);
@@ -872,16 +875,46 @@ export function ReviewTab() {
           Export Agent
         </button>
         
-        <button
-          type="button"
-          onClick={() => {
-            // Save functionality would be implemented here
-          }}
-          style={saveButtonStyle}
-        >
-          <Save size={16} />
-          Save Draft
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={saveStatus === 'saving'}
+            onClick={() => {
+              const versionStore = useVersionStore.getState();
+              if (!versionStore.agentId) {
+                // Create new agent if no ID exists
+                const newId = `agent-${Date.now()}`;
+                versionStore.setAgentId(newId);
+              }
+              versionStore.saveToServer('Manual save');
+            }}
+            style={{
+              ...saveButtonStyle,
+              opacity: saveStatus === 'saving' ? 0.6 : 1,
+              cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
+            }}
+          >
+            <Save size={16} />
+            {saveStatus === 'saving' ? 'Saving...' : 'Save Draft'}
+          </button>
+          
+          {/* Save Status Indicator */}
+          <div className="flex items-center gap-2 text-sm">
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{
+                background: saveStatus === 'saved' ? '#22c55e' :
+                           saveStatus === 'saving' ? '#f59e0b' :
+                           saveStatus === 'error' ? '#ef4444' : '#6b7280',
+              }}
+            />
+            <span style={{ color: t.textSecondary, fontSize: '13px' }}>
+              {saveStatus === 'saved' ? 'Saved' :
+               saveStatus === 'saving' ? 'Saving...' :
+               saveStatus === 'error' ? 'Save failed' : 'Unsaved changes'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Version indicator */}
