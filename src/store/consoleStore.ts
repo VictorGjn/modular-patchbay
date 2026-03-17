@@ -58,6 +58,21 @@ import type {
   ExportTarget
 } from '../types/console.types';
 
+// Re-export types for convenience
+export type { 
+  AgentMeta, 
+  InstructionState, 
+  WorkflowStep, 
+  PendingKnowledgeItem,
+  SuggestedSkill,
+  AgentPattern,
+  VerificationConfig,
+  ErrorHandling,
+  EvaluationConfig,
+  EvalCriterion,
+  ExportTarget
+} from '../types/console.types';
+
 export interface ConsoleState {
   channels: ChannelConfig[];
   prompt: string;
@@ -462,7 +477,17 @@ export const useConsoleStore = create<ConsoleState>()(
 
     set({ running: true, response: '' });
 
-    const messages = assembleContext(channels, prompt);
+    const state = get();
+    const enabledSkills = state.skills.filter(s => s.enabled);
+    const messages = assembleContext(
+      channels, 
+      prompt, 
+      undefined, 
+      state.instructionState,
+      state.workflowSteps, 
+      state.agentMeta,
+      enabledSkills
+    );
     const model = get().agentConfig.model;
 
     let accumulated = '';

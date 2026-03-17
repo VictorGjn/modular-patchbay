@@ -13,7 +13,11 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { browserName: 'chromium' } },
+    { 
+      name: 'chromium', 
+      use: { browserName: 'chromium' },
+      testDir: './tests/e2e'
+    },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
     command: 'npx vite --port 5174',

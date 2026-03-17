@@ -106,7 +106,8 @@ export function GeneratorSection({ onGapsChange }: { onGapsChange: (gaps: Knowle
     setGenerating(true);
     setError('');
     try {
-      const config = await generateFullAgent(brainDump);
+      const state = useConsoleStore.getState();
+      const config = await generateFullAgent(brainDump, state.mcpServers, state.skills, state.channels);
       setLastConfig(config);
       onGapsChange(config.knowledgeGaps || []);
       hydrateFromGenerated(config);

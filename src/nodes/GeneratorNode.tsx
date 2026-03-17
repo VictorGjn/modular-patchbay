@@ -26,7 +26,8 @@ export const GeneratorNode = memo(function GeneratorNode() {
     setGenerating(true);
     setError('');
     try {
-      const config = await generateFullAgent(brainDump);
+      const state = useConsoleStore.getState();
+      const config = await generateFullAgent(brainDump, state.mcpServers, state.skills, state.channels);
       setLastConfig(config);
 
       // Hydrate all canvas nodes

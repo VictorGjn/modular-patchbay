@@ -1,5 +1,4 @@
 import { useProviderStore } from '../store/providerStore';
-import { useConsoleStore } from '../store/consoleStore';
 import { fetchCompletion, fetchAgentSdkCompletion } from '../services/llmService';
 import { MCP_REGISTRY } from '../store/mcp-registry';
 import { REGISTRY_SKILLS } from '../store/registry';
@@ -182,7 +181,12 @@ export interface GeneratedAgentConfig {
   outputSuggestions: string[];
 }
 
-export async function generateFullAgent(brainDump: string): Promise<GeneratedAgentConfig> {
+export async function generateFullAgent(
+  brainDump: string,
+  mcpServers?: Array<{ id: string; added: boolean }>,
+  skills?: Array<{ id: string; added: boolean }>,
+  channels?: ChannelConfig[]
+): Promise<GeneratedAgentConfig> {
   if (!brainDump.trim()) throw new Error('Describe the agent you want to build');
 
   const store = useProviderStore.getState();
@@ -205,9 +209,9 @@ export async function generateFullAgent(brainDump: string): Promise<GeneratedAge
 
   const isAgentSdk = provider.authMethod === 'claude-agent-sdk';
 
-  const consoleState = useConsoleStore.getState();
-  const selectedMcpIds = consoleState.mcpServers.filter((m) => m.added).map((m) => m.id);
-  const selectedSkillIds = consoleState.skills.filter((s) => s.added).map((s) => s.id);
+  // Use passed parameters or empty arrays
+  const selectedMcpIds = mcpServers?.filter((m) => m.added).map((m) => m.id) || [];
+  const selectedSkillIds = skills?.filter((s) => s.added).map((s) => s.id) || [];
 
   const availableMcp = selectedMcpIds.length > 0
     ? MCP_REGISTRY.filter((m) => selectedMcpIds.includes(m.id))
@@ -223,8 +227,8 @@ export async function generateFullAgent(brainDump: string): Promise<GeneratedAge
     ? availableSkills.map((s) => `${s.id}: ${s.description}`).join('\n')
     : 'none';
 
-  // Gather REAL connected knowledge sources from the store
-  const existingChannels = consoleState.channels;
+  // Gather REAL connected knowledge sources
+  const existingChannels = channels || [];
   const knowledgeSourcesList = existingChannels.length > 0
     ? existingChannels.map((ch) =>
         `- sourceId: "${ch.sourceId}" | name: "${ch.name}" | path: "${ch.path || '(no path)'}" | type: ${ch.knowledgeType || 'unclassified'} | tokens: ${ch.baseTokens} | depth: ${ch.depth}`
@@ -269,7 +273,7 @@ export async function generateFullAgent(brainDump: string): Promise<GeneratedAge
   if (!config) throw new Error('Could not parse generated agent config');
 
   // — Post-process: enrich from connected knowledge (Tickets 2.1 + 2.2) —
-  enrichFromConnectedKnowledge(config);
+  enrichFromConnectedKnowledge(config, existingChannels);
 
   return config;
 }
@@ -278,8 +282,7 @@ export async function generateFullAgent(brainDump: string): Promise<GeneratedAge
  * Ticket 2.1 + 2.2: Post-process generated config to enrich persona and
  * constraints based on actually connected knowledge sources.
  */
-function enrichFromConnectedKnowledge(config: GeneratedAgentConfig): void {
-  const channels: ChannelConfig[] = useConsoleStore.getState().channels;
+function enrichFromConnectedKnowledge(config: GeneratedAgentConfig, channels: ChannelConfig[]): void {
   if (channels.length === 0) return;
 
   // Helper: append to customConstraints regardless of string or string[] shape
