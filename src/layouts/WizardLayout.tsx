@@ -46,8 +46,16 @@ function LoadingFallback() {
 
 export function WizardLayout() {
   const t = useTheme();
-  const consoleState = useConsoleStore();
-  const memoryState = useMemoryStore();
+  // Only subscribe to fields needed for tab completion checks
+  const promptLength = useConsoleStore(s => s.prompt.length);
+  const channelsLength = useConsoleStore(s => s.channels.length);
+  const mcpServersLength = useConsoleStore(s => s.mcpServers.length);
+  const skillsLength = useConsoleStore(s => s.skills.length);
+  const agentName = useConsoleStore(s => s.agentMeta.name);
+  const memoryStrategy = useMemoryStore(s => s.session.strategy);
+  const factsLength = useMemoryStore(s => s.facts.length);
+  const longTermEnabled = useMemoryStore(s => s.longTerm.enabled);
+  const workingContent = useMemoryStore(s => s.working.content);
   const [activeTab, setActiveTab] = useState('describe');
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
@@ -190,19 +198,18 @@ export function WizardLayout() {
   const isTabComplete = (tabId: string): boolean => {
     switch (tabId) {
       case 'describe':
-        return consoleState.prompt.length > 20;
+        return promptLength > 20;
       case 'knowledge':
-        return consoleState.channels.length > 0;
+        return channelsLength > 0;
       case 'tools':
-        return consoleState.mcpServers.length > 0 || consoleState.skills.length > 0;
+        return mcpServersLength > 0 || skillsLength > 0;
       case 'memory':
-        // Strategy is selected if it's been explicitly set or if there are configured facts
-        return memoryState.session.strategy !== 'summarize_and_recent' || 
-               memoryState.facts.length > 0 || 
-               !memoryState.longTerm.enabled ||
-               memoryState.working.content.length > 0;
+        return memoryStrategy !== 'summarize_and_recent' || 
+               factsLength > 0 || 
+               !longTermEnabled ||
+               workingContent.length > 0;
       case 'review':
-        return consoleState.agentMeta.name !== '' && consoleState.agentMeta.name.length > 0;
+        return agentName !== '' && agentName.length > 0;
       default:
         return false;
     }
