@@ -163,6 +163,10 @@ export function ConnectionPicker() {
         description: entry.description,
         connected: true,
       });
+
+      // Force refresh the MCP store to show the newly connected server
+      const mcpStore = useMcpStore.getState();
+      await mcpStore.loadServers();
       
       const svc = entry.id as ConnectorService;
       if (!connectors.some((c) => c.service === svc)) {

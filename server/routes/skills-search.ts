@@ -222,13 +222,59 @@ router.post('/install', async (req: Request, res: Response) => {
   }
 
   try {
-    const args = ['skills', 'add', skillId, '-y'];
+    // Try the correct skills CLI command first
+    let args = ['-y', '@anthropic/skills', 'add', skillId];
     if (scope === 'global') args.push('-g');
-    const { stdout, stderr } = await exec('npx', args, { timeout: 60000 });
-    res.json({ status: 'ok', output: stdout + stderr });
+    
+    try {
+      const { stdout, stderr } = await exec('npx', args, { timeout: 60000 });
+      res.json({ status: 'ok', output: stdout + stderr });
+      return;
+    } catch (cliError) {
+      console.log('Skills CLI failed, trying fallback:', (cliError as Error).message);
+    }
+
+    // Fallback: Direct download from skills.sh
+    console.log('Using fallback: downloading skill directly from skills.sh');
+    
+    // Extract repo and skill name from skillId (format: owner/repo@skillName)
+    const [repoPath, skillName] = skillId.includes('@') ? skillId.split('@') : [skillId, skillId.split('/').pop() || skillId];
+    
+    // Download skill content from skills.sh
+    const skillUrl = `https://raw.githubusercontent.com/${repoPath}/main/${skillName}/SKILL.md`;
+    const skillResponse = await fetch(skillUrl);
+    
+    if (!skillResponse.ok) {
+      throw new Error(`Failed to download skill from ${skillUrl}: ${skillResponse.status}`);
+    }
+    
+    const skillContent = await skillResponse.text();
+    
+    // Get user's home directory and create skill directory
+    const os = await import('os');
+    const path = await import('path');
+    const fs = await import('fs/promises');
+    
+    const skillsDir = path.join(os.homedir(), '.agents', 'skills');
+    const skillDir = path.join(skillsDir, skillName);
+    
+    // Create directories
+    await fs.mkdir(skillDir, { recursive: true });
+    
+    // Write SKILL.md file
+    await fs.writeFile(path.join(skillDir, 'SKILL.md'), skillContent, 'utf8');
+    
+    res.json({ 
+      status: 'ok', 
+      output: `Skill ${skillName} installed to ${skillDir} via direct download fallback` 
+    });
+    
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Install failed';
-    res.status(500).json({ error: message });
+    console.error('Skills install error:', message);
+    res.status(500).json({ 
+      error: `Install failed: ${message}. Please ensure the skills CLI is installed or the skill exists on GitHub.`
+    });
   }
 });
 

@@ -11,4 +11,5 @@ export interface ConfigField {
   type: 'text' | 'password' | 'url';
   placeholder: string;
   required: boolean;
+  helpText?: string;
 }
