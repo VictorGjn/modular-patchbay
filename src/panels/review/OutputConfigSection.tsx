@@ -1,4 +1,5 @@
 
+import { useMemo } from 'react';
 import { Settings } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { Select } from '../../components/ds/Select';
@@ -25,6 +26,15 @@ export function OutputConfigSection({
   onToggle 
 }: OutputConfigSectionProps) {
   const t = useTheme();
+  const getAllModels = useProviderStore(s => s.getAllModels);
+  const providers = useProviderStore(s => s.providers);
+  const modelOptions = useMemo(() => 
+    getAllModels().map(m => ({
+      value: `${m.providerId}::${m.id}`,
+      label: `${m.providerName} / ${m.label}`
+    })),
+    [getAllModels, providers]
+  );
 
   return (
     <Section
@@ -43,10 +53,7 @@ export function OutputConfigSection({
           <div>
             <Select
               label="Model"
-              options={useProviderStore(s => s.getAllModels()).map(m => ({
-                value: `${m.providerId}::${m.id}`,
-                label: `${m.providerName} / ${m.label}`
-              }))}
+              options={modelOptions}
               value={selectedModel}
               onChange={(value: string) => useConsoleStore.getState().setModel(value)}
             />
