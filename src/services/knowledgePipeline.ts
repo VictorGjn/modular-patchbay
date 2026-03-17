@@ -616,6 +616,20 @@ export async function compressKnowledge(
       budgetMap.set(allocation.name, allocation.allocatedTokens);
     }
 
+    // Emit budget allocation stage event
+    const budgetAllocationData = {
+      totalBudget,
+      allocations: budgetAllocations.map(allocation => ({
+        source: allocation.name,
+        allocatedTokens: allocation.allocatedTokens,
+        usedTokens: Math.min(allocation.allocatedTokens, estimateTokens(sourcesWithContent.find(s => s.name === allocation.name)?.content || '')),
+        percentage: allocation.weight * 100,
+        cappedBySize: allocation.cappedBySize,
+        priority: allocation.knowledgeType === 'ground-truth' ? 0 : allocation.knowledgeType === 'signal' ? 1 : 2,
+      }))
+    };
+    emitPipelineStage(traceId, 'budget_allocation', budgetAllocationData);
+
     // Truncate source content to budget caps (cap * 4 chars per token)
     for (const source of sourcesWithContent) {
       const budgetCap = budgetMap.get(source.name) ?? totalBudget;
