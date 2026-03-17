@@ -89,7 +89,7 @@ export function DescribeTab({ onValidationChange, onNavigateToTest }: DescribeTa
   const prompt = useConsoleStore(s => s.prompt);
   const setPrompt = useConsoleStore(s => s.setPrompt);
   const updateInstruction = useConsoleStore(s => s.updateInstruction);
-  const memoryStore = useMemoryStore();
+  const setSessionConfig = useMemoryStore(s => s.setSessionConfig);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
@@ -170,7 +170,7 @@ export function DescribeTab({ onValidationChange, onNavigateToTest }: DescribeTa
     setShowValidation(false);
 
     // Auto-fill stores based on template defaults
-    memoryStore.setSessionConfig({
+    setSessionConfig({
       strategy: template.memoryStrategy,
     });
 

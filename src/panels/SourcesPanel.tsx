@@ -1522,7 +1522,8 @@ function FactInsightsSection() {
 /* ── Context Action Bar ── */
 function ContextActionBar() {
   const t = useTheme();
-  const { collectContextState, restoreContextState } = useConsoleStore();
+  const collectContextState = useConsoleStore(s => s.collectContextState);
+  const restoreContextState = useConsoleStore(s => s.restoreContextState);
   const [saveNameInput, setSaveNameInput] = useState('');
   const [showSavePrompt, setShowSavePrompt] = useState(false);
   const [showLoadMenu, setShowLoadMenu] = useState(false);
