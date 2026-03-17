@@ -400,7 +400,15 @@ export function MemoryTab() {
                       </span>
                     ))}
                     <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)}
-                      style={{ ...removeButtonStyles, color: t.textFaint }}>
+                      style={{ ...removeButtonStyles, color: t.textFaint }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = '#ef444420';
+                        e.currentTarget.style.color = '#ef4444';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = t.textFaint;
+                      }}>
                       <X size={12} />
                     </button>
                   </div>

@@ -230,8 +230,18 @@ export function ToolsTab() {
             <button 
               type="button" 
               onClick={() => setShowSkillPicker(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border transition-colors"
               style={{ borderColor: t.border, color: t.textSecondary }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#FE500010';
+                e.currentTarget.style.borderColor = '#FE5000';
+                e.currentTarget.style.color = '#FE5000';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = t.border;
+                e.currentTarget.style.color = t.textSecondary;
+              }}
             >
               <Plus size={16} />
               Add from library
@@ -259,12 +269,18 @@ export function ToolsTab() {
               <button 
                 type="button" 
                 onClick={() => setShowSkillPicker(true)}
-                className="px-4 py-2 rounded text-sm"
+                className="px-4 py-2 rounded text-sm transition-colors"
                 style={{
                   background: '#f1c40f',
                   color: '#000',
                   border: 'none',
                   cursor: 'pointer',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#e1b70f';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#f1c40f';
                 }}
               >
                 Browse Skills
@@ -297,8 +313,18 @@ export function ToolsTab() {
             <button 
               type="button" 
               onClick={() => useConsoleStore.getState().setShowConnectionPicker(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border transition-colors"
               style={{ borderColor: t.border, color: t.textSecondary }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#FE500010';
+                e.currentTarget.style.borderColor = '#FE5000';
+                e.currentTarget.style.color = '#FE5000';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = t.border;
+                e.currentTarget.style.color = t.textSecondary;
+              }}
             >
               <Plus size={16} />
               Connect
@@ -319,12 +345,18 @@ export function ToolsTab() {
               <span className="flex-1 text-sm">{mcpError}</span>
               <button
                 onClick={() => setMcpError(null)}
-                className="px-2 py-1 text-xs rounded"
+                className="px-2 py-1 text-xs rounded transition-colors"
                 style={{
                   background: t.statusError,
                   color: '#fff',
                   border: 'none',
                   cursor: 'pointer',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.opacity = '1';
                 }}
               >
                 Dismiss
@@ -347,12 +379,18 @@ export function ToolsTab() {
               <button
                 type="button"
                 onClick={() => useConsoleStore.getState().setShowConnectionPicker(true)}
-                className="px-4 py-2 rounded text-sm"
+                className="px-4 py-2 rounded text-sm transition-colors"
                 style={{
                   background: '#2ecc71',
                   color: '#fff',
                   border: 'none',
                   cursor: 'pointer',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#27ae60';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#2ecc71';
                 }}
               >
                 <Wifi size={16} style={{ marginRight: '8px', display: 'inline' }} />
