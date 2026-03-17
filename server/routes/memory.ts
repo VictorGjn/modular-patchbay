@@ -212,7 +212,7 @@ router.post('/score', async (req, res) => {
 });
 
 // GET /api/memory/config — get current backend config
-router.get('/config', (req, res) => {
+router.get('/config', (_req, res) => {
   try {
     const config = readConfig();
     const memoryConfig = config.memory || { backend: 'local_sqlite' };
@@ -220,9 +220,9 @@ router.get('/config', (req, res) => {
     res.json({ 
       status: 'success', 
       config: {
+        ...memoryConfig,
         backend: currentBackend,
-        connectionString: currentBackend === 'postgres' ? connectionString : undefined,
-        ...memoryConfig
+        connectionString: currentBackend === 'postgres' ? connectionString : undefined
       }
     });
   } catch (error) {
@@ -283,7 +283,7 @@ router.post('/config', async (req, res) => {
 });
 
 // GET /api/memory/health — backend health check
-router.get('/health', async (req, res) => {
+router.get('/health', async (_req, res) => {
   try {
     const adapter = await getAdapter();
     const health = await adapter.getHealth();

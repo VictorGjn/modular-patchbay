@@ -249,16 +249,17 @@ export function MemoryTab() {
     setTestingConnection(false);
   }, [setLongTermConfig, checkBackendHealth]);
 
-  const handleStoreChange = useCallback(async (newStore: StoreBackend) => {
-    if (newStore === 'postgres') {
+  const handleStoreChange = useCallback(async (newStore: string) => {
+    const storeBackend = newStore as StoreBackend;
+    if (storeBackend === 'postgres') {
       // Just update the UI, don't test connection yet
-      setLongTermConfig({ store: newStore });
+      setLongTermConfig({ store: storeBackend });
       setConnectionStatus('idle');
-    } else if (newStore === 'local_sqlite') {
-      await testConnection(newStore);
+    } else if (storeBackend === 'local_sqlite') {
+      await testConnection(storeBackend);
     } else {
       // For other backends (Redis, ChromaDB, Pinecone), just update UI
-      setLongTermConfig({ store: newStore });
+      setLongTermConfig({ store: storeBackend });
       setConnectionStatus('idle');
     }
   }, [setLongTermConfig, testConnection]);

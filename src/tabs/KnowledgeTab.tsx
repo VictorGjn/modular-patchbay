@@ -159,7 +159,7 @@ export function KnowledgeTab() {
                   // Calculate budget % based on weights
                   const enabledTypes = new Set(channels.filter(c => c.enabled).map(c => c.knowledgeType));
                   const totalWeight = Array.from(enabledTypes).reduce((s, t) => s + (TYPE_WEIGHTS[t] || 0), 0);
-                  const budgetPct = totalWeight > 0 ? Math.round((TYPE_WEIGHTS[key] / totalWeight) * 100) : 0;
+                  const budgetPct = totalWeight > 0 ? Math.round(((TYPE_WEIGHTS[key as keyof typeof TYPE_WEIGHTS] || 0) / totalWeight) * 100) : 0;
                   
                   return (
                     <div key={key} className="flex items-center gap-2 text-[12px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>

@@ -118,7 +118,7 @@ export function assembleContext(
 
   // Workflow
   if (workflowSteps.length > 0) {
-    const compiledWorkflow = compileWorkflow(workflowSteps as any);
+    const compiledWorkflow = compileWorkflow(workflowSteps);
     systemParts.push(`<workflow>\n${compiledWorkflow}\n</workflow>`);
   }
 

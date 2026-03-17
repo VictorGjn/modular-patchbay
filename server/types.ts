@@ -20,9 +20,15 @@ export interface McpServerConfig {
   headers?: Record<string, string>;
 }
 
+export interface MemoryConfig {
+  backend: string;
+  connectionString?: string;
+}
+
 export interface AppConfig {
   providers: ProviderConfig[];
   mcpServers: McpServerConfig[];
+  memory?: MemoryConfig;
 }
 
 export interface ApiResponse<T = unknown> {
