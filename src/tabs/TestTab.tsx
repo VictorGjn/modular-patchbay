@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useTheme } from '../theme';
 import { useConversationStore } from '../store/conversationStore';
 import { useConsoleStore } from '../store/consoleStore';
@@ -25,6 +25,18 @@ export function TestTab() {
   const selectedModel = useConsoleStore(s => s.selectedModel);
   const setModel = useConsoleStore(s => s.setModel);
   const getAllModels = useProviderStore(s => s.getAllModels);
+  const providers = useProviderStore(s => s.providers);
+  const modelOptions = useMemo(() => 
+    getAllModels().map(m => ({
+      value: `${m.providerId}::${m.id}`,
+      label: `${m.providerName} / ${m.label}`
+    })),
+    [getAllModels, providers]
+  );
+  const currentModelLabel = useMemo(() => {
+    const found = getAllModels().find(m => `${m.providerId}::${m.id}` === selectedModel);
+    return found?.label || selectedModel;
+  }, [getAllModels, providers, selectedModel]);
   
   const [panelWidths, setPanelWidths] = useState<PanelWidths>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -102,10 +114,7 @@ export function TestTab() {
           <div className="flex items-center gap-2 mb-2">
             <div className="flex-1 max-w-xs">
               <Select
-                options={getAllModels().map(m => ({
-                  value: `${m.providerId}::${m.id}`,
-                  label: `${m.providerName} / ${m.label}`
-                }))}
+                options={modelOptions}
                 value={selectedModel}
                 onChange={(value: string) => setModel(value)}
                 placeholder="Select model..."
@@ -120,7 +129,7 @@ export function TestTab() {
                   border: '1px solid #FE500030'
                 }}
               >
-                Current: {getAllModels().find(m => `${m.providerId}::${m.id}` === selectedModel)?.label || selectedModel}
+                Current: {currentModelLabel}
               </span>
             )}
           </div>
@@ -184,10 +193,7 @@ export function TestTab() {
         <div className="flex items-center gap-2 mb-2">
           <div className="flex-1 max-w-xs">
             <Select
-              options={getAllModels().map(m => ({
-                value: `${m.providerId}::${m.id}`,
-                label: `${m.providerName} / ${m.label}`
-              }))}
+              options={modelOptions}
               value={selectedModel}
               onChange={(value: string) => setModel(value)}
               placeholder="Select model..."
@@ -202,7 +208,7 @@ export function TestTab() {
                 border: '1px solid #FE500030'
               }}
             >
-              Current: {getAllModels().find(m => `${m.providerId}::${m.id}` === selectedModel)?.label || selectedModel}
+              Current: {currentModelLabel}
             </span>
           )}
         </div>
