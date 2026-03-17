@@ -11,7 +11,7 @@ import { EmptyState } from '../components/ds/EmptyState';
 import { SkeletonLoader } from '../components/ds/SkeletonLoader';
 import { API_BASE } from '../config';
 import {
-  Plug, Zap, Plus, X, Library, AlertTriangle, Wifi, WifiOff
+  Plug, Zap, Plus, X, Library, AlertTriangle, Wifi, WifiOff, ShoppingBag
 } from 'lucide-react';
 
 // Extracted style constants
@@ -421,25 +421,46 @@ export function ToolsTab() {
             )}
 
             {activeSkills.length > 0 && (
-              <button 
-                type="button" 
-                aria-label="Open Skill Library" 
-                onClick={() => setShowSkillPicker(true)}
-                className="flex items-center justify-center gap-1.5 w-full mt-4 px-3 py-2.5 rounded text-[13px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
-                style={{ 
-                  background: 'transparent', 
-                  border: `1px solid ${t.border}`, 
-                  color: t.textDim, 
-                  fontFamily: "'Geist Mono', monospace", 
-                  transition: 'border-color 150ms, color 150ms' 
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
-              >
-                <Library size={11} /> Skill Library
-              </button>
+              <div className="flex gap-3 mt-4">
+                <button 
+                  type="button" 
+                  aria-label="Open Skill Library" 
+                  onClick={() => setShowSkillPicker(true)}
+                  className="flex items-center justify-center gap-1.5 flex-1 px-3 py-2.5 rounded text-[13px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
+                  style={{ 
+                    background: 'transparent', 
+                    border: `1px solid ${t.border}`, 
+                    color: t.textDim, 
+                    fontFamily: "'Geist Mono', monospace", 
+                    transition: 'border-color 150ms, color 150ms' 
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+                  onFocus={e => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+                >
+                  <Library size={11} /> Add Skill
+                </button>
+                <button 
+                  type="button" 
+                  aria-label="Browse Marketplace" 
+                  onClick={() => useConsoleStore.getState().setShowMarketplace(true)}
+                  className="flex items-center justify-center gap-1.5 flex-1 px-3 py-2.5 rounded text-[13px] tracking-wide uppercase cursor-pointer min-h-[44px] motion-reduce:transition-none"
+                  style={{ 
+                    background: 'transparent', 
+                    border: `1px solid ${t.border}`, 
+                    color: t.textDim, 
+                    fontFamily: "'Geist Mono', monospace", 
+                    transition: 'border-color 150ms, color 150ms' 
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = t.textSecondary; e.currentTarget.style.color = t.textSecondary; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+                  onFocus={e => { e.currentTarget.style.borderColor = t.textSecondary; e.currentTarget.style.color = t.textSecondary; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textDim; }}
+                >
+                  <ShoppingBag size={11} /> Marketplace
+                </button>
+              </div>
             )}
           </Section>
         </div>

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
+import { useProviderStore } from '../store/providerStore';
 import { useMemoryStore } from '../store/memoryStore';
 import { useConversationStore } from '../store/conversationStore';
 import { exportAsAgent, downloadAgentFile, exportForTarget, exportGenericJSON, exportAsYAML } from '../utils/agentExport';
@@ -181,7 +182,7 @@ function PromptPreviewModal({ isOpen, onClose, prompt }: PromptPreviewModalProps
       onClick={onClose}
     >
       <div
-        className="w-full max-w-4xl h-[80vh] m-4 rounded-lg border shadow-lg flex flex-col"
+        className="w-full h-[80vh] m-4 rounded-lg border shadow-lg flex flex-col"
         style={{
           background: t.surface,
           borderColor: t.border,
@@ -843,10 +844,15 @@ export function ReviewTab() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <span className="block text-sm font-medium mb-2" style={{ color: t.textPrimary }}>Model</span>
-                  <div className="p-2 rounded" style={{ background: t.surfaceElevated, color: t.textSecondary }}>
-                    {selectedModel || 'No model selected'}
-                  </div>
+                  <Select
+                    label="Model"
+                    options={useProviderStore(s => s.getAllModels()).map(m => ({
+                      value: `${m.providerId}::${m.id}`,
+                      label: `${m.providerName} / ${m.label}`
+                    }))}
+                    value={selectedModel}
+                    onChange={(value: string) => useConsoleStore.getState().setModel(value)}
+                  />
                 </div>
                 <div>
                   <span className="block text-sm font-medium mb-2" style={{ color: t.textPrimary }}>Token Budget</span>

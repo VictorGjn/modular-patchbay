@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useTheme, type ThemePalette } from '../theme';
+import { useConsoleStore } from '../store/consoleStore';
 import {
   useQualificationStore,
   type TestCaseType,
@@ -68,6 +69,9 @@ function ScoreBadge({ score, threshold }: { score: number; threshold: number }) 
 export function QualificationPanel() {
   const t = useTheme();
   const store = useQualificationStore();
+  const agentMeta = useConsoleStore(s => s.agentMeta);
+  const selectedModel = useConsoleStore(s => s.selectedModel);
+  const instructionState = useConsoleStore(s => s.instructionState);
   const {
     status, suite, runs, latestRunId, publishGated,
     setMissionBrief, addTestCase, updateTestCase, removeTestCase,
@@ -91,8 +95,11 @@ export function QualificationPanel() {
     setStatus('generating');
     try {
       const data = await generateSuite({
-        agentId: 'current', // TODO: wire to actual agent ID
+        agentId: agentMeta.name || 'current',
         missionBrief: suite.missionBrief,
+        persona: instructionState.persona,
+        constraints: instructionState.constraints.customConstraints,
+        objectives: instructionState.objectives.primary,
       });
       // Hydrate store with generated test cases and dimensions
       for (const tc of data.testCases) {
@@ -106,17 +113,18 @@ export function QualificationPanel() {
       setStatus('error');
     }
     setLoading(null);
-  }, [suite.missionBrief, addTestCase, addScoringDimension, setStatus]);
+  }, [suite.missionBrief, addTestCase, addScoringDimension, setStatus, agentMeta.name, instructionState.persona, instructionState.constraints.customConstraints, instructionState.objectives.primary]);
 
   /* ── Run Qualification ── */
   const handleRun = useCallback(async () => {
     setLoading('run');
     setStatus('running');
     try {
+      const modelParts = selectedModel?.split('::') || ['default', 'claude-opus-4'];
       const data = await runQualification({
-        agentId: 'current',
-        providerId: 'default',
-        model: 'claude-opus-4',
+        agentId: agentMeta.name || 'current',
+        providerId: modelParts[0],
+        model: modelParts[1],
         suite: {
           missionBrief: suite.missionBrief,
           testCases: suite.testCases.map(({ id, type, label, input, expectedBehavior }) => ({ id, type, label, input, expectedBehavior })),
@@ -136,17 +144,17 @@ export function QualificationPanel() {
       setStatus('error');
     }
     setLoading(null);
-  }, [suite, recordRun, setStatus]);
+  }, [suite, recordRun, setStatus, selectedModel, agentMeta.name]);
 
   /* ── Apply Patches ── */
   const handleApplyPatch = useCallback(async (runId: string, patchId: string) => {
     try {
-      await applyPatches({ agentId: 'current', runId, patchIds: [patchId] });
+      await applyPatches({ agentId: agentMeta.name || 'current', runId, patchIds: [patchId] });
       storeApplyPatch(runId, patchId);
     } catch {
       // Silently fail — user can retry
     }
-  }, [storeApplyPatch]);
+  }, [storeApplyPatch, agentMeta.name]);
 
   return (
     <div className="flex flex-col gap-5">
