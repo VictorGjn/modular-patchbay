@@ -482,6 +482,55 @@ export function KnowledgeTab() {
                   </span>
                 </div>
 
+                {/* Token Heatmap bar */}
+                {(() => {
+                  const tokenContributionPct = totalTokens > 0 ? (realTokens / totalTokens) * 100 : 0;
+                  const heatmapColor = tokenContributionPct < 10 
+                    ? `#FE500020` 
+                    : tokenContributionPct > 30 
+                      ? '#FE5000' 
+                      : `#FE5000${Math.round(20 + (tokenContributionPct / 30) * 235).toString(16).padStart(2, '0')}`;
+                  const dataSource = isIndexed ? 'tree index' : 'file size estimate';
+
+                  return (
+                    <div className="flex items-center gap-1 mt-0.5 pl-4" title={`Token contribution: ${tokenContributionPct.toFixed(1)}% (${dataSource})`}>
+                      <div className="w-5 flex justify-center">
+                        <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: t.textFaint }}>
+                          %
+                        </span>
+                      </div>
+                      <div 
+                        className="flex-1" 
+                        style={{ height: 3, background: '#FE500010', borderRadius: 1.5, overflow: 'hidden' }}
+                        role="progressbar"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={tokenContributionPct}
+                        aria-valuetext={`${tokenContributionPct.toFixed(1)}% of total context budget`}
+                        aria-label={`Token contribution heatmap for ${ch.name}`}
+                      >
+                        <div 
+                          style={{ 
+                            width: `${tokenContributionPct}%`, 
+                            height: '100%', 
+                            background: heatmapColor, 
+                            borderRadius: 1.5,
+                            transition: 'width 200ms, background-color 200ms'
+                          }} 
+                        />
+                      </div>
+                      <span className="text-[10px] shrink-0" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim, width: 44, textAlign: 'right' }}>
+                        {tokenContributionPct.toFixed(1)}%
+                      </span>
+                      {!isIndexed && (
+                        <span className="text-[8px]" style={{ color: t.textFaint, marginLeft: 4 }} title="Based on file size estimate">
+                          est
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Level 3: Expanded panel */}
                 {isExpanded && (
                   <div className="rounded-md" style={{ 
