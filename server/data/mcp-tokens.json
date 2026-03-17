@@ -1,9 +1,9 @@
 {
   "https://mcp.notion.com/mcp": {
-    "access_token": "dce1a5b0-d0c3-4ca4-a786-35efb72a5a4f:ozs09tmDggzQIxGL:2CRIlCxuQp3WAKqqyXde7pm3N3Z4h1sp",
-    "refresh_token": "dce1a5b0-d0c3-4ca4-a786-35efb72a5a4f:ozs09tmDggzQIxGL:FYWaDBqVKNJpGQSAtJLgt3yOcEzBtM2B",
+    "access_token": "dce1a5b0-d0c3-4ca4-a786-35efb72a5a4f:RV2g6warAKMeBH9w:hdczDEqtOJR66tFnWPt6m2lbCjJoFUHj",
+    "refresh_token": "dce1a5b0-d0c3-4ca4-a786-35efb72a5a4f:RV2g6warAKMeBH9w:BtGuJfxLP5s8HmO2jz50DbA8JwGnW78p",
     "token_type": "bearer",
     "scope": "",
-    "expires_at": 1773750030585
+    "expires_at": 1773767547355
   }
 }

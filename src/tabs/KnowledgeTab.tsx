@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useTreeIndexStore } from '../store/treeIndexStore';
-import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
+import { KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { LocalFilesPanel } from '../panels/knowledge/LocalFilesPanel';
 import { GitRepoPanel } from '../panels/knowledge/GitRepoPanel';
 import { ConnectorPanel } from '../panels/knowledge/ConnectorPanel';
@@ -17,14 +17,14 @@ export function KnowledgeTab() {
   
   const [activeTab, setActiveTab] = useState<TabType>('local-files');
 
-  // Helper to compute effective tokens for a channel (considers depth + indexing)
+  // Helper to compute effective tokens for a channel (considers depth % + indexing)
   const getTokens = useCallback((ch: typeof channels[number]) => {
     const entry = treeIndexes[ch.path];
+    const fraction = (ch.depth || 100) / 100; // depth is 10-100%
     if (entry) {
-      const depthLevel = DEPTH_LEVELS[ch.depth];
-      return Math.round(entry.index.totalTokens * depthLevel.pct);
+      return Math.round(entry.index.totalTokens * fraction);
     }
-    return ch.baseTokens ?? 0;
+    return Math.round((ch.baseTokens ?? 0) * fraction);
   }, [treeIndexes]);
 
   // Memoize all filtered arrays and computed values

@@ -90,7 +90,7 @@ export const AgentPreviewNode = memo(function AgentPreviewNode() {
   const enabledConnectors = useMemo(() => connectors.filter((c) => c.enabled), [connectors]);
 
   const totalTokens = useMemo(() =>
-    activeChannels.reduce((s, c) => s + Math.round(c.baseTokens * (DEPTH_LEVELS[c.depth]?.pct ?? 0.5)), 0),
+    activeChannels.reduce((s, c) => s + Math.round(c.baseTokens * ((c.depth > 4 ? c.depth / 100 : (DEPTH_LEVELS[c.depth]?.pct ?? 0.5)))), 0),
   [activeChannels]);
 
   const budgetMax = agentConfig.maxTokens || 100000;

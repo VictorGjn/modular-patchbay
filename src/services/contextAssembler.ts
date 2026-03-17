@@ -1,4 +1,4 @@
-import { type ChannelConfig, KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
+import { type ChannelConfig, KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import type { InstructionState, WorkflowStep, AgentMeta, McpTool } from '../types/console.types';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { applyDepthFilter, renderFilteredMarkdown } from '../utils/depthFilter';
@@ -143,7 +143,9 @@ export function assembleContext(
       const sourceBlocks: string[] = [];
 
       for (const ch of group) {
-        const depth = DEPTH_LEVELS[ch.depth];
+        const depthPct = ch.depth || 100; // 10-100%
+        const fraction = depthPct / 100;
+        const depthLabel = `${depthPct}%`;
         const treeIndex = treeStore.getIndex(ch.path);
 
         if (treeIndex) {
@@ -152,15 +154,15 @@ export function assembleContext(
           const content = renderFilteredMarkdown(filtered.filtered);
           if (content.trim()) {
             sourceBlocks.push(
-              `<source name="${ch.name}" type="${kt.label}" depth="${depth.label}" tokens="${filtered.totalTokens}">\n${content}\n</source>`,
+              `<source name="${ch.name}" type="${kt.label}" depth="${depthLabel}" tokens="${filtered.totalTokens}">\n${content}\n</source>`,
             );
           } else {
-            sourceBlocks.push(`- ${ch.name} (${depth.label}, title only) [${ch.path}]`);
+            sourceBlocks.push(`- ${ch.name} (${depthLabel}, title only) [${ch.path}]`);
           }
         } else {
           // No tree index — fallback to metadata-only reference
           sourceBlocks.push(
-            `- ${ch.name} (${depth.label}, ~${Math.round(ch.baseTokens * depth.pct).toLocaleString()} tokens) [${ch.path}]`,
+            `- ${ch.name} (${depthLabel}, ~${Math.round(ch.baseTokens * fraction).toLocaleString()} tokens) [${ch.path}]`,
           );
         }
       }
