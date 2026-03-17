@@ -283,6 +283,7 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
               onClick={() => handleTemplateSelect(template)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               aria-describedby={`template-desc-${template.label.replace(/\s+/g, '-').toLowerCase()}`}
+              title={`Use ${template.label} template`}
               className="text-left p-5 rounded-lg border cursor-pointer transition-colors min-h-[44px]"
               style={templateButtonStyles(selectedTemplate === template.label)}
               onMouseEnter={e => {
@@ -333,6 +334,7 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
             <button
               type="button"
               onClick={onNavigateToTest}
+              title="Test template now"
               className="flex items-center gap-2 px-6 py-3 rounded-lg transition-colors"
               style={{
                 background: '#FE5000',
@@ -396,12 +398,23 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
           </div>
         </div>
 
+        {/* Generate Explanation */}
+        <div className="mt-6 mb-4 text-center">
+          <p 
+            className="text-sm px-4"
+            style={{ color: t.textSecondary, lineHeight: 1.5 }}
+          >
+            Generate will use AI to create a complete agent configuration from your description — including persona, constraints, objectives, workflow, and tool selection.
+          </p>
+        </div>
+
         {/* Generate Agent Button */}
         <div className="mt-4 flex justify-center">
           <button
             type="button"
             onClick={handleGenerate}
             disabled={generating || !prompt.trim()}
+            title={generating ? 'Generating configuration' : !prompt.trim() ? 'Enter description first' : 'Generate full agent config'}
             className="flex items-center gap-3 px-8 py-4 rounded-lg transition-colors font-semibold text-base"
             style={{
               background: generating || !prompt.trim() ? '#CC4000' : '#FE5000',

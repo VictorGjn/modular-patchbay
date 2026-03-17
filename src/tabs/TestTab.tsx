@@ -119,6 +119,7 @@ export function TestTab() {
                 value={selectedModel}
                 onChange={(value: string) => setModel(value)}
                 placeholder="Select model..."
+                title="Select AI model"
               />
             </div>
             {selectedModel && (
@@ -150,6 +151,7 @@ export function TestTab() {
                 key={tab.id}
                 type="button"
                 onClick={() => setMobileTabIndex(index)}
+                title={`View ${tab.label.toLowerCase()}`}
                 className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-none bg-transparent"
                 style={{
                   color: isActive ? '#FE5000' : t.textSecondary,
@@ -198,6 +200,7 @@ export function TestTab() {
               value={selectedModel}
               onChange={(value: string) => setModel(value)}
               placeholder="Select model..."
+              title="Select AI model"
             />
           </div>
           {selectedModel && (

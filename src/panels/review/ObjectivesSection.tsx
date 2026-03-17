@@ -116,6 +116,7 @@ export function ObjectivesSection({
                     color: t.textMuted
                   }}
                   aria-label="Remove success criterion"
+                  title="Remove criterion"
                 >
                   <X size={14} />
                 </button>
@@ -134,6 +135,7 @@ export function ObjectivesSection({
                 variant="secondary"
                 size="sm"
                 disabled={!newSuccessCriterion.trim()}
+                title="Add success criterion"
                 className="flex items-center gap-1"
               >
                 <Plus size={14} />
@@ -170,6 +172,7 @@ export function ObjectivesSection({
                     color: t.textMuted
                   }}
                   aria-label="Remove failure mode"
+                  title="Remove failure mode"
                 >
                   <X size={14} />
                 </button>
@@ -188,6 +191,7 @@ export function ObjectivesSection({
                 variant="secondary"
                 size="sm"
                 disabled={!newFailureMode.trim()}
+                title="Add failure mode"
                 className="flex items-center gap-1"
               >
                 <Plus size={14} />

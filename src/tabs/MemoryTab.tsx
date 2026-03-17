@@ -40,6 +40,7 @@ function SliderRow({ label, value, min, max, step, onChange, suffix }: {
           step={step} 
           value={value}
           onChange={e => onChange(Number(e.target.value))}
+          title={`Adjust ${label.toLowerCase()}`}
           aria-valuemin={min}
           aria-valuemax={max}
           aria-valuenow={value}
@@ -399,7 +400,7 @@ export function MemoryTab() {
                         {tag}
                       </span>
                     ))}
-                    <button type="button" aria-label="Remove fact" onClick={() => removeFact(fact.id)}
+                    <button type="button" aria-label="Remove fact" title="Remove fact" onClick={() => removeFact(fact.id)}
                       style={{ ...removeButtonStyles, color: t.textFaint }}
                       onMouseEnter={e => {
                         e.currentTarget.style.background = '#ef444420';
@@ -433,6 +434,7 @@ export function MemoryTab() {
                 value={newFactDomain} 
                 onChange={e => setNewFactDomain(e.target.value as MemoryDomain)}
                 aria-label="Fact domain"
+                title="Select fact domain"
                 className="text-sm px-3 rounded border-none cursor-pointer"
                 style={{ background: t.surfaceElevated, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
               >
@@ -443,6 +445,7 @@ export function MemoryTab() {
               <button 
                 type="button" 
                 aria-label="Add fact"
+                title="Add new fact"
                 onClick={() => { if (newFactText.trim()) { addFact(newFactText.trim(), [], 'fact', newFactDomain); setNewFactText(''); } }}
                 className="px-3 border-none rounded cursor-pointer shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 style={{ background: '#FE5000', color: '#fff' }}
@@ -490,6 +493,7 @@ export function MemoryTab() {
                         key={d.key} 
                         type="button" 
                         aria-label={`Toggle ${d.label}`} 
+                        title={`Toggle ${d.label}`}
                         aria-pressed={active}
                         onClick={() => setSandboxDomain(d.key, !active)}
                         className="text-sm px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"

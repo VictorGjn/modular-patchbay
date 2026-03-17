@@ -61,6 +61,7 @@ function MissingSources({ gaps }: { gaps: Array<{ name: string; type: string; de
               <button
                 type="button"
                 onClick={() => setShowFilePicker(true)}
+                title="Add missing source"
                 className="mt-1.5 text-[12px] px-2 py-0.5 rounded cursor-pointer border-none"
                 style={{ background: '#e74c3c15', color: '#e74c3c', fontFamily: "'Geist Mono', monospace", border: '1px solid #e74c3c30' }}
               >
@@ -175,6 +176,7 @@ function FactInsightsSection() {
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
+          title={collapsed ? 'Show insights' : 'Hide insights'}
           className="text-xs"
           style={{ color: t.textDim }}
         >
@@ -194,6 +196,7 @@ function FactInsightsSection() {
                 type="button"
                 onClick={handleAnalyze}
                 disabled={analyzing || facts.length === 0}
+                title={analyzing ? 'Analyzing facts' : 'Analyze for promotions'}
                 className="flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded text-[13px] tracking-wide uppercase cursor-pointer border-none"
                 style={{
                   background: analyzing ? '#CC4000' : '#FE5000',
@@ -311,6 +314,7 @@ export function KnowledgeTab() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
+                  title={tab.id === 'local-files' ? 'Add local files' : tab.id === 'git-repos' ? 'Add git repositories' : 'Add API connectors'}
                   className="flex items-center justify-center gap-2 flex-1 px-3 py-2.5 rounded text-[12px] font-medium tracking-wide uppercase transition-all duration-200"
                   style={{
                     background: isActive ? t.isDark ? '#ffffff15' : '#ffffff' : 'transparent',

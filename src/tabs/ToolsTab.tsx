@@ -100,7 +100,7 @@ export function ToolsTab() {
               </p>
             )}
           </div>
-          <label className="flex items-center cursor-pointer">
+          <label className="flex items-center cursor-pointer" title={isEnabled ? 'Disable skill' : 'Enable skill'}>
             <input
               type="checkbox"
               checked={isEnabled}
@@ -151,6 +151,7 @@ export function ToolsTab() {
           <button 
             type="button" 
             aria-label={`Remove ${server.name}`} 
+            title={`Remove ${server.name}`}
             onClick={() => handleRemoveMcp(server.id)} 
             className="text-xs p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20"
             style={{ color: t.textFaint }}
@@ -176,6 +177,7 @@ export function ToolsTab() {
             <button 
               type="button" 
               onClick={() => handleReconnectMcp(server.id)}
+              title="Reconnect server"
               className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-gray-100 dark:hover:bg-gray-800"
               style={{ color: t.textSecondary }}
             >
@@ -233,6 +235,7 @@ export function ToolsTab() {
             <button 
               type="button" 
               onClick={() => setShowSkillPicker(true)}
+              title="Add skills from library"
               className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border transition-colors"
               style={{ borderColor: t.border, color: t.textSecondary }}
               onMouseEnter={e => {
@@ -252,6 +255,7 @@ export function ToolsTab() {
             <button 
               type="button" 
               onClick={() => setShowMarketplace(true)}
+              title="Browse marketplace"
               className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border transition-colors"
               style={{ borderColor: t.border, color: t.textSecondary }}
               onMouseEnter={e => { e.currentTarget.style.background = t.surfaceElevated; }}
@@ -282,6 +286,7 @@ export function ToolsTab() {
               <button 
                 type="button" 
                 onClick={() => setShowSkillPicker(true)}
+                title="Browse skill library"
                 className="px-4 py-2 rounded text-sm transition-colors"
                 style={{
                   background: '#f1c40f',
@@ -301,6 +306,7 @@ export function ToolsTab() {
               <button
                 type="button"
                 onClick={() => setShowMarketplace(true)}
+                title="Browse marketplace"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 style={{
                   background: 'transparent',
@@ -340,6 +346,7 @@ export function ToolsTab() {
             <button 
               type="button" 
               onClick={() => useConsoleStore.getState().setShowConnectionPicker(true)}
+              title="Connect MCP server"
               className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border transition-colors"
               style={{ borderColor: t.border, color: t.textSecondary }}
               onMouseEnter={e => {

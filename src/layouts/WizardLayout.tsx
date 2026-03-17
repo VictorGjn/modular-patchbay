@@ -284,6 +284,19 @@ export function WizardLayout() {
             const isTabCompleted = isTabComplete(tab.id);
             const accentColor = getContrastColor('#FE5000', t.isDark);
 
+            const getTabTooltip = (tabId: string) => {
+              switch (tabId) {
+                case 'describe': return 'Define your agent';
+                case 'knowledge': return 'Add data sources';
+                case 'tools': return 'Select capabilities';
+                case 'memory': return 'Configure memory';
+                case 'review': return 'Review and edit';
+                case 'test': return 'Test and debug';
+                case 'qualification': return 'Export and deploy';
+                default: return tab.label;
+              }
+            };
+
             return (
               <button
                 key={tab.id}
@@ -295,6 +308,7 @@ export function WizardLayout() {
                 tabIndex={isActive ? 0 : -1}
                 onClick={() => setActiveTab(tab.id)}
                 onKeyDown={(e) => handleTabKeyDown(e, index)}
+                title={getTabTooltip(tab.id)}
                 className="flex items-center gap-2 px-6 py-4 text-sm font-medium border-none cursor-pointer transition-colors min-h-[44px] whitespace-nowrap"
                 style={{
                   background: 'transparent',

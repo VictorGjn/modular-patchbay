@@ -37,6 +37,7 @@ export function InlineTraceView({ stats, traceId }: InlineTraceViewProps) {
       <div className="flex items-center">
         <button
           onClick={() => setExpanded(!expanded)}
+          title={expanded ? 'Collapse trace' : 'Expand trace'}
           className="flex-1 px-3 py-2 text-left text-xs flex items-center justify-between hover:opacity-80 transition-opacity border-none bg-transparent cursor-pointer"
           style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}
         >
@@ -60,9 +61,9 @@ export function InlineTraceView({ stats, traceId }: InlineTraceViewProps) {
               color: isSelected ? '#FE5000' : t.textFaint,
               fontFamily: "'Geist Mono', monospace",
             }}
-            title={isSelected ? 'Deselect trace in sidebar' : 'View trace in sidebar'}
+            title={isSelected ? 'Deselect trace' : 'Select trace'}
           >
-            {isSelected ? '◉' : '○'}
+            {isSelected ? '📍' : '○'}
           </button>
         )}
       </div>

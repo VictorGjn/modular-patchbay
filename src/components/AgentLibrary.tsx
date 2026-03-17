@@ -119,13 +119,14 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
               className="text-sm"
               style={{ color: t.textSecondary }}
             >
-              Manage your AI agents
+              Build, test, and export AI agents with full context engineering.
             </p>
           </div>
           <Button
             onClick={handleNewAgentClick}
             variant="primary"
             size="md"
+            title="Create new agent"
             className="flex items-center gap-2"
           >
             <Plus size={16} />
@@ -139,13 +140,14 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
         {agents.length === 0 ? (
           <EmptyState
             icon={<Bot size={32} />}
-            title="No Agents Yet"
-            subtitle="Create your first agent to get started"
+            title="No agents yet"
+            subtitle="Click '+ New Agent' to create your first one"
             action={
               <Button
                 onClick={handleNewAgentClick}
                 variant="primary"
                 size="md"
+                title="Create your first agent"
                 className="flex items-center gap-2"
               >
                 <Plus size={16} />
@@ -160,6 +162,7 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
                 key={agent.id}
                 role="button"
                 tabIndex={0}
+                title={`Open ${agent.name}`}
                 className="cursor-pointer rounded-lg overflow-hidden transition-all duration-200 hover:shadow-lg"
                 onClick={() => handleAgentClick(agent.id)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleAgentClick(agent.id); }}

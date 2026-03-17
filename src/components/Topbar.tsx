@@ -62,6 +62,7 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
           className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover:bg-[#FE500015]"
           style={{ color: t.textSecondary }}
           aria-label="Back to library"
+          title="Back to library"
         >
           <ArrowLeft size={16} />
         </button>
@@ -98,6 +99,7 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
               aria-expanded={showVersionDropdown}
               aria-haspopup="menu"
               aria-label={`Version ${currentVersion} dropdown menu`}
+              title="Select version"
               className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer border-none text-[13px] font-semibold"
               style={{
                 background: t.surfaceElevated,
@@ -164,6 +166,7 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
                               restoreVersion(version.version);
                               setShowVersionDropdown(false);
                             }}
+                            title={`Restore version ${version.version}`}
                             className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border-none cursor-pointer"
                             style={{
                               background: '#FE5000',
@@ -199,6 +202,7 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
         className="flex items-center justify-center w-11 h-11 rounded-md cursor-pointer border-none bg-transparent hover-accent-text focus-visible:outline focus-visible:outline-2"
         style={{ color: t.textDim }}
         aria-label="LLM settings"
+        title="LLM settings"
       >
         <Settings size={14} />
       </button>
@@ -210,6 +214,7 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
         className="flex items-center justify-center w-11 h-11 rounded-md cursor-pointer border-none bg-transparent hover-accent-text focus-visible:outline focus-visible:outline-2"
         style={{ color: t.textDim }}
         aria-label={t.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        title={t.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
         {t.isDark ? <Sun size={14} /> : <Moon size={14} />}
       </button>
@@ -218,6 +223,7 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
       <button
         type="button"
         onClick={run}
+        title={running ? 'Stop execution' : 'Run agent'}
         className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg text-[14px] font-semibold tracking-wider uppercase cursor-pointer border-none"
         style={{
           background: running ? '#CC4000' : '#FE5000',
