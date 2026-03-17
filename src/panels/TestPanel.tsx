@@ -600,11 +600,13 @@ function TeamSection() {
 
     
     try {
-      // Start trace for pipeline
+      // Start trace for pipeline — use conversationStore's ID so TracePanel can find it
       const traceStore = useTraceStore.getState();
       const versionStore = useVersionStore.getState();
+      const convStore = useConversationStore.getState();
       const agentVersion = versionStore.currentVersion || '0.0.0';
-      const traceId = traceStore.startTrace(`team-${Date.now()}`, agentVersion);
+      const convId = convStore.conversationId || `conv-${Date.now()}`;
+      const traceId = traceStore.startTrace(convId, agentVersion);
 
       // 1. Build system frame (identity, constraints, workflow)
       let systemFrame = buildSystemFrame();
