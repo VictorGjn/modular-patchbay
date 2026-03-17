@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useTreeIndexStore } from '../store/treeIndexStore';
@@ -17,35 +17,35 @@ export function KnowledgeTab() {
   
   const [activeTab, setActiveTab] = useState<TabType>('local-files');
 
-  // Compute token stats
-  const getChannelTokens = (ch: typeof channels[number]) => {
+  // Helper to compute effective tokens for a channel (considers depth + indexing)
+  const getTokens = useCallback((ch: typeof channels[number]) => {
     const entry = treeIndexes[ch.path];
     if (entry) {
       const depthLevel = DEPTH_LEVELS[ch.depth];
       return Math.round(entry.index.totalTokens * depthLevel.pct);
     }
     return ch.baseTokens ?? 0;
-  };
+  }, [treeIndexes]);
 
-  // Memoize all filtered arrays and computed values to avoid recreating on every render
+  // Memoize all filtered arrays and computed values
   const channelStats = useMemo(() => {
     const enabledChannels = channels.filter(c => c.enabled);
     const enabledCount = enabledChannels.length;
     const indexedCount = enabledChannels.filter(c => treeIndexes[c.path]).length;
-    const totalTokens = enabledChannels.reduce((sum, c) => sum + getChannelTokens(c), 0);
+    const totalTokens = enabledChannels.reduce((sum, c) => sum + getTokens(c), 0);
     
     return { enabledCount, indexedCount, totalTokens };
-  }, [channels, treeIndexes, getChannelTokens]);
+  }, [channels, treeIndexes, getTokens]);
 
   // GitHub compression stats
   const githubStats = useMemo(() => {
     const githubCompressedChannels = channels.filter(c => c.enabled && /\.compressed\.md$/i.test(c.path || ''));
     const githubRawTokens = githubCompressedChannels.reduce((sum, c) => sum + (c.baseTokens || 0), 0);
-    const githubEffectiveTokens = githubCompressedChannels.reduce((sum, c) => sum + getChannelTokens(c), 0);
+    const githubEffectiveTokens = githubCompressedChannels.reduce((sum, c) => sum + getTokens(c), 0);
     const githubSavingsPct = githubRawTokens > 0 ? Math.max(0, ((githubRawTokens - githubEffectiveTokens) / githubRawTokens) * 100) : 0;
     
     return { githubCompressedChannels, githubRawTokens, githubEffectiveTokens, githubSavingsPct };
-  }, [channels, getChannelTokens]);
+  }, [channels, getTokens]);
   
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
 
@@ -59,12 +59,12 @@ export function KnowledgeTab() {
   const knowledgeTypeStats = useMemo(() => {
     return Object.entries(KNOWLEDGE_TYPES).map(([key, kt]) => {
       const typeChannels = channels.filter(c => c.enabled && c.knowledgeType === key);
-      const typeTokens = typeChannels.reduce((sum, c) => sum + getChannelTokens(c), 0);
+      const typeTokens = typeChannels.reduce((sum, c) => sum + getTokens(c), 0);
       const pct = channelStats.totalTokens > 0 ? (typeTokens / channelStats.totalTokens) * 100 : 0;
       
       return { key, kt, typeTokens, pct };
     }).filter(item => item.typeTokens > 0);
-  }, [channels, channelStats.totalTokens, getChannelTokens]);
+  }, [channels, channelStats.totalTokens, getTokens]);
 
   return (
     <div className="space-y-6">
