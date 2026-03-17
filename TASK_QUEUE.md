@@ -52,7 +52,7 @@
 - **Gate:** TSC + BUILD clean
 
 ## Task 6: Fix `as any` in TracePanel
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 01:25
 - **What:** In src/components/test/TracePanel.tsx, replace `(traces as any)[conversationId]` with proper typed access using TraceStore types. Replace `event.inputTokens` etc with proper type guards or typed interfaces. Zero `as` casts when done.
 - **Gate:** TSC + BUILD
 
