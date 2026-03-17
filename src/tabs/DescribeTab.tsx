@@ -1,29 +1,78 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
+import { useMemoryStore } from '../store/memoryStore';
 import { TextArea } from '../components/ds/TextArea';
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb, ArrowRight } from 'lucide-react';
 
 const QUICK_TEMPLATES = [
   {
     label: 'Code Review Agent',
     description: 'Reviews code for best practices, security, and maintainability',
     prompt: 'A code review agent that analyzes pull requests and provides detailed feedback on code quality, security vulnerabilities, performance issues, and adherence to coding standards. Should use framework sources for style guides and ground-truth for API documentation.',
+    knowledgeDefaults: {
+      type: 'Ground Truth' as const,
+      depth: 'High' as const,
+    },
+    memoryStrategy: 'sliding_window' as const,
+    constraints: {
+      neverMakeUp: true,
+      askBeforeActions: false,
+      stayInScope: true,
+      useOnlyTools: true,
+      customConstraints: 'Focus on code quality, security, and maintainability. Always cite specific line numbers and files when providing feedback.',
+    },
   },
   {
     label: 'Research Assistant',
     description: 'Gathers and synthesizes information from multiple sources',
     prompt: 'A research assistant that collects information from various sources, synthesizes findings, and produces comprehensive reports. Uses evidence and signal sources to gather data, with broad exploration capabilities for discovering relevant information.',
+    knowledgeDefaults: {
+      type: 'Evidence' as const,
+      depth: 'Broad' as const,
+    },
+    memoryStrategy: 'rag' as const,
+    constraints: {
+      neverMakeUp: true,
+      askBeforeActions: true,
+      stayInScope: false,
+      useOnlyTools: false,
+      customConstraints: 'Provide comprehensive sources and citations. Synthesize information from multiple perspectives.',
+    },
   },
   {
     label: 'Content Writer',
     description: 'Creates engaging content following brand guidelines',
     prompt: 'A content writing agent that produces high-quality articles, blog posts, and marketing copy. Uses framework sources for brand voice and style guidelines, ground-truth for factual information, and hypothesis sources for creative content development.',
+    knowledgeDefaults: {
+      type: 'Framework' as const,
+      depth: 'Medium' as const,
+    },
+    memoryStrategy: 'summarize_and_recent' as const,
+    constraints: {
+      neverMakeUp: false,
+      askBeforeActions: true,
+      stayInScope: true,
+      useOnlyTools: false,
+      customConstraints: 'Follow brand voice guidelines. Ensure content is engaging and on-brand.',
+    },
   },
   {
     label: 'Product Manager',
     description: 'Analyzes market data and creates product roadmaps',
     prompt: 'A product management agent that tracks competitor analysis, user feedback, and market trends. Creates weekly reports, manages roadmaps, and provides strategic recommendations. Integrates with tools like GitHub for technical insights and Notion for documentation.',
+    knowledgeDefaults: {
+      type: 'Signal' as const,
+      depth: 'High' as const,
+    },
+    memoryStrategy: 'rag' as const,
+    constraints: {
+      neverMakeUp: true,
+      askBeforeActions: false,
+      stayInScope: true,
+      useOnlyTools: true,
+      customConstraints: 'Focus on data-driven decisions. Prioritize user feedback and market trends in recommendations.',
+    },
   },
 ];
 
@@ -32,12 +81,15 @@ const MIN_CHARACTERS = 20;
 
 interface DescribeTabProps {
   onValidationChange?: (isValid: boolean) => void;
+  onNavigateToTest?: () => void;
 }
 
-export function DescribeTab({ onValidationChange }: DescribeTabProps) {
+export function DescribeTab({ onValidationChange, onNavigateToTest }: DescribeTabProps) {
   const t = useTheme();
   const prompt = useConsoleStore(s => s.prompt);
   const setPrompt = useConsoleStore(s => s.setPrompt);
+  const updateInstruction = useConsoleStore(s => s.updateInstruction);
+  const memoryStore = useMemoryStore();
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
@@ -116,6 +168,25 @@ export function DescribeTab({ onValidationChange }: DescribeTabProps) {
     setPrompt(template.prompt);
     setSelectedTemplate(template.label);
     setShowValidation(false);
+
+    // Auto-fill stores based on template defaults
+    memoryStore.setSessionConfig({
+      strategy: template.memoryStrategy,
+    });
+
+    // Update constraints
+    updateInstruction({
+      constraints: {
+        neverMakeUp: template.constraints.neverMakeUp,
+        askBeforeActions: template.constraints.askBeforeActions,
+        stayInScope: template.constraints.stayInScope,
+        useOnlyTools: template.constraints.useOnlyTools,
+        limitWords: false,
+        wordLimit: 500,
+        customConstraints: template.constraints.customConstraints,
+        scopeDefinition: '',
+      },
+    });
   };
 
   // Keyboard navigation for radio group
@@ -200,6 +271,34 @@ export function DescribeTab({ onValidationChange }: DescribeTabProps) {
             </button>
           ))}
         </div>
+        
+        {/* Jump to Test Button (appears after template selection) */}
+        {selectedTemplate && (
+          <div className="mt-4 flex justify-center">
+            <button
+              type="button"
+              onClick={onNavigateToTest}
+              className="flex items-center gap-2 px-6 py-3 rounded-lg transition-colors"
+              style={{
+                background: '#FE5000',
+                color: '#FFFFFF',
+                border: 'none',
+                fontFamily: "'Geist Sans', sans-serif",
+                fontWeight: 600,
+                fontSize: '14px',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#E54800';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = '#FE5000';
+              }}
+            >
+              Jump to Test
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Description TextArea */}

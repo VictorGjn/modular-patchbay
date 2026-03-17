@@ -323,7 +323,11 @@ export function WizardLayout() {
       >
         <div className="max-w-4xl mx-auto px-8 py-6">
           <Suspense fallback={<LoadingFallback />}>
-            <ActiveComponent />
+            {activeTab === 'describe' ? (
+              <DescribeTab onNavigateToTest={() => setActiveTab('test')} />
+            ) : (
+              <ActiveComponent />
+            )}
           </Suspense>
         </div>
       </div>
