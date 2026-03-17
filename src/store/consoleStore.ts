@@ -1202,7 +1202,20 @@ export const useConsoleStore = create<ConsoleState>()(
         autoSync: true,
       },
       workflowSteps: [],
+      prompt: '',
+      channels: [],
+      mcpServers: [],
+      skills: [],
+      connectors: [],
+      knowledgeGaps: [],
+      response: '',
+      selectedPreset: '',
     });
+    // Also clear conversation state
+    try {
+      const { useConversationStore } = require('./conversationStore');
+      useConversationStore.getState().clearMessages();
+    } catch { /* silent */ }
   },
 
   // Collect current context state (channels, mcpServers, skills, connectors)
