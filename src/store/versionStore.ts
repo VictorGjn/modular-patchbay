@@ -296,7 +296,7 @@ export const useVersionStore = create<VersionState>((set, get) => ({
     }
   },
 
-  saveToServer: async (label) => {
+  saveToServer: async () => {
     const { agentId, currentVersion } = get();
     if (!agentId) return;
     

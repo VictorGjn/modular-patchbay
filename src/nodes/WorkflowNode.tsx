@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useMemo } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 
 import { Input } from '../components/ds/Input';

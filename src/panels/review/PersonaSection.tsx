@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Bot } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { TextArea } from '../../components/ds/TextArea';
@@ -48,7 +48,7 @@ export function PersonaSection({
               { value: 'casual', label: 'Casual' },
             ]}
             value={tone}
-            onChange={(value) => updateInstruction({ tone: value })}
+            onChange={(value) => updateInstruction({ tone: value as 'formal' | 'neutral' | 'casual' })}
           />
           
           <div>

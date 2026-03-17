@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Download, Save, Eye, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { useVersionStore } from '../../store/versionStore';

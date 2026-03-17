@@ -97,7 +97,7 @@ const CONNECTORS: ConnectorConfig[] = [
 export function ConnectorPanel() {
   const t = useTheme();
   const [connectorAuth, setConnectorAuth] = useState<Record<string, ConnectorAuth>>({});
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [expandedConnector, setExpandedConnector] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, Record<string, string>>>({});
   const [testing, setTesting] = useState<Record<string, boolean>>({});
