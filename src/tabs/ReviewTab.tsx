@@ -745,6 +745,9 @@ export function ReviewTab() {
                   <button
                     type="button"
                     onClick={() => setShowExportDropdown(!showExportDropdown)}
+                    aria-expanded={showExportDropdown}
+                    aria-haspopup="menu"
+                    aria-label="Export agent configuration in different formats"
                     className="flex items-center gap-2 px-3 py-2 text-sm rounded border"
                     style={{
                       background: 'transparent',
@@ -758,12 +761,14 @@ export function ReviewTab() {
                   </button>
 
                   {showExportDropdown && (
-                    <div style={exportDropdownStyle}>
+                    <div role="menu" style={exportDropdownStyle}>
                       {['JSON', 'YAML', 'Markdown', 'Claude format', 'OpenAI format'].map((format) => (
                         <button
                           key={format}
                           type="button"
+                          role="menuitem"
                           onClick={() => handleExportFormat(format)}
+                          aria-label={`Export agent configuration as ${format}`}
                           className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                           style={{
                             background: 'transparent',

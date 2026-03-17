@@ -185,7 +185,7 @@ export function assembleContext(
 
   // Available Tools
   const connectedTools: McpTool[] = useMcpStore.getState().getConnectedTools();
-  const enabledSkills = consoleState.skills.filter(s => s.enabled);
+  const enabledSkills = consoleState?.skills?.filter((s: any) => s.enabled) || [];
 
   if (connectedTools.length > 0 || enabledSkills.length > 0) {
     const toolLines = [];
