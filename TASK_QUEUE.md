@@ -47,7 +47,7 @@
 - **Gate:** TSC + BUILD
 
 ## — CHECKPOINT 2: AUDIT —
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 01:10
 - **What:** Audit tasks 4-5. Same criteria as Checkpoint 1. Additionally: verify that switching between wizard tabs preserves all state (no data loss on tab switch). Report findings.
 - **Gate:** TSC + BUILD clean
 
@@ -176,3 +176,29 @@ Based on competitor analysis (LangFlow, CrewAI, Google ADK, OpenAI Agents SDK) a
 
 **Grade: C** — Functional but needs significant refactoring for maintainability
 **Action Required:** Break down large components before continuing with complex features
+
+### CHECKPOINT 2 AUDIT — 2026-03-17 01:10
+**Quality Gates:** ✅ TSC clean, ✅ BUILD clean (main chunk now 777.92 kB, worsening)
+
+**Files Audited:** KnowledgeTab.tsx, ToolsTab.tsx (Tasks 4-5)
+
+**Compliance Review:**
+- ❌ **No `as` casts**: ToolsTab.tsx has `as React.CSSProperties` cast on line 15
+- ❌ **Inline styles >3 props**: Both files have multiple style objects exceeding limit:
+  - KnowledgeTab: addButtonStyles (5), repoPillStyles (5), typePillStyles (5), expandedPanelStyles (6), repoIndexButtonStyles (11)
+  - ToolsTab: ERROR_BANNER_STYLES (6), STATUS_INDICATOR_STYLES (4), LATENCY_BARS_STYLES (4)
+- ✅ **No unused imports**: Clean across both files
+- ❌ **Functions <20 lines**: CRITICAL violations in both files:
+  - KnowledgeTab.tsx: 400+ lines (massive component)
+  - ToolsTab.tsx: 500+ lines (extremely large component)
+- ✅ **Store single source**: Proper Zustand store usage, no state duplication
+- ✅ **State persistence**: Both tabs correctly use stores (consoleStore, mcpStore, treeIndexStore, healthStore, skillsStore) ensuring state persists across tab switches
+
+**Critical Issues:**
+1. **Component size explosion**: Both files are massive monoliths violating the 20-line function rule
+2. **Type safety regression**: ToolsTab introduces `as` cast despite coding guidelines
+3. **Build performance**: Main chunk continues growing (777.92 kB vs previous 776.90 kB)
+4. **Style extraction incomplete**: While better than inline styles, extracted constants still exceed 3-property limit
+
+**Grade: D+** — Store integration works but code quality significantly degraded
+**Action Required:** Urgent component decomposition and style refactoring needed
