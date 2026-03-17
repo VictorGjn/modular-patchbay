@@ -2,7 +2,18 @@ import { useState, useCallback, useEffect } from 'react';
 import { SecurityBadges } from '../components/SecurityBadges';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
-import { useMemoryStore, type MemoryDomain } from '../store/memoryStore';
+import { 
+  useMemoryStore, 
+  type MemoryDomain, 
+  type SandboxIsolation,
+  type SessionStrategy,
+  type StoreBackend,
+  type MemoryScope,
+  type EmbeddingModel,
+  type RecallStrategy,
+  type WriteMode,
+  type ExtractType
+} from '../store/memoryStore';
 import { useMcpStore } from '../store/mcpStore';
 // import { useSkillsStore } from '../store/skillsStore';
 // import { useKnowledgeStore } from '../store/knowledgeStore';
@@ -386,7 +397,7 @@ function KnowledgeSection() {
             sourceId: `repo-${file}-${Date.now()}`,
             name: file.replace('.compressed.md', '').replace('.md', '').replace(/^\d+-/, ''),
             path: filePath,
-            category: 'knowledge' as any,
+            category: 'knowledge',
             knowledgeType: 'ground-truth',
             depth: isGitHub ? 2 : 1,
             baseTokens: Math.round(totalTokens / Math.max(json.data.files.length, 1)),
@@ -415,7 +426,14 @@ function KnowledgeSection() {
         // Auto-populate MCP knowledge graph if a memory server is connected
         if (scan) {
           import('../services/graphPopulator').then(({ populateGraphFromScan }) => {
-            populateGraphFromScan(json.data!.name ?? repoPath, scan as any).catch(() => {});
+            // Type assertion safe here as scan structure matches RepoScan interface
+            populateGraphFromScan(json.data!.name ?? repoPath, scan as {
+              name: string;
+              stack: string[];
+              totalFiles: number;
+              totalTokens: number;
+              features: { name: string }[];
+            }).catch(() => {});
           });
         }
       }
@@ -1137,7 +1155,7 @@ function MemorySection() {
           {/* Sandbox isolation */}
           <SubLabel>Sandbox Isolation</SubLabel>
           <Select options={SANDBOX_OPTIONS} value={sandbox.isolation}
-            onChange={v => setSandboxConfig({ isolation: v as any })} size="sm" />
+            onChange={v => setSandboxConfig({ isolation: v as SandboxIsolation })} size="sm" />
           <div className="flex flex-col gap-1 mt-1">
             <Toggle checked={sandbox.allowPromoteToShared} onChange={v => setSandboxConfig({ allowPromoteToShared: v })}
               label="Allow promote to shared" size="sm" />
@@ -1169,7 +1187,7 @@ function MemorySection() {
           {/* Session strategy */}
           <SubLabel>Session Strategy</SubLabel>
           <Select options={STRATEGY_OPTIONS} value={session.strategy}
-            onChange={v => setSessionConfig({ strategy: v as any })} size="sm" />
+            onChange={v => setSessionConfig({ strategy: v as SessionStrategy })} size="sm" />
           {(session.strategy === 'summarize_and_recent') && (
             <SliderRow label="Summarize at" value={session.summarizeAfter} min={5} max={session.windowSize} step={5}
               onChange={v => setSessionConfig({ summarizeAfter: v })} />
@@ -1185,19 +1203,19 @@ function MemorySection() {
               <div className="flex gap-2">
                 <div className="flex-1">
                   <Select options={STORE_OPTIONS} value={longTerm.store}
-                    onChange={v => setLongTermConfig({ store: v as any })} size="sm" label="Store" />
+                    onChange={v => setLongTermConfig({ store: v as StoreBackend })} size="sm" label="Store" />
                 </div>
                 <div className="flex-1">
                   <Select options={SCOPE_OPTIONS} value={longTerm.scope}
-                    onChange={v => setLongTermConfig({ scope: v as any })} size="sm" label="Scope" />
+                    onChange={v => setLongTermConfig({ scope: v as MemoryScope })} size="sm" label="Scope" />
                 </div>
               </div>
               <Select options={EMBEDDING_OPTIONS} value={longTerm.embeddingModel}
-                onChange={v => setLongTermConfig({ embeddingModel: v as any })} size="sm" label="Embedding Model" />
+                onChange={v => setLongTermConfig({ embeddingModel: v as EmbeddingModel })} size="sm" label="Embedding Model" />
               <div className="flex gap-2">
                 <div className="flex-1">
                   <Select options={RECALL_OPTIONS} value={longTerm.recall.strategy}
-                    onChange={v => setRecallConfig({ strategy: v as any })} size="sm" label="Recall" />
+                    onChange={v => setRecallConfig({ strategy: v as RecallStrategy })} size="sm" label="Recall" />
                 </div>
                 <div className="flex-1">
                   <SliderRow label="K" value={longTerm.recall.k} min={1} max={20} step={1}
@@ -1207,13 +1225,13 @@ function MemorySection() {
               <SliderRow label="Min score" value={Math.round(longTerm.recall.minScore * 100)} min={0} max={100} step={5}
                 onChange={v => setRecallConfig({ minScore: v / 100 })} />
               <Select options={WRITE_MODE_OPTIONS} value={longTerm.write.mode}
-                onChange={v => setWriteConfig({ mode: v as any })} size="sm" label="Write Mode" />
+                onChange={v => setWriteConfig({ mode: v as WriteMode })} size="sm" label="Write Mode" />
               <div className="flex flex-wrap gap-1">
                 {EXTRACT_TYPES.map(et => {
-                  const active = longTerm.write.extractTypes.includes(et.value as any);
+                  const active = longTerm.write.extractTypes.includes(et.value as ExtractType);
                   return (
                     <button key={et.value} type="button" aria-label={`Toggle ${et.label}`} aria-pressed={longTerm.write.extractTypes.includes(et.value as any)}
-                      onClick={() => toggleExtractType(et.value as any)}
+                      onClick={() => toggleExtractType(et.value as ExtractType)}
                       className="text-[13px] px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
                       style={{
                         fontFamily: "'Geist Mono', monospace",
@@ -1351,7 +1369,7 @@ function FactInsightsSection() {
         break;
       case 'knowledge':
         if (p.knowledgeSource) {
-          addChannel({ sourceId: `promoted-${crypto.randomUUID().slice(0, 8)}`, name: p.knowledgeSource.name, path: '', category: 'file' as any, knowledgeType: p.knowledgeSource.type as any, depth: 0, baseTokens: 500 });
+          addChannel({ sourceId: `promoted-${crypto.randomUUID().slice(0, 8)}`, name: p.knowledgeSource.name, path: '', category: 'knowledge', knowledgeType: p.knowledgeSource.type as KnowledgeType, depth: 0, baseTokens: 500 });
         }
         break;
       default:

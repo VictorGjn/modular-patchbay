@@ -12,7 +12,7 @@ import { ConstraintModal } from '../components/ConstraintModal';
 import { WorkflowModal } from '../components/WorkflowModal';
 import { refineField, type RefinedAgent } from '../utils/refineInstruction';
 import { formatTokens } from '../utils/formatTokens';
-import { OUTPUT_FORMATS } from '../store/knowledgeBase';
+import { OUTPUT_FORMATS, type OutputFormat } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 import {
   Bot, Sparkles, Loader2,
@@ -211,7 +211,7 @@ function AgentActionBar() {
       <VersionIndicator />
 
       {/* Output Format Selector */}
-      <OutputFormatSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)} t={t} />
+      <OutputFormatSelect value={outputFormat} onChange={(v) => setOutputFormat(v as OutputFormat)} t={t} />
 
       <div className="flex-1" />
 
