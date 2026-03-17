@@ -345,7 +345,7 @@ export function WizardLayout() {
         className="flex-1 overflow-y-auto focus:outline-none"
         data-skip-target
       >
-        <div className="px-6 py-6">
+        <div className={activeTab === 'test' ? 'px-2 py-2 h-full' : 'max-w-[80%] mx-auto px-6 py-6'}>
           <Suspense fallback={<LoadingFallback />}>
             {activeTab === 'describe' ? (
               <DescribeTab onNavigateToTest={() => setActiveTab('test')} />
