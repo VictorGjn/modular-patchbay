@@ -216,7 +216,7 @@ export function QualificationPanel() {
                       <X size={11} />
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <TextArea label="Input" value={tc.input} onChange={(e) => updateTestCase(tc.id, { input: e.target.value })}
                       placeholder="Agent input..." style={{ minHeight: 40, fontSize: 13 }} />
                     <TextArea label="Expected" value={tc.expectedBehavior} onChange={(e) => updateTestCase(tc.id, { expectedBehavior: e.target.value })}

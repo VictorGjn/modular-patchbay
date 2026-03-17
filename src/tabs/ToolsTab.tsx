@@ -376,7 +376,7 @@ export function ToolsTab() {
       </div>
 
       {/* Two-column layout */}
-      <div className="tools-grid">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Skills */}
         <div>
           <Section

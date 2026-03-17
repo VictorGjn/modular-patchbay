@@ -71,7 +71,7 @@ export function QualificationTab() {
     <div className="space-y-6">
       {/* Header with Sparkline */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-3">
           <div>
             <h2 className="text-2xl font-semibold mb-2 m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
               Qualification & Testing
