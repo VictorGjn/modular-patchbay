@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Workflow } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { Section } from '../../components/ds/Section';

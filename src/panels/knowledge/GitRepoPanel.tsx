@@ -6,7 +6,7 @@ import { DEPTH_LEVELS } from '../../store/knowledgeBase';
 import { FolderGit2, Loader2, Clock, RefreshCw, X, GitBranch, Github } from 'lucide-react';
 import { API_BASE } from '../../config';
 
-const DETAIL_LABELS = ['Maximum', 'High', 'Normal', 'Low', 'Minimal'] as const;
+
 
 type GitHubPayload = {
   url: string;
@@ -140,7 +140,7 @@ export function GitRepoPanel() {
     }
   }, [repoUrl, branch, authToken, indexing, addChannel]);
 
-  const handleReIndex = useCallback(async (channelId: string, outputDir: string, files: string[]) => {
+  const handleReIndex = useCallback(async (outputDir: string, files: string[]) => {
     // Re-index existing repo by re-calling the tree indexer
     await useTreeIndexStore.getState().indexFiles(files.map(f => `${outputDir}/${f}`));
   }, []);

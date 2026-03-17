@@ -432,7 +432,7 @@ function KnowledgeSection() {
               stack: string[];
               totalFiles: number;
               totalTokens: number;
-              features: { name: string }[];
+              features: { name: string; keyFiles: string[] }[];
             }).catch(() => {});
           });
         }

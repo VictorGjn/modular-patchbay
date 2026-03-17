@@ -3,7 +3,7 @@ import { useTheme } from '../../theme';
 import { useConsoleStore } from '../../store/consoleStore';
 import { useTreeIndexStore } from '../../store/treeIndexStore';
 import { useKnowledgeStore } from '../../store/knowledgeStore';
-import { DEPTH_LEVELS, type KnowledgeType } from '../../store/knowledgeBase';
+import { DEPTH_LEVELS } from '../../store/knowledgeBase';
 import { Plus, X, Minus, FolderOpen, Loader2 } from 'lucide-react';
 import { GenerateBtn } from '../../components/ds/GenerateBtn';
 

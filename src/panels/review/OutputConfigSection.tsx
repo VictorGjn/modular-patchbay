@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Settings } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { Select } from '../../components/ds/Select';
