@@ -300,7 +300,6 @@ function AgentActionBar() {
             reader.onload = () => {
               try {
                 // This would require parsing the agent file - implementation pending
-                console.log('Agent import functionality not implemented yet');
               } catch (err) {
                 console.error('Failed to import agent:', err);
               }

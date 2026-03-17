@@ -803,7 +803,7 @@ export function ReviewTab() {
         <button
           type="button"
           onClick={() => {
-            console.log('Save functionality would be implemented here');
+            // Save functionality would be implemented here
           }}
           style={saveButtonStyle}
         >

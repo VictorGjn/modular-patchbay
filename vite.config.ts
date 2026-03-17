@@ -12,10 +12,25 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'markdown': ['react-markdown', 'remark-gfm'],
-          'icons': ['lucide-react'],
-          'stores': ['zustand'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor';
+          }
+          if (id.includes('node_modules/react-markdown/') || id.includes('node_modules/remark-gfm/')) {
+            return 'markdown';
+          }
+          if (id.includes('node_modules/lucide-react/')) {
+            return 'icons';
+          }
+          if (id.includes('node_modules/zustand/')) {
+            return 'stores';
+          }
+          if (id.includes('node_modules/mermaid/')) {
+            return 'mermaid';
+          }
+          if (id.includes('/src/services/')) {
+            return 'services';
+          }
         },
       },
     },

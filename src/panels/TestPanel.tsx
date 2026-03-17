@@ -566,7 +566,7 @@ function TeamSection() {
     const provider = providerStore.providers.find(p => p.id === providerId);
     const isAgentSdk = provider?.authMethod === 'claude-agent-sdk';
 
-    console.log('[TeamRunner] Starting team run with provider:', providerId, 'model:', model, 'Agent SDK:', isAgentSdk);
+
     
     try {
       // Start trace for pipeline
@@ -588,7 +588,7 @@ function TeamSection() {
       let provenance = null;
       
       if (activeChannels.length > 0) {
-        console.log('[TeamRunner] Preparing knowledge...');
+
         setStatusMessage('Preparing knowledge...');
         
         const routeResult = await routeSources(activeChannels, traceId);
@@ -620,7 +620,7 @@ function TeamSection() {
       let memoryBlock = '';
       
       if (memoryConfig.longTerm.enabled) {
-        console.log('[TeamRunner] Recalling memory...');
+
         setStatusMessage('Recalling memory...');
         const memoryResult = await preRecall({ 
           userMessage: task, 
@@ -655,7 +655,7 @@ function TeamSection() {
         systemFrame = fullSystemPrompt;
       }
 
-      console.log('[TeamRunner] Running team...');
+
       setStatusMessage('Running team...');
       setRunError(null);
 

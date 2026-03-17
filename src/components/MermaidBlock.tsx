@@ -5,11 +5,21 @@ let mermaidPromise: Promise<typeof import('mermaid')> | null = null;
 function loadMermaid() {
   if (!mermaidPromise) {
     mermaidPromise = import('mermaid').then((m) => {
-      m.default.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+      m.default.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'strict' });
       return m;
     });
   }
   return mermaidPromise;
+}
+
+// Simple SVG sanitizer to prevent XSS attacks
+function sanitizeSvg(svgString: string): string {
+  // Remove script tags and javascript: protocol
+  return svgString
+    .replace(/<script[^>]*>.*?<\/script>/gis, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
+    .replace(/style\s*=\s*["'][^"']*javascript[^"']*["']/gi, '');
 }
 
 let renderCounter = 0;
@@ -28,7 +38,7 @@ export default function MermaidBlock({ content }: { content: string }) {
       try {
         const { svg } = await m.default.render(id, content);
         if (!cancelled && containerRef.current) {
-          containerRef.current.innerHTML = svg;
+          containerRef.current.innerHTML = sanitizeSvg(svg);
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Render failed');

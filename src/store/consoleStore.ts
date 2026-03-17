@@ -44,113 +44,19 @@ function removeItemById<T extends { id: string; added: boolean; enabled: boolean
   return items.map((item) => item.id === id ? { ...item, added: false, enabled: false } : item);
 }
 
-export interface AgentMeta {
-  name: string;
-  description: string;
-  icon: string;
-  category: string;
-  tags: string[];
-  avatar: string;
-}
-
-export type ExportTarget = 'claude' | 'amp' | 'codex' | 'vibe-kanban' | 'openclaw' | 'generic';
-
-export interface PendingKnowledgeItem {
-  id: string;
-  name: string;
-  type: string;
-  content?: string;
-  fromRun?: string;
-}
-
-export interface SuggestedSkill {
-  id: string;
-  name: string;
-  description: string;
-  installCmd: string;
-  installing?: boolean;
-  installed?: boolean;
-}
-
-export interface InstructionState {
-  persona: string;
-  tone: 'formal' | 'neutral' | 'casual';
-  expertise: number; // 1-5 slider
-  constraints: {
-    neverMakeUp: boolean;
-    askBeforeActions: boolean;
-    stayInScope: boolean;
-    useOnlyTools: boolean;
-    limitWords: boolean;
-    wordLimit: number;
-    customConstraints: string;
-    scopeDefinition: string;
-  };
-  objectives: {
-    primary: string;
-    successCriteria: string[];
-    failureModes: string[];
-  };
-  rawPrompt: string;
-  autoSync: boolean;
-}
-
-// Anthropic's 5 workflow patterns + true agent
-export type AgentPattern = 'prompt-chain' | 'routing' | 'parallelization' | 'orchestrator-workers' | 'evaluator-optimizer' | 'autonomous-agent';
-
-// Verification: how the agent checks its own work (Anthropic's highest-leverage improvement)
-export interface VerificationConfig {
-  enabled: boolean;
-  strategy: 'rules' | 'llm-judge' | 'cross-reference' | 'checklist' | 'none';
-  rules: string[]; // e.g. "All claims must cite a source", "No empty sections"
-  crossRefSources: string[]; // sourceIds to cross-reference against
-  confidenceRequired: boolean; // mark High/Medium/Low on findings
-  autoRetryOnFail: boolean;
-  maxRetries: number;
-}
-
-// Error handling per step
-export interface ErrorHandling {
-  onStepFailure: 'retry' | 'skip' | 'fallback' | 'abort';
-  retryCount: number;
-  fallbackAction: string; // what to do instead
-  checkpointEnabled: boolean; // save progress mid-workflow
-  timeoutSeconds: number; // 0 = no timeout
-  gracefulDegradation: boolean; // continue with partial results
-}
-
-// Evaluation criteria
-export interface EvaluationConfig {
-  enabled: boolean;
-  criteria: EvalCriterion[];
-  expectedOutputFormat: string; // e.g. "markdown with H2 sections", "JSON with 'recommendations' array"
-  qualityRubric: string; // freeform description of what "good" looks like
-}
-
-export interface EvalCriterion {
-  id: string;
-  name: string;
-  description: string;
-  weight: number; // 1-5
-  type: 'boolean' | 'scale' | 'regex' | 'contains';
-  value?: string; // regex pattern or required content
-}
-
-export interface WorkflowStep {
-  id: string;
-  label: string;
-  action: string;
-  tool: string;
-  condition: 'always' | 'if' | 'unless';
-  conditionValue?: string;
-  conditionText?: string;
-  loopTarget?: string;
-  loopMax?: number;
-  // Error handling per step
-  onError?: 'retry' | 'skip' | 'fallback' | 'abort';
-  retryCount?: number;
-  fallbackAction?: string;
-}
+import type { 
+  AgentMeta, 
+  InstructionState, 
+  WorkflowStep, 
+  PendingKnowledgeItem,
+  SuggestedSkill,
+  AgentPattern,
+  VerificationConfig,
+  ErrorHandling,
+  EvaluationConfig,
+  EvalCriterion,
+  ExportTarget
+} from '../types/console.types';
 
 export interface ConsoleState {
   channels: ChannelConfig[];
