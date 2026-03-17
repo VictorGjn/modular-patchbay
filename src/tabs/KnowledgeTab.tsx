@@ -1,18 +1,234 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
+import { useMemoryStore } from '../store/memoryStore';
 import { useTreeIndexStore } from '../store/treeIndexStore';
-import { KNOWLEDGE_TYPES } from '../store/knowledgeBase';
+import { useVersionStore } from '../store/versionStore';
+import { KNOWLEDGE_TYPES, type KnowledgeType } from '../store/knowledgeBase';
 import { LocalFilesPanel } from '../panels/knowledge/LocalFilesPanel';
 import { GitRepoPanel } from '../panels/knowledge/GitRepoPanel';
 import { ConnectorPanel } from '../panels/knowledge/ConnectorPanel';
-import { Files, FolderGit2, Database } from 'lucide-react';
+import { analyzeFactsForPromotion, type FactPromotion, type FactAnalysisResult } from '../utils/analyzeFactsForPromotion';
+import { Files, FolderGit2, Database, AlertCircle, Lightbulb, Plus, Loader2 } from 'lucide-react';
 
 type TabType = 'local-files' | 'git-repos' | 'connectors';
+
+// Missing Sources Component
+function MissingSources({ gaps }: { gaps: Array<{ name: string; type: string; description: string }> }) {
+  const t = useTheme();
+  const setShowFilePicker = useConsoleStore(s => s.setShowFilePicker);
+  const agentMeta = useConsoleStore(s => s.agentMeta);
+  const generatorHasRun = agentMeta.name !== '';
+  
+  if (gaps.length === 0) {
+    if (!generatorHasRun) return null;
+    return (
+      <div className="mb-6" style={{ borderBottom: `1px solid ${t.isDark ? '#1e1e22' : '#e8e8ec'}`, borderLeft: '3px solid #2ecc71' }}>
+        <div className="px-5 py-3" style={{ background: t.isDark ? '#0f1a0f' : '#f0fdf0' }}>
+          <span
+            className="text-[12px] font-bold tracking-[0.08em] uppercase"
+            style={{ fontFamily: "'Geist Mono', monospace", color: '#2ecc71' }}
+          >
+            ✅ No missing sources detected
+          </span>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="mb-6" style={{ borderBottom: `1px solid ${t.isDark ? '#1e1e22' : '#e8e8ec'}`, borderLeft: '3px solid #e74c3c' }}>
+      <div className="px-5 py-3" style={{ background: t.isDark ? '#1a1a1e' : '#fff5f5' }}>
+        <span
+          className="text-[12px] font-bold tracking-[0.08em] uppercase"
+          style={{ fontFamily: "'Geist Mono', monospace", color: '#e74c3c' }}
+        >
+          ⚠ {gaps.length} MISSING SOURCES
+        </span>
+      </div>
+      <div className="px-5 pb-4 flex flex-col gap-3">
+        {gaps.map((gap, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <span style={{ color: '#e74c3c', fontSize: 10, marginTop: 3, flexShrink: 0 }}>●</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px]">
+                <span style={{ fontWeight: 700, color: t.textPrimary }}>{gap.name}</span>
+                <span style={{ color: t.textDim }}> ({gap.type})</span>
+              </div>
+              {gap.description && (
+                <div className="text-[12px] mt-0.5" style={{ color: t.textDim }}>{gap.description}</div>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowFilePicker(true)}
+                className="mt-1.5 text-[12px] px-2 py-0.5 rounded cursor-pointer border-none"
+                style={{ background: '#e74c3c15', color: '#e74c3c', fontFamily: "'Geist Mono', monospace", border: '1px solid #e74c3c30' }}
+              >
+                + Add source
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Fact Insights Component
+function FactInsightsSection() {
+  const t = useTheme();
+  const facts = useMemoryStore(s => s.facts);
+  const removeFact = useMemoryStore(s => s.removeFact);
+  const updateInstruction = useConsoleStore(s => s.updateInstruction);
+  const instructionState = useConsoleStore(s => s.instructionState);
+  const addWorkflowStep = useConsoleStore(s => s.addWorkflowStep);
+  const addChannel = useConsoleStore(s => s.addChannel);
+  const checkpoint = useVersionStore(s => s.checkpoint);
+
+  const [collapsed, setCollapsed] = useState(facts.length === 0);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [result, setResult] = useState<FactAnalysisResult | null>(null);
+  const [applied, setApplied] = useState<Set<string>>(new Set());
+  const [error, setError] = useState('');
+
+  const handleAnalyze = useCallback(async () => {
+    if (facts.length === 0) return;
+    setAnalyzing(true);
+    setError('');
+    setApplied(new Set());
+    try {
+      const analysis = await analyzeFactsForPromotion(facts);
+      setResult(analysis);
+      if (collapsed) setCollapsed(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analysis failed');
+    }
+    setAnalyzing(false);
+  }, [facts, collapsed]);
+
+  const handlePromote = useCallback((promo: FactPromotion) => {
+    const p = promo.payload;
+    switch (promo.target) {
+      case 'instruction':
+        if (p.instructionAppend) {
+          const current = instructionState.persona;
+          updateInstruction({ persona: current ? `${current}\n\n${p.instructionAppend}` : p.instructionAppend });
+        }
+        break;
+      case 'constraint':
+        if (p.constraintText) {
+          const current = instructionState.constraints.customConstraints;
+          updateInstruction({ constraints: { ...instructionState.constraints, customConstraints: current ? `${current}\n${p.constraintText}` : p.constraintText } });
+        }
+        break;
+      case 'workflow':
+        if (p.workflowStep) {
+          addWorkflowStep({ label: p.workflowStep.label, action: p.workflowStep.action, tool: '', condition: 'always' });
+        }
+        break;
+      case 'knowledge':
+        if (p.knowledgeSource) {
+          addChannel({ sourceId: `promoted-${crypto.randomUUID().slice(0, 8)}`, name: p.knowledgeSource.name, path: '', category: 'knowledge', knowledgeType: p.knowledgeSource.type as KnowledgeType, depth: 0, baseTokens: 500 });
+        }
+        break;
+      default:
+        break;
+    }
+    // Mark as applied, remove from facts
+    setApplied(prev => new Set([...prev, promo.factId]));
+    removeFact(promo.factId);
+  }, [instructionState, updateInstruction, addWorkflowStep, addChannel, removeFact]);
+
+  const handleApplyAll = useCallback(() => {
+    if (!result) return;
+    for (const promo of result.promotions) {
+      if (!applied.has(promo.factId)) {
+        handlePromote(promo);
+      }
+    }
+    checkpoint('Facts promoted to agent design');
+  }, [result, applied, handlePromote, checkpoint]);
+
+  if (facts.length === 0 && !result) return null;
+
+  const promotableCount = result ? result.promotions.filter(p => !applied.has(p.factId)).length : 0;
+
+  return (
+    <div className="mt-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Lightbulb size={16} style={{ color: '#FE5000' }} />
+          <h4 className="text-sm font-semibold" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+            Fact Insights
+          </h4>
+          {result && promotableCount > 0 && (
+            <span className="text-xs px-2 py-1 rounded" style={{ background: '#FE500015', color: '#FE5000' }}>
+              {promotableCount} suggestion{promotableCount !== 1 ? 's' : ''}
+            </span>
+          )}
+          {!result && facts.length > 0 && (
+            <span className="text-xs px-2 py-1 rounded" style={{ background: '#f3f4f6', color: t.textDim }}>
+              {facts.length} facts to analyze
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="text-xs"
+          style={{ color: t.textDim }}
+        >
+          {collapsed ? 'Show' : 'Hide'}
+        </button>
+      </div>
+
+      {!collapsed && (
+        <div className="space-y-3">
+          {/* Analyze button */}
+          {!result && facts.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <div className="text-[12px] leading-relaxed" style={{ color: t.textDim }}>
+                Analyze your accumulated facts and discover which ones should become permanent parts of your agent — instructions, constraints, workflow steps, or knowledge sources.
+              </div>
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                disabled={analyzing || facts.length === 0}
+                className="flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded text-[13px] tracking-wide uppercase cursor-pointer border-none"
+                style={{
+                  background: analyzing ? '#CC4000' : '#FE5000',
+                  color: '#fff',
+                  fontFamily: "'Geist Mono', monospace",
+                  opacity: analyzing || facts.length === 0 ? 0.6 : 1
+                }}
+              >
+                {analyzing ? <Loader2 size={11} className="animate-spin motion-reduce:animate-none" /> : <Lightbulb size={11} />}
+                {analyzing ? 'Analyzing...' : `Analyze ${facts.length} fact${facts.length !== 1 ? 's' : ''}`}
+              </button>
+            </div>
+          )}
+
+          {error && (
+            <div className="text-xs text-red-500 p-2 rounded" style={{ background: '#fee2e2' }}>
+              {error}
+            </div>
+          )}
+
+          {result && promotableCount === 0 && (
+            <div className="text-xs text-green-600 p-2 rounded" style={{ background: '#f0fdf4' }}>
+              ✅ All insights have been applied to your agent configuration.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function KnowledgeTab() {
   const t = useTheme();
   const channels = useConsoleStore(s => s.channels);
+  const knowledgeGaps = useConsoleStore(s => s.knowledgeGaps);
   const treeIndexes = useTreeIndexStore(s => s.indexes);
   
   const [activeTab, setActiveTab] = useState<TabType>('local-files');
@@ -77,6 +293,9 @@ export function KnowledgeTab() {
           Configure the knowledge sources your agent will use. Different knowledge types serve different purposes in your agent's reasoning process.
         </p>
       </div>
+
+      {/* Missing Sources section */}
+      <MissingSources gaps={knowledgeGaps} />
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-6">
@@ -248,6 +467,9 @@ export function KnowledgeTab() {
           )}
         </div>
       </div>
+
+      {/* Fact Insights section at the bottom */}
+      <FactInsightsSection />
     </div>
   );
 }
