@@ -126,7 +126,7 @@ Based on competitor analysis (LangFlow, CrewAI, Google ADK, OpenAI Agents SDK) a
 ### Persona B — "Context engineering expert" (visibility)
 
 ## Task 13: Context Diff view
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 04:10
 - **What:** In src/components/test/ContextInspector.tsx, add a "Diff" toggle. When enabled, store the previous run's assembled context (from conversationStore.lastPipelineStats) and show a side-by-side or inline diff with the current run. Highlight added blocks in green, removed in red. Use simple string comparison — no external diff library needed. Show token delta (e.g. "+120 tokens" / "-45 tokens").
 - **Gate:** TSC + BUILD
 
