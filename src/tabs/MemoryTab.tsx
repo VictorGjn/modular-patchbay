@@ -216,13 +216,19 @@ export function MemoryTab() {
   const checkBackendHealth = useCallback(async () => {
     try {
       const response = await fetch('/api/memory/health');
+      if (!response.ok) {
+        // Server error — don't crash, just show degraded status
+        setBackendHealth({ status: 'unavailable', factCount: 0 });
+        return { status: 'unavailable', factCount: 0 };
+      }
       const result = await response.json();
-      setBackendHealth(result.health);
-      return result.health;
-    } catch (error) {
-      console.error('Health check failed:', error);
-      setBackendHealth({ status: 'error', factCount: 0 });
-      return { status: 'error', factCount: 0 };
+      const health = result.health ?? result.data ?? { status: 'unknown', factCount: 0 };
+      setBackendHealth(health);
+      return health;
+    } catch {
+      // Network error or server not running
+      setBackendHealth({ status: 'unavailable', factCount: 0 });
+      return { status: 'unavailable', factCount: 0 };
     }
   }, []);
 
