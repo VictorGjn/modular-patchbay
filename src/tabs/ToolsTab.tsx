@@ -150,7 +150,9 @@ export function ToolsTab() {
         setSkillChecking(skill.id);
         const start = performance.now();
         try {
-          const res = await fetch(`${API_BASE}/health/skill/${skill.id}`, { 
+          // Strip scope prefix (global: / user:) — server expects plain skill name
+          const skillName = skill.id.replace(/^(global|user):/, '');
+          const res = await fetch(`${API_BASE}/health/skills/${encodeURIComponent(skillName)}`, { 
             signal: AbortSignal.timeout(10000) 
           });
           const latencyMs = Math.round(performance.now() - start);
