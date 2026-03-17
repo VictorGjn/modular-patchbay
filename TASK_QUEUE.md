@@ -143,7 +143,7 @@ Based on competitor analysis (LangFlow, CrewAI, Google ADK, OpenAI Agents SDK) a
 - **Gate:** TSC + BUILD
 
 ## Task 16: Agent version indicator in Topbar
-- **Status:** TODO
+- **Status:** DONE — 2026-03-17 04:55
 - **What:** In src/components/Topbar.tsx, add a version badge next to the agent name. Read from versionStore (already exists). Show "v{number}" badge. On click, show a dropdown with version history (last 5 versions) with timestamp and "Restore" button. Restore loads that version's state into consoleStore. Use existing VersionIndicator component if suitable.
 - **Gate:** TSC + BUILD
 

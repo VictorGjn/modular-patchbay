@@ -1,7 +1,9 @@
+import { useState, useEffect, useRef } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
+import { useVersionStore } from '../store/versionStore';
 import { useThemeStore } from '../store/themeStore';
 import { useTheme } from '../theme';
-import { Play, Square, Sun, Moon, Settings } from 'lucide-react';
+import { Play, Square, Sun, Moon, Settings, ChevronDown, RotateCcw } from 'lucide-react';
 
 
 
@@ -9,8 +11,26 @@ import { Play, Square, Sun, Moon, Settings } from 'lucide-react';
 export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
   const running = useConsoleStore((s) => s.running);
   const run = useConsoleStore((s) => s.run);
+  const agentMeta = useConsoleStore((s) => s.agentMeta);
+  const { currentVersion, versions, restoreVersion } = useVersionStore();
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
+  const [showVersionDropdown, setShowVersionDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useTheme();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowVersionDropdown(false);
+      }
+    };
+
+    if (showVersionDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showVersionDropdown]);
 
   return (
     <div
@@ -36,6 +56,109 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
         </h1>
       </div>
 
+      {/* Agent name and version */}
+      {agentMeta.name && (
+        <div className="flex items-center gap-2 mx-4">
+          <span 
+            className="text-[15px] font-semibold"
+            style={{ color: t.textPrimary }}
+          >
+            {agentMeta.name}
+          </span>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowVersionDropdown(!showVersionDropdown)}
+              className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer border-none text-[13px] font-semibold"
+              style={{
+                background: t.surfaceElevated,
+                color: t.textSecondary,
+                fontFamily: "'Geist Mono', monospace",
+                border: `1px solid ${t.border}`,
+              }}
+            >
+              v{currentVersion}
+              <ChevronDown size={10} />
+            </button>
+
+            {/* Version dropdown */}
+            {showVersionDropdown && (
+              <div
+                className="absolute top-full right-0 mt-1 w-64 rounded-lg border shadow-lg z-50 overflow-hidden"
+                style={{
+                  background: t.surface,
+                  borderColor: t.border,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                }}
+              >
+                <div className="p-2 max-h-80 overflow-y-auto">
+                  {versions
+                    .slice(-5)
+                    .reverse()
+                    .map((version) => (
+                      <div
+                        key={version.id}
+                        className="flex items-center justify-between p-2 rounded-md hover:bg-opacity-50"
+                        style={{ 
+                          background: version.version === currentVersion ? 'rgba(254, 80, 0, 0.1)' : 'transparent',
+                        }}
+                      >
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="text-[13px] font-bold"
+                              style={{ 
+                                fontFamily: "'Geist Mono', monospace", 
+                                color: version.version === currentVersion ? '#FE5000' : t.textPrimary 
+                              }}
+                            >
+                              v{version.version}
+                            </span>
+                            {version.version === currentVersion && (
+                              <span className="text-[10px] px-1 py-0.5 rounded text-white bg-green-600">
+                                CURRENT
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] truncate" style={{ color: t.textMuted }}>
+                            {version.label || 'Checkpoint'}
+                          </span>
+                          <span className="text-[10px]" style={{ color: t.textFaint }}>
+                            {new Date(version.timestamp).toLocaleString()}
+                          </span>
+                        </div>
+                        {version.version !== currentVersion && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              restoreVersion(version.version);
+                              setShowVersionDropdown(false);
+                            }}
+                            className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border-none cursor-pointer"
+                            style={{
+                              background: '#FE5000',
+                              color: 'white',
+                            }}
+                          >
+                            <RotateCcw size={10} />
+                            Restore
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  {versions.length === 0 && (
+                    <div className="p-4 text-center">
+                      <div className="text-[12px]" style={{ color: t.textFaint }}>
+                        No versions yet
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1" />
 
