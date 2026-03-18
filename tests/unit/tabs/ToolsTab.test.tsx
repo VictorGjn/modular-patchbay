@@ -10,6 +10,8 @@ const mockConsoleState = {
   setShowSkillPicker: vi.fn(),
   setShowMarketplace: vi.fn(),
   setShowConnectionPicker: vi.fn(),
+  setShowConnectorPicker: vi.fn(),
+  connectors: [],
   skills: [
     {
       id: 'test-skill-1',
