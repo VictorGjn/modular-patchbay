@@ -6,7 +6,7 @@ import { KNOWLEDGE_TYPES } from '../store/knowledgeBase';
 import { LocalFilesPanel } from '../panels/knowledge/LocalFilesPanel';
 import { GitRepoPanel } from '../panels/knowledge/GitRepoPanel';
 import { ConnectorPanel } from '../panels/knowledge/ConnectorPanel';
-import { Files, FolderGit2, Database, AlertCircle, Plus } from 'lucide-react';
+import { Files, FolderGit2, Database } from 'lucide-react';
 
 type TabType = 'local-files' | 'git-repos' | 'connectors';
 
