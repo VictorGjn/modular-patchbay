@@ -2,7 +2,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { useTheme } from '../../theme';
 import {
   Database, ExternalLink, Settings, CheckCircle, XCircle,
-  Clock, Loader2, Key, Zap, RefreshCw, Download
+  Clock, Loader2, Key, Zap, RefreshCw, Download, Search
 } from 'lucide-react';
 import { API_BASE } from '../../config';
 import { useConsoleStore } from '../../store/consoleStore';
@@ -33,6 +33,8 @@ interface ConnectorConfig {
   }>;
   testEndpoint?: string;
 }
+
+interface NotionSearchItem { id: string; title: string; type: string }
 
 const CONNECTORS: ConnectorConfig[] = [
   {
@@ -106,6 +108,10 @@ export function ConnectorPanel() {
   const [testResult, setTestResult] = useState<Record<string, 'idle' | 'ok' | 'error'>>({});
   const [testError, setTestError] = useState<Record<string, string>>({});
   const [fetching, setFetching] = useState<Record<string, boolean>>({});
+  const [notionSearch, setNotionSearch] = useState('');
+  const [notionSearchResults, setNotionSearchResults] = useState<NotionSearchItem[]>([]);
+  const [notionSearching, setNotionSearching] = useState(false);
+  const [selectedNotionIds, setSelectedNotionIds] = useState<Set<string>>(new Set());
   const addChannel = useConsoleStore(s => s.addChannel);
 
   // Load connector auth status
@@ -223,6 +229,24 @@ export function ConnectorPanel() {
     }
   }, []);
 
+  const handleNotionSearch = useCallback(async (apiKey: string, query: string) => {
+    setNotionSearching(true);
+    setNotionSearchResults([]);
+    try {
+      const resp = await fetch(`${API_BASE}/connectors/notion/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey, query }),
+      });
+      const json = await resp.json() as { status: string; data?: NotionSearchItem[] };
+      if (json.status === 'ok' && Array.isArray(json.data)) {
+        setNotionSearchResults(json.data);
+        setSelectedNotionIds(new Set());
+      }
+    } catch { /* ignore */ }
+    finally { setNotionSearching(false); }
+  }, []);
+
   const handleNotionFetch = useCallback(async (connectorId: string) => {
     const data = formData[connectorId] ?? {};
     const apiKey = data.apiKey ?? '';
@@ -260,6 +284,29 @@ export function ConnectorPanel() {
       setFetching(prev => ({ ...prev, [connectorId]: false }));
     }
   }, [formData, addChannel]);
+
+  const handleNotionFetchSelected = useCallback(async (apiKey: string) => {
+    if (!selectedNotionIds.size) return;
+    const pageUrls: string[] = [];
+    const databaseIds: string[] = [];
+    for (const id of selectedNotionIds) {
+      if (notionSearchResults.find(r => r.id === id)?.type === 'database') databaseIds.push(id);
+      else pageUrls.push(`https://notion.so/${id.replace(/-/g, '')}`);
+    }
+    setFetching(prev => ({ ...prev, notion: true }));
+    try {
+      const resp = await fetch(`${API_BASE}/connectors/notion/fetch`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey, databaseIds, pageUrls }),
+      });
+      const json = await resp.json() as { status: string; data?: Array<{ id: unknown; title: unknown; tokens: unknown; content: unknown }> };
+      if (json.status === 'ok' && Array.isArray(json.data)) {
+        for (const item of json.data) {
+          addChannel({ sourceId: `notion-${String(item.id)}`, name: String(item.title), path: `notion://${String(item.id)}`, category: 'knowledge', knowledgeType: 'evidence' as KnowledgeType, depth: 100, baseTokens: Number(item.tokens) || 0, content: String(item.content) });
+        }
+      }
+    } catch { /* ignore */ } finally { setFetching(prev => ({ ...prev, notion: false })); }
+  }, [selectedNotionIds, notionSearchResults, addChannel]);
 
   const handleSync = useCallback(async (service: string) => {
     setTesting({ ...testing, [service]: true });
@@ -494,6 +541,60 @@ export function ConnectorPanel() {
                         )}
                         {testResult[connector.id] === 'error' && testError[connector.id] && (
                           <p className="mt-2 text-[12px]" style={{ color: '#e74c3c' }}>{testError[connector.id]}</p>
+                        )}
+                        {testResult[connector.id] === 'ok' && connector.id === 'notion' && (
+                          <div className="space-y-2 pt-3 border-t" style={{ borderColor: t.border }}>
+                            <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: t.textDim }}>Search workspace</p>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={notionSearch}
+                                onChange={e => setNotionSearch(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') { handleNotionSearch(formData[connector.id]?.apiKey ?? '', notionSearch); } }}
+                                placeholder="Search pages and databases…"
+                                className="flex-1 px-3 py-1.5 rounded text-[13px] outline-none"
+                                style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleNotionSearch(formData[connector.id]?.apiKey ?? '', notionSearch)}
+                                disabled={notionSearching}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded text-[12px] font-medium"
+                                style={{ background: '#3498db', color: '#fff', opacity: notionSearching ? 0.5 : 1 }}
+                              >
+                                {notionSearching ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
+                                Search
+                              </button>
+                            </div>
+                            {notionSearchResults.length > 0 && (
+                              <div className="space-y-0 max-h-40 overflow-y-auto rounded border" style={{ borderColor: t.border }}>
+                                {notionSearchResults.map(r => (
+                                  <label key={r.id} className="flex items-center gap-2 px-2 py-1.5 cursor-pointer"
+                                    style={{ background: selectedNotionIds.has(r.id) ? (t.isDark ? '#ffffff10' : '#00000010') : 'transparent' }}>
+                                    <input type="checkbox" checked={selectedNotionIds.has(r.id)} onChange={e => {
+                                      const next = new Set(selectedNotionIds);
+                                      if (e.target.checked) next.add(r.id); else next.delete(r.id);
+                                      setSelectedNotionIds(next);
+                                    }} />
+                                    <span className="flex-1 text-[12px] truncate" style={{ color: t.textPrimary }}>{r.title}</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: t.isDark ? '#ffffff15' : '#00000015', color: t.textDim }}>{r.type}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                            {selectedNotionIds.size > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleNotionFetchSelected(formData[connector.id]?.apiKey ?? '')}
+                                disabled={fetching[connector.id]}
+                                className="flex items-center gap-2 px-4 py-1.5 rounded text-[12px] font-medium"
+                                style={{ background: '#8e44ad', color: '#fff', opacity: fetching[connector.id] ? 0.5 : 1 }}
+                              >
+                                {fetching[connector.id] ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                                Add {selectedNotionIds.size} selected
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     ) : (
