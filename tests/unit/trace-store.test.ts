@@ -33,7 +33,8 @@ describe('traceStore', () => {
     expect(trace?.summary?.toolCalls).toBe(2);
     expect(trace?.summary?.toolErrors).toBe(1);
     expect(trace?.summary?.retrievals).toBe(1);
-    expect(useTraceStore.getState().activeTraceId).toBeNull();
+    // endTrace keeps activeTraceId so observability panel can display finished trace
+    expect(useTraceStore.getState().activeTraceId).toBe(id);
   });
 
   it('respects maxTraces limit', () => {
@@ -48,6 +49,7 @@ describe('traceStore', () => {
     const id = useTraceStore.getState().startTrace('conv-1', '0.1.0');
     expect(useTraceStore.getState().getActiveTrace()?.id).toBe(id);
     useTraceStore.getState().endTrace(id);
-    expect(useTraceStore.getState().getActiveTrace()).toBeUndefined();
+    // endTrace keeps activeTraceId; getActiveTrace still returns the finished trace
+    expect(useTraceStore.getState().getActiveTrace()?.id).toBe(id);
   });
 });
