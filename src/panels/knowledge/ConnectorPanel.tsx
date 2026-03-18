@@ -1,10 +1,12 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useTheme } from '../../theme';
-import { 
-  Database, ExternalLink, Settings, CheckCircle, XCircle, 
-  Clock, Loader2, Key, Zap, RefreshCw
+import {
+  Database, ExternalLink, Settings, CheckCircle, XCircle,
+  Clock, Loader2, Key, Zap, RefreshCw, Download
 } from 'lucide-react';
 import { API_BASE } from '../../config';
+import { useConsoleStore } from '../../store/consoleStore';
+import type { KnowledgeType } from '../../store/knowledgeBase';
 
 interface ConnectorAuth {
   service: string;
@@ -101,6 +103,10 @@ export function ConnectorPanel() {
   const [expandedConnector, setExpandedConnector] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, Record<string, string>>>({});
   const [testing, setTesting] = useState<Record<string, boolean>>({});
+  const [testResult, setTestResult] = useState<Record<string, 'idle' | 'ok' | 'error'>>({});
+  const [testError, setTestError] = useState<Record<string, string>>({});
+  const [fetching, setFetching] = useState<Record<string, boolean>>({});
+  const addChannel = useConsoleStore(s => s.addChannel);
 
   // Load connector auth status
   const loadAuthStatus = useCallback(async () => {
@@ -193,6 +199,68 @@ export function ConnectorPanel() {
     }
   }, [loadAuthStatus]);
 
+  const handleNotionTest = useCallback(async (apiKey: string) => {
+    setTesting(prev => ({ ...prev, notion: true }));
+    try {
+      const resp = await fetch(`${API_BASE}/connectors/notion/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey }),
+      });
+      const json = await resp.json();
+      if (json.status === 'ok') {
+        setTestResult(prev => ({ ...prev, notion: 'ok' }));
+        setTestError(prev => ({ ...prev, notion: '' }));
+      } else {
+        setTestResult(prev => ({ ...prev, notion: 'error' }));
+        setTestError(prev => ({ ...prev, notion: String(json.error ?? 'Test failed') }));
+      }
+    } catch {
+      setTestResult(prev => ({ ...prev, notion: 'error' }));
+      setTestError(prev => ({ ...prev, notion: 'Connection error. Check your network.' }));
+    } finally {
+      setTesting(prev => ({ ...prev, notion: false }));
+    }
+  }, []);
+
+  const handleNotionFetch = useCallback(async (connectorId: string) => {
+    const data = formData[connectorId] ?? {};
+    const apiKey = data.apiKey ?? '';
+    const databaseIds = data.databaseIds
+      ? data.databaseIds.split(',').map(s => s.trim()).filter(Boolean)
+      : undefined;
+    const pageUrls = data.pageUrls
+      ? data.pageUrls.split('\n').map(s => s.trim()).filter(Boolean)
+      : undefined;
+    setFetching(prev => ({ ...prev, [connectorId]: true }));
+    try {
+      const resp = await fetch(`${API_BASE}/connectors/notion/fetch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey, databaseIds, pageUrls }),
+      });
+      const json = await resp.json();
+      if (json.status === 'ok' && Array.isArray(json.data)) {
+        for (const item of json.data) {
+          addChannel({
+            sourceId: `notion-${String(item.id)}`,
+            name: String(item.title),
+            path: `notion://${String(item.id)}`,
+            category: 'knowledge',
+            knowledgeType: 'evidence' as KnowledgeType,
+            depth: 100,
+            baseTokens: Number(item.tokens) || 0,
+            content: String(item.content),
+          });
+        }
+      }
+    } catch {
+      // network error — silently ignored
+    } finally {
+      setFetching(prev => ({ ...prev, [connectorId]: false }));
+    }
+  }, [formData, addChannel]);
+
   const handleSync = useCallback(async (service: string) => {
     setTesting({ ...testing, [service]: true });
     // TODO: Implement sync logic that calls appropriate endpoints
@@ -235,18 +303,20 @@ export function ConnectorPanel() {
           const isExpanded = expandedConnector === connector.id;
           const isConnected = auth?.status === 'connected';
           const isTesting = testing[connector.id];
+          const isComingSoon = connector.authMethod === 'oauth';
 
           return (
             <div key={connector.id} className="rounded-lg border overflow-hidden"
-              style={{ 
+              style={{
                 borderColor: isConnected ? '#2ecc71' : t.border,
-                background: t.isDark ? '#ffffff05' : '#00000005'
+                background: t.isDark ? '#ffffff05' : '#00000005',
+                opacity: isComingSoon ? 0.6 : 1,
               }}>
               
               {/* Header */}
-              <div 
-                className="p-4 cursor-pointer"
-                onClick={() => setExpandedConnector(isExpanded ? null : connector.id)}
+              <div
+                className={isComingSoon ? 'p-4' : 'p-4 cursor-pointer'}
+                onClick={() => !isComingSoon && setExpandedConnector(isExpanded ? null : connector.id)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -262,6 +332,12 @@ export function ConnectorPanel() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {isComingSoon && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                        style={{ background: t.isDark ? '#ffffff15' : '#00000015', color: t.textDim }}>
+                        Coming soon
+                      </span>
+                    )}
                     {auth && (
                       <>
                         {getStatusIcon(auth.status)}
@@ -361,40 +437,64 @@ export function ConnectorPanel() {
                           </div>
                         ))}
                         
-                        <div className="flex gap-2 pt-2">
-                          <button 
-                            type="button" 
-                            onClick={() => {
-                              const apiKey = formData[connector.id]?.apiKey;
-                              if (apiKey) handleApiKeySubmit(connector.id, apiKey);
-                            }}
-                            disabled={isTesting || !formData[connector.id]?.apiKey}
-                            className="flex items-center gap-2 px-4 py-2 rounded text-[12px] font-medium"
-                            style={{ 
-                              background: '#2ecc71',
-                              color: '#fff',
-                              opacity: isTesting || !formData[connector.id]?.apiKey ? 0.5 : 1
-                            }}
-                          >
-                            {isTesting ? <Loader2 size={12} className="animate-spin" /> : <Key size={12} />}
-                            Connect
-                          </button>
-
+                        <div className="flex gap-2 pt-2 flex-wrap">
+                          {connector.id === 'notion' ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => { const k = formData[connector.id]?.apiKey; if (k) handleNotionTest(k); }}
+                                disabled={isTesting || !formData[connector.id]?.apiKey}
+                                className="flex items-center gap-2 px-4 py-2 rounded text-[12px] font-medium"
+                                style={{ background: '#2ecc71', color: '#fff', opacity: isTesting || !formData[connector.id]?.apiKey ? 0.5 : 1 }}
+                              >
+                                {isTesting ? <Loader2 size={12} className="animate-spin" /> : <Key size={12} />}
+                                Test
+                              </button>
+                              {testResult[connector.id] === 'ok' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleNotionFetch(connector.id)}
+                                  disabled={fetching[connector.id]}
+                                  className="flex items-center gap-2 px-4 py-2 rounded text-[12px] font-medium"
+                                  style={{ background: '#3498db', color: '#fff', opacity: fetching[connector.id] ? 0.5 : 1 }}
+                                >
+                                  {fetching[connector.id] ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                                  Fetch
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => { const apiKey = formData[connector.id]?.apiKey; if (apiKey) handleApiKeySubmit(connector.id, apiKey); }}
+                              disabled={isTesting || !formData[connector.id]?.apiKey}
+                              className="flex items-center gap-2 px-4 py-2 rounded text-[12px] font-medium"
+                              style={{ background: '#2ecc71', color: '#fff', opacity: isTesting || !formData[connector.id]?.apiKey ? 0.5 : 1 }}
+                            >
+                              {isTesting ? <Loader2 size={12} className="animate-spin" /> : <Key size={12} />}
+                              Connect
+                            </button>
+                          )}
                           {isConnected && (
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               onClick={() => handleDisconnect(connector.id)}
                               className="px-4 py-2 rounded text-[12px] font-medium"
-                              style={{ 
-                                background: 'transparent',
-                                border: `1px solid ${t.border}`,
-                                color: t.textDim
-                              }}
+                              style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim }}
                             >
                               Disconnect
                             </button>
                           )}
                         </div>
+                        {testResult[connector.id] === 'ok' && connector.id === 'notion' && (
+                          <div className="flex items-center gap-1 mt-2 text-[12px]" style={{ color: '#2ecc71' }}>
+                            <CheckCircle size={12} />
+                            Connection verified
+                          </div>
+                        )}
+                        {testResult[connector.id] === 'error' && testError[connector.id] && (
+                          <p className="mt-2 text-[12px]" style={{ color: '#e74c3c' }}>{testError[connector.id]}</p>
+                        )}
                       </div>
                     ) : (
                       /* OAuth Form */
