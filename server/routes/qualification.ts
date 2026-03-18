@@ -5,7 +5,44 @@ import type { Request, Response } from 'express';
 
 const router = Router();
 
+/* ── In-memory run history (per agentId, reset on server restart) ── */
+interface RunHistoryEntry {
+  runId: string;
+  timestamp: number;
+  globalScore: number;
+  passThreshold: number;
+}
+const runHistory = new Map<string, RunHistoryEntry[]>();
+
+function pushHistory(agentId: string, entry: RunHistoryEntry): void {
+  const list = runHistory.get(agentId) ?? [];
+  list.push(entry);
+  runHistory.set(agentId, list);
+}
+
 /* ── Types ── */
+
+interface LlmResponseContent {
+  type: string;
+  text: string;
+}
+
+interface LlmResponseData {
+  content?: LlmResponseContent[];
+  choices?: Array<{ message?: { content?: string } }>;
+}
+
+function extractLlmContent(data: unknown, isAnthropic: boolean): string {
+  if (typeof data !== 'object' || data === null) return '';
+  const d = data as LlmResponseData;
+  if (isAnthropic && Array.isArray(d.content) && d.content.length > 0) {
+    return d.content[0]?.text ?? '';
+  }
+  if (!isAnthropic && Array.isArray(d.choices) && d.choices.length > 0) {
+    return d.choices[0]?.message?.content ?? '';
+  }
+  return '';
+}
 
 interface TestCase {
   id: string;
@@ -86,9 +123,9 @@ router.post('/generate-suite', async (req: Request, res: Response) => {
   try {
     const config = readConfig();
     
-    // Find a connected provider for LLM calls
-    const connectedProvider = config.providers.find(p => 
-      p.status === 'connected' || p.status === 'configured'
+    // Find a provider with an API key configured
+    const connectedProvider = config.providers.find(p =>
+      !!p.apiKey && !!p.baseUrl
     );
     
     if (!connectedProvider) {
@@ -173,15 +210,11 @@ Ensure weights sum to 1.0. Generate realistic, specific test inputs that would a
       return;
     }
 
-    const llmData = await llmResponse.json();
-    
+    const llmData: unknown = await llmResponse.json();
+
     // Extract content from response
-    let content = '';
-    if (isAnthropic && llmData.content?.[0]?.text) {
-      content = llmData.content[0].text;
-    } else if (llmData.choices?.[0]?.message?.content) {
-      content = llmData.choices[0].message.content;
-    } else {
+    const content = extractLlmContent(llmData, isAnthropic);
+    if (!content) {
       throw new Error('Could not extract content from LLM response');
     }
 
@@ -312,15 +345,10 @@ You must stay within the scope of this mission and follow these guidelines:
           continue;
         }
 
-        const agentData = await agentResponse.json();
-        
+        const agentData: unknown = await agentResponse.json();
+
         // Extract agent's response content
-        let agentContent = '';
-        if (isAnthropic && agentData.content?.[0]?.text) {
-          agentContent = agentData.content[0].text;
-        } else if (agentData.choices?.[0]?.message?.content) {
-          agentContent = agentData.choices[0].message.content;
-        }
+        const agentContent = extractLlmContent(agentData, isAnthropic);
 
         // 2. Use LLM as judge to score the response
         const judgePrompt = `You are evaluating an AI agent's response for a qualification test.
@@ -381,15 +409,10 @@ Return JSON in this exact format:
           continue;
         }
 
-        const judgeData = await judgeResponse.json();
-        
+        const judgeData: unknown = await judgeResponse.json();
+
         // Extract judge's scoring
-        let judgeContent = '';
-        if (isAnthropic && judgeData.content?.[0]?.text) {
-          judgeContent = judgeData.content[0].text;
-        } else if (judgeData.choices?.[0]?.message?.content) {
-          judgeContent = judgeData.choices[0].message.content;
-        }
+        const judgeContent = extractLlmContent(judgeData, isAnthropic);
 
         // Parse scoring JSON
         const jsonMatch = judgeContent.match(/\{[\s\S]*\}/);
@@ -468,6 +491,7 @@ Return JSON in this exact format:
     }
 
     const response: RunResponse = { runId, globalScore, dimensionScores, testResults, patches };
+    pushHistory(body.agentId, { runId, timestamp: Date.now(), globalScore, passThreshold: body.suite.passThreshold });
     res.json({ status: 'ok', data: response });
 
   } catch (err) {
@@ -531,6 +555,13 @@ router.post('/apply-patches', async (req: Request, res: Response) => {
       error: err instanceof Error ? err.message : String(err) 
     });
   }
+});
+
+/* ── GET /:agentId/history ── */
+router.get('/:agentId/history', (req: Request, res: Response) => {
+  const agentId = String(req.params['agentId'] ?? '');
+  const history = runHistory.get(agentId) ?? [];
+  res.json({ status: 'ok', data: history });
 });
 
 export default router;
