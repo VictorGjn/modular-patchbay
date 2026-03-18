@@ -8,7 +8,18 @@
 
 import { create } from 'zustand';
 import { type TreeIndex, indexMarkdown } from '../services/treeIndexer';
+import { indexCodeFile, detectLanguage } from '../utils/codeIndexer';
 import { API_BASE } from '../config';
+
+function pickIndexer(filePath: string, content: string): TreeIndex {
+  const lang = detectLanguage(filePath);
+  if (lang === 'unknown') return indexMarkdown(filePath, content);
+  try {
+    return indexCodeFile(filePath, content);
+  } catch {
+    return indexMarkdown(filePath, content);
+  }
+}
 
 interface TreeIndexEntry {
   index: TreeIndex;
@@ -66,7 +77,7 @@ export const useTreeIndexStore = create<TreeIndexStore>((set, get) => ({
         throw new Error(json.error ?? 'Failed to read file');
       }
 
-      const index = indexMarkdown(filePath, json.data.content);
+      const index = pickIndexer(filePath, json.data.content);
       const entry: TreeIndexEntry = { index, fetchedAt: Date.now(), stale: false };
 
       set(s => ({
