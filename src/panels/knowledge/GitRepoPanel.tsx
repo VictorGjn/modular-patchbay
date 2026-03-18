@@ -91,6 +91,7 @@ export function GitRepoPanel() {
         data?: {
           outputDir: string;
           files: string[];
+          codeFiles?: string[];
           scan?: {
             totalTokens?: number;
             totalFiles?: number;
@@ -141,10 +142,15 @@ export function GitRepoPanel() {
           });
         }
 
-        // Auto-index newly created files
+        // Auto-index newly created markdown knowledge files
         await useTreeIndexStore.getState().indexFiles(
           json.data.files.map(f => `${json.data!.outputDir}/${f}`)
         );
+
+        // Index source code files via smart code indexer (pickIndexer routing)
+        if (json.data.codeFiles?.length) {
+          void useTreeIndexStore.getState().indexFiles(json.data.codeFiles);
+        }
 
         // Reset form
         setRepoUrl('');

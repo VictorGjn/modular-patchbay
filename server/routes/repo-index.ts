@@ -255,6 +255,13 @@ router.post('/index-github', async (req, res) => {
       },
     });
 
+    const CODE_EXTS = /\.(ts|tsx|js|jsx|py)$/;
+    const codeFiles = result.clonePath
+      ? result.scan.files
+          .filter((f: any) => CODE_EXTS.test(f.path))
+          .map((f: any) => join(result.clonePath!, f.path))
+      : [];
+
     res.json({
       status: 'ok',
       data: {
@@ -262,6 +269,7 @@ router.post('/index-github', async (req, res) => {
         clonePath: result.clonePath,
         outputDir: outDir,
         files: written,
+        codeFiles,
         overviewMarkdown: result.overviewMarkdown,
         fullMarkdown: result.fullMarkdown,
         knowledgeDocs: docsObj,
