@@ -5,6 +5,8 @@ import { Button } from '../../components/ds/Button';
 import { Input } from '../../components/ds/Input';
 import { TextArea } from '../../components/ds/TextArea';
 import { Section } from '../../components/ds/Section';
+import { RefineButton } from '../../components/ds/RefineButton';
+import { refineField } from '../../utils/refineInstruction';
 import type { InstructionState } from '../../types/console.types';
 
 interface ObjectivesSectionProps {
@@ -72,6 +74,13 @@ export function ObjectivesSection({
     }
   };
 
+  const handleRefinePrimary = async () => {
+    const result = await refineField('scope', objectives.primary);
+    if (typeof result === 'string') {
+      updateInstruction({ objectives: { ...objectives, primary: result } });
+    }
+  };
+
   return (
     <Section
       icon={Target} label="Objectives & Success Criteria" color="#27ae60"
@@ -81,6 +90,7 @@ export function ObjectivesSection({
         {/* Primary Objective */}
         <TextArea
           label="Primary Objective"
+          labelAction={<RefineButton onRefine={handleRefinePrimary} />}
           value={objectives.primary}
           onChange={(e) => updateInstruction({
             objectives: { ...objectives, primary: e.target.value }
