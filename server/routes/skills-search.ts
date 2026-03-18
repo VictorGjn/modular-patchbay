@@ -234,21 +234,32 @@ router.post('/install', async (req: Request, res: Response) => {
       console.log('Skills CLI failed, trying fallback:', (cliError as Error).message);
     }
 
-    // Fallback: Direct download from skills.sh
-    console.log('Using fallback: downloading skill directly from skills.sh');
-    
+    // Fallback: Direct download from GitHub
+    console.log('Using fallback: downloading skill directly from GitHub');
+
     // Extract repo and skill name from skillId (format: owner/repo@skillName)
     const [repoPath, skillName] = skillId.includes('@') ? skillId.split('@') : [skillId, skillId.split('/').pop() || skillId];
-    
-    // Download skill content from skills.sh
-    const skillUrl = `https://raw.githubusercontent.com/${repoPath}/main/${skillName}/SKILL.md`;
-    const skillResponse = await fetch(skillUrl);
-    
-    if (!skillResponse.ok) {
-      throw new Error(`Failed to download skill from ${skillUrl}: ${skillResponse.status}`);
+
+    // Try multiple path patterns since repos have different layouts
+    const base = `https://raw.githubusercontent.com/${repoPath}`;
+    const candidates = [
+      `${base}/main/${skillName}/SKILL.md`,
+      `${base}/main/SKILL.md`,
+      `${base}/master/${skillName}/SKILL.md`,
+      `${base}/master/SKILL.md`,
+    ];
+
+    let skillContent: string | null = null;
+    let resolvedUrl = '';
+    for (const url of candidates) {
+      const r = await fetch(url);
+      if (r.ok) { skillContent = await r.text(); resolvedUrl = url; break; }
     }
-    
-    const skillContent = await skillResponse.text();
+
+    if (skillContent === null) {
+      throw new Error(`SKILL.md not found in ${repoPath}. Tried: ${candidates.join(', ')}`);
+    }
+    console.log(`Resolved SKILL.md from ${resolvedUrl}`);
     
     // Get user's home directory and create skill directory
     const os = await import('os');
