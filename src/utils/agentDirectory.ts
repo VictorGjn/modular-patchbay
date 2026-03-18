@@ -224,7 +224,7 @@ function buildKnowledgeMd(config: ExportConfig): string {
       parts.push(`- **Path:** \`${ch.path}\``);
       parts.push(`- **Type:** ${type}`);
       if (ch.content) parts.push(`- **Content Preview:** ${ch.content.slice(0, 100)}${ch.content.length > 100 ? '...' : ''}`);
-      if ((ch as any).hint) parts.push(`- **Hint:** ${(ch as any).hint}`);
+      if (ch.hint) parts.push(`- **Hint:** ${ch.hint}`);
       parts.push('');
     });
   }

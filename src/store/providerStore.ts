@@ -635,8 +635,9 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         const merged = DEFAULT_PROVIDERS.map((def) => {
           const remote = data.find((d: ProviderConfig) => d.id === def.id);
           if (!remote) return def;
-          const hasBackendKey = !!(remote as any).hasStoredKey;
-          const hasBackendToken = !!(remote as any).hasStoredAccessToken;
+          const backendData = remote as ProviderConfig & { hasStoredKey?: boolean; hasStoredAccessToken?: boolean };
+          const hasBackendKey = !!backendData.hasStoredKey;
+          const hasBackendToken = !!backendData.hasStoredAccessToken;
           return {
             ...def,
             ...remote,

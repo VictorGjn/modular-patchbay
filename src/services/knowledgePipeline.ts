@@ -46,13 +46,15 @@ import type { ProvenanceSummary } from '../types/provenance';
 
 // ── Pipeline Event Emitters ──
 
-function emitPipelineStage(traceId: string, stage: string, data: any, durationMs?: number) {
+type PipelineStage = 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance';
+
+function emitPipelineStage(traceId: string, stage: PipelineStage, data: unknown, durationMs?: number) {
   const traceStore = useTraceStore.getState();
   traceStore.addEvent(traceId, {
     kind: 'pipeline_stage',
     durationMs,
     provenanceStages: [{
-      stage: stage as any,
+      stage,
       timestamp: Date.now(),
       durationMs,
       data,
@@ -332,7 +334,7 @@ async function callLlmForNavigation(prompt: string, providerId: string, model: s
 
 async function reNavigateForGaps(
   gaps: string[],
-  pipelineStartIndexes: any[],
+  pipelineStartIndexes: TreeIndex[],
   existingSelections: BranchSelection[],
   options: { providerId: string; model: string; totalBudget: number },
   traceId: string,
@@ -605,7 +607,7 @@ export async function compressKnowledge(
 
     const budgetSources: BudgetSource[] = sourcesWithContent.map(source => ({
       name: source.name,
-      knowledgeType: source.sourceType as any, // PipelineSource.sourceType maps to KnowledgeType
+      knowledgeType: (source.sourceType ?? 'signal') as KnowledgeType,
       rawTokens: estimateTokens(source.content || ''),
       depthMultiplier: DEPTH_MULTIPLIERS[depthByName.get(source.name) ?? 2] ?? 1.0,
     }));

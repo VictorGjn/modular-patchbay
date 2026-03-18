@@ -9,7 +9,7 @@ export interface PipelineStageData {
   stage: 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance';
   timestamp: number;
   durationMs?: number;
-  data: any;
+  data: unknown;
 }
 
 export interface SourceAssemblyData {
@@ -647,43 +647,43 @@ export function PipelineObservabilityPanel() {
         {/* Source Assembly (structured stages) */}
         {stages.has('source_assembly') && (
           <SourceAssemblyStage
-            data={stages.get('source_assembly')!.data}
+            data={stages.get('source_assembly')!.data as SourceAssemblyData}
             expanded={expandedStages.has('source_assembly')}
             onToggle={() => toggleStage('source_assembly')}
           />
         )}
-        
+
         {/* Budget Allocation */}
         {stages.has('budget_allocation') && (
           <BudgetAllocationStage
-            data={stages.get('budget_allocation')!.data}
+            data={stages.get('budget_allocation')!.data as BudgetAllocationData}
             expanded={expandedStages.has('budget_allocation')}
             onToggle={() => toggleStage('budget_allocation')}
           />
         )}
-        
+
         {/* Retrieval */}
         {stages.has('retrieval') && (
           <RetrievalStage
-            data={stages.get('retrieval')!.data}
+            data={stages.get('retrieval')!.data as RetrievalData}
             expanded={expandedStages.has('retrieval')}
             onToggle={() => toggleStage('retrieval')}
           />
         )}
-        
+
         {/* Contradiction Check */}
         {stages.has('contradiction_check') && (
           <ContradictionStage
-            data={stages.get('contradiction_check')!.data}
+            data={stages.get('contradiction_check')!.data as ContradictionData}
             expanded={expandedStages.has('contradiction_check')}
             onToggle={() => toggleStage('contradiction_check')}
           />
         )}
-        
+
         {/* Provenance */}
         {stages.has('provenance') && (
           <ProvenanceStage
-            data={stages.get('provenance')!.data}
+            data={stages.get('provenance')!.data as ProvenanceData}
             expanded={expandedStages.has('provenance')}
             onToggle={() => toggleStage('provenance')}
           />

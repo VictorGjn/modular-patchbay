@@ -214,7 +214,7 @@ function autoLabel(changes: ChangeEntry[]): string {
 // ─── Store ──────────────────────────────────────────────────────────
 
 // API helper functions
-async function apiCall(endpoint: string, options: RequestInit = {}): Promise<any> {
+async function apiCall(endpoint: string, options: RequestInit = {}): Promise<unknown> {
   const response = await fetch(`/api${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
@@ -289,7 +289,7 @@ export const useVersionStore = create<VersionState>((set, get) => ({
     if (!agentId) return;
     
     try {
-      const versions = await apiCall(`/agents/${agentId}/versions`);
+      const versions = await apiCall(`/agents/${agentId}/versions`) as AgentVersion[] | null;
       set({ versions: versions || [] });
     } catch (err) {
       console.error('Failed to load versions:', err);
@@ -362,7 +362,7 @@ export const useVersionStore = create<VersionState>((set, get) => ({
         });
         
         // Reload agent state from server
-        const restored = await apiCall(`/agents/${agentId}`);
+        const restored = await apiCall(`/agents/${agentId}`) as AgentSnapshot;
         
         const store = useConsoleStore.getState();
         store.clearChannels();
