@@ -148,6 +148,12 @@ vi.mock('../../../src/config', () => ({
   API_BASE: 'http://localhost:4800',
 }));
 
+// Mock health service
+vi.mock('../../../src/services/healthService', () => ({
+  probeMcpServer: vi.fn().mockResolvedValue({ status: 'healthy', latencyMs: 100, toolCount: 3, errorMessage: null, checkedAt: Date.now() }),
+  probeAllMcp: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe('ToolsTab', () => {
   beforeEach(() => {
     setupTestEnvironment();
