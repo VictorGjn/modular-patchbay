@@ -8,6 +8,8 @@ import { Spinner } from './ds/Spinner';
 import { Modal } from './ds/Modal';
 import { Select } from './ds/Select';
 import { API_BASE } from '../config';
+import { DEMO_PRESETS } from '../store/demoPresets';
+import { TemplateCard } from './TemplateCard';
 
 interface Agent {
   id: string;
@@ -34,6 +36,13 @@ const SORT_OPTIONS = [
   { value: 'name', label: 'Name (A–Z)' },
   { value: 'created', label: 'Created' },
 ];
+
+const TEMPLATE_LIST = Object.entries(DEMO_PRESETS).map(([id, preset]) => ({
+  id,
+  name: preset.agentMeta.name,
+  description: preset.agentMeta.description,
+  tags: preset.agentMeta.tags,
+}));
 
 let _toastSeq = 0;
 
@@ -63,6 +72,20 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
     setToasts((prev) => [...prev, { id, type, message }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
   }, []);
+
+  const handleUseTemplate = useCallback((presetId: string) => {
+    const { loadDemoPreset } = useConsoleStore.getState();
+    loadDemoPreset(presetId);
+    onNewAgent();
+  }, [onNewAgent]);
+
+  const filteredTemplates = useMemo(() => {
+    const q = debouncedQuery.trim().toLowerCase();
+    if (!q) return TEMPLATE_LIST;
+    return TEMPLATE_LIST.filter(
+      (tpl) => tpl.name.toLowerCase().includes(q) || tpl.description.toLowerCase().includes(q),
+    );
+  }, [debouncedQuery]);
 
   const loadAgents = useCallback(async () => {
     try {
@@ -248,26 +271,17 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
-        {agents.length === 0 ? (
-          <EmptyState
-            icon={<Bot size={32} />}
-            title="No agents yet"
-            subtitle="Click '+ New Agent' to create your first one"
-            action={
-              <Button onClick={handleNewAgentClick} variant="primary" size="md" title="Create your first agent" className="flex items-center gap-2">
-                <Plus size={16} />
-                Create Agent
-              </Button>
-            }
-          />
-        ) : filteredAndSorted.length === 0 ? (
+        {filteredTemplates.length === 0 && filteredAndSorted.length === 0 ? (
           <EmptyState
             icon={<Search size={32} />}
-            title="No agents match your search"
+            title="No results match your search"
             subtitle={`No results for "${debouncedQuery}" — try a different keyword`}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredTemplates.map((tpl) => (
+              <TemplateCard key={tpl.id} {...tpl} onUse={handleUseTemplate} />
+            ))}
             {filteredAndSorted.map((agent) => (
               <div
                 key={agent.id}
