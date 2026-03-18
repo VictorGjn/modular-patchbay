@@ -1,25 +1,29 @@
-import { forwardRef, type TextareaHTMLAttributes } from 'react';
+import { forwardRef, type ReactNode, type TextareaHTMLAttributes } from 'react';
 import { useTheme } from '../../theme';
 
 export interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
+  labelAction?: ReactNode;
   error?: string;
   showCount?: boolean;
   maxChars?: number;
 }
 
 export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function TextArea(
-  { label, error, showCount, maxChars, value, className = '', style, ...rest },
+  { label, labelAction, error, showCount, maxChars, value, className = '', style, ...rest },
   ref,
 ) {
   const t = useTheme();
   const charCount = typeof value === 'string' ? value.length : 0;
   return (
     <div className="flex flex-col gap-1">
-      {(label || showCount) && (
+      {(label || showCount || labelAction) && (
         <div className="flex items-center justify-between">
           {label && <label className="text-[13px] tracking-wider uppercase font-semibold" style={{ color: t.textMuted, fontFamily: "'Geist Mono', monospace" }}>{label}</label>}
-          {showCount && <span className="text-[13px]" style={{ color: maxChars && charCount > maxChars ? t.statusError : t.textFaint }}>{charCount}{maxChars ? ` / ${maxChars}` : ''}</span>}
+          <div className="flex items-center gap-2">
+            {showCount && <span className="text-[13px]" style={{ color: maxChars && charCount > maxChars ? t.statusError : t.textFaint }}>{charCount}{maxChars ? ` / ${maxChars}` : ''}</span>}
+            {labelAction}
+          </div>
         </div>
       )}
       <textarea
