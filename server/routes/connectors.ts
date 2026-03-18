@@ -401,6 +401,7 @@ interface NotionPage {
   properties: Record<string, { type: string; title?: NotionRichText[] }>;
 }
 interface NotionItem { id: string; title: string; content: string; tokens: number }
+interface NotionSearchResult { id: string; object: 'page' | 'database'; properties?: Record<string, { type: string; title?: NotionRichText[] }>; title?: NotionRichText[] }
 
 // ── Notion helpers ──
 
@@ -556,21 +557,18 @@ router.post('/notion/fetch', async (req, res) => {
     ? body.pageUrls.filter((s): s is string => typeof s === 'string')
     : [];
   try {
-    let items: NotionItem[] = [];
-    if (databaseIds.length > 0) {
-      for (const dbId of databaseIds) {
-        const rows = await queryDatabase(dbId.trim(), apiKey);
-        items.push(...rows);
-      }
-    } else if (pageUrls.length > 0) {
-      for (const url of pageUrls) {
-        const pageId = extractPageId(url);
-        if (!pageId) continue;
-        const page = await fetchPage(pageId, apiKey);
-        if (page) items.push(page);
-      }
-    } else {
-      items = await searchWorkspace(apiKey);
+    const items: NotionItem[] = [];
+    for (const dbId of databaseIds) {
+      items.push(...(await queryDatabase(dbId.trim(), apiKey)));
+    }
+    for (const url of pageUrls) {
+      const pageId = extractPageId(url);
+      if (!pageId) continue;
+      const page = await fetchPage(pageId, apiKey);
+      if (page) items.push(page);
+    }
+    if (databaseIds.length === 0 && pageUrls.length === 0) {
+      items.push(...(await searchWorkspace(apiKey)));
     }
     res.json({ status: 'ok', data: items } satisfies ApiResponse);
   } catch (err) {
@@ -580,6 +578,41 @@ router.post('/notion/fetch', async (req, res) => {
       return;
     }
     res.status(500).json({ status: 'error', error: 'Failed to fetch from Notion. Check API key permissions.' } satisfies ApiResponse);
+  }
+});
+
+/**
+ * POST /api/connectors/notion/search
+ * Search the Notion workspace by keyword.
+ * Body: { apiKey?, query: string }
+ */
+router.post('/notion/search', async (req, res) => {
+  const body = req.body as { apiKey?: unknown; query?: unknown };
+  const apiKey = (typeof body.apiKey === 'string' && body.apiKey) || (sessionKeys.get('notion') ?? '');
+  if (!apiKey) {
+    res.status(401).json({ status: 'error', error: 'No API key. Test connection first.' } satisfies ApiResponse);
+    return;
+  }
+  const query = typeof body.query === 'string' ? body.query : '';
+  try {
+    const resp = await fetch('https://api.notion.com/v1/search', {
+      method: 'POST', headers: notionHeaders(apiKey), body: JSON.stringify(query ? { query } : {}),
+    });
+    if (!resp.ok) {
+      res.status(resp.status).json({ status: 'error', error: `Notion search failed: ${resp.status}` } satisfies ApiResponse);
+      return;
+    }
+    const data = await resp.json() as { results: NotionSearchResult[] };
+    const results = data.results.map(r => ({
+      id: r.id,
+      title: r.object === 'database'
+        ? (r.title?.[0]?.plain_text ?? r.id)
+        : getPageTitle(r as unknown as NotionPage),
+      type: r.object,
+    }));
+    res.json({ status: 'ok', data: results } satisfies ApiResponse);
+  } catch {
+    res.status(500).json({ status: 'error', error: 'Failed to search Notion workspace.' } satisfies ApiResponse);
   }
 });
 
