@@ -4,9 +4,11 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore } from '../store/mcpStore';
 import { useHealthStore } from '../store/healthStore';
 import { useSkillsStore } from '../store/skillsStore';
+import { useCliToolStore, type CliTool } from '../store/cliToolStore';
+import type { Connector } from '../store/knowledgeBase';
 import { SecurityBadges } from '../components/SecurityBadges';
 import {
-  Plug, Zap, Plus, Library, AlertTriangle, Wifi, WifiOff, RotateCcw
+  Plug, Zap, Plus, Library, AlertTriangle, Wifi, WifiOff, RotateCcw, Globe, Terminal
 } from 'lucide-react';
 
 // V2 Vision: Clean card-based layout for tools and capabilities
@@ -26,8 +28,20 @@ export function ToolsTab() {
   const setShowSkillPicker = useConsoleStore(s => s.setShowSkillPicker);
   const setShowMarketplace = useConsoleStore(s => s.setShowMarketplace);
   const consoleSkills = useConsoleStore(s => s.skills);
+  const connectors = useConsoleStore(s => s.connectors);
+  const setShowConnectorPicker = useConsoleStore(s => s.setShowConnectorPicker);
+  const cliTools = useCliToolStore(s => s.tools);
+  const addCliTool = useCliToolStore(s => s.addTool);
+  const removeCliTool = useCliToolStore(s => s.removeTool);
 
   const [mcpError, setMcpError] = useState<string | null>(null);
+  const [cliForm, setCliForm] = useState({ show: false, name: '', command: '', description: '' });
+
+  const handleAddCliTool = () => {
+    if (!cliForm.name.trim() || !cliForm.command.trim()) return;
+    addCliTool({ name: cliForm.name.trim(), command: cliForm.command.trim(), description: cliForm.description.trim() });
+    setCliForm({ show: false, name: '', command: '', description: '' });
+  };
 
   // Load skills on mount if not already loaded
   useEffect(() => {
@@ -190,6 +204,54 @@ export function ToolsTab() {
     );
   };
 
+  const connectorStatusColor: Record<string, string> = {
+    connected: '#22c55e',
+    configured: '#f59e0b',
+    available: '#6b7280',
+  };
+
+  const ApiConnectorCard = ({ connector }: { connector: Connector }) => {
+    const color = connectorStatusColor[connector.status] ?? '#6b7280';
+    return (
+      <div className="p-4 rounded-lg border" style={{ background: t.surface, borderColor: t.border }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Globe size={14} style={{ color: t.textFaint }} />
+            <span className="text-sm font-medium" style={{ color: t.textPrimary }}>{connector.name}</span>
+          </div>
+          <span className="px-1.5 py-0.5 rounded text-xs capitalize" style={{ background: color + '20', color }}>
+            {connector.status}
+          </span>
+        </div>
+        {connector.url && (
+          <p className="text-xs mt-1 truncate" style={{ color: t.textFaint }}>{connector.url}</p>
+        )}
+      </div>
+    );
+  };
+
+  const CliToolCard = ({ tool }: { tool: CliTool }) => (
+    <div className="p-4 rounded-lg border" style={{ background: t.surface, borderColor: t.border }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate" style={{ color: t.textPrimary }}>{tool.name}</p>
+          <code className="text-xs font-mono block mt-1 truncate" style={{ color: t.textSecondary }}>{tool.command}</code>
+          {tool.description && (
+            <p className="text-xs mt-1" style={{ color: t.textFaint }}>{tool.description}</p>
+          )}
+        </div>
+        <button
+          type="button"
+          aria-label={`Remove ${tool.name}`}
+          title={`Remove ${tool.name}`}
+          onClick={() => removeCliTool(tool.id)}
+          className="text-xs p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20"
+          style={{ color: t.textFaint }}
+        >×</button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -214,10 +276,70 @@ export function ToolsTab() {
         </p>
       </div>
 
-      {/* V2 Vision: Two-column layout */}
+      {/* Four-section 2x2 grid: API Connectors | Skills / MCP Servers | CLI Tools */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Left Column - Skills */}
+
+        {/* Section 1: API Connectors (Tier 1) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Globe size={20} style={{ color: '#3b82f6' }} />
+              <h3 className="text-lg font-medium" style={{ color: t.textPrimary }}>API Connectors</h3>
+              <span className="px-2 py-1 rounded text-xs" style={{ background: t.badgeBg, color: t.textDim }}>
+                {connectors.length} total
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowConnectorPicker(true)}
+              title="Connect an API service"
+              className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border transition-colors"
+              style={{ borderColor: t.border, color: t.textSecondary }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#3b82f610';
+                e.currentTarget.style.borderColor = '#3b82f6';
+                e.currentTarget.style.color = '#3b82f6';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = t.border;
+                e.currentTarget.style.color = t.textSecondary;
+              }}
+            >
+              <Plus size={16} />
+              Connect
+            </button>
+          </div>
+
+          {connectors.length === 0 ? (
+            <div className="text-center py-8 rounded-lg border-2 border-dashed" style={{ borderColor: t.border }}>
+              <Globe size={32} className="mx-auto mb-3" style={{ color: t.textFaint }} />
+              <p className="text-sm font-medium mb-1" style={{ color: t.textPrimary }}>No API Connectors</p>
+              <p className="text-xs mb-4" style={{ color: t.textSecondary }}>
+                Connect services like Notion, HubSpot, and Slack to give your agent API access.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowConnectorPicker(true)}
+                title="Connect an API service"
+                className="px-4 py-2 rounded text-sm transition-colors"
+                style={{ background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#2563eb'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#3b82f6'; }}
+              >
+                Connect Service
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {connectors.map((connector) => (
+                <ApiConnectorCard key={connector.id} connector={connector} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Section 2: Skills (moved from left column) */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -328,7 +450,7 @@ export function ToolsTab() {
           )}
         </div>
 
-        {/* Right Column - MCP Servers */}
+        {/* Section 3: MCP Servers */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -439,6 +561,111 @@ export function ToolsTab() {
             </div>
           )}
         </div>
+
+        {/* Section 4: CLI Tools (Tier 3) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Terminal size={20} style={{ color: '#a855f7' }} />
+              <h3 className="text-lg font-medium" style={{ color: t.textPrimary }}>CLI Tools</h3>
+              <span className="px-2 py-1 rounded text-xs" style={{ background: t.badgeBg, color: t.textDim }}>
+                {cliTools.length} total
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCliForm(f => ({ ...f, show: !f.show }))}
+              title="Add CLI tool"
+              className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border transition-colors"
+              style={{ borderColor: t.border, color: t.textSecondary }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#a855f710';
+                e.currentTarget.style.borderColor = '#a855f7';
+                e.currentTarget.style.color = '#a855f7';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = t.border;
+                e.currentTarget.style.color = t.textSecondary;
+              }}
+            >
+              <Plus size={16} />
+              Add Tool
+            </button>
+          </div>
+
+          {cliForm.show && (
+            <div className="p-4 rounded-lg border space-y-3" style={{ background: t.surfaceElevated, borderColor: t.border }}>
+              <input
+                type="text"
+                placeholder="Tool name"
+                value={cliForm.name}
+                onChange={e => setCliForm(f => ({ ...f, name: e.target.value }))}
+                className="w-full px-3 py-2 rounded text-sm border"
+                style={{ background: t.surface, borderColor: t.border, color: t.textPrimary }}
+              />
+              <input
+                type="text"
+                placeholder="Shell command (e.g. git status)"
+                value={cliForm.command}
+                onChange={e => setCliForm(f => ({ ...f, command: e.target.value }))}
+                className="w-full px-3 py-2 rounded text-sm border font-mono"
+                style={{ background: t.surface, borderColor: t.border, color: t.textPrimary }}
+              />
+              <input
+                type="text"
+                placeholder="Description (optional)"
+                value={cliForm.description}
+                onChange={e => setCliForm(f => ({ ...f, description: e.target.value }))}
+                className="w-full px-3 py-2 rounded text-sm border"
+                style={{ background: t.surface, borderColor: t.border, color: t.textPrimary }}
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setCliForm({ show: false, name: '', command: '', description: '' })}
+                  className="px-3 py-1.5 rounded text-sm border"
+                  style={{ borderColor: t.border, color: t.textSecondary, background: 'transparent' }}
+                >Cancel</button>
+                <button
+                  type="button"
+                  onClick={handleAddCliTool}
+                  disabled={!cliForm.name.trim() || !cliForm.command.trim()}
+                  className="px-3 py-1.5 rounded text-sm"
+                  style={{ background: '#a855f7', color: '#fff', border: 'none', cursor: 'pointer', opacity: (!cliForm.name.trim() || !cliForm.command.trim()) ? 0.5 : 1 }}
+                >Save</button>
+              </div>
+            </div>
+          )}
+
+          {cliTools.length === 0 && !cliForm.show ? (
+            <div className="text-center py-8 rounded-lg border-2 border-dashed" style={{ borderColor: t.border }}>
+              <Terminal size={32} className="mx-auto mb-3" style={{ color: t.textFaint }} />
+              <p className="text-sm font-medium mb-1" style={{ color: t.textPrimary }}>No CLI Tools</p>
+              <p className="text-xs mb-4" style={{ color: t.textSecondary }}>
+                Define shell commands your agent can invoke directly.
+              </p>
+              <button
+                type="button"
+                onClick={() => setCliForm(f => ({ ...f, show: true }))}
+                title="Add a CLI tool"
+                className="px-4 py-2 rounded text-sm transition-colors"
+                style={{ background: '#a855f7', color: '#fff', border: 'none', cursor: 'pointer' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#9333ea'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#a855f7'; }}
+              >
+                Add CLI Tool
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {cliTools.map((tool) => (
+                <CliToolCard key={tool.id} tool={tool} />
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
