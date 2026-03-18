@@ -108,6 +108,7 @@ export interface TraceState {
   activeTraceId: string | null;
   selectedTraceId: string | null;
   maxTraces: number;
+  eventVersion: number;
 
   // Actions
   startTrace: (conversationId: string, agentVersion: string) => string;
@@ -149,6 +150,7 @@ export const useTraceStore = create<TraceState>((set, get) => ({
   activeTraceId: null,
   selectedTraceId: null,
   maxTraces: 50,
+  eventVersion: 0,
 
   startTrace: (conversationId, agentVersion) => {
     const id = `trace-${genId()}`;
@@ -173,6 +175,7 @@ export const useTraceStore = create<TraceState>((set, get) => ({
         ? { ...t, events: [...t.events, { ...event, id: genId(), timestamp: Date.now() }] }
         : t
     ),
+    eventVersion: s.eventVersion + 1,
   })),
 
   endTrace: (traceId) => set(s => ({
