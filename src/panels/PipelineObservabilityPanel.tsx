@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../theme';
 import { useTraceStore, type TraceEvent } from '../store/traceStore';
-import { ChevronDown, ChevronRight, FileText, Scale, Search, AlertTriangle, GitBranch, Code } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, Scale, Search, AlertTriangle, GitBranch, Code, Zap } from 'lucide-react';
 import type {
   PipelineStageData,
   SourceAssemblyData,
@@ -472,6 +472,45 @@ function ProvenanceStage({ data, expanded, onToggle }: {
   );
 }
 
+/* ── Cache Stage ── */
+
+function CacheStage({ event }: { event: TraceEvent }) {
+  const t = useTheme();
+  const m = event.cacheMetrics;
+  if (!m) return null;
+
+  const stablePct = m.stableTokens + m.volatileTokens > 0
+    ? Math.round((m.stableTokens / (m.stableTokens + m.volatileTokens)) * 100)
+    : 0;
+  const strategyLabel: Record<string, string> = {
+    'anthropic-prefix': 'Anthropic Prefix Cache',
+    'openai-auto': 'OpenAI Auto Cache',
+    'google-context-cache': 'Google Context Cache',
+    'none': 'No Caching',
+  };
+
+  return (
+    <div className="px-4 py-3 border-b" style={{ borderColor: t.border }}>
+      <div className="flex items-center gap-2 mb-2">
+        <Zap size={14} style={{ color: '#10b981' }} />
+        <span className="text-sm font-medium" style={{ color: t.textPrimary }}>Cache Strategy</span>
+        <span className="ml-auto text-xs px-2 py-0.5 rounded" style={{ background: '#10b98115', color: '#10b981', fontFamily: "'Geist Mono', monospace" }}>
+          {strategyLabel[m.strategy] ?? m.strategy}
+        </span>
+      </div>
+      <div className="flex h-3 rounded overflow-hidden" style={{ background: t.surfaceElevated }}>
+        <div className="h-full" style={{ width: `${stablePct}%`, background: '#10b981' }} title={`Stable: ${m.stableTokens.toLocaleString()} tokens`} />
+        <div className="h-full" style={{ width: `${100 - stablePct}%`, background: '#f59e0b' }} title={`Volatile: ${m.volatileTokens.toLocaleString()} tokens`} />
+      </div>
+      <div className="flex justify-between mt-1 text-xs" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+        <span style={{ color: '#10b981' }}>● stable {m.stableTokens.toLocaleString()} tok</span>
+        <span style={{ color: '#f59e0b' }}>● volatile {m.volatileTokens.toLocaleString()} tok</span>
+        <span>~{m.estimatedSavings}% cached</span>
+      </div>
+    </div>
+  );
+}
+
 /* ── Event Timeline ── */
 
 const KIND_META: Record<string, { color: string; label: string }> = {
@@ -481,6 +520,7 @@ const KIND_META: Record<string, { color: string; label: string }> = {
   error: { color: '#e74c3c', label: 'Error' },
   fact_extracted: { color: '#FE5000', label: 'Fact' },
   token_usage: { color: '#f1c40f', label: 'Tokens' },
+  cache: { color: '#10b981', label: 'Cache' },
 };
 
 function EventTimeline({ events }: { events: TraceEvent[] }) {
@@ -600,6 +640,8 @@ export function PipelineObservabilityPanel() {
     (event): event is TraceEvent & { kind: 'pipeline_stage' } =>
       event.kind === 'pipeline_stage'
   );
+
+  const cacheEvent = allEvents.findLast(e => e.kind === 'cache');
 
   const stages = new Map<string, PipelineStageData>();
   for (const event of pipelineEvents) {
@@ -725,6 +767,9 @@ export function PipelineObservabilityPanel() {
             onToggle={() => toggleStage('provenance')}
           />
         )}
+
+        {/* Cache strategy visualization */}
+        {cacheEvent && <CacheStage event={cacheEvent} />}
 
         {/* Event timeline — always shown */}
         <EventTimeline events={allEvents} />

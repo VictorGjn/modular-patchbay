@@ -1,4 +1,5 @@
 import { type ChannelConfig, KNOWLEDGE_TYPES } from '../store/knowledgeBase';
+import { reorderForCache, CACHE_BOUNDARY_MARKER, detectCacheStrategy } from './cacheAwareAssembler';
 import type { InstructionState, WorkflowStep, AgentMeta, McpTool } from '../types/console.types';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { applyDepthFilter, renderFilteredMarkdown } from '../utils/depthFilter';
@@ -370,10 +371,31 @@ export function buildOrientationBlock(channels: ChannelConfig[], getTreeIndex: T
 
 /**
  * Assemble the final system prompt from all pipeline parts.
- * Order: frame → orientation → knowledge_format → framework → memory → knowledge
- * Applies attention-aware ordering to knowledge sources by epistemic priority.
+ * When providerType is given, reorders blocks by stability for cache optimization.
+ * Default order (no providerType): frame → orientation → knowledge_format → framework → memory → knowledge
+ * Cache-optimized order: frame → knowledge_format → framework → knowledge → memory → orientation
  */
 export function assemblePipelineContext(parts: {
+  frame: string;
+  orientationBlock: string;
+  hasRepos: boolean;
+  knowledgeFormatGuide: string;
+  frameworkBlock: string;
+  memoryBlock: string;
+  knowledgeBlock: string;
+  providerType?: string;
+}): string {
+  const { providerType } = parts;
+  const orderedKnowledge = parts.knowledgeBlock ? applyAttentionOrdering(parts.knowledgeBlock) : '';
+
+  if (providerType && detectCacheStrategy(providerType) !== 'none') {
+    return assembleCacheOptimized({ ...parts, knowledgeBlock: orderedKnowledge }, providerType);
+  }
+
+  return assembleDefault({ ...parts, knowledgeBlock: orderedKnowledge });
+}
+
+function assembleDefault(parts: {
   frame: string;
   orientationBlock: string;
   hasRepos: boolean;
@@ -388,14 +410,27 @@ export function assemblePipelineContext(parts: {
   if (hasRepos) systemParts.push(knowledgeFormatGuide);
   if (frameworkBlock) systemParts.push(frameworkBlock);
   if (memoryBlock) systemParts.push(memoryBlock);
-
-  if (knowledgeBlock) {
-    // Apply attention-aware ordering to knowledge sources
-    const orderedKnowledgeBlock = applyAttentionOrdering(knowledgeBlock);
-    systemParts.push(orderedKnowledgeBlock);
-  }
-
+  if (knowledgeBlock) systemParts.push(knowledgeBlock);
   return systemParts.filter(Boolean).join('\n\n');
+}
+
+function assembleCacheOptimized(parts: {
+  frame: string;
+  orientationBlock: string;
+  hasRepos: boolean;
+  knowledgeFormatGuide: string;
+  frameworkBlock: string;
+  memoryBlock: string;
+  knowledgeBlock: string;
+}, providerType: string): string {
+  const { stable, volatile } = reorderForCache(parts);
+  const strategy = detectCacheStrategy(providerType);
+  const stableSection = stable.filter(Boolean).join('\n\n');
+  const volatileSection = volatile.filter(Boolean).join('\n\n');
+  if (strategy === 'anthropic-prefix') {
+    return [stableSection, CACHE_BOUNDARY_MARKER, volatileSection].filter(Boolean).join('\n\n');
+  }
+  return [stableSection, volatileSection].filter(Boolean).join('\n\n');
 }
 
 /**
