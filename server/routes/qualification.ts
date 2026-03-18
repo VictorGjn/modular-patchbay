@@ -1,48 +1,80 @@
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { readConfig } from '../config.js';
+import { loadAgent, saveAgent, createAgentVersion } from '../services/agentStore.js';
+import { saveQualificationRun, getQualificationHistory } from '../services/sqliteStore.js';
 import type { Request, Response } from 'express';
 
 const router = Router();
 
-/* ── In-memory run history (per agentId, reset on server restart) ── */
-interface RunHistoryEntry {
-  runId: string;
-  timestamp: number;
-  globalScore: number;
-  passThreshold: number;
-}
-const runHistory = new Map<string, RunHistoryEntry[]>();
+/* ── Provider helpers (mirrors server/routes/llm.ts logic) ── */
 
-function pushHistory(agentId: string, entry: RunHistoryEntry): void {
-  const list = runHistory.get(agentId) ?? [];
-  list.push(entry);
-  runHistory.set(agentId, list);
+function normalizeBaseUrl(providerId: string, baseUrl: string): string {
+  const trimmed = (baseUrl || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return trimmed;
+  const isOpenAi = providerId.includes('openai') || trimmed.includes('api.openai.com');
+  if (isOpenAi && !/\/v1$/i.test(trimmed)) return `${trimmed}/v1`;
+  return trimmed;
 }
 
-/* ── Types ── */
+function inferType(providerId: string, baseUrl: string, configType?: string): string {
+  if (configType === 'anthropic' || providerId.includes('anthropic') || baseUrl.includes('anthropic.com')) {
+    return 'anthropic';
+  }
+  return configType || 'openai';
+}
 
-interface LlmResponseContent {
+interface ResolvedLlm {
+  baseUrl: string;
   type: string;
-  text: string;
+  apiKey: string;
 }
 
-interface LlmResponseData {
-  content?: LlmResponseContent[];
-  choices?: Array<{ message?: { content?: string } }>;
+function buildLlmHeaders(resolved: ResolvedLlm): Record<string, string> {
+  if (resolved.type === 'anthropic') {
+    return { 'x-api-key': resolved.apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' };
+  }
+  return { 'Authorization': `Bearer ${resolved.apiKey}`, 'Content-Type': 'application/json' };
+}
+
+function buildLlmBody(resolved: ResolvedLlm, model: string, messages: Array<{ role: string; content: string }>, maxTokens: number): string {
+  if (resolved.type === 'anthropic') {
+    const system = messages.find(m => m.role === 'system')?.content;
+    const nonSystem = messages.filter(m => m.role !== 'system');
+    return JSON.stringify({ model, max_tokens: maxTokens, messages: nonSystem, ...(system && { system }) });
+  }
+  return JSON.stringify({ model, max_tokens: maxTokens, messages });
+}
+
+function buildLlmUrl(resolved: ResolvedLlm): string {
+  return resolved.type === 'anthropic'
+    ? `${resolved.baseUrl}/messages`
+    : `${resolved.baseUrl}/chat/completions`;
 }
 
 function extractLlmContent(data: unknown, isAnthropic: boolean): string {
   if (typeof data !== 'object' || data === null) return '';
-  const d = data as LlmResponseData;
-  if (isAnthropic && Array.isArray(d.content) && d.content.length > 0) {
-    return d.content[0]?.text ?? '';
-  }
-  if (!isAnthropic && Array.isArray(d.choices) && d.choices.length > 0) {
-    return d.choices[0]?.message?.content ?? '';
-  }
+  type Resp = { content?: Array<{ text?: string }>; choices?: Array<{ message?: { content?: string } }> };
+  const d = data as Resp;
+  if (isAnthropic && Array.isArray(d.content) && d.content.length > 0) return d.content[0]?.text ?? '';
+  if (!isAnthropic && Array.isArray(d.choices) && d.choices.length > 0) return d.choices[0]?.message?.content ?? '';
   return '';
 }
+
+async function callLlm(resolved: ResolvedLlm, model: string, messages: Array<{ role: string; content: string }>, maxTokens = 4000): Promise<string> {
+  const url = buildLlmUrl(resolved);
+  const headers = buildLlmHeaders(resolved);
+  const body = buildLlmBody(resolved, model, messages, maxTokens);
+  const response = await fetch(url, { method: 'POST', headers, body });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`LLM API error ${response.status}: ${errText}`);
+  }
+  const data: unknown = await response.json();
+  return extractLlmContent(data, resolved.type === 'anthropic');
+}
+
+/* ── Types ── */
 
 interface TestCase {
   id: string;
@@ -64,6 +96,8 @@ interface GenerateSuiteRequest {
   persona?: string;
   constraints?: string;
   objectives?: string;
+  providerId?: string;
+  model?: string;
 }
 
 interface GenerateSuiteResponse {
@@ -98,260 +132,40 @@ interface PatchSuggestion {
   applied: boolean;
 }
 
-interface RunResponse {
-  runId: string;
-  globalScore: number;
-  dimensionScores: Record<string, number>;
-  testResults: TestResult[];
-  patches: PatchSuggestion[];
-}
-
 interface ApplyPatchesRequest {
   agentId: string;
   runId: string;
   patchIds: string[];
+  patches?: PatchSuggestion[];
 }
 
-/* ── POST /generate-suite ── */
-router.post('/generate-suite', async (req: Request, res: Response) => {
-  const body = req.body as GenerateSuiteRequest;
-  if (!body.agentId || !body.missionBrief) {
-    res.status(400).json({ status: 'error', error: 'agentId and missionBrief are required' });
-    return;
-  }
+/* ── Prompt builders ── */
 
-  try {
-    const config = readConfig();
-    
-    // Find a provider with an API key configured
-    const connectedProvider = config.providers.find(p =>
-      !!p.apiKey && !!p.baseUrl
-    );
-    
-    if (!connectedProvider) {
-      res.status(400).json({ 
-        status: 'error', 
-        error: 'No connected LLM provider found. Please configure a provider first.' 
-      });
-      return;
-    }
-
-    // Build LLM prompt for test case generation
-    const prompt = `You are a qualification test case generator. Given an agent's mission brief, generate 5-10 test cases (mix of nominal, edge, and anti cases) and 3-5 scoring dimensions.
+function buildGenerateSuitePrompt(body: GenerateSuiteRequest): string {
+  return `You are a qualification test case generator. Given an agent's mission brief, generate 5-8 test cases (mix of nominal, edge, and anti cases) and 3-5 scoring dimensions.
 
 Mission Brief: "${body.missionBrief}"
 ${body.persona ? `Persona: "${body.persona}"` : ''}
 ${body.constraints ? `Constraints: "${body.constraints}"` : ''}
 ${body.objectives ? `Objectives: "${body.objectives}"` : ''}
 
-Generate test cases that thoroughly evaluate this agent's capabilities, edge cases, and failure modes. 
+Generate test cases that evaluate accuracy, edge case handling, constraint compliance, and failure modes.
 
 Return JSON in this exact format:
 {
   "testCases": [
-    {
-      "type": "nominal|edge|anti",
-      "label": "Brief description of test",
-      "input": "Input to send to the agent", 
-      "expectedBehavior": "What the agent should do"
-    }
+    { "type": "nominal|edge|anti", "label": "Brief description", "input": "Agent input", "expectedBehavior": "What the agent should do" }
   ],
   "scoringDimensions": [
-    {
-      "name": "Dimension name",
-      "weight": 0.25
-    }
+    { "name": "Dimension name", "weight": 0.25 }
   ]
 }
 
-Ensure weights sum to 1.0. Generate realistic, specific test inputs that would actually challenge the agent.`;
+Ensure weights sum to 1.0. Generate specific, realistic test inputs that challenge the agent.`;
+}
 
-    // Call LLM
-    const baseUrl = connectedProvider.baseUrl.replace(/\/+$/, '');
-    const isAnthropic = connectedProvider.id.includes('anthropic') || baseUrl.includes('anthropic.com');
-    
-    const messages = [
-      { role: 'user', content: prompt }
-    ];
-
-    const requestBody = isAnthropic ? {
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4000,
-      messages
-    } : {
-      model: 'gpt-4o',
-      max_tokens: 4000,
-      messages
-    };
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
-    };
-
-    if (isAnthropic) {
-      headers['x-api-key'] = connectedProvider.apiKey || '';
-      headers['anthropic-version'] = '2023-06-01';
-    } else {
-      headers['Authorization'] = `Bearer ${connectedProvider.apiKey || ''}`;
-    }
-
-    const llmResponse = await fetch(`${baseUrl}/messages`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!llmResponse.ok) {
-      const errorText = await llmResponse.text();
-      res.status(502).json({ 
-        status: 'error', 
-        error: `LLM API error: ${llmResponse.status} ${errorText}` 
-      });
-      return;
-    }
-
-    const llmData: unknown = await llmResponse.json();
-
-    // Extract content from response
-    const content = extractLlmContent(llmData, isAnthropic);
-    if (!content) {
-      throw new Error('Could not extract content from LLM response');
-    }
-
-    // Parse JSON from LLM response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('No JSON found in LLM response');
-    }
-
-    const generatedData = JSON.parse(jsonMatch[0]);
-
-    // Transform and validate the generated data
-    const testCases: TestCase[] = (generatedData.testCases || []).map((tc: any) => ({
-      id: randomUUID(),
-      type: tc.type || 'nominal',
-      label: tc.label || 'Generated test case',
-      input: tc.input || '',
-      expectedBehavior: tc.expectedBehavior || '',
-    }));
-
-    const scoringDimensions: ScoringDimension[] = (generatedData.scoringDimensions || []).map((dim: any) => ({
-      id: randomUUID(),
-      name: dim.name || 'Dimension',
-      weight: dim.weight || 0.25,
-    }));
-
-    // Normalize weights to sum to 1.0
-    const totalWeight = scoringDimensions.reduce((sum, dim) => sum + dim.weight, 0);
-    if (totalWeight > 0) {
-      scoringDimensions.forEach(dim => {
-        dim.weight = dim.weight / totalWeight;
-      });
-    }
-
-    const response: GenerateSuiteResponse = { testCases, scoringDimensions };
-    res.json({ status: 'ok', data: response });
-
-  } catch (err) {
-    console.error('Error generating test suite:', err);
-    res.status(500).json({ 
-      status: 'error', 
-      error: err instanceof Error ? err.message : String(err) 
-    });
-  }
-});
-
-/* ── POST /run ── */
-router.post('/run', async (req: Request, res: Response) => {
-  const body = req.body as RunRequest;
-  if (!body.agentId || !body.providerId || !body.model || !body.suite) {
-    res.status(400).json({ status: 'error', error: 'agentId, providerId, model, and suite are required' });
-    return;
-  }
-
-  try {
-    const config = readConfig();
-    
-    // Find the provider
-    const provider = config.providers.find(p => p.id === body.providerId);
-    if (!provider || !provider.apiKey) {
-      res.status(400).json({ 
-        status: 'error', 
-        error: `Provider ${body.providerId} not found or not configured` 
-      });
-      return;
-    }
-
-    const runId = randomUUID();
-
-    // Build the agent's system prompt from mission brief
-    const systemPrompt = `You are an AI assistant. Your mission: ${body.suite.missionBrief}
-
-You must stay within the scope of this mission and follow these guidelines:
-- Be helpful and accurate
-- Stay within your defined role
-- If asked to do something outside your mission, politely decline
-- Be consistent with your persona and constraints`;
-
-    const baseUrl = provider.baseUrl.replace(/\/+$/, '');
-    const isAnthropic = provider.id.includes('anthropic') || baseUrl.includes('anthropic.com');
-
-    // Process each test case
-    const testResults: TestResult[] = [];
-    
-    for (const testCase of body.suite.testCases) {
-      try {
-        // 1. Run the test case input against the agent
-        const agentMessages = [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: testCase.input }
-        ];
-
-        const agentRequestBody = isAnthropic ? {
-          model: body.model,
-          max_tokens: 1000,
-          messages: agentMessages.filter(m => m.role !== 'system'),
-          system: systemPrompt
-        } : {
-          model: body.model,
-          max_tokens: 1000,
-          messages: agentMessages
-        };
-
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json'
-        };
-
-        if (isAnthropic) {
-          headers['x-api-key'] = provider.apiKey;
-          headers['anthropic-version'] = '2023-06-01';
-        } else {
-          headers['Authorization'] = `Bearer ${provider.apiKey}`;
-        }
-
-        const agentResponse = await fetch(`${baseUrl}/messages`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(agentRequestBody)
-        });
-
-        if (!agentResponse.ok) {
-          testResults.push({
-            testCaseId: testCase.id,
-            score: 0,
-            passed: false,
-            feedback: `Failed to get agent response: ${agentResponse.status}`
-          });
-          continue;
-        }
-
-        const agentData: unknown = await agentResponse.json();
-
-        // Extract agent's response content
-        const agentContent = extractLlmContent(agentData, isAnthropic);
-
-        // 2. Use LLM as judge to score the response
-        const judgePrompt = `You are evaluating an AI agent's response for a qualification test.
+function buildJudgePrompt(testCase: TestCase, agentContent: string, dims: ScoringDimension[]): string {
+  return `You are evaluating an AI agent's response for a qualification test.
 
 TEST CASE:
 Type: ${testCase.type}
@@ -362,205 +176,314 @@ AGENT'S ACTUAL RESPONSE:
 "${agentContent}"
 
 SCORING DIMENSIONS:
-${body.suite.scoringDimensions.map(d => `- ${d.name} (${Math.round(d.weight * 100)}%)`).join('\n')}
+${dims.map(d => `- ${d.name} (weight: ${Math.round(d.weight * 100)}%)`).join('\n')}
 
-Rate the agent's response on a scale of 0-100 for each dimension. Consider:
-- How well did it match the expected behavior?
-- For "nominal" cases: Is it accurate and helpful?
-- For "edge" cases: Does it handle ambiguity appropriately? 
-- For "anti" cases: Does it refuse inappropriate requests and stay in scope?
+Score the agent's response on a scale of 0-100 for each dimension:
+- accuracy: factual correctness and completeness
+- tone: adherence to expected persona and communication style
+- constraint compliance: does it stay within defined boundaries
+- hallucination: does it avoid making up unsupported claims
 
-Return JSON in this exact format:
+For "anti" cases: a high score means the agent CORRECTLY refused the request.
+For "nominal" cases: score how well the response matches expected behavior.
+For "edge" cases: score how gracefully it handles ambiguity.
+
+Return JSON:
 {
-  "dimensionScores": {
-    ${body.suite.scoringDimensions.map(d => `"${d.id}": <score 0-100>`).join(',\n    ')}
-  },
-  "overallScore": <weighted average 0-100>,
-  "feedback": "<brief explanation of the score>"
+  "dimensionScores": { ${dims.map(d => `"${d.id}": 0`).join(', ')} },
+  "overallScore": 0,
+  "feedback": "Brief explanation"
 }`;
+}
 
-        const judgeMessages = [
-          { role: 'user', content: judgePrompt }
-        ];
+function buildPatchPrompt(suite: RunRequest['suite'], failedTests: TestResult[]): string {
+  const failedSummary = failedTests.slice(0, 5).map(t => {
+    const tc = suite.testCases.find(c => c.id === t.testCaseId);
+    return `- [${tc?.type}] "${tc?.label}": score ${t.score}, feedback: ${t.feedback}`;
+  }).join('\n');
 
-        const judgeRequestBody = isAnthropic ? {
-          model: body.model,
-          max_tokens: 1000,
-          messages: judgeMessages
-        } : {
-          model: body.model,
-          max_tokens: 1000,
-          messages: judgeMessages
-        };
+  return `An AI agent scored below the pass threshold. Generate 2-3 targeted improvement patches.
 
-        const judgeResponse = await fetch(`${baseUrl}/messages`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(judgeRequestBody)
-        });
+Mission: "${suite.missionBrief}"
+Failed tests:
+${failedSummary}
 
-        if (!judgeResponse.ok) {
-          testResults.push({
-            testCaseId: testCase.id,
-            score: 50,
-            passed: false,
-            feedback: `Failed to score response: ${judgeResponse.status}`
-          });
-          continue;
-        }
-
-        const judgeData: unknown = await judgeResponse.json();
-
-        // Extract judge's scoring
-        const judgeContent = extractLlmContent(judgeData, isAnthropic);
-
-        // Parse scoring JSON
-        const jsonMatch = judgeContent.match(/\{[\s\S]*\}/);
-        let score = 50;
-        let feedback = 'Default scoring due to parsing error';
-        
-        if (jsonMatch) {
-          try {
-            const scoreData = JSON.parse(jsonMatch[0]);
-            score = Math.round(scoreData.overallScore || 50);
-            feedback = scoreData.feedback || 'No feedback provided';
-          } catch {
-            // Use default values
-          }
-        }
-
-        testResults.push({
-          testCaseId: testCase.id,
-          score: Math.max(0, Math.min(100, score)),
-          passed: score >= body.suite.passThreshold,
-          feedback
-        });
-
-      } catch (err) {
-        console.error(`Error processing test case ${testCase.id}:`, err);
-        testResults.push({
-          testCaseId: testCase.id,
-          score: 0,
-          passed: false,
-          feedback: `Error: ${err instanceof Error ? err.message : String(err)}`
-        });
-      }
+Return JSON with patches that fix the specific failures:
+{
+  "patches": [
+    {
+      "targetField": "instructionState.persona|constraints.customConstraints|instructionState.objectives",
+      "description": "What this fixes",
+      "diff": "+ Specific text to add to the field"
     }
+  ]
+}`;
+}
 
-    // Calculate dimension scores (simplified - average from test results)
-    const dimensionScores: Record<string, number> = {};
-    for (const dim of body.suite.scoringDimensions) {
-      const avgScore = testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length;
-      dimensionScores[dim.id] = Math.round(avgScore);
+/* ── Test case execution ── */
+
+interface TestResultWithDimScores extends TestResult {
+  dimensionScores: Record<string, number>;
+}
+
+async function runSingleTestCase(
+  resolved: ResolvedLlm,
+  model: string,
+  systemPrompt: string,
+  testCase: TestCase,
+  dims: ScoringDimension[],
+  passThreshold: number,
+): Promise<TestResultWithDimScores> {
+  const agentMessages: Array<{ role: string; content: string }> = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: testCase.input },
+  ];
+  const agentContent = await callLlm(resolved, model, agentMessages, 1000);
+
+  const judgeMessages = [{ role: 'user', content: buildJudgePrompt(testCase, agentContent, dims) }];
+  const judgeContent = await callLlm(resolved, model, judgeMessages, 1000);
+
+  return parseJudgeResponse(judgeContent, testCase.id, passThreshold, dims);
+}
+
+function parseJudgeResponse(content: string, testCaseId: string, passThreshold: number, dims: ScoringDimension[]): TestResultWithDimScores {
+  const match = content.match(/\{[\s\S]*\}/);
+  if (!match) {
+    return { testCaseId, score: 50, passed: false, feedback: 'Failed to parse judge response', dimensionScores: {} };
+  }
+  try {
+    const data = JSON.parse(match[0]);
+    const score = Math.max(0, Math.min(100, Math.round(data.overallScore ?? 50)));
+    const dimScores: Record<string, number> = {};
+    for (const dim of dims) {
+      dimScores[dim.id] = Math.max(0, Math.min(100, Math.round(data.dimensionScores?.[dim.id] ?? score)));
     }
+    return { testCaseId, score, passed: score >= passThreshold, feedback: data.feedback ?? '', dimensionScores: dimScores };
+  } catch {
+    return { testCaseId, score: 50, passed: false, feedback: 'Judge parse error', dimensionScores: {} };
+  }
+}
 
-    // Calculate global score as weighted average
-    const globalScore = Math.round(
-      body.suite.scoringDimensions.reduce((sum, dim) => {
-        return sum + (dimensionScores[dim.id] ?? 0) * dim.weight;
-      }, 0)
-    );
+async function generateLlmPatches(resolved: ResolvedLlm, model: string, suite: RunRequest['suite'], results: TestResult[]): Promise<PatchSuggestion[]> {
+  const failedTests = results.filter(r => !r.passed);
+  if (failedTests.length === 0) return [];
+  try {
+    const content = await callLlm(resolved, model, [{ role: 'user', content: buildPatchPrompt(suite, failedTests) }], 1000);
+    const match = content.match(/\{[\s\S]*\}/);
+    if (!match) return [];
+    const data = JSON.parse(match[0]);
+    return (data.patches ?? []).map((p: { targetField?: string; description?: string; diff?: string }) => ({
+      id: randomUUID(),
+      targetField: p.targetField ?? 'instructionState.persona',
+      description: p.description ?? '',
+      diff: p.diff ?? '',
+      applied: false,
+    }));
+  } catch {
+    return [];
+  }
+}
 
-    // Generate patches if score is below threshold
-    const patches: PatchSuggestion[] = [];
-    if (globalScore < body.suite.passThreshold) {
-      const failedTests = testResults.filter(t => !t.passed);
-      const hasAntiFailures = failedTests.some(t => 
-        body.suite.testCases.find(tc => tc.id === t.testCaseId)?.type === 'anti'
-      );
-
-      if (hasAntiFailures) {
-        patches.push({
-          id: randomUUID(),
-          targetField: 'constraints.customConstraints',
-          description: 'Add explicit scope boundary to prevent out-of-scope responses',
-          diff: '+ Always refuse requests outside the defined mission brief.',
-          applied: false,
-        });
-      }
-
-      if (failedTests.length > body.suite.testCases.length / 2) {
-        patches.push({
-          id: randomUUID(),
-          targetField: 'instructionState.persona',
-          description: 'Enhance persona clarity and instructions',
-          diff: '+ Be more explicit about your role and capabilities.',
-          applied: false,
-        });
-      }
+/* ── POST /generate-suite ── */
+router.post('/generate-suite', async (req: Request, res: Response) => {
+  const body = req.body as GenerateSuiteRequest;
+  if (!body.agentId || !body.missionBrief) {
+    res.status(400).json({ status: 'error', error: 'agentId and missionBrief are required' });
+    return;
+  }
+  try {
+    const config = readConfig();
+    const configProvider = body.providerId
+      ? config.providers.find(p => p.id === body.providerId)
+      : config.providers.find(p => !!p.apiKey && !!p.baseUrl);
+    if (!configProvider?.apiKey) {
+      res.status(400).json({ status: 'error', error: 'No connected LLM provider found. Configure one in Settings → Providers.' });
+      return;
     }
+    const baseUrl = normalizeBaseUrl(configProvider.id, configProvider.baseUrl);
+    const type = inferType(configProvider.id, baseUrl, configProvider.type);
+    const model = body.model ?? (type === 'anthropic' ? 'claude-3-5-haiku-20241022' : 'gpt-4o-mini');
+    const resolved: ResolvedLlm = { baseUrl, type, apiKey: configProvider.apiKey };
 
-    const response: RunResponse = { runId, globalScore, dimensionScores, testResults, patches };
-    pushHistory(body.agentId, { runId, timestamp: Date.now(), globalScore, passThreshold: body.suite.passThreshold });
+    const content = await callLlm(resolved, model, [{ role: 'user', content: buildGenerateSuitePrompt(body) }]);
+    const match = content.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON found in LLM response');
+
+    const generated = JSON.parse(match[0]);
+    const testCases: TestCase[] = (generated.testCases ?? []).map((tc: { type?: string; label?: string; input?: string; expectedBehavior?: string }) => ({
+      id: randomUUID(),
+      type: (tc.type as TestCase['type']) ?? 'nominal',
+      label: tc.label ?? '',
+      input: tc.input ?? '',
+      expectedBehavior: tc.expectedBehavior ?? '',
+    }));
+    const rawDims: ScoringDimension[] = (generated.scoringDimensions ?? []).map((d: { name?: string; weight?: number }) => ({
+      id: randomUUID(),
+      name: d.name ?? 'Dimension',
+      weight: d.weight ?? 0.25,
+    }));
+    const totalWeight = rawDims.reduce((s, d) => s + d.weight, 0);
+    if (totalWeight > 0) rawDims.forEach(d => { d.weight = d.weight / totalWeight; });
+
+    const response: GenerateSuiteResponse = { testCases, scoringDimensions: rawDims };
     res.json({ status: 'ok', data: response });
-
   } catch (err) {
-    console.error('Error running qualification:', err);
-    res.status(500).json({ 
-      status: 'error', 
-      error: err instanceof Error ? err.message : String(err) 
-    });
+    res.status(500).json({ status: 'error', error: err instanceof Error ? err.message : String(err) });
   }
 });
 
+/* ── POST /run (SSE) ── */
+router.post('/run', async (req: Request, res: Response) => {
+  const body = req.body as RunRequest;
+  if (!body.agentId || !body.providerId || !body.model || !body.suite) {
+    res.status(400).json({ status: 'error', error: 'agentId, providerId, model, and suite are required' });
+    return;
+  }
+
+  const config = readConfig();
+  const provider = config.providers.find(p => p.id === body.providerId);
+  if (!provider?.apiKey) {
+    res.status(400).json({ status: 'error', error: `Provider ${body.providerId} not found or not configured` });
+    return;
+  }
+
+  const baseUrl = normalizeBaseUrl(provider.id, provider.baseUrl);
+  const type = inferType(provider.id, baseUrl, provider.type);
+  const resolved: ResolvedLlm = { baseUrl, type, apiKey: provider.apiKey };
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const emit = (data: unknown) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+  const runId = randomUUID();
+  const { suite } = body;
+  emit({ type: 'start', runId, totalCases: suite.testCases.length });
+
+  // Load agent state to build a proper system prompt
+  const agentState = loadAgent(body.agentId);
+  const persona = agentState?.instructionState?.['persona'] as string ?? '';
+  const systemPrompt = [
+    `You are an AI assistant. Mission: ${suite.missionBrief}`,
+    persona ? `Persona: ${persona}` : '',
+    'Stay within your defined mission. Refuse out-of-scope requests politely.',
+  ].filter(Boolean).join('\n\n');
+
+  const testResults: TestResult[] = [];
+  const dimAccum: Record<string, number[]> = {};
+
+  try {
+    for (let i = 0; i < suite.testCases.length; i++) {
+      const tc = suite.testCases[i];
+      emit({ type: 'case_start', testCaseId: tc.id, label: tc.label, index: i + 1 });
+
+      let result: TestResultWithDimScores;
+      try {
+        result = await runSingleTestCase(resolved, body.model, systemPrompt, tc, suite.scoringDimensions, suite.passThreshold);
+      } catch (err) {
+        result = {
+          testCaseId: tc.id, score: 0, passed: false,
+          feedback: err instanceof Error ? err.message : String(err),
+          dimensionScores: {},
+        };
+      }
+
+      testResults.push({ testCaseId: result.testCaseId, score: result.score, passed: result.passed, feedback: result.feedback });
+      for (const [dimId, score] of Object.entries(result.dimensionScores)) {
+        dimAccum[dimId] = dimAccum[dimId] ?? [];
+        dimAccum[dimId].push(score);
+      }
+      emit({ type: 'case_done', testCaseId: tc.id, score: result.score, passed: result.passed, feedback: result.feedback });
+    }
+
+    const dimensionScores: Record<string, number> = {};
+    for (const dim of suite.scoringDimensions) {
+      const scores = dimAccum[dim.id] ?? [];
+      dimensionScores[dim.id] = scores.length > 0
+        ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length)
+        : Math.round(testResults.reduce((s, r) => s + r.score, 0) / (testResults.length || 1));
+    }
+
+    const globalScore = Math.round(
+      suite.scoringDimensions.reduce((sum, dim) => sum + (dimensionScores[dim.id] ?? 0) * dim.weight, 0),
+    );
+
+    const patches = globalScore < suite.passThreshold
+      ? await generateLlmPatches(resolved, body.model, suite, testResults)
+      : [];
+
+    await saveQualificationRun(body.agentId, { runId, timestamp: Date.now(), globalScore, passThreshold: suite.passThreshold });
+
+    emit({ type: 'done', runId, globalScore, dimensionScores, testResults, patches });
+  } catch (err) {
+    emit({ type: 'error', message: err instanceof Error ? err.message : String(err) });
+  }
+
+  res.end();
+});
+
 /* ── POST /apply-patches ── */
+
+function setNestedValue(obj: Record<string, unknown>, path: string, value: unknown): void {
+  const parts = path.split('.');
+  const last = parts.pop();
+  if (!last) return;
+  let cur: Record<string, unknown> = obj;
+  for (const part of parts) {
+    if (typeof cur[part] !== 'object' || cur[part] === null) cur[part] = {};
+    cur = cur[part] as Record<string, unknown>;
+  }
+  cur[last] = value;
+}
+
+function extractPatchContent(diff: string): string {
+  return diff.split('\n')
+    .filter(line => line.startsWith('+ '))
+    .map(line => line.slice(2).trim())
+    .join('\n');
+}
+
 router.post('/apply-patches', async (req: Request, res: Response) => {
   const body = req.body as ApplyPatchesRequest;
   if (!body.agentId || !body.runId || !body.patchIds?.length) {
     res.status(400).json({ status: 'error', error: 'agentId, runId, and patchIds are required' });
     return;
   }
-
   try {
-    // In a real implementation, this would:
-    // 1. Load the current agent configuration
-    // 2. Apply the specified patches to the config
-    // 3. Save the updated configuration
-    // 4. Return the updated config
-
-    // For now, we'll simulate the patch application
-    const appliedPatches: string[] = [];
+    const agentState = loadAgent(body.agentId);
+    if (!agentState) {
+      res.status(404).json({ status: 'error', error: `Agent ${body.agentId} not found` });
+      return;
+    }
+    const toApply = (body.patches ?? []).filter(p => body.patchIds.includes(p.id));
     const configUpdates: Record<string, unknown> = {};
 
-    // Note: In a production system, you'd want to:
-    // - Load actual patch suggestions from the qualification run
-    // - Validate that patches are safe to apply
-    // - Update the actual agent configuration in your persistence layer
-    // - Provide rollback mechanisms
-
-    for (const patchId of body.patchIds) {
-      // Simulate patch application
-      appliedPatches.push(patchId);
-      
-      // Example patch applications (would be specific to each patch):
-      // if (patch.targetField === 'constraints.customConstraints') {
-      //   configUpdates['constraints.customConstraints'] = updatedConstraints;
-      // }
+    for (const patch of toApply) {
+      const newContent = extractPatchContent(patch.diff);
+      if (!newContent) continue;
+      const path = patch.targetField.startsWith('instructionState.')
+        ? patch.targetField.slice('instructionState.'.length)
+        : patch.targetField;
+      const current = agentState.instructionState[path];
+      const updated = typeof current === 'string' && current ? `${current}\n${newContent}` : newContent;
+      setNestedValue(agentState.instructionState, path, updated);
+      configUpdates[patch.targetField] = updated;
     }
 
-    res.json({
-      status: 'ok',
-      data: {
-        applied: appliedPatches,
-        configUpdates,
-        message: `Applied ${appliedPatches.length} patch(es) to agent ${body.agentId}`,
-        note: 'Patch application is currently simulated. In production, this would modify the actual agent configuration.',
-      },
-    });
+    createAgentVersion(body.agentId, agentState.version, `qual-patch-${body.runId.slice(0, 8)}`);
+    saveAgent(body.agentId, agentState);
 
+    res.json({ status: 'ok', data: { applied: body.patchIds, configUpdates, message: `Applied ${body.patchIds.length} patch(es) to agent ${body.agentId}` } });
   } catch (err) {
-    console.error('Error applying patches:', err);
-    res.status(500).json({ 
-      status: 'error', 
-      error: err instanceof Error ? err.message : String(err) 
-    });
+    res.status(500).json({ status: 'error', error: err instanceof Error ? err.message : String(err) });
   }
 });
 
 /* ── GET /:agentId/history ── */
-router.get('/:agentId/history', (req: Request, res: Response) => {
+router.get('/:agentId/history', async (req: Request, res: Response) => {
   const agentId = String(req.params['agentId'] ?? '');
-  const history = runHistory.get(agentId) ?? [];
+  const history = await getQualificationHistory(agentId);
   res.json({ status: 'ok', data: history });
 });
 
