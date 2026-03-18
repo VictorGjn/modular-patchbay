@@ -5,6 +5,7 @@ import { useTreeIndexStore } from '../../store/treeIndexStore';
 import { useKnowledgeStore } from '../../store/knowledgeStore';
 import { DEPTH_MIN, DEPTH_MAX, DEPTH_STEP, KNOWLEDGE_TYPES } from '../../store/knowledgeBase';
 import { Plus, X, FolderOpen, Loader2 } from 'lucide-react';
+import { CodeStructureView } from './CodeStructureView';
 
 function getDepthLabel(depth: number): string {
   if (depth >= 100) return 'Full';
@@ -280,6 +281,11 @@ export function LocalFilesPanel() {
                 <div className="mt-2 text-[11px] px-2 py-1 rounded" style={{ color: '#e74c3c', background: '#e74c3c15' }}>
                   Error: {treeErrors[ch.path]}
                 </div>
+              )}
+
+              {/* Code structure hierarchy */}
+              {isIndexed && treeIndexes[ch.path].index.sourceType === 'code' && (
+                <CodeStructureView index={treeIndexes[ch.path].index} />
               )}
             </div>
           );
