@@ -560,7 +560,7 @@ export function AgentBuilder() {
   const progress = Object.values(done).filter(Boolean).length;
 
   // Token budget breakdown
-  const knowledgeTokens = channels.reduce((sum, c) => sum + ((c as any).effectiveTokens ?? c.baseTokens ?? 0), 0);
+  const knowledgeTokens = channels.reduce((sum, c) => sum + (c.effectiveTokens ?? c.baseTokens ?? 0), 0);
   const instructionTokens = Math.ceil(persona.length / 4) + Math.ceil(constraints.customConstraints.length / 4);
   const workflowTokens = workflowSteps.reduce((sum, s) => sum + Math.ceil(s.label.length / 4), 0);
   const totalUsed = knowledgeTokens + instructionTokens + workflowTokens;

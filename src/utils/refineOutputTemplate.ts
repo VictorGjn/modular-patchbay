@@ -174,7 +174,7 @@ export async function generateOutputTemplate(
     const config = JSON.parse(jsonStr) as OutputTemplateConfig;
     // Validate target matches
     if (config.target !== target) {
-      (config as any).target = target;
+      (config as { target: OutputTarget }).target = target;
     }
     return config;
   } catch {

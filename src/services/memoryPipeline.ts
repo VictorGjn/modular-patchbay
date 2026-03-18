@@ -12,6 +12,7 @@ import {
   useMemoryStore,
   type Fact,
   type FactGranularity,
+  type FactType,
   type MemoryDomain,
   type SandboxIsolation,
   type ExtractType,
@@ -250,7 +251,7 @@ export function postWrite(options: MemoryPipelineOptions): WriteResult {
       'entities': 'entity',
     };
     const canonicalType = typeMap[ef.type] || ef.type;
-    store.addFact(ef.content, [ef.type], canonicalType as any, finalDomain, 'fact', options.agentId);
+    store.addFact(ef.content, [ef.type], canonicalType as FactType, finalDomain, 'fact', options.agentId);
 
     const facts = useMemoryStore.getState().facts;
     const latest = facts[facts.length - 1];

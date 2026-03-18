@@ -83,7 +83,7 @@ export interface TraceEvent {
     stage: 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance';
     timestamp: number;
     durationMs?: number;
-    data: any;
+    data: unknown;
   }>;
 }
 

@@ -7,7 +7,7 @@
 import { streamCompletion, streamAgentSdk } from './llmService';
 import { runToolLoop, type ToolCallResult } from './toolRunner';
 import { getUnifiedTools, supportsToolCalling } from './toolRegistry';
-import { useProviderStore } from '../store/providerStore';
+import { useProviderStore, type ProviderConfig } from '../store/providerStore';
 import { useTraceStore } from '../store/traceStore';
 import { estimateTokens } from './treeIndexer';
 
@@ -31,7 +31,7 @@ export async function executeChat(options: {
 
   const unifiedTools = getUnifiedTools();
   const providerState = useProviderStore.getState();
-  const currentProvider = providerState.providers.find((p: any) => p.id === providerId);
+  const currentProvider = providerState.providers.find((p: ProviderConfig) => p.id === providerId);
   const providerType = currentProvider?.type ?? 'openai';
   const useToolLoop = unifiedTools.length > 0
     && supportsToolCalling(providerType)

@@ -4,6 +4,7 @@ import { useConversationStore } from '../store/conversationStore';
 import { useMemoryStore } from '../store/memoryStore';
 import { useVersionStore } from '../store/versionStore';
 import { exportAsAgent, downloadAgentFile, exportForTarget, exportGenericJSON, exportAsYAML } from '../utils/agentExport';
+import { type OutputFormat } from '../store/knowledgeBase';
 import { VersionIndicator } from '../components/VersionIndicator';
 
 // Sub-components
@@ -261,7 +262,7 @@ export function ReviewTab() {
         <OutputConfigSection
           selectedModel={selectedModel}
           outputFormat={outputFormat}
-          setOutputFormat={(format: string) => setOutputFormat(format as any)}
+          setOutputFormat={(format: string) => setOutputFormat(format as OutputFormat)}
           tokenBudget={tokenBudget}
           collapsed={outputCollapsed}
           onToggle={() => setOutputCollapsed(!outputCollapsed)}

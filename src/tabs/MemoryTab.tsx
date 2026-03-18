@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '../theme';
-import { useMemoryStore, type MemoryDomain, type StoreBackend } from '../store/memoryStore';
+import { useMemoryStore, type MemoryDomain, type StoreBackend, type SessionStrategy, type SandboxIsolation, type MemoryScope, type EmbeddingModel, type RecallStrategy, type WriteMode, type ExtractType } from '../store/memoryStore';
 import { generateMemoryConfig } from '../utils/generateSection';
 import { Input } from '../components/ds/Input';
 import { Toggle } from '../components/ds/Toggle';
@@ -103,7 +103,7 @@ const SCOPE_OPTIONS = [
   { value: 'global', label: 'Global' },
 ];
 
-const EXTRACT_TYPES: Array<{ value: string; label: string; color: string }> = [
+const EXTRACT_TYPES: Array<{ value: ExtractType; label: string; color: string }> = [
   { value: 'user_preferences', label: 'Preferences', color: '#3498db' },
   { value: 'decisions', label: 'Decisions', color: '#e67e22' },
   { value: 'facts', label: 'Facts', color: '#2ecc71' },
@@ -198,7 +198,7 @@ export function MemoryTab() {
   const [newFactDomain, setNewFactDomain] = useState<MemoryDomain>('shared');
   const [generating, setGenerating] = useState(false);
   const [connectionString, setConnectionString] = useState('');
-  const [backendHealth, setBackendHealth] = useState<any>(null);
+  const [backendHealth, setBackendHealth] = useState<{ status: string; factCount: number } | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
 
@@ -326,7 +326,7 @@ export function MemoryTab() {
           <Select 
             options={STRATEGY_OPTIONS} 
             value={session.strategy}
-            onChange={v => setSessionConfig({ strategy: v as any })} 
+            onChange={v => setSessionConfig({ strategy: v as SessionStrategy })}
             label="Strategy" 
           />
           {STRATEGY_OPTIONS.find(opt => opt.value === session.strategy)?.description && (
@@ -465,7 +465,7 @@ export function MemoryTab() {
               <Select 
                 options={SANDBOX_OPTIONS} 
                 value={sandbox.isolation}
-                onChange={v => setSandboxConfig({ isolation: v as any })} 
+                onChange={v => setSandboxConfig({ isolation: v as SandboxIsolation })}
                 label="Isolation" 
               />
 
@@ -545,7 +545,7 @@ export function MemoryTab() {
               <Select 
                 options={SCOPE_OPTIONS} 
                 value={longTerm.scope}
-                onChange={v => setLongTermConfig({ scope: v as any })} 
+                onChange={v => setLongTermConfig({ scope: v as MemoryScope })}
                 label="Scope" 
               />
             </div>
@@ -627,7 +627,7 @@ export function MemoryTab() {
             <Select 
               options={EMBEDDING_OPTIONS} 
               value={longTerm.embeddingModel}
-              onChange={v => setLongTermConfig({ embeddingModel: v as any })} 
+              onChange={v => setLongTermConfig({ embeddingModel: v as EmbeddingModel })}
               label="Embedding Model" 
             />
 
@@ -635,7 +635,7 @@ export function MemoryTab() {
               <Select 
                 options={RECALL_OPTIONS} 
                 value={longTerm.recall.strategy}
-                onChange={v => setRecallConfig({ strategy: v as any })} 
+                onChange={v => setRecallConfig({ strategy: v as RecallStrategy })}
                 label="Recall Strategy" 
               />
               <SliderRow 
@@ -660,7 +660,7 @@ export function MemoryTab() {
             <Select 
               options={WRITE_MODE_OPTIONS} 
               value={longTerm.write.mode}
-              onChange={v => setWriteConfig({ mode: v as any })} 
+              onChange={v => setWriteConfig({ mode: v as WriteMode })}
               label="Write Mode" 
             />
 
@@ -670,14 +670,14 @@ export function MemoryTab() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {EXTRACT_TYPES.map(et => {
-                  const active = longTerm.write.extractTypes.includes(et.value as any);
+                  const active = longTerm.write.extractTypes.includes(et.value);
                   return (
                     <button 
                       key={et.value} 
                       type="button" 
                       aria-label={`Toggle ${et.label}`} 
                       aria-pressed={active}
-                      onClick={() => toggleExtractType(et.value as any)}
+                      onClick={() => toggleExtractType(et.value)}
                       className="text-sm px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
                       style={{
                         fontFamily: "'Geist Sans', sans-serif",

@@ -249,6 +249,8 @@ export interface ChannelConfig {
     features: string[];
   };
   contentSourceId?: string; // links to backend content store
+  effectiveTokens?: number; // runtime token count after budget allocation
+  hint?: string; // optional display hint
 }
 
 export type PlanningMode = 'single-shot' | 'chain-of-thought' | 'react';

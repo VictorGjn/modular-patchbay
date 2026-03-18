@@ -36,13 +36,15 @@ import { useTraceStore } from '../store/traceStore';
 
 // ── Pipeline Event Emitters ──
 
-function emitPipelineStage(traceId: string, stage: string, data: any, durationMs?: number) {
+type PipelineStage = 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance';
+
+function emitPipelineStage(traceId: string, stage: PipelineStage, data: unknown, durationMs?: number) {
   const traceStore = useTraceStore.getState();
   traceStore.addEvent(traceId, {
     kind: 'pipeline_stage',
     durationMs,
     provenanceStages: [{
-      stage: stage as any,
+      stage,
       timestamp: Date.now(),
       durationMs,
       data,

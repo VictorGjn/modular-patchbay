@@ -1230,7 +1230,7 @@ function MemorySection() {
                 {EXTRACT_TYPES.map(et => {
                   const active = longTerm.write.extractTypes.includes(et.value as ExtractType);
                   return (
-                    <button key={et.value} type="button" aria-label={`Toggle ${et.label}`} aria-pressed={longTerm.write.extractTypes.includes(et.value as any)}
+                    <button key={et.value} type="button" aria-label={`Toggle ${et.label}`} aria-pressed={longTerm.write.extractTypes.includes(et.value as ExtractType)}
                       onClick={() => toggleExtractType(et.value as ExtractType)}
                       className="text-[13px] px-3 py-2 rounded-full cursor-pointer border-none min-h-[44px]"
                       style={{

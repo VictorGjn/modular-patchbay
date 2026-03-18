@@ -182,8 +182,8 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
   // Legacy aliases — kept for MemoryNode backward compat
   // These are synced via subscriptions below
-  sessionMemory: { ...DEFAULT_SESSION } as any,
-  longTermMemory: [] as any[],
+  sessionMemory: { ...DEFAULT_SESSION },
+  longTermMemory: [] as Fact[],
   workingMemory: '' as string,
 
   // Session

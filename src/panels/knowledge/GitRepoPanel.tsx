@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTheme } from '../../theme';
 import { useConsoleStore } from '../../store/consoleStore';
 import { useTreeIndexStore } from '../../store/treeIndexStore';
-import { DEPTH_MIN, DEPTH_MAX, DEPTH_STEP, KNOWLEDGE_TYPES } from '../../store/knowledgeBase';
+import { DEPTH_MIN, DEPTH_MAX, DEPTH_STEP, KNOWLEDGE_TYPES, type Category } from '../../store/knowledgeBase';
 import { FolderGit2, Loader2, Clock, RefreshCw, X, GitBranch, Github } from 'lucide-react';
 import { API_BASE } from '../../config';
 
@@ -114,7 +114,7 @@ export function GitRepoPanel() {
             sourceId: `repo-${file}-${Date.now()}`,
             name: file.replace('.compressed.md', '').replace('.md', '').replace(/^\d+-/, ''),
             path: filePath,
-            category: 'knowledge' as any,
+            category: 'knowledge' as Category,
             knowledgeType: 'ground-truth',
             depth: isGitHub ? 50 : 70,
             baseTokens: Math.round(totalTokens / Math.max(json.data.files.length, 1)),
