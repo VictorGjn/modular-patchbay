@@ -17,7 +17,7 @@ import {
   FileText, FileCode, Zap, ChevronDown, ChevronRight, Users, Plus, X, Play, Square,
   Maximize2, Minimize2,
 } from 'lucide-react';
-import { TraceViewer } from './TraceViewer';
+// import { TraceViewer } from './TraceViewer';
 import { InlineTraceView } from '../components/InlineTraceView';
 import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
 import { CapabilityGate } from '../components/CapabilityGate';
@@ -222,7 +222,7 @@ function ChatSection() {
   const setStreaming = useConversationStore(s => s.setStreaming);
   const updateLastAssistant = useConversationStore(s => s.updateLastAssistant);
   const setLastPipelineStats = useConversationStore(s => s.setLastPipelineStats);
-  const updateMessagePipelineStats = useConversationStore(s => s.updateMessagePipelineStats);
+  // const updateMessagePipelineStats = useConversationStore(s => s.updateMessagePipelineStats);
   const channels = useConsoleStore(s => s.channels);
   const connectors = useConsoleStore(s => s.connectors);
   const mcpServers = useConsoleStore(s => s.mcpServers);

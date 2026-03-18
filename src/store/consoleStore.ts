@@ -1213,8 +1213,8 @@ export const useConsoleStore = create<ConsoleState>()(
     });
     // Also clear conversation state
     try {
-      const { useConversationStore } = require('./conversationStore');
-      useConversationStore.getState().clearMessages();
+      // Dynamic import to avoid circular dependency
+      import('./conversationStore').then(mod => mod.useConversationStore.getState().clearMessages());
     } catch { /* silent */ }
   },
 

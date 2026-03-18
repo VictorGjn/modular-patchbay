@@ -3,7 +3,7 @@ import { useTheme } from '../theme';
 import { useConversationStore } from '../store/conversationStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { useProviderStore } from '../store/providerStore';
-import { TracePanel } from '../components/test/TracePanel';
+// import { TracePanel } from '../components/test/TracePanel';
 import { TestPanel } from '../panels/TestPanel';
 import { ContextInspector } from '../components/test/ContextInspector';
 import { PipelineObservabilityPanel } from '../panels/PipelineObservabilityPanel';
@@ -119,7 +119,7 @@ export function TestTab() {
                 value={selectedModel}
                 onChange={(value: string) => setModel(value)}
                 placeholder="Select model..."
-                title="Select AI model"
+                
               />
             </div>
             {selectedModel && (
@@ -200,7 +200,7 @@ export function TestTab() {
               value={selectedModel}
               onChange={(value: string) => setModel(value)}
               placeholder="Select model..."
-              title="Select AI model"
+              
             />
           </div>
           {selectedModel && (
