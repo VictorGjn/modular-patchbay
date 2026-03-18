@@ -1,5 +1,8 @@
-import { HindsightClient } from '@vectorize-io/hindsight-client';
-import type { RecallResult } from '@vectorize-io/hindsight-client';
+// Hindsight client is optional — install @vectorize-io/hindsight-client to enable
+let HindsightClient: any;
+try { HindsightClient = require('@vectorize-io/hindsight-client').HindsightClient; } catch { /* not installed */ }
+
+interface RecallResult { id?: string; content: string; type?: string | null }
 
 export interface HindsightMemoryItem {
   id: string;
@@ -8,16 +11,16 @@ export interface HindsightMemoryItem {
 }
 
 function toMemoryItem(r: RecallResult): HindsightMemoryItem {
-  return { id: r.id, content: r.text, type: r.type ?? null };
+  return { id: r.id ?? `hs-${Date.now()}`, content: r.content, type: r.type ?? null };
 }
 
 export class ModularHindsightClient {
-  private readonly client: HindsightClient;
+  private readonly client: InstanceType<typeof HindsightClient> | null;
   private readonly baseUrl: string;
 
   constructor(baseUrl = 'http://localhost:8888') {
     this.baseUrl = baseUrl;
-    this.client = new HindsightClient(baseUrl);
+    this.client = HindsightClient ? new HindsightClient(baseUrl) : null;
   }
 
   async retain(agentId: string, content: string, metadata?: Record<string, string>): Promise<void> {
