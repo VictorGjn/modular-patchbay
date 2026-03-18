@@ -41,6 +41,22 @@ export async function getDb(): Promise<Database> {
     global_score REAL NOT NULL,
     pass_threshold INTEGER NOT NULL
   )`);
+  db.run(`CREATE TABLE IF NOT EXISTS response_cache (
+    id TEXT PRIMARY KEY,
+    query_hash TEXT NOT NULL,
+    query_embedding BLOB,
+    query TEXT NOT NULL,
+    response TEXT NOT NULL,
+    model TEXT NOT NULL,
+    agent_id TEXT NOT NULL,
+    system_prompt_hash TEXT NOT NULL,
+    created_at INTEGER DEFAULT (strftime('%s','now')),
+    hit_count INTEGER DEFAULT 0,
+    last_hit_at INTEGER DEFAULT (strftime('%s','now')),
+    ttl INTEGER DEFAULT 3600
+  )`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_rc_query_hash ON response_cache (query_hash)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_rc_agent_id ON response_cache (agent_id)`);
   return db;
 }
 

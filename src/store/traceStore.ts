@@ -18,7 +18,9 @@ export type TraceEventKind =
   | 'cache'               // Cache-aware assembly metrics
   | 'hindsight_retain'    // Hindsight memory retention
   | 'hindsight_recall'    // Hindsight memory recall
-  | 'hindsight_reflect';  // Hindsight higher-order reflection
+  | 'hindsight_reflect'   // Hindsight higher-order reflection
+  | 'response_cache_hit'  // LLM response served from cache
+  | 'response_cache_miss'; // Cache miss — LLM call required
 
 export interface TraceEvent {
   id: string;
@@ -93,6 +95,12 @@ export interface TraceEvent {
     volatileTokens: number;
     estimatedSavings: number;
   };
+
+  // Response cache (kind === 'response_cache_hit' | 'response_cache_miss')
+  responseCacheHit?: boolean;
+  responseCacheSavingsUsd?: number;
+  responseCacheAgentId?: string;
+  responseCacheModel?: string;
 }
 
 export interface ConversationTrace {
