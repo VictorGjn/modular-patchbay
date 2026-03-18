@@ -390,4 +390,197 @@ router.delete('/auth/:service', (req, res) => {
   res.json({ status: 'ok' } satisfies ApiResponse);
 });
 
+// ── In-memory session keys (never persisted to disk) ──
+const sessionKeys = new Map<string, string>();
+
+// ── Notion types ──
+interface NotionRichText { plain_text: string }
+interface NotionBlock { type: string; [k: string]: unknown }
+interface NotionPage {
+  id: string;
+  properties: Record<string, { type: string; title?: NotionRichText[] }>;
+}
+interface NotionItem { id: string; title: string; content: string; tokens: number }
+
+// ── Notion helpers ──
+
+function extractPageId(url: string): string | null {
+  const hex32 = url.match(/([a-f0-9]{32})(?:[?#/]|$)/i);
+  if (hex32) return hex32[1];
+  const uuid = url.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+  return uuid ? uuid[1].replace(/-/g, '') : null;
+}
+
+function notionHeaders(key: string): Record<string, string> {
+  return { 'Authorization': `Bearer ${key}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' };
+}
+
+function getBlockText(block: NotionBlock): string {
+  const content = block[block.type];
+  if (typeof content !== 'object' || !content || Array.isArray(content)) return '';
+  const rt = (content as Record<string, unknown>).rich_text;
+  if (!Array.isArray(rt)) return '';
+  return rt.map(r => (typeof r === 'object' && r !== null ? String((r as Record<string, unknown>).plain_text ?? '') : '')).join('');
+}
+
+function blocksToMarkdown(blocks: NotionBlock[]): string {
+  const lines: string[] = [];
+  for (const b of blocks) {
+    const text = getBlockText(b);
+    if (!text) continue;
+    if (b.type === 'heading_1') lines.push(`# ${text}`);
+    else if (b.type === 'heading_2') lines.push(`## ${text}`);
+    else if (b.type === 'heading_3') lines.push(`### ${text}`);
+    else if (b.type === 'bulleted_list_item') lines.push(`- ${text}`);
+    else if (b.type === 'numbered_list_item') lines.push(`1. ${text}`);
+    else if (b.type === 'code') lines.push(`\`\`\`\n${text}\n\`\`\``);
+    else lines.push(text);
+  }
+  return lines.join('\n');
+}
+
+function getPageTitle(page: NotionPage): string {
+  const titleProp = Object.values(page.properties).find(p => p.type === 'title');
+  return titleProp?.title?.[0]?.plain_text ?? page.id;
+}
+
+async function fetchAllBlocks(pageId: string, key: string): Promise<NotionBlock[]> {
+  const blocks: NotionBlock[] = [];
+  let cursor: string | undefined;
+  do {
+    const qs = cursor ? `?start_cursor=${encodeURIComponent(cursor)}` : '';
+    const resp = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children${qs}`, { headers: notionHeaders(key) });
+    if (!resp.ok) break;
+    const data = await resp.json() as { results: NotionBlock[]; has_more: boolean; next_cursor: string | null };
+    blocks.push(...data.results);
+    cursor = data.has_more && data.next_cursor ? data.next_cursor : undefined;
+  } while (cursor);
+  return blocks;
+}
+
+async function fetchPage(pageId: string, key: string): Promise<NotionItem | null> {
+  const resp = await fetch(`https://api.notion.com/v1/pages/${pageId}`, { headers: notionHeaders(key) });
+  if (!resp.ok) return null;
+  const page = await resp.json() as NotionPage;
+  const title = getPageTitle(page);
+  const blocks = await fetchAllBlocks(pageId, key);
+  const content = blocksToMarkdown(blocks);
+  return { id: pageId, title, content, tokens: Math.ceil(content.length / 4) };
+}
+
+async function queryDatabase(dbId: string, key: string): Promise<NotionItem[]> {
+  const items: NotionItem[] = [];
+  let cursor: string | undefined;
+  do {
+    const body = JSON.stringify(cursor ? { start_cursor: cursor } : {});
+    const resp = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, { method: 'POST', headers: notionHeaders(key), body });
+    if (!resp.ok) break;
+    const data = await resp.json() as { results: NotionPage[]; has_more: boolean; next_cursor: string | null };
+    for (const row of data.results) {
+      const title = getPageTitle(row);
+      items.push({ id: row.id, title, content: `# ${title}`, tokens: Math.ceil(title.length / 4) + 10 });
+    }
+    cursor = data.has_more && data.next_cursor ? data.next_cursor : undefined;
+  } while (cursor);
+  return items;
+}
+
+async function searchWorkspace(key: string): Promise<NotionItem[]> {
+  const body = JSON.stringify({ sort: { direction: 'descending', timestamp: 'last_edited_time' }, page_size: 10 });
+  const resp = await fetch('https://api.notion.com/v1/search', { method: 'POST', headers: notionHeaders(key), body });
+  if (!resp.ok) return [];
+  const data = await resp.json() as { results: Array<{ id: string; object: string }> };
+  const items: NotionItem[] = [];
+  for (const result of data.results) {
+    if (result.object !== 'page') continue;
+    const page = await fetchPage(result.id, key);
+    if (page) items.push(page);
+  }
+  return items;
+}
+
+/**
+ * POST /api/connectors/notion/test
+ * Validate a Notion API key by calling users/me.
+ */
+router.post('/notion/test', async (req, res) => {
+  const body = req.body as { apiKey?: unknown };
+  const apiKey = typeof body.apiKey === 'string' ? body.apiKey : '';
+  if (!apiKey) {
+    res.status(400).json({ status: 'error', error: 'Missing apiKey' } satisfies ApiResponse);
+    return;
+  }
+  try {
+    const resp = await fetch('https://api.notion.com/v1/users/me', {
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Notion-Version': '2022-06-28' },
+    });
+    if (resp.status === 401) {
+      res.status(401).json({ status: 'error', error: 'Invalid Notion API key. Create one at notion.so/my-integrations' } satisfies ApiResponse);
+      return;
+    }
+    if (resp.status === 429) {
+      const retryAfter = resp.headers.get('Retry-After') ?? '60';
+      res.status(429).json({ status: 'error', error: `Notion rate limit hit. Retry in ${retryAfter}s` } satisfies ApiResponse);
+      return;
+    }
+    if (!resp.ok) {
+      res.status(resp.status).json({ status: 'error', error: `Notion API error: ${resp.status}` } satisfies ApiResponse);
+      return;
+    }
+    const user = await resp.json() as { id: string; name?: string };
+    sessionKeys.set('notion', apiKey);
+    res.json({ status: 'ok', data: { user: user.name ?? user.id } } satisfies ApiResponse);
+  } catch {
+    res.status(500).json({ status: 'error', error: 'Connection error. Check your network.' } satisfies ApiResponse);
+  }
+});
+
+/**
+ * POST /api/connectors/notion/fetch
+ * Fetch pages/databases from Notion and return as markdown items.
+ * Body: { apiKey?, databaseIds?: string[], pageUrls?: string[] }
+ */
+router.post('/notion/fetch', async (req, res) => {
+  const body = req.body as { apiKey?: unknown; databaseIds?: unknown; pageUrls?: unknown };
+  const apiKey = typeof body.apiKey === 'string' && body.apiKey
+    ? body.apiKey
+    : (sessionKeys.get('notion') ?? '');
+  if (!apiKey) {
+    res.status(401).json({ status: 'error', error: 'No API key. Test connection first.' } satisfies ApiResponse);
+    return;
+  }
+  const databaseIds = Array.isArray(body.databaseIds)
+    ? body.databaseIds.filter((s): s is string => typeof s === 'string')
+    : [];
+  const pageUrls = Array.isArray(body.pageUrls)
+    ? body.pageUrls.filter((s): s is string => typeof s === 'string')
+    : [];
+  try {
+    let items: NotionItem[] = [];
+    if (databaseIds.length > 0) {
+      for (const dbId of databaseIds) {
+        const rows = await queryDatabase(dbId.trim(), apiKey);
+        items.push(...rows);
+      }
+    } else if (pageUrls.length > 0) {
+      for (const url of pageUrls) {
+        const pageId = extractPageId(url);
+        if (!pageId) continue;
+        const page = await fetchPage(pageId, apiKey);
+        if (page) items.push(page);
+      }
+    } else {
+      items = await searchWorkspace(apiKey);
+    }
+    res.json({ status: 'ok', data: items } satisfies ApiResponse);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg.includes('429')) {
+      res.status(429).json({ status: 'error', error: 'Notion rate limit hit. Retry in 60s' } satisfies ApiResponse);
+      return;
+    }
+    res.status(500).json({ status: 'error', error: 'Failed to fetch from Notion. Check API key permissions.' } satisfies ApiResponse);
+  }
+});
+
 export default router;
