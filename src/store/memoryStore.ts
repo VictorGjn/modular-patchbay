@@ -90,12 +90,18 @@ export interface WorkingMemoryConfig {
   tokenBudget: number;
 }
 
+export interface ResponseCacheConfig {
+  enabled: boolean;
+  ttlSeconds: number;
+}
+
 export interface MemoryState {
   session: SessionMemoryConfig;
   longTerm: LongTermMemoryConfig;
   working: WorkingMemoryConfig;
   facts: Fact[];
   sandbox: SandboxConfig;
+  responseCache: ResponseCacheConfig;
 
   // Legacy aliases (for backward compat with MemoryNode)
   sessionMemory: SessionMemoryConfig;
@@ -125,6 +131,9 @@ export interface MemoryState {
   // Actions — sandbox
   setSandboxConfig: (patch: Partial<SandboxConfig>) => void;
   setSandboxDomain: (domain: keyof SandboxConfig['domains'], enabled: boolean) => void;
+
+  // Actions — response cache
+  setResponseCacheConfig: (patch: Partial<ResponseCacheConfig>) => void;
 
   // Queries — domain-filtered facts
   getFactsByDomain: (domain: MemoryDomain) => Fact[];
@@ -168,6 +177,11 @@ const DEFAULT_WORKING: WorkingMemoryConfig = {
   tokenBudget: 2000,
 };
 
+const DEFAULT_RESPONSE_CACHE: ResponseCacheConfig = {
+  enabled: true,
+  ttlSeconds: 3600,
+};
+
 const DEFAULT_SANDBOX: SandboxConfig = {
   isolation: 'reset_each_run',
   allowPromoteToShared: false,
@@ -186,6 +200,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   working: { ...DEFAULT_WORKING },
   facts: [],
   sandbox: { ...DEFAULT_SANDBOX },
+  responseCache: { ...DEFAULT_RESPONSE_CACHE },
 
   // Legacy aliases — kept for MemoryNode backward compat
   // These are synced via subscriptions below
@@ -321,6 +336,10 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         domains: { ...s.sandbox.domains, [domain]: { enabled } },
       },
     }));
+  },
+
+  setResponseCacheConfig: (patch) => {
+    set((s) => ({ responseCache: { ...s.responseCache, ...patch } }));
   },
 
   // Domain queries

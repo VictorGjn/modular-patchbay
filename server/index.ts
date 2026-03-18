@@ -27,6 +27,7 @@ import embeddingRoutes from './routes/embeddings.js';
 import embeddingService from './services/embeddingService.js';
 import conversationRoutes from './routes/conversations.js';
 import memoryRoutes from './routes/memory.js';
+import cacheRoutes from './routes/cache.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -96,6 +97,7 @@ export function createApp() {
   app.use('/api/embeddings', embeddingRoutes);
   app.use('/api/conversations', conversationRoutes);
   app.use('/api/memory', memoryRoutes);
+  app.use('/api/cache', cacheRoutes);
 
   // API 404 catch-all — log unmatched API routes for debugging
   app.use('/api', (_req: express.Request, res: express.Response) => {
