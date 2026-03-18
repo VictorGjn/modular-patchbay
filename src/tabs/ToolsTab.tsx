@@ -303,21 +303,6 @@ export function ToolsTab() {
               >
                 Browse Skills
               </button>
-              <button
-                type="button"
-                onClick={() => setShowMarketplace(true)}
-                title="Browse marketplace"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{
-                  background: 'transparent',
-                  color: t.textSecondary,
-                  border: `1px solid ${t.border}`,
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = t.surfaceElevated; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-              >
-                Browse Marketplace
-              </button>
             </div>
           ) : (
             <div className="space-y-3">
