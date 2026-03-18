@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
 import { useVersionStore } from '../store/versionStore';
+import type { AgentVersion } from '../store/versionStore';
 import { useThemeStore } from '../store/themeStore';
 import { useTheme } from '../theme';
-import { Play, Square, Sun, Moon, Settings, ChevronDown, RotateCcw, ArrowLeft } from 'lucide-react';
+import { Play, Square, Sun, Moon, Settings, ChevronDown, RotateCcw, ArrowLeft, GitCompare } from 'lucide-react';
+import { VersionDiffView } from './VersionDiffView';
 
 
 
@@ -19,6 +21,7 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
   const loadVersions = useVersionStore(s => s.loadVersions);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const [showVersionDropdown, setShowVersionDropdown] = useState(false);
+  const [compareVersion, setCompareVersion] = useState<AgentVersion | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useTheme();
 
@@ -160,22 +163,37 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
                           </span>
                         </div>
                         {version.version !== currentVersion && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              restoreVersion(version.version);
-                              setShowVersionDropdown(false);
-                            }}
-                            title={`Restore version ${version.version}`}
-                            className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border-none cursor-pointer"
-                            style={{
-                              background: '#FE5000',
-                              color: 'white',
-                            }}
-                          >
-                            <RotateCcw size={10} />
-                            Restore
-                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentV = versions.find(v => v.version === currentVersion);
+                                if (currentV) {
+                                  setCompareVersion(version);
+                                  setShowVersionDropdown(false);
+                                }
+                              }}
+                              title={`Compare v${version.version} with current`}
+                              className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border-none cursor-pointer"
+                              style={{ background: t.surfaceElevated, color: t.textSecondary, border: `1px solid ${t.border}` }}
+                            >
+                              <GitCompare size={10} />
+                              Compare
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                restoreVersion(version.version);
+                                setShowVersionDropdown(false);
+                              }}
+                              title={`Restore version ${version.version}`}
+                              className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border-none cursor-pointer"
+                              style={{ background: '#FE5000', color: 'white' }}
+                            >
+                              <RotateCcw size={10} />
+                              Restore
+                            </button>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -238,6 +256,19 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
         {running ? 'Stop' : 'Run'}
         <span className="text-[13px] opacity-60 tracking-normal font-normal ml-1">{running ? 'click to cancel' : 'Ctrl+Enter'}</span>
       </button>
+
+      {/* Version diff modal */}
+      {compareVersion && (() => {
+        const currentV = versions.find(v => v.version === currentVersion);
+        if (!currentV) return null;
+        return (
+          <VersionDiffView
+            versionA={compareVersion}
+            versionB={currentV}
+            onClose={() => setCompareVersion(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
