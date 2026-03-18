@@ -4,6 +4,8 @@ import { useTheme } from '../../theme';
 import { TextArea } from '../../components/ds/TextArea';
 import { Select } from '../../components/ds/Select';
 import { Section } from '../../components/ds/Section';
+import { RefineButton } from '../../components/ds/RefineButton';
+import { refineField } from '../../utils/refineInstruction';
 import type { InstructionState } from '../../types/console.types';
 
 interface PersonaSectionProps {
@@ -15,15 +17,22 @@ interface PersonaSectionProps {
   onToggle: () => void;
 }
 
-export function PersonaSection({ 
-  persona, 
-  tone, 
-  expertise, 
-  updateInstruction, 
-  collapsed, 
-  onToggle 
+export function PersonaSection({
+  persona,
+  tone,
+  expertise,
+  updateInstruction,
+  collapsed,
+  onToggle
 }: PersonaSectionProps) {
   const t = useTheme();
+
+  const handleRefinePersona = async () => {
+    const result = await refineField('persona', persona);
+    if (typeof result === 'string') {
+      updateInstruction({ persona: result });
+    }
+  };
 
   return (
     <Section
@@ -33,12 +42,13 @@ export function PersonaSection({
       <div className="space-y-4">
         <TextArea
           label="Persona Description"
+          labelAction={<RefineButton onRefine={handleRefinePersona} />}
           value={persona}
           onChange={(e) => updateInstruction({ persona: e.target.value })}
           placeholder="Describe the agent's personality, communication style, and approach..."
           rows={4}
         />
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Select
             label="Tone"
@@ -50,7 +60,7 @@ export function PersonaSection({
             value={tone}
             onChange={(value) => updateInstruction({ tone: value as 'formal' | 'neutral' | 'casual' })}
           />
-          
+
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: t.textPrimary }}>
               Expertise Level: {expertise}/5

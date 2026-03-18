@@ -6,6 +6,8 @@ import { Input } from '../../components/ds/Input';
 import { TextArea } from '../../components/ds/TextArea';
 import { Section } from '../../components/ds/Section';
 import { Chip } from '../../components/ds/Chip';
+import { RefineButton } from '../../components/ds/RefineButton';
+import { refineField } from '../../utils/refineInstruction';
 import type { InstructionState } from '../../types/console.types';
 
 interface ConstraintChipInputProps {
@@ -53,7 +55,7 @@ interface ConstraintsSectionProps {
   onToggle: () => void;
 }
 
-export function ConstraintsSection({ 
+export function ConstraintsSection({
   constraints,
   updateInstruction,
   customConstraints,
@@ -63,6 +65,20 @@ export function ConstraintsSection({
   onToggle
 }: ConstraintsSectionProps) {
   const t = useTheme();
+
+  const handleRefineConstraints = async () => {
+    const result = await refineField('constraints', constraints.customConstraints);
+    if (typeof result === 'string') {
+      updateInstruction({ constraints: { ...constraints, customConstraints: result } });
+    }
+  };
+
+  const handleRefineScope = async () => {
+    const result = await refineField('scope', constraints.scopeDefinition);
+    if (typeof result === 'string') {
+      updateInstruction({ constraints: { ...constraints, scopeDefinition: result } });
+    }
+  };
 
   return (
     <Section
@@ -136,6 +152,7 @@ export function ConstraintsSection({
         
         <TextArea
           label="Scope Definition"
+          labelAction={<RefineButton onRefine={handleRefineScope} />}
           value={constraints.scopeDefinition}
           onChange={(e) => updateInstruction({
             constraints: { ...constraints, scopeDefinition: e.target.value }
@@ -143,9 +160,10 @@ export function ConstraintsSection({
           placeholder="Define the specific scope and boundaries for this agent..."
           rows={2}
         />
-        
+
         <TextArea
           label="Additional Notes"
+          labelAction={<RefineButton onRefine={handleRefineConstraints} />}
           value={constraints.customConstraints}
           onChange={(e) => updateInstruction({
             constraints: { ...constraints, customConstraints: e.target.value }
