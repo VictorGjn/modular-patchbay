@@ -72,6 +72,7 @@ const STRATEGY_OPTIONS = [
 const STORE_OPTIONS = [
   { value: 'local_sqlite', label: 'SQLite (local)' },
   { value: 'postgres', label: 'PostgreSQL' },
+  { value: 'hindsight', label: 'Hindsight' },
   { value: 'redis', label: 'Redis' },
   { value: 'chromadb', label: 'ChromaDB' },
   { value: 'pinecone', label: 'Pinecone' },
@@ -198,9 +199,12 @@ export function MemoryTab() {
   const [newFactDomain, setNewFactDomain] = useState<MemoryDomain>('shared');
   const [generating, setGenerating] = useState(false);
   const [connectionString, setConnectionString] = useState('');
+  const [hindsightUrl, setHindsightUrl] = useState(longTerm.hindsight.baseUrl);
   const [backendHealth, setBackendHealth] = useState<{ status: string; factCount: number } | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [reflecting, setReflecting] = useState(false);
+  const [reflectInsight, setReflectInsight] = useState('');
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
@@ -233,6 +237,23 @@ export function MemoryTab() {
     }
   }, []);
 
+  const handleReflect = useCallback(async () => {
+    setReflecting(true);
+    setReflectInsight('');
+    try {
+      const res = await fetch('/api/memory/hindsight/reflect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: 'What are the key patterns in recent memory?' }),
+      });
+      const data = await res.json();
+      if (data.status === 'success' && typeof data.insight === 'string') {
+        setReflectInsight(data.insight);
+      }
+    } catch { /* silent */ }
+    setReflecting(false);
+  }, []);
+
   const testConnection = useCallback(async (backend: StoreBackend, connStr?: string) => {
     setTestingConnection(true);
     setConnectionStatus('testing');
@@ -260,14 +281,12 @@ export function MemoryTab() {
 
   const handleStoreChange = useCallback(async (newStore: string) => {
     const storeBackend = newStore as StoreBackend;
-    if (storeBackend === 'postgres') {
-      // Just update the UI, don't test connection yet
+    if (storeBackend === 'postgres' || storeBackend === 'hindsight') {
       setLongTermConfig({ store: storeBackend });
       setConnectionStatus('idle');
     } else if (storeBackend === 'local_sqlite') {
       await testConnection(storeBackend);
     } else {
-      // For other backends (Redis, ChromaDB, Pinecone), just update UI
       setLongTermConfig({ store: storeBackend });
       setConnectionStatus('idle');
     }
@@ -550,6 +569,52 @@ export function MemoryTab() {
               />
             </div>
 
+            {longTerm.store === 'hindsight' && (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    value={hindsightUrl}
+                    onChange={e => {
+                      setHindsightUrl(e.target.value);
+                      setLongTermConfig({ hindsight: { ...longTerm.hindsight, baseUrl: e.target.value } });
+                    }}
+                    placeholder="http://localhost:8888"
+                    className="flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => testConnection('hindsight', hindsightUrl)}
+                    disabled={testingConnection}
+                    className="px-4 py-2 rounded text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px] flex items-center justify-center gap-2"
+                    style={{ background: connectionStatus === 'success' ? '#2ecc71' : '#FE5000', color: '#fff' }}
+                  >
+                    {testingConnection ? <><Loader size={14} className="animate-spin" />Testing...</> : 'Test Connection'}
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  {connectionStatus === 'success' && <><CheckCircle size={14} style={{ color: '#2ecc71' }} /><span style={{ color: '#2ecc71' }}>Connected</span></>}
+                  {connectionStatus === 'error' && <><XCircle size={14} style={{ color: '#e74c3c' }} /><span style={{ color: '#e74c3c' }}>Connection failed</span></>}
+                </div>
+                <div className="flex gap-2 items-center">
+                  <button
+                    type="button"
+                    onClick={handleReflect}
+                    disabled={reflecting}
+                    className="px-4 py-2 rounded text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    style={{ background: t.surfaceElevated, color: t.textPrimary, border: `1px solid ${t.border}` }}
+                  >
+                    {reflecting ? <Loader size={14} className="animate-spin" /> : null}
+                    Reflect Now
+                  </button>
+                </div>
+                {reflectInsight && (
+                  <div className="p-3 rounded text-sm" style={{ background: t.surfaceElevated, color: t.textSecondary, border: `1px solid ${t.border}` }}>
+                    {reflectInsight}
+                  </div>
+                )}
+              </div>
+            )}
+
             {longTerm.store === 'postgres' && (
               <div className="space-y-3">
                 <div className="flex gap-2">
@@ -597,7 +662,7 @@ export function MemoryTab() {
               </div>
             )}
 
-            {(['redis', 'chromadb', 'pinecone', 'custom'].includes(longTerm.store)) && (
+            {(['redis', 'chromadb', 'pinecone', 'custom'] as StoreBackend[]).includes(longTerm.store) && (
               <div className="flex items-center gap-2 p-3 rounded" style={{ background: '#f39c1220', border: '1px solid #f39c1240' }}>
                 <AlertCircle size={16} style={{ color: '#f39c12' }} />
                 <span className="text-sm" style={{ color: '#f39c12' }}>Coming soon</span>
