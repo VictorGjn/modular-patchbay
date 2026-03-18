@@ -160,10 +160,22 @@ export const useMcpStore = create<McpStore>((set, get) => ({
       method: 'POST',
       body: JSON.stringify(config),
     });
-    if (data) {
-      set({ servers: [...get().servers, data] });
-    }
-    return data;
+    // Always add to local state so the server appears in ToolsTab even if backend is unavailable
+    const server: McpServerState = data ?? {
+      id: config.id ?? `mcp-${Date.now()}`,
+      name: config.name,
+      type: config.type,
+      command: config.command,
+      args: config.args,
+      env: config.env,
+      url: config.url,
+      headers: config.headers,
+      autoConnect: config.autoConnect,
+      status: 'disconnected',
+      tools: [],
+    };
+    set({ servers: [...get().servers, server] });
+    return server;
   },
 
   updateServer: async (id, patch) => {
