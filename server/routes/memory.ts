@@ -3,6 +3,7 @@ import type { Fact, StoreBackend } from '../../src/store/memoryStore.js';
 import type { StorageAdapter } from '../services/adapters/storageAdapter.js';
 import { SqliteAdapter } from '../services/adapters/sqliteAdapter.js';
 import { PostgresAdapter } from '../services/adapters/postgresAdapter.js';
+import { HindsightAdapter } from '../services/adapters/hindsightAdapter.js';
 import { extractFacts, extractFactsWithLlm } from '../services/factExtractor.js';
 import { rankFacts } from '../services/memoryScorer.js';
 import { readConfig, writeConfig } from '../config.js';
@@ -23,6 +24,8 @@ async function getAdapter(): Promise<StorageAdapter> {
 
     if (currentBackend === 'postgres' && connectionString) {
       currentAdapter = new PostgresAdapter(connectionString);
+    } else if (currentBackend === 'hindsight') {
+      currentAdapter = new HindsightAdapter(connectionString ?? 'http://localhost:8888');
     } else {
       currentAdapter = new SqliteAdapter();
     }
@@ -43,6 +46,8 @@ async function switchAdapter(backend: StoreBackend, connStr?: string): Promise<v
 
   if (backend === 'postgres' && connStr) {
     currentAdapter = new PostgresAdapter(connStr);
+  } else if (backend === 'hindsight') {
+    currentAdapter = new HindsightAdapter(connStr ?? 'http://localhost:8888');
   } else {
     currentAdapter = new SqliteAdapter();
   }
@@ -256,6 +261,8 @@ router.post('/config', async (req, res) => {
     let testAdapter: StorageAdapter;
     if (backend === 'postgres') {
       testAdapter = new PostgresAdapter(connStr);
+    } else if (backend === 'hindsight') {
+      testAdapter = new HindsightAdapter(connStr ?? 'http://localhost:8888');
     } else {
       testAdapter = new SqliteAdapter();
     }
@@ -275,6 +282,27 @@ router.post('/config', async (req, res) => {
     res.json({ status: 'success' });
   } catch (error) {
     console.error('[Memory] Failed to set config:', error);
+    res.status(500).json({
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/memory/hindsight/reflect - generate higher-order insight (Hindsight only)
+router.post('/hindsight/reflect', async (req, res) => {
+  try {
+    const { query } = req.body;
+    if (!query) {
+      return res.status(400).json({ status: 'error', error: 'Missing required field: query' });
+    }
+    const adapter = await getAdapter();
+    if (!(adapter instanceof HindsightAdapter)) {
+      return res.status(400).json({ status: 'error', error: 'reflect requires hindsight backend' });
+    }
+    const insight = await adapter.reflect(query);
+    res.json({ status: 'success', insight });
+  } catch (error) {
     res.status(500).json({
       status: 'error',
       error: error instanceof Error ? error.message : 'Unknown error'

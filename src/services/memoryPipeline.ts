@@ -19,6 +19,11 @@ import {
 } from '../store/memoryStore';
 import { useTraceStore } from '../store/traceStore';
 
+// ── Hindsight turn counter ──
+
+let hindsightTurnCount = 0;
+const REFLECT_EVERY_N_TURNS = 5;
+
 // ── Types ──
 
 export interface RecallResult {
@@ -118,6 +123,63 @@ export async function computeEmbedding(text: string): Promise<number[] | null> {
   }
 }
 
+// ── Hindsight API helpers ──
+
+async function hindsightSearch(query: string, k: number): Promise<Fact[]> {
+  try {
+    const res = await fetch('/api/memory/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, k }),
+    });
+    if (!res.ok) return [];
+    const body: unknown = await res.json();
+    if (!isObject(body) || !Array.isArray(body.results)) return [];
+    return body.results as Fact[];
+  } catch {
+    return [];
+  }
+}
+
+async function hindsightStore(content: string): Promise<void> {
+  try {
+    const fact = {
+      id: `hs-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      content,
+      tags: [],
+      type: 'fact',
+      timestamp: Date.now(),
+      domain: 'shared',
+      granularity: 'fact',
+    };
+    await fetch('/api/memory/facts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fact),
+    });
+  } catch { /* graceful skip */ }
+}
+
+async function hindsightReflectFetch(query: string): Promise<string> {
+  try {
+    const res = await fetch('/api/memory/hindsight/reflect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) return '';
+    const body: unknown = await res.json();
+    if (!isObject(body) || typeof body.insight !== 'string') return '';
+    return body.insight;
+  } catch {
+    return '';
+  }
+}
+
+function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null;
+}
+
 // ── Pre-recall: inject relevant memory into context ──
 
 export async function preRecall(options: MemoryPipelineOptions): Promise<RecallResult> {
@@ -127,6 +189,10 @@ export async function preRecall(options: MemoryPipelineOptions): Promise<RecallR
 
   if (!longTerm.enabled) {
     return { facts: [], contextBlock: '', tokenEstimate: 0, durationMs: 0 };
+  }
+
+  if (longTerm.store === 'hindsight') {
+    return hindsightPreRecall(options, start);
   }
 
   // Get facts visible to this agent, respecting sandbox isolation
@@ -213,6 +279,25 @@ export async function preRecall(options: MemoryPipelineOptions): Promise<RecallR
   return { facts, contextBlock, tokenEstimate, durationMs };
 }
 
+async function hindsightPreRecall(options: MemoryPipelineOptions, start: number): Promise<RecallResult> {
+  const store = useMemoryStore.getState();
+  const k = store.longTerm.recall.k;
+  const facts = await hindsightSearch(options.userMessage, k);
+  const contextBlock = buildRecallBlock(facts);
+  const tokenEstimate = Math.ceil(contextBlock.length / 4);
+  const durationMs = Date.now() - start;
+
+  useTraceStore.getState().addEvent(options.traceId, {
+    kind: 'hindsight_recall',
+    sourceName: 'hindsight:pre-recall',
+    memoryFactCount: facts.length,
+    memoryFactIds: facts.map(f => f.id),
+    durationMs,
+  });
+
+  return { facts, contextBlock, tokenEstimate, durationMs };
+}
+
 // ── Post-write: extract facts from assistant response ──
 
 export function postWrite(options: MemoryPipelineOptions): WriteResult {
@@ -222,6 +307,11 @@ export function postWrite(options: MemoryPipelineOptions): WriteResult {
 
   if (!longTerm.enabled || !options.assistantResponse) {
     return { extracted: [], stored: [], durationMs: 0 };
+  }
+
+  if (longTerm.store === 'hindsight') {
+    hindsightPostWrite(options, start);
+    return { extracted: [], stored: [], durationMs: Date.now() - start };
   }
 
   const { write } = longTerm;
@@ -272,6 +362,40 @@ export function postWrite(options: MemoryPipelineOptions): WriteResult {
   });
 
   return { extracted, stored, durationMs };
+}
+
+function hindsightPostWrite(options: MemoryPipelineOptions, start: number): void {
+  if (!options.assistantResponse) return;
+  const content = options.assistantResponse.slice(0, 2000);
+  hindsightStore(content).then(() => {
+    useTraceStore.getState().addEvent(options.traceId, {
+      kind: 'hindsight_retain',
+      sourceName: 'hindsight:post-write',
+      memoryFactCount: 1,
+      durationMs: Date.now() - start,
+    });
+  });
+}
+
+// ── Post-reflect: generate higher-order insights every N turns ──
+
+export async function postReflect(options: MemoryPipelineOptions): Promise<string> {
+  const store = useMemoryStore.getState();
+  if (store.longTerm.store !== 'hindsight') return '';
+
+  hindsightTurnCount++;
+  if (hindsightTurnCount % REFLECT_EVERY_N_TURNS !== 0) return '';
+
+  const insight = await hindsightReflectFetch(options.userMessage);
+  if (!insight) return '';
+
+  useTraceStore.getState().addEvent(options.traceId, {
+    kind: 'hindsight_reflect',
+    sourceName: 'hindsight:post-reflect',
+    durationMs: 0,
+  });
+
+  return insight;
 }
 
 // ── Promote scratchpad/private facts to shared (explicit action only) ──
