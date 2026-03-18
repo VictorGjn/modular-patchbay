@@ -94,6 +94,7 @@ import { resolveProviderAndModel } from '../../src/services/pipelineChat';
 describe('resolveProviderAndModel', () => {
   beforeEach(() => {
     consoleState = {
+      selectedModel: 'gpt-4o',
       agentConfig: { model: 'gpt-4o' },
     };
     providerState = {
@@ -116,7 +117,7 @@ describe('resolveProviderAndModel', () => {
   });
 
   it('falls back to first model when agentConfig model is not in provider list', () => {
-    consoleState.agentConfig.model = 'claude-3-opus';
+    consoleState.selectedModel = 'claude-3-opus';
     const result = resolveProviderAndModel();
     expect(result.providerId).toBe('openai');
     expect(result.model).toBe('gpt-4o');

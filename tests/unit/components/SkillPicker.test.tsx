@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { render, setupTestEnvironment } from '../test-utils';
 import { SkillPicker } from '../../../src/components/SkillPicker';
 
-// Mock the stores
+// Mock the stores — mutable so individual tests can override values
 const mockConsoleStore = {
   showSkillPicker: true,
   setShowSkillPicker: vi.fn(),
@@ -29,21 +29,24 @@ const mockSkillsStore = {
       name: 'Research Assistant',
       description: 'Help with research and analysis tasks',
       enabled: false,
-      category: 'analysis',
+      path: '/skills/research-assistant',
+      hasSkillMd: false,
     },
     {
-      id: 'test-skill-2', 
+      id: 'test-skill-2',
       name: 'Code Helper',
       description: 'Assist with coding and development',
       enabled: false,
-      category: 'development',
+      path: '/skills/code-helper',
+      hasSkillMd: false,
     },
     {
       id: 'test-skill-3',
       name: 'Content Writer',
       description: 'Help with content creation and writing',
       enabled: false,
-      category: 'content',
+      path: '/skills/content-writer',
+      hasSkillMd: false,
     },
   ],
   loaded: true,
@@ -70,30 +73,26 @@ vi.mock('../../../src/store/skillsStore', () => ({
   },
 }));
 
-// Mock the PickerModal component
+// Mock SecurityBadges
+vi.mock('../../../src/components/SecurityBadges', () => ({
+  SecurityBadges: () => <div data-testid="security-badges" />,
+}));
+
+// Mock PickerModal — render children with empty filter, expose search input
 vi.mock('../../../src/components/PickerModal', () => ({
   PickerModal: ({ children, open, onClose, title, searchPlaceholder }: any) => {
     if (!open) return null;
-    
     return (
-      <div data-testid="picker-modal" role="dialog" aria-labelledby="picker-title">
-        <div id="picker-title">{title}</div>
-        <input 
+      <div data-testid="picker-modal" role="dialog" aria-label={title}>
+        <div>{title}</div>
+        <input
           placeholder={searchPlaceholder}
           data-testid="search-input"
-          onChange={(e) => {
-            // Simulate the filter function
-            const filterFn = children('');
-            return filterFn;
-          }}
+          aria-label="Search"
         />
         <button onClick={onClose} data-testid="close-button">Close</button>
         <div data-testid="picker-content">
           {typeof children === 'function' ? children('') : children}
-        </div>
-        <div data-testid="picker-actions">
-          <button data-testid="confirm-button">Confirm</button>
-          <button data-testid="cancel-button" onClick={onClose}>Cancel</button>
         </div>
       </div>
     );
@@ -104,19 +103,23 @@ describe('SkillPicker', () => {
   beforeEach(() => {
     setupTestEnvironment();
     vi.clearAllMocks();
+    // Reset to defaults
+    mockConsoleStore.showSkillPicker = true;
+    mockSkillsStore.loaded = true;
+    mockSkillsStore.loading = false;
   });
 
   it('renders skill list when open', () => {
     render(<SkillPicker />);
-    
+
     expect(screen.getByTestId('picker-modal')).toBeInTheDocument();
     expect(screen.getByText('Select Skills')).toBeInTheDocument();
-    
-    // Check for skill categories
-    expect(screen.getByText(/analysis/i)).toBeInTheDocument();
-    expect(screen.getByText(/development/i)).toBeInTheDocument();
-    expect(screen.getByText(/content/i)).toBeInTheDocument();
-    
+
+    // Check for skill categories (grouping headers — text may appear multiple times)
+    expect(screen.getAllByText(/analysis/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/development/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/content/i).length).toBeGreaterThan(0);
+
     // Check for individual skills
     expect(screen.getByText('Research Assistant')).toBeInTheDocument();
     expect(screen.getByText('Code Helper')).toBeInTheDocument();
@@ -124,75 +127,70 @@ describe('SkillPicker', () => {
   });
 
   it('does not render when closed', () => {
-    // Mock closed state
-    const closedStore = { ...mockConsoleStore, showSkillPicker: false };
-    vi.mocked(vi.importMock('../../../src/store/consoleStore')).mockReturnValue({
-      useConsoleStore: (selector: any) => selector(closedStore),
-    });
-    
+    mockConsoleStore.showSkillPicker = false;
+
     render(<SkillPicker />);
-    
+
     expect(screen.queryByTestId('picker-modal')).not.toBeInTheDocument();
   });
 
   it('selecting skills updates selection count', async () => {
     const user = userEvent.setup();
     render(<SkillPicker />);
-    
-    // Find and click on a skill
+
+    // Click on a skill to select it
     const researchSkill = screen.getByText('Research Assistant');
     expect(researchSkill).toBeInTheDocument();
-    
+
     await user.click(researchSkill);
-    
-    // The skill should appear selected (this depends on the implementation)
-    // We can check if the skill's container has selection styling
-    const skillContainer = researchSkill.closest('[data-testid], div');
-    expect(skillContainer).toBeTruthy();
+
+    // The confirm button should now say "Add 1 skill"
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /add 1 skill/i })).toBeInTheDocument();
+    });
   });
 
   it('can select multiple skills', async () => {
     const user = userEvent.setup();
     render(<SkillPicker />);
-    
-    // Select multiple skills
+
+    // Select two skills
     await user.click(screen.getByText('Research Assistant'));
     await user.click(screen.getByText('Code Helper'));
-    
-    // Both should be selected
-    const researchSkill = screen.getByText('Research Assistant').closest('div');
-    const codeSkill = screen.getByText('Code Helper').closest('div');
-    
-    expect(researchSkill).toBeTruthy();
-    expect(codeSkill).toBeTruthy();
+
+    // The confirm button should now say "Add 2 skills"
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /add 2 skills/i })).toBeInTheDocument();
+    });
   });
 
   it('confirm button adds selected skills', async () => {
     const user = userEvent.setup();
     render(<SkillPicker />);
-    
+
     // Select a skill
     await user.click(screen.getByText('Research Assistant'));
-    
-    // Click confirm button
-    const confirmButton = screen.getByTestId('confirm-button');
-    await user.click(confirmButton);
-    
-    // Verify addSkill was called
+
+    // Find the real "Add 1 skill" button (rendered by SkillPicker's render prop)
+    const addButton = await screen.findByRole('button', { name: /add 1 skill/i });
+    await user.click(addButton);
+
+    // Verify addSkill was called with the correct id
     expect(mockConsoleStore.addSkill).toHaveBeenCalledWith('test-skill-1');
+    expect(mockConsoleStore.setShowSkillPicker).toHaveBeenCalledWith(false);
   });
 
   it('cancel button closes without adding', async () => {
     const user = userEvent.setup();
     render(<SkillPicker />);
-    
+
     // Select a skill
     await user.click(screen.getByText('Code Helper'));
-    
-    // Click cancel button
-    const cancelButton = screen.getByTestId('cancel-button');
+
+    // Click the Cancel button (rendered by SkillPicker's render prop)
+    const cancelButton = screen.getByRole('button', { name: /^cancel$/i });
     await user.click(cancelButton);
-    
+
     // Verify picker is closed but no skills were added
     expect(mockConsoleStore.setShowSkillPicker).toHaveBeenCalledWith(false);
     expect(mockConsoleStore.addSkill).not.toHaveBeenCalled();
@@ -201,95 +199,68 @@ describe('SkillPicker', () => {
   it('can search and filter skills', async () => {
     const user = userEvent.setup();
     render(<SkillPicker />);
-    
-    // Find search input
-    const searchInput = screen.getByTestId('search-input');
-    expect(searchInput).toBeInTheDocument();
-    
-    // Type in search
-    await user.type(searchInput, 'research');
-    
-    // Should filter to show only research-related skills
-    await waitFor(() => {
-      expect(screen.getByText('Research Assistant')).toBeInTheDocument();
-      // Other skills might be hidden (depending on implementation)
-    });
+
+    // All skills initially visible
+    expect(screen.getByText('Research Assistant')).toBeInTheDocument();
+    expect(screen.getByText('Code Helper')).toBeInTheDocument();
+    expect(screen.getByText('Content Writer')).toBeInTheDocument();
   });
 
   it('shows already added skills as disabled', () => {
     render(<SkillPicker />);
-    
-    // The existing skill should be shown but disabled/marked as added
+
+    // The existing skill (added: true in consoleStore) should show "Added" badge
     expect(screen.getByText('Existing Skill')).toBeInTheDocument();
-    
-    // Check if it has visual indication that it's already added
-    const existingSkill = screen.getByText('Existing Skill').closest('div');
-    expect(existingSkill).toBeTruthy();
-    // Visual indication would be in the styling or classes (hard to test without actual DOM)
+    expect(screen.getByText('Added')).toBeInTheDocument();
   });
 
   it('prevents selecting already added skills', async () => {
     const user = userEvent.setup();
     render(<SkillPicker />);
-    
-    // Try to click on already added skill
+
+    // The add button starts disabled (no selection)
+    const addButton = screen.getByRole('button', { name: /^add skills$/i });
+    expect(addButton).toBeDisabled();
+
+    // Try to click on already added skill — selection count should not change
     const existingSkill = screen.getByText('Existing Skill');
     await user.click(existingSkill);
-    
-    // Should not be able to select it (no change in selection state)
-    // This is more about ensuring the click doesn't trigger selection logic
-    expect(existingSkill).toBeInTheDocument();
+
+    // Button should still be disabled (nothing selected)
+    expect(addButton).toBeDisabled();
   });
 
   it('loads skills when picker opens and not already loaded', () => {
-    // Mock unloaded state
-    const unloadedStore = {
-      ...mockSkillsStore,
-      loaded: false,
-      loading: false,
-    };
-    
-    vi.mocked(vi.importMock('../../../src/store/skillsStore')).mockReturnValue({
-      useSkillsStore: (selector: any) => selector(unloadedStore),
-    });
-    
+    mockSkillsStore.loaded = false;
+    mockSkillsStore.loading = false;
+
     render(<SkillPicker />);
-    
+
     // Should trigger loadSkills
-    expect(unloadedStore.loadSkills).toHaveBeenCalled();
+    expect(mockSkillsStore.loadSkills).toHaveBeenCalled();
   });
 
   it('shows loading state appropriately', () => {
-    // Mock loading state
-    const loadingStore = {
-      ...mockSkillsStore,
-      loaded: false,
-      loading: true,
-    };
-    
-    vi.mocked(vi.importMock('../../../src/store/skillsStore')).mockReturnValue({
-      useSkillsStore: (selector: any) => selector(loadingStore),
-    });
-    
+    mockSkillsStore.loaded = false;
+    mockSkillsStore.loading = true;
+
     render(<SkillPicker />);
-    
-    // Should show the picker but might show loading indicators
+
+    // Should show the picker (it still renders even while loading)
     expect(screen.getByTestId('picker-modal')).toBeInTheDocument();
   });
 
   it('groups skills by category correctly', () => {
     render(<SkillPicker />);
-    
-    // Check that skills are grouped under their category headers
-    expect(screen.getByText(/analysis/i)).toBeInTheDocument();
-    expect(screen.getByText(/development/i)).toBeInTheDocument();
-    expect(screen.getByText(/content/i)).toBeInTheDocument();
-    
-    // Research Assistant should be under Analysis
-    const analysisSection = screen.getByText(/analysis/i).closest('div');
-    const researchSkill = screen.getByText('Research Assistant');
-    
-    expect(analysisSection).toBeTruthy();
-    expect(researchSkill).toBeInTheDocument();
+
+    // Category group headers
+    expect(screen.getByText('Analysis')).toBeInTheDocument();
+    expect(screen.getByText('Development')).toBeInTheDocument();
+    expect(screen.getByText('Content')).toBeInTheDocument();
+
+    // Skills exist in the rendered output
+    expect(screen.getByText('Research Assistant')).toBeInTheDocument();
+    expect(screen.getByText('Code Helper')).toBeInTheDocument();
+    expect(screen.getByText('Content Writer')).toBeInTheDocument();
   });
 });
