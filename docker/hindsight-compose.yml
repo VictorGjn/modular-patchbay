@@ -1,0 +1,15 @@
+services:
+  hindsight:
+    image: vectorizeio/hindsight:latest
+    ports:
+      - "8888:8888"
+    volumes:
+      - hindsight_data:/data
+    environment:
+      - HINDSIGHT_DATA_DIR=/data
+      - HINDSIGHT_HOST=0.0.0.0
+      - HINDSIGHT_PORT=8888
+    restart: unless-stopped
+
+volumes:
+  hindsight_data:

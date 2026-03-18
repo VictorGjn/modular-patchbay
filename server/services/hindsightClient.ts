@@ -17,7 +17,7 @@ export class ModularHindsightClient {
 
   constructor(baseUrl = 'http://localhost:8888') {
     this.baseUrl = baseUrl;
-    this.client = new HindsightClient(baseUrl);
+    this.client = new HindsightClient({ baseUrl });
   }
 
   async retain(agentId: string, content: string, metadata?: Record<string, string>): Promise<void> {
