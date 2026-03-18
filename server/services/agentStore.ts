@@ -63,6 +63,7 @@ export interface AgentVersion {
   version: string;
   timestamp: number;
   label?: string;
+  changeSummary?: string;
   snapshot: SavedAgentState;
 }
 
@@ -83,19 +84,20 @@ export function saveAgent(id: string, state: SavedAgentState): void {
   writeFileSync(agentPath(id), JSON.stringify(state, null, 2), 'utf-8');
 }
 
-export function createAgentVersion(id: string, version: string, label?: string): AgentVersion | null {
+export function createAgentVersion(id: string, version: string, label?: string, changeSummary?: string): AgentVersion | null {
   const current = loadAgent(id);
   if (!current) return null;
 
   const dir = versionsDir(id);
   ensureDir(dir);
-  
+
   const timestamp = Date.now();
   const versionData: AgentVersion = {
     id: `${timestamp}-${version.replace(/\./g, '_')}`,
     version,
     timestamp,
     label,
+    changeSummary,
     snapshot: current,
   };
 

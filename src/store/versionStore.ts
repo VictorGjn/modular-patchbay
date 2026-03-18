@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { useConsoleStore } from './consoleStore';
-import type { InstructionState, WorkflowStep } from '../types/console.types';
+import type { InstructionState, WorkflowStep, AgentMeta } from '../types/console.types';
 import type { ChannelConfig, McpServer, Skill, AgentConfig } from './knowledgeBase';
 
 /**
@@ -16,6 +16,7 @@ import type { ChannelConfig, McpServer, Skill, AgentConfig } from './knowledgeBa
  */
 
 export interface AgentSnapshot {
+  agentMeta: AgentMeta;
   channels: ChannelConfig[];
   mcpServers: McpServer[];
   skills: Skill[];
@@ -76,6 +77,7 @@ export interface VersionState {
 function takeSnapshot(): AgentSnapshot {
   const s = useConsoleStore.getState();
   return {
+    agentMeta: { ...s.agentMeta },
     channels: s.channels,
     mcpServers: s.mcpServers,
     skills: s.skills,
@@ -235,11 +237,11 @@ async function apiCall(endpoint: string, options: RequestInit = {}): Promise<unk
   return result.data;
 }
 
-async function saveAgentToServer(agentId: string, snapshot: AgentSnapshot, version: string): Promise<void> {
+async function saveAgentToServer(agentId: string, snapshot: AgentSnapshot, version: string, label?: string, changeSummary?: string): Promise<void> {
   const state = {
     id: agentId,
     version,
-    agentMeta: snapshot.agentConfig,
+    agentMeta: snapshot.agentMeta,
     instructionState: snapshot.instructionState,
     workflowSteps: snapshot.workflowSteps,
     channels: snapshot.channels,
@@ -254,10 +256,10 @@ async function saveAgentToServer(agentId: string, snapshot: AgentSnapshot, versi
     prompt: snapshot.prompt,
     selectedModel: snapshot.selectedModel,
   };
-  
-  await apiCall(`/agents/${agentId}`, {
-    method: 'PUT',
-    body: JSON.stringify(state),
+
+  await apiCall(`/agents/${agentId}/save`, {
+    method: 'POST',
+    body: JSON.stringify({ state, label, changeSummary }),
   });
 }
 
@@ -296,17 +298,17 @@ export const useVersionStore = create<VersionState>((set, get) => ({
     }
   },
 
-  saveToServer: async () => {
+  saveToServer: async (label?: string) => {
     const { agentId, currentVersion } = get();
     if (!agentId) return;
-    
+
     set({ saveStatus: 'saving' });
-    
+
     try {
       const snapshot = takeSnapshot();
-      await saveAgentToServer(agentId, snapshot, currentVersion);
+      await saveAgentToServer(agentId, snapshot, currentVersion, label);
       set({ saveStatus: 'saved', dirty: false });
-      
+
       // Reload versions to get the latest list
       await get().loadVersions();
     } catch (err) {
@@ -461,6 +463,7 @@ let _debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 useConsoleStore.subscribe((state) => {
   const next: AgentSnapshot = {
+    agentMeta: state.agentMeta,
     channels: state.channels,
     mcpServers: state.mcpServers,
     skills: state.skills,

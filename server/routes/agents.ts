@@ -90,6 +90,34 @@ router.put('/:id', (req, res) => {
   }
 });
 
+// Explicit save — always creates a version snapshot then persists new state
+router.post('/:id/save', (req, res) => {
+  try {
+    const { state, label, changeSummary } = req.body as { state: unknown; label?: string; changeSummary?: string };
+    if (!state || typeof state !== 'object') {
+      res.status(400).json({ status: 'error', error: 'Invalid body' } satisfies ApiResponse);
+      return;
+    }
+
+    const existing = loadAgent(req.params.id);
+    const versionEntry = existing
+      ? createAgentVersion(req.params.id, existing.version, label, changeSummary)
+      : null;
+
+    saveAgent(req.params.id, state as Parameters<typeof saveAgent>[1]);
+    res.json({
+      status: 'ok',
+      data: {
+        id: req.params.id,
+        version: (state as { version?: string }).version,
+        versionId: versionEntry?.id ?? null,
+      },
+    } satisfies ApiResponse);
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: (err as Error).message } satisfies ApiResponse);
+  }
+});
+
 // Delete agent
 router.delete('/:id', (req, res) => {
   try {
@@ -113,6 +141,7 @@ router.get('/:id/versions', (req, res) => {
       version: v.version,
       timestamp: v.timestamp,
       label: v.label,
+      changeSummary: v.changeSummary,
     }));
     res.json({ status: 'ok', data: formatted } satisfies ApiResponse);
   } catch (err) {
