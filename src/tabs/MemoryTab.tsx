@@ -8,7 +8,7 @@ import { Select } from '../components/ds/Select';
 import { Section } from '../components/ds/Section';
 import { GenerateBtn } from '../components/ds/GenerateBtn';
 import {
-  Brain, Plus, X, Database, CheckCircle, XCircle, AlertCircle, Loader
+  Brain, Plus, X, Database, CheckCircle, XCircle, AlertCircle, Loader, Zap, Trash2
 } from 'lucide-react';
 
 
@@ -189,11 +189,16 @@ export function MemoryTab() {
   const setSandboxConfig = useMemoryStore(s => s.setSandboxConfig);
   const setSandboxDomain = useMemoryStore(s => s.setSandboxDomain);
 
+  const responseCache = useMemoryStore(s => s.responseCache);
+  const setResponseCacheConfig = useMemoryStore(s => s.setResponseCacheConfig);
   const [sessionCollapsed, setSessionCollapsed] = useState(false);
   const [longTermCollapsed, setLongTermCollapsed] = useState(false);
   const [workingCollapsed, setWorkingCollapsed] = useState(false);
   const [factsCollapsed, setFactsCollapsed] = useState(false);
   const [sandboxCollapsed, setSandboxCollapsed] = useState(false);
+  const [cacheCollapsed, setCacheCollapsed] = useState(false);
+  const [cacheStats, setCacheStats] = useState<{ totalEntries: number; hitRate: number; estimatedSavings: number } | null>(null);
+  const [purging, setPurging] = useState(false);
   const [newFactText, setNewFactText] = useState('');
   const [newFactDomain, setNewFactDomain] = useState<MemoryDomain>('shared');
   const [generating, setGenerating] = useState(false);
@@ -273,10 +278,29 @@ export function MemoryTab() {
     }
   }, [setLongTermConfig, testConnection]);
 
+  const loadCacheStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/cache/stats');
+      if (!res.ok) return;
+      const data = await res.json() as { totalEntries: number; hitRate: number; estimatedSavings: number };
+      setCacheStats(data);
+    } catch { /* ignore */ }
+  }, []);
+
+  const handlePurgeCache = useCallback(async () => {
+    setPurging(true);
+    try {
+      await fetch('/api/cache/purge', { method: 'DELETE' });
+      await loadCacheStats();
+    } catch { /* ignore */ }
+    setPurging(false);
+  }, [loadCacheStats]);
+
   // Load backend health on mount
   useEffect(() => {
     checkBackendHealth();
-  }, [checkBackendHealth]);
+    loadCacheStats();
+  }, [checkBackendHealth, loadCacheStats]);
 
   const totalBudget = session.tokenBudget + longTerm.tokenBudget + working.tokenBudget;
   const fmtTokens = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
@@ -740,6 +764,58 @@ export function MemoryTab() {
           />
         )}
       </Section>
+
+          {/* Response Cache */}
+          <Section
+            icon={Zap} label="Response Cache" color="#FE5000"
+            badge={responseCache.enabled ? `enabled · TTL ${responseCache.ttlSeconds}s` : 'disabled'}
+            collapsed={cacheCollapsed} onToggle={() => setCacheCollapsed(!cacheCollapsed)}
+          >
+            <div className="space-y-4">
+              <Toggle
+                checked={responseCache.enabled}
+                onChange={v => setResponseCacheConfig({ enabled: v })}
+                label="Enable semantic response caching"
+              />
+              {responseCache.enabled && (
+                <>
+                  <SliderRow
+                    label="TTL"
+                    value={responseCache.ttlSeconds}
+                    min={60}
+                    max={86400}
+                    step={60}
+                    onChange={v => setResponseCacheConfig({ ttlSeconds: v })}
+                    suffix="s"
+                  />
+                  {cacheStats && (
+                    <div className="grid grid-cols-3 gap-3">
+                      {([
+                        { label: 'Entries', value: String(cacheStats.totalEntries) },
+                        { label: 'Hit Rate', value: `${(cacheStats.hitRate * 100).toFixed(1)}%` },
+                        { label: 'Saved', value: `$${cacheStats.estimatedSavings.toFixed(4)}` },
+                      ] as const).map(item => (
+                        <div key={item.label} className="p-3 rounded text-center" style={{ background: t.surfaceElevated }}>
+                          <div className="text-lg font-semibold" style={{ color: '#FE5000', fontFamily: "'Geist Mono', monospace" }}>{item.value}</div>
+                          <div className="text-xs" style={{ color: t.textDim }}>{item.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handlePurgeCache}
+                    disabled={purging}
+                    className="flex items-center gap-2 px-4 py-2 rounded text-sm font-medium disabled:opacity-50 border-none cursor-pointer"
+                    style={{ background: '#e74c3c20', color: '#e74c3c', border: '1px solid #e74c3c40' }}
+                  >
+                    {purging ? <Loader size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    Purge Cache
+                  </button>
+                </>
+              )}
+            </div>
+          </Section>
 
           {/* Memory Budget Allocation */}
           {totalBudget > 0 && (
