@@ -20,7 +20,9 @@ export type TraceEventKind =
   | 'hindsight_recall'    // Hindsight memory recall
   | 'hindsight_reflect'   // Hindsight higher-order reflection
   | 'response_cache_hit'  // LLM response served from cache
-  | 'response_cache_miss'; // Cache miss — LLM call required
+  | 'response_cache_miss' // Cache miss — LLM call required
+  | 'lesson_proposed'     // Auto-lesson extracted from user correction
+  | 'lesson_applied';     // Approved lesson injected into context
 
 export interface TraceEvent {
   id: string;
