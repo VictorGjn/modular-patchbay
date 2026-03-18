@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTheme } from '../../theme';
 import { useConsoleStore } from '../../store/consoleStore';
 import { useTreeIndexStore } from '../../store/treeIndexStore';
+import { CodeStructureView } from './CodeStructureView';
 import { DEPTH_MIN, DEPTH_MAX, DEPTH_STEP, KNOWLEDGE_TYPES, type Category, type KnowledgeType } from '../../store/knowledgeBase';
 import { FolderGit2, Loader2, Clock, RefreshCw, X, GitBranch, Github } from 'lucide-react';
 import { API_BASE } from '../../config';
@@ -139,6 +140,8 @@ export function GitRepoPanel() {
               },
             } : {}),
             ...(json.data.contentSourceId ? { contentSourceId: json.data.contentSourceId } : {}),
+            // Store code file paths on overview channel for code structure display
+            ...(isOverview && json.data.codeFiles?.length ? { codeFilePaths: json.data.codeFiles } : {}),
           });
         }
 
@@ -149,7 +152,7 @@ export function GitRepoPanel() {
 
         // Index source code files via smart code indexer (pickIndexer routing)
         if (json.data.codeFiles?.length) {
-          void useTreeIndexStore.getState().indexFiles(json.data.codeFiles);
+          await useTreeIndexStore.getState().indexFiles(json.data.codeFiles);
         }
 
         // Reset form
@@ -448,6 +451,30 @@ export function GitRepoPanel() {
                   </div>
                 </div>
               )}
+
+              {/* Code structure from smart indexer */}
+              {ch.codeFilePaths && ch.codeFilePaths.length > 0 && (() => {
+                const codePaths = ch.codeFilePaths;
+                const codeIndexes = codePaths
+                  .map(p => treeIndexes[p]?.index)
+                  .filter((idx): idx is NonNullable<typeof idx> => !!idx);
+                if (codeIndexes.length === 0) return null;
+                return (
+                  <div className="mt-2">
+                    <div className="text-[11px] font-medium mb-1" style={{ color: t.textDim }}>
+                      Code Structure ({codeIndexes.length} files indexed)
+                    </div>
+                    {codeIndexes.slice(0, 5).map((idx, i) => (
+                      <CodeStructureView key={i} index={idx} />
+                    ))}
+                    {codeIndexes.length > 5 && (
+                      <div className="text-[10px] mt-1" style={{ color: t.textFaint }}>
+                        +{codeIndexes.length - 5} more files
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
