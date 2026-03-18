@@ -15,7 +15,9 @@ export type TraceEventKind =
   | 'handoff'         // Cross-agent handoff
   | 'provenance'      // Provenance chain tracking
   | 'pipeline_stage' // Pipeline observability stages
-  | 'cache';         // Cache-aware assembly metrics
+  | 'cache'                  // Cache-aware assembly metrics
+  | 'response_cache_hit'    // LLM response served from cache
+  | 'response_cache_miss';  // Cache miss — LLM call required
 
 export interface TraceEvent {
   id: string;
@@ -90,6 +92,12 @@ export interface TraceEvent {
     volatileTokens: number;
     estimatedSavings: number;
   };
+
+  // Response cache (kind === 'response_cache_hit' | 'response_cache_miss')
+  responseCacheHit?: boolean;
+  responseCacheSavingsUsd?: number;
+  responseCacheAgentId?: string;
+  responseCacheModel?: string;
 }
 
 export interface ConversationTrace {

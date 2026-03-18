@@ -32,6 +32,44 @@ import { postProcess } from './postProcessor';
 import type { PipelineResult } from './pipeline';
 import type { ToolCallResult } from './toolRunner';
 
+/** FNV-1a 32-bit hash — fast, deterministic, no async needed */
+function fnv1a(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+async function checkResponseCache(
+  query: string, agentId: string, model: string, systemPromptHash: string, ttl: number,
+): Promise<{ response: string; hitCount: number } | null> {
+  try {
+    const res = await fetch('/api/cache/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, agentId, model, systemPromptHash, ttl }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { hit: boolean; cached?: { response: string; hitCount: number } };
+    return data.hit && data.cached ? data.cached : null;
+  } catch { return null; }
+}
+
+async function storeResponseCache(
+  query: string, response: string, agentId: string, model: string,
+  systemPromptHash: string, ttl: number,
+): Promise<void> {
+  try {
+    await fetch('/api/cache/store', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, response, agentId, model, systemPromptHash, ttl }),
+    });
+  } catch { /* fire-and-forget */ }
+}
+
 // ── Re-export types from sub-modules so external consumers keep working ──
 export type { FrameworkSummary } from './sourceRouter';
 export type { SourceHeatmapEntry, MemoryStats } from './postProcessor';
@@ -239,6 +277,37 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       { role: 'user' as const, content: userMessage },
     ];
 
+    // 5a. Check response cache before LLM call
+    const { responseCache } = useMemoryStore.getState();
+    const systemPromptHash = fnv1a(systemPrompt);
+    const effectiveAgentId = options.agentId ?? 'default';
+    if (responseCache.enabled) {
+      const cached = await checkResponseCache(userMessage, effectiveAgentId, model, systemPromptHash, responseCache.ttlSeconds);
+      if (cached) {
+        const savingsUsd = (cached.response.length / 4) * 0.000015;
+        traceStore.addEvent(traceId, {
+          kind: 'response_cache_hit',
+          responseCacheHit: true,
+          responseCacheSavingsUsd: savingsUsd,
+          responseCacheAgentId: effectiveAgentId,
+          responseCacheModel: model,
+        });
+        onChunk(cached.response);
+        const { heatmap, memoryStats: updatedMemoryStats } = await postProcess({
+          fullResponse: cached.response, userMessage, agentId: options.agentId,
+          sandboxRunId: options.sandboxRunId, traceId, activeChannels, memoryStats,
+        });
+        onDone({ traceId, pipeline: pipelineResult, systemTokens, totalContextTokens: systemTokens, heatmap, frameworkSummary, memory: updatedMemoryStats });
+        return;
+      }
+      traceStore.addEvent(traceId, {
+        kind: 'response_cache_miss',
+        responseCacheHit: false,
+        responseCacheAgentId: effectiveAgentId,
+        responseCacheModel: model,
+      });
+    }
+
     // 6. Execute: tool loop / text streaming / agent SDK
     const { fullResponse, toolCallResults, toolTurns } = await executeChat({
       providerId,
@@ -249,6 +318,11 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       traceId,
       onChunk,
     });
+
+    // 6a. Store response in cache after successful LLM call
+    if (responseCache.enabled && fullResponse) {
+      void storeResponseCache(userMessage, fullResponse, effectiveAgentId, model, systemPromptHash, responseCache.ttlSeconds);
+    }
 
     // 7–9. Post-process: memory write, end trace, heatmap + stats
     const { heatmap, memoryStats: updatedMemoryStats } = await postProcess({
