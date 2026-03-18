@@ -43,12 +43,13 @@ import {
   resolveConflicts 
 } from './provenanceService';
 import type { ProvenanceSummary } from '../types/provenance';
+import type { PipelineStageData, PipelineStageDataMap } from '../types/pipelineStageTypes';
 
 // ── Pipeline Event Emitters ──
 
 type PipelineStage = 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance';
 
-function emitPipelineStage(traceId: string, stage: PipelineStage, data: unknown, durationMs?: number) {
+function emitPipelineStage(traceId: string, stage: PipelineStage, data: PipelineStageDataMap[PipelineStage], durationMs?: number) {
   const traceStore = useTraceStore.getState();
   traceStore.addEvent(traceId, {
     kind: 'pipeline_stage',
@@ -58,7 +59,7 @@ function emitPipelineStage(traceId: string, stage: PipelineStage, data: unknown,
       timestamp: Date.now(),
       durationMs,
       data,
-    }],
+    } as PipelineStageData],
   });
 }
 
