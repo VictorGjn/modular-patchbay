@@ -2,10 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMemoryStore } from '../store/memoryStore';
+import { useProviderStore } from '../store/providerStore';
 import { TextArea } from '../components/ds/TextArea';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
 import { getGhostSuggestions, type GhostSuggestion } from '../utils/ghostSuggestions';
-import { Lightbulb, ArrowRight, Sparkles, Loader2, Check, X } from 'lucide-react';
+import { Lightbulb, ArrowRight, Sparkles, Loader2, Check, X, Settings } from 'lucide-react';
 
 const QUICK_TEMPLATES = [
   {
@@ -102,6 +103,10 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
   const mcpServers = useConsoleStore(s => s.mcpServers);
   const skills = useConsoleStore(s => s.skills);
   const setSessionConfig = useMemoryStore(s => s.setSessionConfig);
+  const selectedModel = useConsoleStore(s => s.selectedModel);
+  const setModel = useConsoleStore(s => s.setModel);
+  const setShowSettings = useConsoleStore(s => s.setShowSettings);
+  const allModels = useProviderStore(s => s.getAllModels());
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
@@ -471,7 +476,7 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
 
         {/* Generate Explanation */}
         <div className="mt-6 mb-4 text-center">
-          <p 
+          <p
             className="text-sm px-4"
             style={{ color: t.textSecondary, lineHeight: 1.5 }}
           >
@@ -479,29 +484,68 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
           </p>
         </div>
 
+        {/* Provider Setup Banner */}
+        {allModels.length === 0 && (
+          <div className="mt-4 mb-2 flex items-center justify-between gap-3 px-4 py-3 rounded-lg border" style={{ background: '#FFF7ED', borderColor: '#FED7AA' }}>
+            <p className="text-sm" style={{ color: '#9A3412' }}>
+              Set up an AI provider to generate agents
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowSettings(true, 'providers')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap"
+              style={{ background: '#EA580C', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
+            >
+              <Settings size={12} />
+              Open Settings
+            </button>
+          </div>
+        )}
+
+        {/* Inline Model Selector */}
+        {allModels.length > 0 && !selectedModel && (
+          <div className="mt-4 mb-2 flex items-center justify-between gap-3 px-4 py-3 rounded-lg border" style={{ background: t.surface, borderColor: t.border }}>
+            <p className="text-sm" style={{ color: t.textSecondary }}>
+              Select a model to generate with:
+            </p>
+            <select
+              value=""
+              onChange={e => setModel(e.target.value)}
+              aria-label="Select AI model"
+              className="text-sm rounded px-2 py-1.5 border"
+              style={{ background: t.bg, color: t.textPrimary, borderColor: t.border, cursor: 'pointer' }}
+            >
+              <option value="" disabled>Choose model…</option>
+              {allModels.map(m => (
+                <option key={m.id} value={m.id}>{m.providerName} — {m.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Generate Agent Button */}
         <div className="mt-4 flex justify-center">
           <button
             type="button"
             onClick={handleGenerate}
-            disabled={generating || !prompt.trim()}
-            title={generating ? 'Generating configuration' : !prompt.trim() ? 'Enter description first' : 'Generate full agent config'}
+            disabled={generating || !prompt.trim() || allModels.length === 0}
+            title={generating ? 'Generating configuration' : allModels.length === 0 ? 'Set up a provider first' : !prompt.trim() ? 'Enter description first' : 'Generate full agent config'}
             className="flex items-center gap-3 px-8 py-4 rounded-lg transition-colors font-semibold text-base"
             style={{
-              background: generating || !prompt.trim() ? '#CC4000' : '#FE5000',
+              background: generating || !prompt.trim() || allModels.length === 0 ? '#CC4000' : '#FE5000',
               color: '#FFFFFF',
               border: 'none',
               fontFamily: "'Geist Sans', sans-serif",
-              opacity: generating || !prompt.trim() ? 0.6 : 1,
-              cursor: generating || !prompt.trim() ? 'default' : 'pointer',
+              opacity: generating || !prompt.trim() || allModels.length === 0 ? 0.6 : 1,
+              cursor: generating || !prompt.trim() || allModels.length === 0 ? 'default' : 'pointer',
             }}
             onMouseEnter={e => {
-              if (!generating && prompt.trim()) {
+              if (!generating && prompt.trim() && allModels.length > 0) {
                 e.currentTarget.style.background = '#E54800';
               }
             }}
             onMouseLeave={e => {
-              if (!generating && prompt.trim()) {
+              if (!generating && prompt.trim() && allModels.length > 0) {
                 e.currentTarget.style.background = '#FE5000';
               }
             }}
