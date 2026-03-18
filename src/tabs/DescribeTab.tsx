@@ -3,8 +3,9 @@ import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMemoryStore } from '../store/memoryStore';
 import { TextArea } from '../components/ds/TextArea';
-import { generateFullAgent, type GeneratedAgentConfig, type KnowledgeGap } from '../utils/generateAgent';
-import { Lightbulb, ArrowRight, Sparkles, Loader2, Check } from 'lucide-react';
+import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
+import { getGhostSuggestions, type GhostSuggestion } from '../utils/ghostSuggestions';
+import { Lightbulb, ArrowRight, Sparkles, Loader2, Check, X } from 'lucide-react';
 
 const QUICK_TEMPLATES = [
   {
@@ -80,13 +81,17 @@ const QUICK_TEMPLATES = [
 const CHARACTER_LIMIT = 10000;
 const MIN_CHARACTERS = 20;
 
+const GHOST_SUGGESTION_THRESHOLD = 50;
+const GHOST_SUGGESTION_HIDE_THRESHOLD = 3;
+
 interface DescribeTabProps {
   onValidationChange?: (isValid: boolean) => void;
   onNavigateToTest?: () => void;
   onNavigateToNext?: () => void;
+  onNavigateToKnowledge?: () => void;
 }
 
-export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateToNext }: DescribeTabProps) {
+export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateToNext, onNavigateToKnowledge }: DescribeTabProps) {
   const t = useTheme();
   const prompt = useConsoleStore(s => s.prompt);
   const setPrompt = useConsoleStore(s => s.setPrompt);
@@ -104,6 +109,9 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [generationSuccess, setGenerationSuccess] = useState<GeneratedAgentConfig | null>(null);
   const debounceRef = useRef<NodeJS.Timeout>(undefined);
+  const ghostDebounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const dismissedIds = useRef<Set<string>>(new Set());
+  const [ghostSuggestions, setGhostSuggestions] = useState<GhostSuggestion[]>([]);
   const radioGroupRef = useRef<HTMLDivElement>(null);
 
   const headerStyles = {
@@ -168,6 +176,30 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
       // Save to store (already happens via setPrompt)
     }, 500);
   }, []);
+
+  useEffect(() => {
+    if (ghostDebounceRef.current) clearTimeout(ghostDebounceRef.current);
+    const tooManyConnected = channels.length >= GHOST_SUGGESTION_HIDE_THRESHOLD;
+    if (tooManyConnected || prompt.length < GHOST_SUGGESTION_THRESHOLD) {
+      setGhostSuggestions([]);
+      return;
+    }
+    ghostDebounceRef.current = setTimeout(() => {
+      const raw = getGhostSuggestions(prompt, channels);
+      setGhostSuggestions(raw.filter(s => !dismissedIds.current.has(s.source.id)));
+    }, 500);
+    return () => { if (ghostDebounceRef.current) clearTimeout(ghostDebounceRef.current); };
+  }, [prompt, channels]);
+
+  const handleDismissSuggestion = (sourceId: string) => {
+    dismissedIds.current.add(sourceId);
+    setGhostSuggestions(prev => prev.filter(s => s.source.id !== sourceId));
+  };
+
+  const handleSuggestionClick = (sourceId: string) => {
+    handleDismissSuggestion(sourceId);
+    onNavigateToKnowledge?.();
+  };
 
   const handlePromptChange = (value: string) => {
     setPrompt(value);
@@ -397,6 +429,45 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
             {prompt.length} / {CHARACTER_LIMIT}
           </div>
         </div>
+
+        {/* Ghost Suggestions */}
+        {ghostSuggestions.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs mb-2" style={{ color: t.textSecondary, fontFamily: "'Inter', 'Geist Sans', sans-serif" }}>
+              Suggested knowledge sources:
+            </p>
+            <div className="flex flex-wrap gap-2" role="list" aria-label="Knowledge source suggestions">
+              {ghostSuggestions.map(s => (
+                <div
+                  key={s.source.id}
+                  role="listitem"
+                  className="flex items-center gap-1 px-3 py-1 rounded-full text-xs border"
+                  style={{ background: '#FE500010', borderColor: '#FE500040', color: t.textPrimary }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleSuggestionClick(s.source.id)}
+                    className="font-medium hover:underline"
+                    style={{ color: '#FE5000', fontFamily: "'Inter', 'Geist Sans', sans-serif", background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    title={`Add ${s.source.name} to knowledge sources`}
+                  >
+                    {s.source.name}
+                  </button>
+                  <span style={{ color: t.textSecondary }}>· {s.reason}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDismissSuggestion(s.source.id)}
+                    aria-label={`Dismiss ${s.source.name} suggestion`}
+                    className="ml-1 opacity-60 hover:opacity-100"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: t.textSecondary, display: 'flex', alignItems: 'center' }}
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Generate Explanation */}
         <div className="mt-6 mb-4 text-center">
