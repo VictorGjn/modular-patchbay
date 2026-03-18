@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTheme } from '../../theme';
 import { useConsoleStore } from '../../store/consoleStore';
 import { useTreeIndexStore } from '../../store/treeIndexStore';
@@ -38,6 +38,8 @@ export function LocalFilesPanel() {
   const lastDir = useKnowledgeStore(s => s.lastDir);
   const scanning = useKnowledgeStore(s => s.scanning);
 
+  const folderInputRef = useRef<HTMLInputElement>(null);
+
   const [indexing, setIndexing] = useState(false);
   const [dirInput, setDirInput] = useState('');
   const [showDirInput, setShowDirInput] = useState(false);
@@ -59,6 +61,21 @@ export function LocalFilesPanel() {
     }
     setIndexing(false);
   }, [channels]);
+
+  const handleFolderPicked = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    e.target.value = '';
+    if (!files || files.length === 0) return;
+    const first = files[0] as File & { path?: string };
+    if (!first.path) return;
+    const sep = first.path.includes('\\') ? '\\' : '/';
+    const parts = first.path.split(sep);
+    parts.pop();
+    const dirPath = parts.join(sep);
+    setDirInput(dirPath);
+    setShowDirInput(true);
+    await scanDirectory(dirPath);
+  }, [scanDirectory]);
 
   const handleScanDirectory = useCallback(async () => {
     if (!dirInput.trim()) return;
@@ -95,9 +112,12 @@ export function LocalFilesPanel() {
           <Plus size={10} /> Files
         </button>
 
-        <button 
-          type="button" 
-          onClick={() => setShowDirInput(!showDirInput)}
+        <button
+          type="button"
+          onClick={() => {
+            setShowDirInput(true);
+            folderInputRef.current?.click();
+          }}
           className="flex items-center justify-center gap-1.5 flex-1 px-2.5 py-2 rounded text-[12px] tracking-wide uppercase cursor-pointer transition-colors"
           style={{
             background: showDirInput ? '#24292F15' : 'transparent',
@@ -107,10 +127,30 @@ export function LocalFilesPanel() {
             fontFamily: "'Geist Mono', monospace",
             minHeight: '44px',
           }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = t.isDark ? '#FF6B1A' : '#FE5000';
+            e.currentTarget.style.color = t.isDark ? '#FF6B1A' : '#FE5000';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = showDirInput ? '#24292F' : t.border;
+            e.currentTarget.style.color = showDirInput ? '#24292F' : t.textDim;
+          }}
         >
           <FolderOpen size={10} /> Directory
         </button>
       </div>
+
+      {/* Hidden folder picker */}
+      <input
+        ref={folderInputRef}
+        type="file"
+        // @ts-expect-error webkitdirectory is not in standard types
+        webkitdirectory=""
+        className="hidden"
+        onChange={handleFolderPicked}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
 
       {/* Directory input */}
       {showDirInput && (
@@ -121,20 +161,33 @@ export function LocalFilesPanel() {
             onChange={e => setDirInput(e.target.value)}
             placeholder={lastDir || "/path/to/directory"}
             className="flex-1 px-2.5 py-1.5 rounded text-[13px] outline-none"
-            style={{ 
-              background: t.inputBg, 
-              border: `1px solid ${t.border}`, 
-              color: t.textPrimary, 
-              fontFamily: "'Geist Sans', sans-serif" 
+            style={{
+              background: t.inputBg,
+              border: `1px solid ${t.border}`,
+              color: t.textPrimary,
+              fontFamily: "'Geist Sans', sans-serif"
             }}
             onKeyDown={e => e.key === 'Enter' && handleScanDirectory()}
           />
-          <button 
-            type="button" 
+          <button
+            type="button"
+            onClick={() => folderInputRef.current?.click()}
+            className="px-3 py-1.5 rounded text-[12px] font-semibold uppercase tracking-wide transition-opacity"
+            style={{
+              background: 'transparent',
+              border: `1px solid #FE5000`,
+              color: '#FE5000',
+              fontFamily: "'Geist Mono', monospace",
+            }}
+          >
+            Browse
+          </button>
+          <button
+            type="button"
             onClick={handleScanDirectory}
             disabled={scanning || !dirInput.trim()}
             className="px-3 py-1.5 rounded text-[12px] font-semibold uppercase tracking-wide transition-opacity"
-            style={{ 
+            style={{
               background: '#24292F',
               color: '#fff',
               opacity: scanning || !dirInput.trim() ? 0.5 : 1,
