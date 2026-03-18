@@ -5,7 +5,7 @@
 
 import { useConsoleStore } from '../store/consoleStore';
 import { useMcpStore, type McpTool } from '../store/mcpStore';
-import { compileWorkflow } from '../nodes/WorkflowNode';
+import { compileWorkflow } from '../utils/workflowCompiler';
 import type { ChannelConfig } from '../store/knowledgeBase';
 import type { ProvenanceSummary } from '../types/provenance';
 
