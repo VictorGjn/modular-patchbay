@@ -16,6 +16,7 @@ import { WorkflowSection } from '../panels/review/WorkflowSection';
 import { OutputConfigSection } from '../panels/review/OutputConfigSection';
 import { ExportActions } from '../panels/review/ExportActions';
 import { FactInsightsSection } from '../panels/review/FactInsightsSection';
+import { LessonsSection } from '../panels/review/LessonsSection';
 import { PromptPreviewModal } from '../panels/review/PromptPreviewModal';
 
 export function ReviewTab() {
@@ -271,6 +272,9 @@ export function ReviewTab() {
 
       {/* Fact Insights — analyze accumulated facts and promote to agent design */}
       <FactInsightsSection />
+
+      {/* Lessons — auto-extracted rules from user corrections */}
+      <LessonsSection />
 
       {/* Version indicator */}
       <div className="mt-4">

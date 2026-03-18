@@ -14,8 +14,10 @@ export type TraceEventKind =
   | 'memory_write'    // Memory post-write: facts extracted from response
   | 'handoff'         // Cross-agent handoff
   | 'provenance'      // Provenance chain tracking
-  | 'pipeline_stage' // Pipeline observability stages
-  | 'cache';         // Cache-aware assembly metrics
+  | 'pipeline_stage'   // Pipeline observability stages
+  | 'cache'            // Cache-aware assembly metrics
+  | 'lesson_proposed'  // Auto-lesson extracted from user correction
+  | 'lesson_applied';  // Approved lesson injected into context
 
 export interface TraceEvent {
   id: string;
