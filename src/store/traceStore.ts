@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { PipelineStageData } from '../types/pipelineStageTypes';
 
 /* ── Types ── */
 
@@ -79,12 +80,7 @@ export interface TraceEvent {
   }>;
 
   // Pipeline stages
-  provenanceStages?: Array<{
-    stage: 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance';
-    timestamp: number;
-    durationMs?: number;
-    data: any;
-  }>;
+  provenanceStages?: Array<PipelineStageData>;
 }
 
 export interface ConversationTrace {
