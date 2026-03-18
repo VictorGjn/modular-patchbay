@@ -4,7 +4,7 @@ import { create } from 'zustand';
 
 export type SessionStrategy = 'full' | 'sliding_window' | 'summarize_and_recent' | 'rag';
 export type SummaryModel = 'same' | 'fast';
-export type StoreBackend = 'local_sqlite' | 'postgres' | 'redis' | 'chromadb' | 'pinecone' | 'custom';
+export type StoreBackend = 'local_sqlite' | 'postgres' | 'redis' | 'chromadb' | 'pinecone' | 'custom' | 'hindsight';
 export type EmbeddingModel = 'text-embedding-3-small' | 'text-embedding-3-large' | 'voyage-3' | 'custom';
 export type RecallStrategy = 'top_k' | 'threshold' | 'hybrid';
 export type WriteMode = 'auto_extract' | 'explicit' | 'both';
@@ -63,6 +63,11 @@ export interface WriteConfig {
   extractTypes: ExtractType[];
 }
 
+export interface HindsightConfig {
+  baseUrl: string;
+  enabled: boolean;
+}
+
 export interface LongTermMemoryConfig {
   enabled: boolean;
   store: StoreBackend;
@@ -73,6 +78,7 @@ export interface LongTermMemoryConfig {
   maxEntries: number;
   ttl: string | null;
   tokenBudget: number;
+  hindsight: HindsightConfig;
 }
 
 export interface WorkingMemoryConfig {
@@ -150,6 +156,7 @@ const DEFAULT_LONG_TERM: LongTermMemoryConfig = {
   maxEntries: 1000,
   ttl: null,
   tokenBudget: 5000,
+  hindsight: { baseUrl: 'http://localhost:8888', enabled: false },
 };
 
 const DEFAULT_WORKING: WorkingMemoryConfig = {

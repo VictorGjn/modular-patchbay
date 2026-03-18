@@ -14,8 +14,11 @@ export type TraceEventKind =
   | 'memory_write'    // Memory post-write: facts extracted from response
   | 'handoff'         // Cross-agent handoff
   | 'provenance'      // Provenance chain tracking
-  | 'pipeline_stage' // Pipeline observability stages
-  | 'cache';         // Cache-aware assembly metrics
+  | 'pipeline_stage'       // Pipeline observability stages
+  | 'cache'               // Cache-aware assembly metrics
+  | 'hindsight_retain'    // Hindsight memory retention
+  | 'hindsight_recall'    // Hindsight memory recall
+  | 'hindsight_reflect';  // Hindsight higher-order reflection
 
 export interface TraceEvent {
   id: string;
