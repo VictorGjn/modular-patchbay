@@ -383,6 +383,7 @@ export function assemblePipelineContext(parts: {
   frameworkBlock: string;
   memoryBlock: string;
   knowledgeBlock: string;
+  lessonsBlock?: string;
   providerType?: string;
 }): string {
   const { providerType } = parts;
@@ -403,9 +404,11 @@ function assembleDefault(parts: {
   frameworkBlock: string;
   memoryBlock: string;
   knowledgeBlock: string;
+  lessonsBlock?: string;
 }): string {
-  const { frame, orientationBlock, hasRepos, knowledgeFormatGuide, frameworkBlock, memoryBlock, knowledgeBlock } = parts;
+  const { frame, orientationBlock, hasRepos, knowledgeFormatGuide, frameworkBlock, memoryBlock, knowledgeBlock, lessonsBlock } = parts;
   const systemParts = [frame];
+  if (lessonsBlock) systemParts.push(lessonsBlock);
   if (orientationBlock) systemParts.push(orientationBlock);
   if (hasRepos) systemParts.push(knowledgeFormatGuide);
   if (frameworkBlock) systemParts.push(frameworkBlock);
@@ -422,6 +425,7 @@ function assembleCacheOptimized(parts: {
   frameworkBlock: string;
   memoryBlock: string;
   knowledgeBlock: string;
+  lessonsBlock?: string;
 }, providerType: string): string {
   const { stable, volatile } = reorderForCache(parts);
   const strategy = detectCacheStrategy(providerType);

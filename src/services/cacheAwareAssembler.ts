@@ -36,6 +36,7 @@ export interface AssemblyParts {
   frameworkBlock: string;
   memoryBlock: string;
   knowledgeBlock: string;
+  lessonsBlock?: string;
 }
 
 export function detectCacheStrategy(providerType: string): CacheStrategy {
@@ -46,8 +47,9 @@ export function detectCacheStrategy(providerType: string): CacheStrategy {
 }
 
 function buildStableParts(parts: AssemblyParts): string[] {
-  const { frame, hasRepos, knowledgeFormatGuide, frameworkBlock } = parts;
+  const { frame, hasRepos, knowledgeFormatGuide, frameworkBlock, lessonsBlock } = parts;
   const stable = [frame];
+  if (lessonsBlock) stable.push(lessonsBlock);
   if (hasRepos && knowledgeFormatGuide) stable.push(knowledgeFormatGuide);
   if (frameworkBlock) stable.push(frameworkBlock);
   return stable.filter(Boolean);

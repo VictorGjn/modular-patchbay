@@ -31,6 +31,7 @@ import { executeChat } from './executionRouter';
 import { postProcess } from './postProcessor';
 import type { PipelineResult } from './pipeline';
 import type { ToolCallResult } from './toolRunner';
+import { useLessonStore } from '../store/lessonStore';
 
 /** FNV-1a 32-bit hash — fast, deterministic, no async needed */
 function fnv1a(s: string): string {
@@ -209,7 +210,17 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       knowledgeBlock = knowledgeBlock ? `${knowledgeBlock}\n\n${connectorBlock}` : connectorBlock;
     }
 
-    // 3b. Pre-recall: inject relevant memory facts into context
+    // 3b. Inject approved lessons into context
+    const agentLessons = options.agentId
+      ? useLessonStore.getState().getApprovedLessons(options.agentId)
+      : [];
+    let lessonsBlock = '';
+    if (agentLessons.length > 0) {
+      const lines = agentLessons.map((l) => `- [${l.category}] ${l.rule}`).join('\n');
+      lessonsBlock = `<lessons>\n${lines}\n</lessons>`;
+    }
+
+    // 3c. Pre-recall: inject relevant memory facts into context
     const memoryConfig = useMemoryStore.getState();
     let memoryBlock = '';
     let memoryStats: import('./postProcessor').MemoryStats | undefined;
@@ -240,7 +251,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       };
     }
 
-    // 3c. Rebuild system frame with provenance data
+    // 3d. Rebuild system frame with provenance data
     if (provenance) {
       systemFrame = buildSystemFrame(provenance);
     }
@@ -250,12 +261,16 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     const hasRepos = channels.some(ch => ch.enabled && ch.repoMeta);
     const currentProvider = useProviderStore.getState().providers.find(p => p.id === providerId);
     const providerType = currentProvider?.type ?? 'openai';
+    if (agentLessons.length > 0) {
+      traceStore.addEvent(traceId, { kind: 'lesson_applied', memoryFactCount: agentLessons.length });
+    }
     const systemPrompt = assemblePipelineContext({
       frame: systemFrame,
       orientationBlock,
       hasRepos,
       knowledgeFormatGuide: buildKnowledgeFormatGuide(),
       frameworkBlock,
+      lessonsBlock: lessonsBlock || undefined,
       memoryBlock,
       knowledgeBlock,
       providerType,
@@ -335,6 +350,10 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       memoryStats,
     });
 
+    // 10. Detect corrections → extract lesson → add to pending
+    const lastAssistant = history.filter(m => m.role === 'assistant').at(-1)?.content ?? '';
+    void detectAndAddLesson(userMessage, lastAssistant, providerId, model, options.agentId, traceId);
+
     const totalContextTokens =
       systemTokens +
       history.reduce((s, m) => s + estimateTokens(m.content), 0) +
@@ -380,5 +399,30 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     });
     traceStore.endTrace(traceId);
     onError(err instanceof Error ? err : new Error('Unknown error'));
+  }
+}
+
+async function detectAndAddLesson(
+  userMessage: string,
+  previousAssistant: string,
+  providerId: string,
+  model: string,
+  agentId: string | undefined,
+  traceId: string,
+): Promise<void> {
+  try {
+    const res = await fetch('/api/lessons/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userMessage, previousAssistant, providerId, model, agentId }),
+    });
+    if (!res.ok) return;
+    const data = await res.json() as { lesson: import('../store/lessonStore').Lesson | null };
+    if (!data.lesson) return;
+    const { rule, category, agentId: lid, sourceUserMessage, sourcePreviousAssistant } = data.lesson;
+    useLessonStore.getState().addLesson({ rule, category, agentId: lid, sourceUserMessage, sourcePreviousAssistant });
+    useTraceStore.getState().addEvent(traceId, { kind: 'lesson_proposed' });
+  } catch {
+    // Lesson extraction is best-effort — never surface errors
   }
 }
