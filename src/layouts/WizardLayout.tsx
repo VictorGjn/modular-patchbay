@@ -383,7 +383,6 @@ export function WizardLayout() {
           <Suspense fallback={<LoadingFallback />}>
             {activeTab === 'describe' ? (
               <DescribeTab
-                onNavigateToTest={() => setActiveTab('test')}
                 onNavigateToNext={handleNext}
                 onNavigateToKnowledge={() => setActiveTab('knowledge')}
               />
