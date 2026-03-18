@@ -1,83 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
-import { useMemoryStore } from '../store/memoryStore';
 import { useProviderStore } from '../store/providerStore';
 import { TextArea } from '../components/ds/TextArea';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
 import { getGhostSuggestions, type GhostSuggestion } from '../utils/ghostSuggestions';
-import { Lightbulb, ArrowRight, Sparkles, Loader2, Check, X, Settings } from 'lucide-react';
-
-const QUICK_TEMPLATES = [
-  {
-    label: 'Code Review Agent',
-    description: 'Reviews code for best practices, security, and maintainability',
-    prompt: 'A code review agent that analyzes pull requests and provides detailed feedback on code quality, security vulnerabilities, performance issues, and adherence to coding standards. Should use framework sources for style guides and ground-truth for API documentation.',
-    knowledgeDefaults: {
-      type: 'Ground Truth' as const,
-      depth: 'High' as const,
-    },
-    memoryStrategy: 'sliding_window' as const,
-    constraints: {
-      neverMakeUp: true,
-      askBeforeActions: false,
-      stayInScope: true,
-      useOnlyTools: true,
-      customConstraints: 'Focus on code quality, security, and maintainability. Always cite specific line numbers and files when providing feedback.',
-    },
-  },
-  {
-    label: 'Research Assistant',
-    description: 'Gathers and synthesizes information from multiple sources',
-    prompt: 'A research assistant that collects information from various sources, synthesizes findings, and produces comprehensive reports. Uses evidence and signal sources to gather data, with broad exploration capabilities for discovering relevant information.',
-    knowledgeDefaults: {
-      type: 'Evidence' as const,
-      depth: 'Broad' as const,
-    },
-    memoryStrategy: 'rag' as const,
-    constraints: {
-      neverMakeUp: true,
-      askBeforeActions: true,
-      stayInScope: false,
-      useOnlyTools: false,
-      customConstraints: 'Provide comprehensive sources and citations. Synthesize information from multiple perspectives.',
-    },
-  },
-  {
-    label: 'Content Writer',
-    description: 'Creates engaging content following brand guidelines',
-    prompt: 'A content writing agent that produces high-quality articles, blog posts, and marketing copy. Uses framework sources for brand voice and style guidelines, ground-truth for factual information, and hypothesis sources for creative content development.',
-    knowledgeDefaults: {
-      type: 'Framework' as const,
-      depth: 'Medium' as const,
-    },
-    memoryStrategy: 'summarize_and_recent' as const,
-    constraints: {
-      neverMakeUp: false,
-      askBeforeActions: true,
-      stayInScope: true,
-      useOnlyTools: false,
-      customConstraints: 'Follow brand voice guidelines. Ensure content is engaging and on-brand.',
-    },
-  },
-  {
-    label: 'Product Manager',
-    description: 'Analyzes market data and creates product roadmaps',
-    prompt: 'A product management agent that tracks competitor analysis, user feedback, and market trends. Creates weekly reports, manages roadmaps, and provides strategic recommendations. Integrates with tools like GitHub for technical insights and Notion for documentation.',
-    knowledgeDefaults: {
-      type: 'Signal' as const,
-      depth: 'High' as const,
-    },
-    memoryStrategy: 'rag' as const,
-    constraints: {
-      neverMakeUp: true,
-      askBeforeActions: false,
-      stayInScope: true,
-      useOnlyTools: true,
-      customConstraints: 'Focus on data-driven decisions. Prioritize user feedback and market trends in recommendations.',
-    },
-  },
-];
+import { Lightbulb, Sparkles, Loader2, Check, X, Settings } from 'lucide-react';
 
 const CHARACTER_LIMIT = 10000;
 const MIN_CHARACTERS = 20;
@@ -87,27 +15,21 @@ const GHOST_SUGGESTION_HIDE_THRESHOLD = 3;
 
 interface DescribeTabProps {
   onValidationChange?: (isValid: boolean) => void;
-  onNavigateToTest?: () => void;
   onNavigateToNext?: () => void;
   onNavigateToKnowledge?: () => void;
 }
 
-export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateToNext, onNavigateToKnowledge }: DescribeTabProps) {
+export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateToKnowledge }: DescribeTabProps) {
   const t = useTheme();
   const prompt = useConsoleStore(s => s.prompt);
   const setPrompt = useConsoleStore(s => s.setPrompt);
-  const updateInstruction = useConsoleStore(s => s.updateInstruction);
   const hydrateFromGenerated = useConsoleStore(s => s.hydrateFromGenerated);
   const setKnowledgeGaps = useConsoleStore(s => s.setKnowledgeGaps);
   const channels = useConsoleStore(s => s.channels);
   const mcpServers = useConsoleStore(s => s.mcpServers);
   const skills = useConsoleStore(s => s.skills);
-  const setSessionConfig = useMemoryStore(s => s.setSessionConfig);
-  const selectedModel = useConsoleStore(s => s.selectedModel);
-  const setModel = useConsoleStore(s => s.setModel);
-  const setShowSettings = useConsoleStore(s => s.setShowSettings);
-  const allModels = useProviderStore(s => s.getAllModels());
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const providers = useProviderStore(s => s.providers);
+  const hasProvider = providers.some(p => p.apiKey && p.models && p.models.length > 0);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -117,7 +39,6 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
   const ghostDebounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const dismissedIds = useRef<Set<string>>(new Set());
   const [ghostSuggestions, setGhostSuggestions] = useState<GhostSuggestion[]>([]);
-  const radioGroupRef = useRef<HTMLDivElement>(null);
 
   const headerStyles = {
     color: t.textPrimary,
@@ -127,22 +48,6 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
   const descriptionStyles = {
     color: t.textSecondary,
     lineHeight: 1.5,
-  };
-
-  const templateButtonStyles = (isSelected: boolean) => ({
-    background: isSelected ? '#FE500010' : t.surface,
-    borderColor: isSelected ? '#FE5000' : t.border,
-    color: t.textPrimary,
-  });
-
-  const templateLabelStyles = {
-    fontFamily: "'Geist Sans', sans-serif",
-    fontSize: '14px',
-  };
-
-  const templateDescStyles = {
-    color: t.textSecondary,
-    lineHeight: 1.4,
   };
 
   const textAreaStyles = {
@@ -211,46 +116,6 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
     debouncedSave();
   };
 
-  const handleTemplateSelect = (template: typeof QUICK_TEMPLATES[0]) => {
-    setPrompt(template.prompt);
-    setSelectedTemplate(template.label);
-    setShowValidation(false);
-
-    // Auto-fill stores based on template defaults
-    setSessionConfig({
-      strategy: template.memoryStrategy,
-    });
-
-    // Update constraints
-    updateInstruction({
-      constraints: {
-        neverMakeUp: template.constraints.neverMakeUp,
-        askBeforeActions: template.constraints.askBeforeActions,
-        stayInScope: template.constraints.stayInScope,
-        useOnlyTools: template.constraints.useOnlyTools,
-        limitWords: false,
-        wordLimit: 500,
-        customConstraints: template.constraints.customConstraints,
-        scopeDefinition: '',
-      },
-    });
-  };
-
-  // Keyboard navigation for radio group
-  const handleKeyDown = (event: React.KeyboardEvent, index: number) => {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
-      event.preventDefault();
-      const nextIndex = (index + 1) % QUICK_TEMPLATES.length;
-      const nextButton = radioGroupRef.current?.children[nextIndex] as HTMLButtonElement;
-      nextButton?.focus();
-    } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
-      event.preventDefault();
-      const prevIndex = (index - 1 + QUICK_TEMPLATES.length) % QUICK_TEMPLATES.length;
-      const prevButton = radioGroupRef.current?.children[prevIndex] as HTMLButtonElement;
-      prevButton?.focus();
-    }
-  };
-
   const handleValidationTrigger = () => {
     setShowValidation(true);
   };
@@ -298,107 +163,6 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
         <p className="text-sm" style={descriptionStyles}>
           Start by describing what you want your agent to do. Be specific about its role, capabilities, and the types of tasks it should handle.
         </p>
-      </div>
-
-      {/* Quick Templates */}
-      <div>
-        <h3 className="text-lg font-medium mt-3 mb-4 m-0" style={headerStyles}>
-          Quick Start Templates
-        </h3>
-        <div 
-          ref={radioGroupRef}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-          role="radiogroup"
-          aria-label="Agent templates"
-        >
-          {QUICK_TEMPLATES.map((template, index) => (
-            <button
-              key={template.label}
-              type="button"
-              role="radio"
-              aria-checked={selectedTemplate === template.label}
-              onClick={() => handleTemplateSelect(template)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-              aria-describedby={`template-desc-${template.label.replace(/\s+/g, '-').toLowerCase()}`}
-              title={`Use ${template.label} template`}
-              className="text-left p-5 rounded-lg border cursor-pointer transition-colors min-h-[44px]"
-              style={templateButtonStyles(selectedTemplate === template.label)}
-              onMouseEnter={e => {
-                if (selectedTemplate !== template.label) {
-                  e.currentTarget.style.background = '#FE500008';
-                  e.currentTarget.style.borderColor = '#FE500050';
-                }
-              }}
-              onMouseLeave={e => {
-                if (selectedTemplate !== template.label) {
-                  e.currentTarget.style.background = t.surfaceElevated;
-                  e.currentTarget.style.borderColor = t.border;
-                }
-              }}
-              onFocus={e => {
-                if (selectedTemplate !== template.label) {
-                  e.currentTarget.style.background = '#FE500008';
-                  e.currentTarget.style.borderColor = '#FE500050';
-                }
-              }}
-              onBlur={e => {
-                if (selectedTemplate !== template.label) {
-                  e.currentTarget.style.background = t.surfaceElevated;
-                  e.currentTarget.style.borderColor = t.border;
-                }
-              }}
-            >
-              <div className="font-semibold mb-1" style={templateLabelStyles}>
-                {template.label}
-                {selectedTemplate === template.label && (
-                  <span className="sr-only"> (selected)</span>
-                )}
-              </div>
-              <div 
-                id={`template-desc-${template.label.replace(/\s+/g, '-').toLowerCase()}`}
-                className="text-xs" 
-                style={templateDescStyles}
-              >
-                {template.description}
-              </div>
-            </button>
-          ))}
-        </div>
-        
-        {/* Jump to Test Button (appears after template selection) */}
-        {selectedTemplate && (
-          <div className="mt-4 flex justify-center">
-            <button
-              type="button"
-              onClick={onNavigateToTest}
-              title="Test template now"
-              className="flex items-center gap-2 px-6 py-3 rounded-lg transition-colors"
-              style={{
-                background: '#FE5000',
-                color: '#FFFFFF',
-                border: 'none',
-                fontFamily: "'Geist Sans', sans-serif",
-                fontWeight: 600,
-                fontSize: '14px',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = '#E54800';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = '#FE5000';
-              }}
-              onFocus={e => {
-                e.currentTarget.style.background = '#E54800';
-              }}
-              onBlur={e => {
-                e.currentTarget.style.background = '#FE5000';
-              }}
-            >
-              Jump to Test
-              <ArrowRight size={16} />
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Main Description TextArea */}
@@ -476,7 +240,7 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
 
         {/* Generate Explanation */}
         <div className="mt-6 mb-4 text-center">
-          <p
+          <p 
             className="text-sm px-4"
             style={{ color: t.textSecondary, lineHeight: 1.5 }}
           >
@@ -484,42 +248,14 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
           </p>
         </div>
 
-        {/* Provider Setup Banner */}
-        {allModels.length === 0 && (
-          <div className="mt-4 mb-2 flex items-center justify-between gap-3 px-4 py-3 rounded-lg border" style={{ background: '#FFF7ED', borderColor: '#FED7AA' }}>
-            <p className="text-sm" style={{ color: '#9A3412' }}>
-              Set up an AI provider to generate agents
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowSettings(true, 'providers')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap"
-              style={{ background: '#EA580C', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
-            >
-              <Settings size={12} />
-              Open Settings
-            </button>
-          </div>
-        )}
-
-        {/* Inline Model Selector */}
-        {allModels.length > 0 && !selectedModel && (
-          <div className="mt-4 mb-2 flex items-center justify-between gap-3 px-4 py-3 rounded-lg border" style={{ background: t.surface, borderColor: t.border }}>
-            <p className="text-sm" style={{ color: t.textSecondary }}>
-              Select a model to generate with:
-            </p>
-            <select
-              value=""
-              onChange={e => setModel(e.target.value)}
-              aria-label="Select AI model"
-              className="text-sm rounded px-2 py-1.5 border"
-              style={{ background: t.bg, color: t.textPrimary, borderColor: t.border, cursor: 'pointer' }}
-            >
-              <option value="" disabled>Choose model…</option>
-              {allModels.map(m => (
-                <option key={m.id} value={m.id}>{m.providerName} — {m.label}</option>
-              ))}
-            </select>
+        {/* Provider setup prompt */}
+        {!hasProvider && (
+          <div className="mt-4 flex items-center gap-3 p-4 rounded-lg" style={{ background: '#FE500015', border: '1px solid #FE500030' }}>
+            <Settings size={18} style={{ color: '#FE5000' }} />
+            <div className="flex-1">
+              <div className="text-sm font-medium" style={{ color: t.textPrimary }}>Set up an AI provider first</div>
+              <div className="text-xs mt-1" style={{ color: t.textDim }}>Configure an API key (OpenAI, Anthropic, etc.) in Settings to generate agents.</div>
+            </div>
           </div>
         )}
 
@@ -528,24 +264,24 @@ export function DescribeTab({ onValidationChange, onNavigateToTest, onNavigateTo
           <button
             type="button"
             onClick={handleGenerate}
-            disabled={generating || !prompt.trim() || allModels.length === 0}
-            title={generating ? 'Generating configuration' : allModels.length === 0 ? 'Set up a provider first' : !prompt.trim() ? 'Enter description first' : 'Generate full agent config'}
+            disabled={generating || !prompt.trim() || !hasProvider}
+            title={!hasProvider ? 'Set up a provider in Settings first' : generating ? 'Generating configuration' : !prompt.trim() ? 'Enter description first' : 'Generate full agent config'}
             className="flex items-center gap-3 px-8 py-4 rounded-lg transition-colors font-semibold text-base"
             style={{
-              background: generating || !prompt.trim() || allModels.length === 0 ? '#CC4000' : '#FE5000',
+              background: generating || !prompt.trim() || !hasProvider ? '#CC4000' : '#FE5000',
               color: '#FFFFFF',
               border: 'none',
               fontFamily: "'Geist Sans', sans-serif",
-              opacity: generating || !prompt.trim() || allModels.length === 0 ? 0.6 : 1,
-              cursor: generating || !prompt.trim() || allModels.length === 0 ? 'default' : 'pointer',
+              opacity: generating || !prompt.trim() || !hasProvider ? 0.6 : 1,
+              cursor: generating || !prompt.trim() || !hasProvider ? 'default' : 'pointer',
             }}
             onMouseEnter={e => {
-              if (!generating && prompt.trim() && allModels.length > 0) {
+              if (!generating && prompt.trim()) {
                 e.currentTarget.style.background = '#E54800';
               }
             }}
             onMouseLeave={e => {
-              if (!generating && prompt.trim() && allModels.length > 0) {
+              if (!generating && prompt.trim()) {
                 e.currentTarget.style.background = '#FE5000';
               }
             }}
