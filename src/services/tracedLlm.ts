@@ -36,7 +36,7 @@ export function tracedStreamCompletion(params: StreamCompletionParams): AbortCon
   let outputChunks = '';
 
   const inputTokens = params.messages.reduce(
-    (sum, m) => sum + estimateTokens(m.content), 0
+    (sum, m) => sum + estimateTokens(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)), 0
   );
 
   const wrappedParams: StreamCompletionParams = {

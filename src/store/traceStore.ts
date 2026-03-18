@@ -14,7 +14,8 @@ export type TraceEventKind =
   | 'memory_write'    // Memory post-write: facts extracted from response
   | 'handoff'         // Cross-agent handoff
   | 'provenance'      // Provenance chain tracking
-  | 'pipeline_stage'; // Pipeline observability stages
+  | 'pipeline_stage' // Pipeline observability stages
+  | 'cache';         // Cache-aware assembly metrics
 
 export interface TraceEvent {
   id: string;
@@ -81,6 +82,14 @@ export interface TraceEvent {
 
   // Pipeline stages
   provenanceStages?: Array<PipelineStageData>;
+
+  // Cache metrics (kind === 'cache')
+  cacheMetrics?: {
+    strategy: string;
+    stableTokens: number;
+    volatileTokens: number;
+    estimatedSavings: number;
+  };
 }
 
 export interface ConversationTrace {

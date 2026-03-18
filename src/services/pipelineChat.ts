@@ -26,6 +26,7 @@ import { buildSystemFrame, buildKnowledgeFormatGuide } from './systemFrameBuilde
 import { routeSources } from './sourceRouter';
 import { compressKnowledge } from './knowledgePipeline';
 import { buildOrientationBlock, assemblePipelineContext } from './contextAssembler';
+import { detectCacheStrategy, computeCacheMetrics } from './cacheAwareAssembler';
 import { executeChat } from './executionRouter';
 import { postProcess } from './postProcessor';
 import type { PipelineResult } from './pipeline';
@@ -206,10 +207,11 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       systemFrame = buildSystemFrame(provenance);
     }
 
-    // 4. Assemble final system prompt
-    //    Order: frame → orientation → knowledge_format → framework → memory → knowledge
+    // 4. Assemble final system prompt with cache-aware block ordering
     const orientationBlock = buildOrientationBlock(channels, useTreeIndexStore.getState().getIndex);
     const hasRepos = channels.some(ch => ch.enabled && ch.repoMeta);
+    const currentProvider = useProviderStore.getState().providers.find(p => p.id === providerId);
+    const providerType = currentProvider?.type ?? 'openai';
     const systemPrompt = assemblePipelineContext({
       frame: systemFrame,
       orientationBlock,
@@ -218,8 +220,17 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       frameworkBlock,
       memoryBlock,
       knowledgeBlock,
+      providerType,
     });
     const systemTokens = estimateTokens(systemPrompt);
+
+    // Log cache metrics to trace
+    const cacheStrategy = detectCacheStrategy(providerType);
+    const cacheMetrics = computeCacheMetrics(systemPrompt, cacheStrategy);
+    traceStore.addEvent(traceId, {
+      kind: 'cache',
+      cacheMetrics,
+    });
 
     // 5. Build messages array
     const msgs = [
