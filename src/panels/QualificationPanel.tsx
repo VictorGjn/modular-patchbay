@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useTheme, type ThemePalette } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
+import { useTraceStore } from '../store/traceStore';
 import {
   useQualificationStore,
   type TestCaseType,
@@ -16,6 +17,7 @@ import {
   runQualification,
   applyPatches,
 } from '../services/qualificationService';
+import { resolveProviderAndModel } from '../services/pipelineChat';
 import {
   ShieldCheck, Sparkles, Play, CheckCircle2, XCircle,
   Plus, X, ChevronDown, ChevronRight, Loader2, Wrench,
@@ -85,7 +87,6 @@ export function QualificationPanel() {
   const recordRun = useQualificationStore(s => s.recordRun);
   const storeApplyPatch = useQualificationStore(s => s.applyPatch);
   const agentMeta = useConsoleStore(s => s.agentMeta);
-  const selectedModel = useConsoleStore(s => s.selectedModel);
   const instructionState = useConsoleStore(s => s.instructionState);
 
   const [missionOpen, setMissionOpen] = useState(true);
@@ -103,14 +104,16 @@ export function QualificationPanel() {
     setLoading('generate');
     setStatus('generating');
     try {
+      const resolved = resolveProviderAndModel();
       const data = await generateSuite({
         agentId: agentMeta.name || 'current',
         missionBrief: suite.missionBrief,
         persona: instructionState.persona,
         constraints: instructionState.constraints.customConstraints,
         objectives: instructionState.objectives.primary,
+        providerId: resolved.providerId || undefined,
+        model: resolved.model || undefined,
       });
-      // Hydrate store with generated test cases and dimensions
       for (const tc of data.testCases) {
         addTestCase({ type: tc.type, label: tc.label, input: tc.input, expectedBehavior: tc.expectedBehavior });
       }
@@ -128,19 +131,33 @@ export function QualificationPanel() {
   const handleRun = useCallback(async () => {
     setLoading('run');
     setStatus('running');
+    const traceStore = useTraceStore.getState();
+    const traceId = traceStore.startTrace(`qualification-${Date.now()}`, '0.0.0');
     try {
-      const modelParts = selectedModel?.split('::') || ['default', 'claude-opus-4'];
-      const data = await runQualification({
-        agentId: agentMeta.name || 'current',
-        providerId: modelParts[0],
-        model: modelParts[1],
-        suite: {
-          missionBrief: suite.missionBrief,
-          testCases: suite.testCases.map(({ id, type, label, input, expectedBehavior }) => ({ id, type, label, input, expectedBehavior })),
-          scoringDimensions: suite.scoringDimensions.map(({ id, name, weight }) => ({ id, name, weight })),
-          passThreshold: suite.passThreshold,
+      const resolved = resolveProviderAndModel();
+      const providerId = resolved.providerId || 'default';
+      const model = resolved.model || 'claude-opus-4';
+      const data = await runQualification(
+        {
+          agentId: agentMeta.name || 'current',
+          providerId,
+          model,
+          suite: {
+            missionBrief: suite.missionBrief,
+            testCases: suite.testCases.map(({ id, type, label, input, expectedBehavior }) => ({ id, type, label, input, expectedBehavior })),
+            scoringDimensions: suite.scoringDimensions.map(({ id, name, weight }) => ({ id, name, weight })),
+            passThreshold: suite.passThreshold,
+          },
         },
-      });
+        (event) => {
+          if (event.type === 'case_start') {
+            traceStore.addEvent(traceId, { kind: 'llm_call', model });
+          } else if (event.type === 'case_done') {
+            traceStore.addEvent(traceId, { kind: 'llm_call', model, outputTokens: event.score });
+          }
+        },
+      );
+      traceStore.endTrace(traceId);
       recordRun({
         id: data.runId,
         timestamp: Date.now(),
@@ -150,20 +167,28 @@ export function QualificationPanel() {
         patches: data.patches,
       });
     } catch {
+      traceStore.endTrace(traceId);
       setStatus('error');
     }
     setLoading(null);
-  }, [suite, recordRun, setStatus, selectedModel, agentMeta.name]);
+  }, [suite, recordRun, setStatus, agentMeta.name]);
 
   /* ── Apply Patches ── */
   const handleApplyPatch = useCallback(async (runId: string, patchId: string) => {
+    const run = runs.find(r => r.id === runId);
+    const patch = run?.patches.find(p => p.id === patchId);
     try {
-      await applyPatches({ agentId: agentMeta.name || 'current', runId, patchIds: [patchId] });
+      await applyPatches({
+        agentId: agentMeta.name || 'current',
+        runId,
+        patchIds: [patchId],
+        patches: patch ? [patch] : undefined,
+      });
       storeApplyPatch(runId, patchId);
     } catch {
       // Silently fail — user can retry
     }
-  }, [storeApplyPatch, agentMeta.name]);
+  }, [storeApplyPatch, agentMeta.name, runs]);
 
   return (
     <div className="flex flex-col gap-5">
