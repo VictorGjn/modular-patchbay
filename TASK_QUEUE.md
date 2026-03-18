@@ -7,7 +7,7 @@ Quality gate: `npx vite build` must pass with 0 errors
 ---
 
 ## T01 — Knowledge depth labels
-**Status:** TODO
+**Status:** DONE — 2026-03-18 01:01
 **Files:** src/panels/knowledge/LocalFilesPanel.tsx, src/panels/knowledge/GitRepoPanel.tsx
 **Task:** Add visible labels next to the depth slider showing the current level name. The depth is 10-100% continuous. Map to labels:
 - 100%: "Full"
