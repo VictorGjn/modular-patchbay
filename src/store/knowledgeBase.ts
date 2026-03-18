@@ -251,6 +251,7 @@ export interface ChannelConfig {
   contentSourceId?: string; // links to backend content store
   effectiveTokens?: number; // runtime token count after budget allocation
   hint?: string; // optional display hint
+  codeFilePaths?: string[]; // paths to code files indexed by smart code indexer
 }
 
 export type PlanningMode = 'single-shot' | 'chain-of-thought' | 'react';
