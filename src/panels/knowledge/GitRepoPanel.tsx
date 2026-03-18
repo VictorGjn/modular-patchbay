@@ -21,6 +21,14 @@ type LocalRepoPayload = {
 
 type RepoIndexPayload = GitHubPayload | LocalRepoPayload;
 
+function getDepthLabel(depth: number): string {
+  if (depth >= 100) return 'Full';
+  if (depth >= 75) return 'Detail';
+  if (depth >= 50) return 'Summary';
+  if (depth >= 25) return 'Headlines';
+  return 'Mention';
+}
+
 export function GitRepoPanel() {
   const t = useTheme();
   const allChannels = useConsoleStore(s => s.channels);
@@ -364,9 +372,14 @@ export function GitRepoPanel() {
                   <span style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
                     Depth
                   </span>
-                  <span style={{ color: '#FE5000', fontFamily: "'Geist Mono', monospace", fontWeight: 600 }}>
-                    {depth}%
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace", fontSize: '11px' }}>
+                      {getDepthLabel(depth)}
+                    </span>
+                    <span style={{ color: '#FE5000', fontFamily: "'Geist Mono', monospace", fontWeight: 600 }}>
+                      {depth}%
+                    </span>
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-2">
@@ -385,6 +398,7 @@ export function GitRepoPanel() {
                       onChange={e => setChannelDepth(ch.sourceId, Number(e.target.value))}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       aria-label={`Depth level for ${ch.name}: ${depth}%`}
+                      title="Controls how much detail is included from this source"
                     />
                   </div>
                   <span className="text-[10px]" style={{ color: t.textFaint }}>100</span>
