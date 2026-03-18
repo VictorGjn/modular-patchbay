@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTheme } from '../../theme';
 import { useConsoleStore } from '../../store/consoleStore';
 import { useTreeIndexStore } from '../../store/treeIndexStore';
-import { DEPTH_MIN, DEPTH_MAX, DEPTH_STEP, KNOWLEDGE_TYPES } from '../../store/knowledgeBase';
+import { DEPTH_MIN, DEPTH_MAX, DEPTH_STEP, KNOWLEDGE_TYPES, type KnowledgeType } from '../../store/knowledgeBase';
 import { FolderGit2, Loader2, Clock, RefreshCw, X, GitBranch, Github } from 'lucide-react';
 import { API_BASE } from '../../config';
 
@@ -29,6 +29,14 @@ function getDepthLabel(depth: number): string {
   return 'Mention';
 }
 
+function getDepthTooltip(depth: number): string {
+  if (depth >= 100) return 'Full (100%) — Complete document, every line included. Best for specs, schemas, and ground-truth sources.';
+  if (depth >= 75) return 'Detail (75%) — Main content with details; minor boilerplate trimmed. Good default for most sources.';
+  if (depth >= 50) return 'Summary (50%) — Key points and structure; verbose sections condensed. Good for large reports.';
+  if (depth >= 25) return 'Headlines (25%) — Section titles and key statements only. Good for broad awareness context.';
+  return 'Mention (10%) — Brief reference only; title and top-level summary. Good for background context.';
+}
+
 export function GitRepoPanel() {
   const t = useTheme();
   const allChannels = useConsoleStore(s => s.channels);
@@ -36,6 +44,7 @@ export function GitRepoPanel() {
   const addChannel = useConsoleStore(s => s.addChannel);
   const removeChannel = useConsoleStore(s => s.removeChannel);
   const setChannelDepth = useConsoleStore(s => s.setChannelDepth);
+  const setChannelKnowledgeType = useConsoleStore(s => s.setChannelKnowledgeType);
   const treeIndexes = useTreeIndexStore(s => s.indexes);
 
   const [repoUrl, setRepoUrl] = useState('');
@@ -317,20 +326,30 @@ export function GitRepoPanel() {
                     </div>
                   )}
 
-                  {/* Knowledge type badge */}
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded w-fit"
-                    style={{ 
+                  {/* Knowledge type selector — click to cycle */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const types = Object.keys(KNOWLEDGE_TYPES) as KnowledgeType[];
+                      const currentIdx = types.indexOf(ch.knowledgeType);
+                      setChannelKnowledgeType(ch.sourceId, (currentIdx + 1) % types.length);
+                    }}
+                    title={`${knowledgeType.label}: ${knowledgeType.instruction}\nClick to change type`}
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded transition-opacity hover:opacity-75 w-fit"
+                    style={{
                       background: `${knowledgeType.color}15`,
-                      border: `1px solid ${knowledgeType.color}40`
-                    }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: knowledgeType.color }} />
-                    <span className="text-[11px] font-medium" style={{ 
-                      color: knowledgeType.color, 
-                      fontFamily: "'Geist Mono', monospace" 
+                      border: `1px solid ${knowledgeType.color}40`,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ fontSize: '11px', lineHeight: 1 }}>{knowledgeType.icon}</span>
+                    <span className="text-[11px] font-medium" style={{
+                      color: knowledgeType.color,
+                      fontFamily: "'Geist Mono', monospace"
                     }}>
                       {knowledgeType.label}
                     </span>
-                  </div>
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -372,20 +391,15 @@ export function GitRepoPanel() {
                   <span style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
                     Depth
                   </span>
-                  <div className="flex items-center gap-2">
-                    <span style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace", fontSize: '11px' }}>
-                      {getDepthLabel(depth)}
-                    </span>
-                    <span style={{ color: '#FE5000', fontFamily: "'Geist Mono', monospace", fontWeight: 600 }}>
-                      {depth}%
-                    </span>
-                  </div>
+                  <span style={{ color: '#FE5000', fontFamily: "'Geist Mono', monospace", fontWeight: 600 }}>
+                    {getDepthLabel(depth)} ({depth}%)
+                  </span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <span className="text-[10px]" style={{ color: t.textFaint }}>10</span>
                   <div className="flex-1 relative h-2 rounded overflow-hidden" style={{ background: t.isDark ? '#ffffff12' : '#00000012' }}>
-                    <div 
+                    <div
                       className="absolute left-0 top-0 h-full rounded transition-all"
                       style={{ width: `${depth}%`, background: '#FE5000' }}
                     />
@@ -397,11 +411,15 @@ export function GitRepoPanel() {
                       value={depth}
                       onChange={e => setChannelDepth(ch.sourceId, Number(e.target.value))}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      aria-label={`Depth level for ${ch.name}: ${depth}%`}
-                      title="Controls how much detail is included from this source"
+                      aria-label={`Depth level for ${ch.name}: ${getDepthLabel(depth)} (${depth}%)`}
+                      title={getDepthTooltip(depth)}
                     />
                   </div>
                   <span className="text-[10px]" style={{ color: t.textFaint }}>100</span>
+                </div>
+
+                <div className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'Geist Mono', monospace" }}>
+                  ~{realTokens >= 1000 ? `${(realTokens / 1000).toFixed(1)}k` : realTokens} tokens at {getDepthLabel(depth)} level
                 </div>
               </div>
 
