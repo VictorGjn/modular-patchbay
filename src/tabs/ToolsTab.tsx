@@ -7,8 +7,9 @@ import { useSkillsStore } from '../store/skillsStore';
 import { useCliToolStore, type CliTool } from '../store/cliToolStore';
 import type { Connector } from '../store/knowledgeBase';
 import { SecurityBadges } from '../components/SecurityBadges';
+import { probeMcpServer, probeAllMcp } from '../services/healthService';
 import {
-  Plug, Zap, Plus, Library, AlertTriangle, Wifi, WifiOff, RotateCcw, Globe, Terminal
+  Plug, Zap, Plus, Library, AlertTriangle, Wifi, WifiOff, RotateCcw, Globe, Terminal, Activity
 } from 'lucide-react';
 
 // V2 Vision: Clean card-based layout for tools and capabilities
@@ -86,7 +87,8 @@ export function ToolsTab() {
     }
   };
 
-  // V2 Vision: Simple card-based layout, no complex probing UI
+  const formatCheckedAt = (epoch: number) =>
+    epoch ? new Date(epoch).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
   // V2 Vision: Simple skill card with toggle, description, and SecurityBadges
   const SkillCard = ({ skill }: { skill: typeof allSkills[0] }) => {
@@ -136,60 +138,74 @@ export function ToolsTab() {
     );
   };
 
-  // V2 Vision: MCP server card with status dot, tool count, and reconnect
+  // V2 Vision: MCP server card with status dot, health check, tool count, and reconnect
   const McpServerCard = ({ server }: { server: typeof mcpServers[0] }) => {
     const health = mcpHealth[server.id];
     const toolCount = health?.toolCount ?? server.tools?.length ?? 0;
     const statusColor = getStatusColor(server);
     const statusLabel = getStatusLabel(server);
     const canReconnect = server.status === 'disconnected' || server.status === 'error';
-    
+    const isChecking = health?.status === 'checking';
+    const checkedAt = health?.checkedAt ? formatCheckedAt(health.checkedAt) : null;
+    const errorTitle = health?.errorMessage ?? undefined;
+
     return (
-      <div 
+      <div
         className="p-4 rounded-lg border"
-        style={{ 
-          background: t.surface,
-          borderColor: t.border,
-        }}
+        style={{ background: t.surface, borderColor: t.border }}
       >
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="flex items-center gap-2">
-            <div 
-              className="w-2 h-2 rounded-full"
+            <div
+              className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ backgroundColor: statusColor }}
+              title={errorTitle}
             />
             <h3 className="text-sm font-medium" style={{ color: t.textPrimary }}>
               {server.name}
             </h3>
           </div>
-          <button 
-            type="button" 
-            aria-label={`Remove ${server.name}`} 
-            title={`Remove ${server.name}`}
-            onClick={() => handleRemoveMcp(server.id)} 
-            className="text-xs p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20"
-            style={{ color: t.textFaint }}
-          >
-            ×
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label={`Check health of ${server.name}`}
+              title={isChecking ? 'Checking…' : 'Run health check'}
+              onClick={() => probeMcpServer(server.id)}
+              disabled={isChecking}
+              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"
+              style={{ color: t.textFaint }}
+            >
+              <Activity size={13} />
+            </button>
+            <button
+              type="button"
+              aria-label={`Remove ${server.name}`}
+              title={`Remove ${server.name}`}
+              onClick={() => handleRemoveMcp(server.id)}
+              className="text-xs p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20"
+              style={{ color: t.textFaint }}
+            >
+              ×
+            </button>
+          </div>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 text-xs" style={{ color: t.textSecondary }}>
-            <span>{statusLabel}</span>
+            <span title={errorTitle}>{statusLabel}</span>
             {toolCount > 0 && (
-              <span 
-                className="px-1.5 py-0.5 rounded"
-                style={{ background: t.badgeBg, color: t.textDim }}
-              >
+              <span className="px-1.5 py-0.5 rounded" style={{ background: t.badgeBg, color: t.textDim }}>
                 {toolCount} tools
               </span>
             )}
+            {checkedAt && (
+              <span style={{ color: t.textFaint }}>checked {checkedAt}</span>
+            )}
           </div>
-          
+
           {canReconnect && (
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => handleReconnectMcp(server.id)}
               title="Reconnect server"
               className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -200,6 +216,16 @@ export function ToolsTab() {
             </button>
           )}
         </div>
+
+        {health?.errorMessage && health.status !== 'healthy' && (
+          <p
+            className="mt-2 text-xs truncate"
+            title={health.errorMessage}
+            style={{ color: '#ef4444' }}
+          >
+            {health.errorMessage}
+          </p>
+        )}
       </div>
     );
   };
@@ -450,26 +476,42 @@ export function ToolsTab() {
                 {mcpServers.length} servers
               </span>
             </div>
-            <button 
-              type="button" 
-              onClick={() => useConsoleStore.getState().setShowConnectionPicker(true)}
-              title="Connect MCP server"
-              className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border transition-colors"
-              style={{ borderColor: t.border, color: t.textSecondary }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = '#FE500010';
-                e.currentTarget.style.borderColor = '#FE5000';
-                e.currentTarget.style.color = '#FE5000';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.borderColor = t.border;
-                e.currentTarget.style.color = t.textSecondary;
-              }}
-            >
-              <Plus size={16} />
-              Connect
-            </button>
+            <div className="flex items-center gap-2">
+              {mcpServers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => probeAllMcp(mcpServers.map(s => s.id))}
+                  title="Check health of all MCP servers"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border transition-colors"
+                  style={{ borderColor: t.border, color: t.textSecondary }}
+                  onMouseEnter={e => { e.currentTarget.style.background = t.surfaceElevated; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <Activity size={14} />
+                  Check All
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => useConsoleStore.getState().setShowConnectionPicker(true)}
+                title="Connect MCP server"
+                className="flex items-center gap-1.5 px-3 py-2 rounded text-sm border transition-colors"
+                style={{ borderColor: t.border, color: t.textSecondary }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#FE500010';
+                  e.currentTarget.style.borderColor = '#FE5000';
+                  e.currentTarget.style.color = '#FE5000';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = t.border;
+                  e.currentTarget.style.color = t.textSecondary;
+                }}
+              >
+                <Plus size={16} />
+                Connect
+              </button>
+            </div>
           </div>
 
           {/* Error banner */}
