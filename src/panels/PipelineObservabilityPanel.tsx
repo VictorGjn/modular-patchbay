@@ -1,9 +1,523 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../theme';
 import { useTraceStore, type TraceEvent } from '../store/traceStore';
-import { ChevronDown, ChevronRight, FileText, Scale, Search, AlertTriangle, GitBranch } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, Scale, Search, AlertTriangle, GitBranch, Code } from 'lucide-react';
+import type {
+  PipelineStageData,
+  SourceAssemblyData,
+  BudgetAllocationData,
+  RetrievalData,
+  ContradictionData,
+  ProvenanceData,
+} from '../types/pipelineStageTypes';
 
-/* ── Pipeline Stage Order ── */
+export type { PipelineStageData };
+
+/* ── Type Guards ── */
+
+function isSourceAssemblyData(d: unknown): d is SourceAssemblyData {
+  return typeof d === 'object' && d !== null && Array.isArray((d as Record<string, unknown>).sources);
+}
+
+function isBudgetAllocationData(d: unknown): d is BudgetAllocationData {
+  return typeof d === 'object' && d !== null && Array.isArray((d as Record<string, unknown>).allocations);
+}
+
+function isRetrievalData(d: unknown): d is RetrievalData {
+  return typeof d === 'object' && d !== null && Array.isArray((d as Record<string, unknown>).chunks);
+}
+
+function isContradictionData(d: unknown): d is ContradictionData {
+  return typeof d === 'object' && d !== null && 'contradictionsFound' in (d as object);
+}
+
+function isProvenanceData(d: unknown): d is ProvenanceData {
+  const rec = d as Record<string, unknown>;
+  return typeof d === 'object' && d !== null && Array.isArray(rec.sources) && Array.isArray(rec.derivationChain);
+}
+
+/* ── Raw JSON Preview ── */
+
+function RawJsonPreview({ data }: { data: unknown }) {
+  const t = useTheme();
+  const [show, setShow] = useState(false);
+  return (
+    <div className="px-4 pb-2">
+      <button
+        type="button"
+        onClick={() => setShow(v => !v)}
+        className="flex items-center gap-1 text-xs border-none bg-transparent cursor-pointer"
+        style={{ color: t.textFaint }}
+      >
+        <Code size={11} />
+        {show ? 'Hide' : 'Show'} raw JSON
+      </button>
+      {show && (
+        <pre
+          className="mt-2 text-xs overflow-auto max-h-40 rounded p-2"
+          style={{ background: t.surfaceElevated, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}
+        >
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+/* ── Stage Fallback ── */
+
+function StageNoData({ name, data }: { name: string; data: unknown }) {
+  const t = useTheme();
+  return (
+    <div className="space-y-1">
+      <div className="px-4 py-2 text-sm" style={{ color: t.textDim }}>
+        No data available for {name}
+      </div>
+      <RawJsonPreview data={data} />
+    </div>
+  );
+}
+
+/* ── Stage Components ── */
+
+function SourceAssemblyStage({ data, expanded, onToggle }: {
+  data: unknown;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const t = useTheme();
+  const typed = isSourceAssemblyData(data) ? data : null;
+  const includedCount = typed ? typed.sources.filter(s => s.included).length : 0;
+
+  return (
+    <div className="border-b" style={{ borderColor: t.border }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        title={expanded ? 'Collapse source assembly' : 'Expand source assembly'}
+        className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
+        style={{ background: 'transparent', color: t.textPrimary }}
+      >
+        <FileText size={16} style={{ color: '#3b82f6' }} />
+        <span className="flex-1 font-medium">Source Assembly</span>
+        {typed && (
+          <span className="text-sm" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+            {includedCount}/{typed.sources.length} sources
+          </span>
+        )}
+        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+      </button>
+
+      {expanded && (
+        <>
+          {!typed ? (
+            <StageNoData name="Source Assembly" data={data} />
+          ) : (
+            <div className="px-4 pb-4 space-y-2">
+              {typed.sources.map((source, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-3 p-3 rounded-lg"
+                  style={{
+                    background: source.included ? t.surface : t.surfaceElevated,
+                    border: `1px solid ${source.included ? t.border : t.borderSubtle}`,
+                  }}
+                >
+                  <div className={`w-2 h-2 rounded-full ${source.included ? 'bg-green-500' : 'bg-gray-400'}`} />
+                  <div className="flex-1">
+                    <div className="font-medium text-sm" style={{ color: t.textPrimary }}>{source.name}</div>
+                    <div className="text-xs" style={{ color: t.textDim }}>
+                      {source.type} • {source.rawTokens.toLocaleString()} tokens
+                    </div>
+                  </div>
+                  {source.reason && (
+                    <div className="text-xs px-2 py-1 rounded" style={{
+                      background: source.included ? '#10b98115' : '#ef444415',
+                      color: source.included ? '#10b981' : '#ef4444',
+                    }}>
+                      {source.reason}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <RawJsonPreview data={data} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function BudgetAllocationStage({ data, expanded, onToggle }: {
+  data: unknown;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const t = useTheme();
+  const typed = isBudgetAllocationData(data) ? data : null;
+  const totalAllocated = typed ? typed.allocations.reduce((sum, a) => sum + a.allocatedTokens, 0) : 0;
+  const totalUsed = typed ? typed.allocations.reduce((sum, a) => sum + a.usedTokens, 0) : 0;
+  const utilizationRate = totalAllocated > 0 ? (totalUsed / totalAllocated) * 100 : 0;
+
+  return (
+    <div className="border-b" style={{ borderColor: t.border }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
+        style={{ background: 'transparent', color: t.textPrimary }}
+      >
+        <Scale size={16} style={{ color: '#8b5cf6' }} />
+        <span className="flex-1 font-medium">Budget Allocation</span>
+        {typed && (
+          <span className="text-sm" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+            {utilizationRate.toFixed(0)}% utilized
+          </span>
+        )}
+        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+      </button>
+
+      {expanded && (
+        <>
+          {!typed ? (
+            <StageNoData name="Budget Allocation" data={data} />
+          ) : (
+            <div className="px-4 pb-4 space-y-3">
+              <div className="space-y-2">
+                {typed.allocations.map((allocation, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span style={{ color: t.textPrimary }}>{allocation.source}</span>
+                      <span style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                        {allocation.usedTokens.toLocaleString()}/{allocation.allocatedTokens.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex gap-1 h-2 rounded" style={{ background: t.surfaceElevated }}>
+                      <div
+                        className="h-full rounded"
+                        style={{
+                          width: `${allocation.percentage}%`,
+                          background: allocation.cappedBySize ? '#f59e0b' : '#10b981',
+                        }}
+                      />
+                      <div
+                        className="h-full rounded"
+                        style={{
+                          width: `${Math.max(0, allocation.percentage - (allocation.usedTokens / typed.totalBudget) * 100)}%`,
+                          background: allocation.cappedBySize ? '#f59e0b30' : '#10b98130',
+                        }}
+                      />
+                    </div>
+                    {allocation.cappedBySize && (
+                      <div className="text-xs" style={{ color: '#f59e0b' }}>Capped by content size</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <RawJsonPreview data={data} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function RetrievalStage({ data, expanded, onToggle }: {
+  data: unknown;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const t = useTheme();
+  const typed = isRetrievalData(data) ? data : null;
+  const diversityColor = typed
+    ? typed.diversityScore > 0.5 ? '#10b981' : typed.diversityScore > 0.3 ? '#f59e0b' : '#ef4444'
+    : t.textDim;
+
+  return (
+    <div className="border-b" style={{ borderColor: t.border }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
+        style={{ background: 'transparent', color: t.textPrimary }}
+      >
+        <Search size={16} style={{ color: '#06b6d4' }} />
+        <span className="flex-1 font-medium">Retrieval</span>
+        {typed && (
+          <span className="text-sm" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+            {typed.selectedChunks}/{typed.totalChunks} chunks • {(typed.diversityScore * 100).toFixed(0)}% diversity
+          </span>
+        )}
+        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+      </button>
+
+      {expanded && (
+        <>
+          {!typed ? (
+            <StageNoData name="Retrieval" data={data} />
+          ) : (
+            <div className="px-4 pb-4 space-y-3">
+              <div className="flex items-center gap-3 p-2 rounded" style={{ background: t.surface }}>
+                <div className="text-sm font-medium" style={{ color: t.textPrimary }}>Query Type:</div>
+                <span className="px-2 py-1 text-xs rounded" style={{
+                  background: typed.queryType === 'factual' ? '#3b82f615' : typed.queryType === 'analytical' ? '#f59e0b15' : '#8b5cf615',
+                  color: typed.queryType === 'factual' ? '#3b82f6' : typed.queryType === 'analytical' ? '#f59e0b' : '#8b5cf6',
+                }}>
+                  {typed.queryType}
+                </span>
+                <div className="ml-auto text-sm" style={{ color: diversityColor }}>
+                  Diversity: {(typed.diversityScore * 100).toFixed(1)}%
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {typed.chunks
+                  .sort((a, b) => b.relevanceScore - a.relevanceScore)
+                  .map((chunk, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-2 rounded" style={{ background: t.surface }}>
+                      <div className="w-8 text-xs text-center" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                        #{idx + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium" style={{ color: t.textPrimary }}>{chunk.source}</div>
+                        <div className="text-xs" style={{ color: t.textDim }}>{chunk.section}</div>
+                      </div>
+                      <div className="text-xs px-2 py-1 rounded" style={{
+                        background: chunk.inclusionReason === 'direct' ? '#10b98115' :
+                                    chunk.inclusionReason === 'parent-expansion' ? '#3b82f615' : '#8b5cf615',
+                        color: chunk.inclusionReason === 'direct' ? '#10b981' :
+                               chunk.inclusionReason === 'parent-expansion' ? '#3b82f6' : '#8b5cf6',
+                      }}>
+                        {chunk.inclusionReason.replace('-', ' ')}
+                      </div>
+                      <div className="text-xs" style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+                        {chunk.relevanceScore.toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+          <RawJsonPreview data={data} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function ContradictionStage({ data, expanded, onToggle }: {
+  data: unknown;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const t = useTheme();
+  const typed = isContradictionData(data) ? data : null;
+  const hasContradictions = typed ? typed.contradictionsFound > 0 : false;
+
+  return (
+    <div className="border-b" style={{ borderColor: t.border }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
+        style={{ background: 'transparent', color: t.textPrimary }}
+      >
+        <AlertTriangle size={16} style={{ color: hasContradictions ? '#ef4444' : '#10b981' }} />
+        <span className="flex-1 font-medium">Contradiction Check</span>
+        {typed && (
+          <span className="text-sm" style={{ color: hasContradictions ? '#ef4444' : '#10b981', fontFamily: "'Geist Mono', monospace" }}>
+            {typed.contradictionsFound} conflicts
+          </span>
+        )}
+        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+      </button>
+
+      {expanded && (
+        <>
+          {!typed ? (
+            <StageNoData name="Contradiction Check" data={data} />
+          ) : (
+            <div className="px-4 pb-4 space-y-3">
+              {hasContradictions ? (
+                <div className="space-y-3">
+                  {typed.conflicts.map((conflict, idx) => (
+                    <div key={idx} className="p-3 rounded-lg border" style={{ background: '#ef444415', borderColor: '#ef444430' }}>
+                      <div className="font-medium text-sm mb-2" style={{ color: '#ef4444' }}>Conflict #{idx + 1}</div>
+                      <div className="space-y-1 text-sm">
+                        <div style={{ color: t.textPrimary }}>
+                          <span style={{ color: t.textDim }}>Sources:</span> {conflict.sources.join(', ')}
+                        </div>
+                        <div style={{ color: t.textPrimary }}>
+                          <span style={{ color: t.textDim }}>Resolved to:</span> {conflict.resolvedTo}
+                        </div>
+                        <div style={{ color: t.textDim }}>{conflict.reason}</div>
+                        <div className="text-xs" style={{ color: '#f59e0b', fontFamily: "'Geist Mono', monospace" }}>
+                          Confidence: {(conflict.confidence * 100).toFixed(0)}%
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {typed.annotations.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium" style={{ color: t.textDim }}>Resolution Notes:</div>
+                      {typed.annotations.map((annotation, idx) => (
+                        <div key={idx} className="text-xs p-2 rounded" style={{ background: t.surface, color: t.textDim }}>
+                          {annotation}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="text-sm" style={{ color: '#10b981' }}>No contradictions detected</div>
+                  <div className="text-xs mt-1" style={{ color: t.textDim }}>All sources are consistent</div>
+                </div>
+              )}
+            </div>
+          )}
+          <RawJsonPreview data={data} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function ProvenanceStage({ data, expanded, onToggle }: {
+  data: unknown;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const t = useTheme();
+  const typed = isProvenanceData(data) ? data : null;
+  const totalTransformations = typed ? typed.sources.reduce((sum, s) => sum + s.transformations.length, 0) : 0;
+
+  return (
+    <div className="border-b" style={{ borderColor: t.border }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
+        style={{ background: 'transparent', color: t.textPrimary }}
+      >
+        <GitBranch size={16} style={{ color: '#f59e0b' }} />
+        <span className="flex-1 font-medium">Provenance</span>
+        {typed && (
+          <span className="text-sm" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+            {typed.sources.length} sources • {totalTransformations} transforms
+          </span>
+        )}
+        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+      </button>
+
+      {expanded && (
+        <>
+          {!typed ? (
+            <StageNoData name="Provenance" data={data} />
+          ) : (
+            <div className="px-4 pb-4 space-y-3">
+              <div className="space-y-2">
+                {typed.derivationChain.map((derivation, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-2 rounded" style={{ background: t.surface }}>
+                    <div className="w-8 text-xs text-center" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                      #{idx + 1}
+                    </div>
+                    <div className="flex-1 text-sm">
+                      <span style={{ color: t.textPrimary }}>{derivation.from}</span>
+                      <span style={{ color: t.textDim, margin: '0 8px' }}>→</span>
+                      <span style={{ color: t.textSecondary }}>{derivation.to}</span>
+                    </div>
+                    <div className="text-xs px-2 py-1 rounded" style={{ background: '#f59e0b15', color: '#f59e0b' }}>
+                      {derivation.method}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {typed.sources.length > 0 && (
+                <div className="mt-4">
+                  <div className="text-sm font-medium mb-2" style={{ color: t.textDim }}>Source Transformations:</div>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {typed.sources.map((source, idx) => (
+                      <div key={idx} className="p-2 rounded" style={{ background: t.surface }}>
+                        <div className="text-sm font-medium mb-1" style={{ color: t.textPrimary }}>{source.path}</div>
+                        <div className="text-xs" style={{ color: t.textDim }}>{source.type}</div>
+                        {source.transformations.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {source.transformations.map((transform, tIdx) => (
+                              <div key={tIdx} className="text-xs flex items-center gap-2" style={{ color: t.textDim }}>
+                                <span>{transform.input}</span>
+                                <span>→</span>
+                                <span>{transform.output}</span>
+                                <span className="ml-auto text-xs px-1 py-0.5 rounded" style={{ background: t.surfaceElevated, color: t.textDim }}>
+                                  {transform.method}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <RawJsonPreview data={data} />
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Event Timeline ── */
+
+const KIND_META: Record<string, { color: string; label: string }> = {
+  retrieval: { color: '#3498db', label: 'Retrieval' },
+  llm_call: { color: '#9b59b6', label: 'LLM' },
+  tool_call: { color: '#2ecc71', label: 'Tool' },
+  error: { color: '#e74c3c', label: 'Error' },
+  fact_extracted: { color: '#FE5000', label: 'Fact' },
+  token_usage: { color: '#f1c40f', label: 'Tokens' },
+};
+
+function EventTimeline({ events }: { events: TraceEvent[] }) {
+  const t = useTheme();
+  if (events.length === 0) return null;
+  return (
+    <div className="px-4 py-3 space-y-2 border-t" style={{ borderColor: t.border }}>
+      <div className="text-xs font-medium mb-2" style={{ color: t.textDim }}>Event Timeline</div>
+      {events.map((evt, i) => {
+        const meta = KIND_META[evt.kind] || { color: '#888', label: evt.kind };
+        const name = evt.sourceName || evt.toolName || evt.model || evt.kind;
+        const tokens = (evt.inputTokens || 0) + (evt.outputTokens || 0);
+        return (
+          <div key={i} className="flex items-center gap-3 p-2 rounded" style={{ background: t.isDark ? '#ffffff06' : '#00000006' }}>
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: meta.color }} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] px-1.5 py-0.5 rounded font-medium" style={{ background: `${meta.color}20`, color: meta.color, fontFamily: "'Geist Mono', monospace" }}>
+                  {meta.label}
+                </span>
+                <span className="text-[12px] font-medium truncate" style={{ color: t.textPrimary }}>{name}</span>
+              </div>
+              {evt.query && <div className="text-[11px] mt-0.5 truncate" style={{ color: t.textDim }}>{evt.query}</div>}
+            </div>
+            <div className="shrink-0 text-right">
+              {evt.durationMs != null && <div className="text-[11px]" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>{evt.durationMs}ms</div>}
+              {evt.resultCount != null && <div className="text-[10px]" style={{ color: t.textFaint }}>{evt.resultCount} results</div>}
+              {tokens > 0 && <div className="text-[10px]" style={{ color: t.textFaint }}>{tokens} tok</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Pipeline Stepper ── */
 
 const PIPELINE_STAGE_ORDER = [
   'source_assembly', 'budget_allocation', 'retrieval', 'contradiction_check', 'provenance',
@@ -19,108 +533,12 @@ const STAGE_LABELS: Record<PipelineStageName, string> = {
   provenance: 'Provenance',
 };
 
-/* ── Pipeline Stage Types ── */
-
-export interface PipelineStageData {
-  stage: 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance';
-  timestamp: number;
-  durationMs?: number;
-  data: unknown;
-}
-
-export interface SourceAssemblyData {
-  sources: Array<{
-    name: string;
-    type: string;
-    rawTokens: number;
-    included: boolean;
-    reason?: string;
-  }>;
-}
-
-export interface BudgetAllocationData {
-  totalBudget: number;
-  allocations: Array<{
-    source: string;
-    allocatedTokens: number;
-    usedTokens: number;
-    percentage: number;
-    cappedBySize: boolean;
-    priority: number;
-  }>;
-}
-
-export interface RetrievalData {
-  query: string;
-  queryType: 'factual' | 'analytical' | 'exploratory';
-  chunks: Array<{
-    source: string;
-    section: string;
-    relevanceScore: number;
-    inclusionReason: 'direct' | 'parent-expansion' | 'sibling-coherence';
-  }>;
-  diversityScore: number;
-  totalChunks: number;
-  selectedChunks: number;
-}
-
-export interface ContradictionData {
-  contradictionsFound: number;
-  conflicts: Array<{
-    sources: string[];
-    resolvedTo: string;
-    reason: string;
-    confidence: number;
-  }>;
-  annotations: string[];
-}
-
-export interface ProvenanceData {
-  sources: Array<{
-    path: string;
-    type: string;
-    transformations: Array<{
-      method: string;
-      input: string;
-      output: string;
-    }>;
-  }>;
-  derivationChain: Array<{
-    from: string;
-    method: string;
-    to: string;
-  }>;
-}
-
-/* ── Progress Stepper ── */
-
 function StageCircle({ status }: { status: 'pending' | 'active' | 'done' | 'error' }) {
   const base = 'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0';
   if (status === 'error') return <div className={base} style={{ background: '#ef4444', color: 'white' }}>✕</div>;
   if (status === 'done') return <div className={base} style={{ background: '#10b981', color: 'white' }}>✓</div>;
   if (status === 'active') return <div className={`${base} animate-pulse`} style={{ background: '#FE5000' }} />;
   return <div className={base} style={{ background: '#6b7280' }} />;
-}
-
-function StageStep({ stageName, stageData, status }: {
-  stageName: PipelineStageName;
-  stageData: PipelineStageData | undefined;
-  status: 'pending' | 'active' | 'done' | 'error';
-}) {
-  const t = useTheme();
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <StageCircle status={status} />
-      <span className="text-[10px] text-center leading-tight" style={{ color: t.textDim }}>
-        {STAGE_LABELS[stageName]}
-      </span>
-      {stageData?.durationMs !== undefined && (
-        <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'Geist Mono', monospace" }}>
-          {stageData.durationMs}ms
-        </span>
-      )}
-    </div>
-  );
 }
 
 function PipelineStepper({ stages, hasError }: { stages: Map<string, PipelineStageData>; hasError: boolean }) {
@@ -141,7 +559,17 @@ function PipelineStepper({ stages, hasError }: { stages: Map<string, PipelineSta
         const connectorLit = isDone || isActive;
         return (
           <div key={stageName} className="flex items-center flex-1 min-w-0">
-            <StageStep stageName={stageName} stageData={stageData} status={status} />
+            <div className="flex flex-col items-center gap-0.5">
+              <StageCircle status={status} />
+              <span className="text-[10px] text-center leading-tight" style={{ color: t.textDim }}>
+                {STAGE_LABELS[stageName]}
+              </span>
+              {stageData?.durationMs !== undefined && (
+                <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'Geist Mono', monospace" }}>
+                  {stageData.durationMs}ms
+                </span>
+              )}
+            </div>
             {i < PIPELINE_STAGE_ORDER.length - 1 && (
               <div
                 className="flex-1 h-px mx-1"
@@ -151,426 +579,6 @@ function PipelineStepper({ stages, hasError }: { stages: Map<string, PipelineSta
           </div>
         );
       })}
-    </div>
-  );
-}
-
-/* ── Stage Components ── */
-
-function SourceAssemblyStage({ data, expanded, onToggle }: { 
-  data: SourceAssemblyData; 
-  expanded: boolean; 
-  onToggle: () => void; 
-}) {
-  const t = useTheme();
-  const includedCount = data.sources.filter(s => s.included).length;
-  const totalCount = data.sources.length;
-
-  return (
-    <div className="border-b" style={{ borderColor: t.border }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        title={expanded ? 'Collapse source assembly' : 'Expand source assembly'}
-        className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
-        style={{ background: 'transparent', color: t.textPrimary }}
-      >
-        <FileText size={16} style={{ color: '#3b82f6' }} />
-        <span className="flex-1 font-medium">Source Assembly</span>
-        <span className="text-sm" style={{ 
-          color: t.textDim, 
-          fontFamily: "'Geist Mono', monospace" 
-        }}>
-          {includedCount}/{totalCount} sources
-        </span>
-        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-      </button>
-      
-      {expanded && (
-        <div className="px-4 pb-4 space-y-2">
-          {data.sources.map((source, idx) => (
-            <div
-              key={idx}
-              className="flex items-center gap-3 p-3 rounded-lg"
-              style={{ 
-                background: source.included ? t.surface : t.surfaceElevated,
-                border: `1px solid ${source.included ? t.border : t.borderSubtle}`
-              }}
-            >
-              <div className={`w-2 h-2 rounded-full ${source.included ? 'bg-green-500' : 'bg-gray-400'}`} />
-              <div className="flex-1">
-                <div className="font-medium text-sm" style={{ color: t.textPrimary }}>
-                  {source.name}
-                </div>
-                <div className="text-xs" style={{ color: t.textDim }}>
-                  {source.type} • {source.rawTokens.toLocaleString()} tokens
-                </div>
-              </div>
-              {source.reason && (
-                <div className="text-xs px-2 py-1 rounded" style={{ 
-                  background: source.included ? '#10b98115' : '#ef444415',
-                  color: source.included ? '#10b981' : '#ef4444'
-                }}>
-                  {source.reason}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function BudgetAllocationStage({ data, expanded, onToggle }: { 
-  data: BudgetAllocationData; 
-  expanded: boolean; 
-  onToggle: () => void; 
-}) {
-  const t = useTheme();
-  const totalAllocated = data.allocations.reduce((sum, a) => sum + a.allocatedTokens, 0);
-  const totalUsed = data.allocations.reduce((sum, a) => sum + a.usedTokens, 0);
-  const utilizationRate = totalAllocated > 0 ? (totalUsed / totalAllocated) * 100 : 0;
-
-  return (
-    <div className="border-b" style={{ borderColor: t.border }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
-        style={{ background: 'transparent', color: t.textPrimary }}
-      >
-        <Scale size={16} style={{ color: '#8b5cf6' }} />
-        <span className="flex-1 font-medium">Budget Allocation</span>
-        <span className="text-sm" style={{ 
-          color: t.textDim, 
-          fontFamily: "'Geist Mono', monospace" 
-        }}>
-          {utilizationRate.toFixed(0)}% utilized
-        </span>
-        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-      </button>
-      
-      {expanded && (
-        <div className="px-4 pb-4 space-y-3">
-          <div className="space-y-2">
-            {data.allocations.map((allocation, idx) => (
-              <div key={idx} className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span style={{ color: t.textPrimary }}>
-                    {allocation.source}
-                  </span>
-                  <span style={{ 
-                    color: t.textDim, 
-                    fontFamily: "'Geist Mono', monospace" 
-                  }}>
-                    {allocation.usedTokens.toLocaleString()}/{allocation.allocatedTokens.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex gap-1 h-2 rounded" style={{ background: t.surfaceElevated }}>
-                  <div 
-                    className="h-full rounded"
-                    style={{ 
-                      width: `${allocation.percentage}%`,
-                      background: allocation.cappedBySize ? '#f59e0b' : '#10b981'
-                    }}
-                  />
-                  <div 
-                    className="h-full rounded"
-                    style={{ 
-                      width: `${Math.max(0, allocation.percentage - (allocation.usedTokens / data.totalBudget) * 100)}%`,
-                      background: allocation.cappedBySize ? '#f59e0b30' : '#10b98130'
-                    }}
-                  />
-                </div>
-                {allocation.cappedBySize && (
-                  <div className="text-xs" style={{ color: '#f59e0b' }}>
-                    Capped by content size
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function RetrievalStage({ data, expanded, onToggle }: { 
-  data: RetrievalData; 
-  expanded: boolean; 
-  onToggle: () => void; 
-}) {
-  const t = useTheme();
-  const diversityColor = data.diversityScore > 0.5 ? '#10b981' : data.diversityScore > 0.3 ? '#f59e0b' : '#ef4444';
-
-  return (
-    <div className="border-b" style={{ borderColor: t.border }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
-        style={{ background: 'transparent', color: t.textPrimary }}
-      >
-        <Search size={16} style={{ color: '#06b6d4' }} />
-        <span className="flex-1 font-medium">Retrieval</span>
-        <span className="text-sm" style={{ 
-          color: t.textDim, 
-          fontFamily: "'Geist Mono', monospace" 
-        }}>
-          {data.selectedChunks}/{data.totalChunks} chunks • {(data.diversityScore * 100).toFixed(0)}% diversity
-        </span>
-        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-      </button>
-      
-      {expanded && (
-        <div className="px-4 pb-4 space-y-3">
-          <div className="flex items-center gap-3 p-2 rounded" style={{ background: t.surface }}>
-            <div className="text-sm font-medium" style={{ color: t.textPrimary }}>
-              Query Type:
-            </div>
-            <span className="px-2 py-1 text-xs rounded" style={{
-              background: data.queryType === 'factual' ? '#3b82f615' : 
-                          data.queryType === 'analytical' ? '#f59e0b15' : '#8b5cf615',
-              color: data.queryType === 'factual' ? '#3b82f6' : 
-                     data.queryType === 'analytical' ? '#f59e0b' : '#8b5cf6'
-            }}>
-              {data.queryType}
-            </span>
-            <div className="ml-auto text-sm" style={{ color: diversityColor }}>
-              Diversity: {(data.diversityScore * 100).toFixed(1)}%
-            </div>
-          </div>
-          
-          <div className="space-y-2 max-h-60 overflow-y-auto">
-            {data.chunks
-              .sort((a, b) => b.relevanceScore - a.relevanceScore)
-              .map((chunk, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-3 p-2 rounded"
-                  style={{ background: t.surface }}
-                >
-                  <div className="w-8 text-xs text-center" style={{ 
-                    color: t.textDim,
-                    fontFamily: "'Geist Mono', monospace" 
-                  }}>
-                    #{idx + 1}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium" style={{ color: t.textPrimary }}>
-                      {chunk.source}
-                    </div>
-                    <div className="text-xs" style={{ color: t.textDim }}>
-                      {chunk.section}
-                    </div>
-                  </div>
-                  <div className="text-xs px-2 py-1 rounded" style={{
-                    background: chunk.inclusionReason === 'direct' ? '#10b98115' :
-                                chunk.inclusionReason === 'parent-expansion' ? '#3b82f615' : '#8b5cf615',
-                    color: chunk.inclusionReason === 'direct' ? '#10b981' :
-                           chunk.inclusionReason === 'parent-expansion' ? '#3b82f6' : '#8b5cf6'
-                  }}>
-                    {chunk.inclusionReason.replace('-', ' ')}
-                  </div>
-                  <div className="text-xs" style={{ 
-                    fontFamily: "'Geist Mono', monospace",
-                    color: t.textDim 
-                  }}>
-                    {chunk.relevanceScore.toFixed(2)}
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ContradictionStage({ data, expanded, onToggle }: { 
-  data: ContradictionData; 
-  expanded: boolean; 
-  onToggle: () => void; 
-}) {
-  const t = useTheme();
-  const hasContradictions = data.contradictionsFound > 0;
-
-  return (
-    <div className="border-b" style={{ borderColor: t.border }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
-        style={{ background: 'transparent', color: t.textPrimary }}
-      >
-        <AlertTriangle size={16} style={{ color: hasContradictions ? '#ef4444' : '#10b981' }} />
-        <span className="flex-1 font-medium">Contradiction Check</span>
-        <span className="text-sm" style={{ 
-          color: hasContradictions ? '#ef4444' : '#10b981', 
-          fontFamily: "'Geist Mono', monospace" 
-        }}>
-          {data.contradictionsFound} conflicts
-        </span>
-        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-      </button>
-      
-      {expanded && (
-        <div className="px-4 pb-4 space-y-3">
-          {hasContradictions ? (
-            <div className="space-y-3">
-              {data.conflicts.map((conflict, idx) => (
-                <div key={idx} className="p-3 rounded-lg border" style={{ 
-                  background: '#ef444415',
-                  borderColor: '#ef444430'
-                }}>
-                  <div className="font-medium text-sm mb-2" style={{ color: '#ef4444' }}>
-                    Conflict #{idx + 1}
-                  </div>
-                  <div className="space-y-1 text-sm">
-                    <div style={{ color: t.textPrimary }}>
-                      <span style={{ color: t.textDim }}>Sources:</span> {conflict.sources.join(', ')}
-                    </div>
-                    <div style={{ color: t.textPrimary }}>
-                      <span style={{ color: t.textDim }}>Resolved to:</span> {conflict.resolvedTo}
-                    </div>
-                    <div style={{ color: t.textDim }}>
-                      {conflict.reason}
-                    </div>
-                    <div className="text-xs" style={{ 
-                      color: '#f59e0b',
-                      fontFamily: "'Geist Mono', monospace"
-                    }}>
-                      Confidence: {(conflict.confidence * 100).toFixed(0)}%
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {data.annotations.length > 0 && (
-                <div className="space-y-1">
-                  <div className="text-sm font-medium" style={{ color: t.textDim }}>
-                    Resolution Notes:
-                  </div>
-                  {data.annotations.map((annotation, idx) => (
-                    <div key={idx} className="text-xs p-2 rounded" style={{ 
-                      background: t.surface,
-                      color: t.textDim 
-                    }}>
-                      {annotation}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <div className="text-sm" style={{ color: '#10b981' }}>
-                No contradictions detected
-              </div>
-              <div className="text-xs mt-1" style={{ color: t.textDim }}>
-                All sources are consistent
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ProvenanceStage({ data, expanded, onToggle }: { 
-  data: ProvenanceData; 
-  expanded: boolean; 
-  onToggle: () => void; 
-}) {
-  const t = useTheme();
-  const totalTransformations = data.sources.reduce((sum, s) => sum + s.transformations.length, 0);
-
-  return (
-    <div className="border-b" style={{ borderColor: t.border }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
-        style={{ background: 'transparent', color: t.textPrimary }}
-      >
-        <GitBranch size={16} style={{ color: '#f59e0b' }} />
-        <span className="flex-1 font-medium">Provenance</span>
-        <span className="text-sm" style={{ 
-          color: t.textDim, 
-          fontFamily: "'Geist Mono', monospace" 
-        }}>
-          {data.sources.length} sources • {totalTransformations} transforms
-        </span>
-        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-      </button>
-      
-      {expanded && (
-        <div className="px-4 pb-4 space-y-3">
-          <div className="space-y-2">
-            {data.derivationChain.map((derivation, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-2 rounded" style={{ background: t.surface }}>
-                <div className="w-8 text-xs text-center" style={{ 
-                  color: t.textDim,
-                  fontFamily: "'Geist Mono', monospace" 
-                }}>
-                  #{idx + 1}
-                </div>
-                <div className="flex-1 text-sm">
-                  <span style={{ color: t.textPrimary }}>{derivation.from}</span>
-                  <span style={{ color: t.textDim, margin: '0 8px' }}>→</span>
-                  <span style={{ color: t.textSecondary }}>{derivation.to}</span>
-                </div>
-                <div className="text-xs px-2 py-1 rounded" style={{
-                  background: '#f59e0b15',
-                  color: '#f59e0b'
-                }}>
-                  {derivation.method}
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {data.sources.length > 0 && (
-            <div className="mt-4">
-              <div className="text-sm font-medium mb-2" style={{ color: t.textDim }}>
-                Source Transformations:
-              </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {data.sources.map((source, idx) => (
-                  <div key={idx} className="p-2 rounded" style={{ background: t.surface }}>
-                    <div className="text-sm font-medium mb-1" style={{ color: t.textPrimary }}>
-                      {source.path}
-                    </div>
-                    <div className="text-xs" style={{ color: t.textDim }}>
-                      {source.type}
-                    </div>
-                    {source.transformations.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        {source.transformations.map((transform, tIdx) => (
-                          <div key={tIdx} className="text-xs flex items-center gap-2" style={{ color: t.textDim }}>
-                            <span>{transform.input}</span>
-                            <span>→</span>
-                            <span>{transform.output}</span>
-                            <span className="ml-auto text-xs px-1 py-0.5 rounded" style={{
-                              background: t.surfaceElevated,
-                              color: t.textDim
-                            }}>
-                              {transform.method}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -586,17 +594,13 @@ export function PipelineObservabilityPanel() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const trace = getDisplayTrace();
-  
-  // Extract ALL trace events (not just pipeline_stage)
-  const allEvents = trace?.events || [];
-  
-  // Extract structured pipeline stages if available
+  const allEvents = trace?.events ?? [];
+
   const pipelineEvents = allEvents.filter(
-    (event): event is TraceEvent & { kind: 'pipeline_stage' } => 
+    (event): event is TraceEvent & { kind: 'pipeline_stage' } =>
       event.kind === 'pipeline_stage'
   );
 
-  // Group structured events by stage
   const stages = new Map<string, PipelineStageData>();
   for (const event of pipelineEvents) {
     if (event.provenanceStages) {
@@ -605,68 +609,44 @@ export function PipelineObservabilityPanel() {
       }
     }
   }
-  
-  // If no structured stages, build from regular trace events
-  const hasStructuredStages = stages.size > 0;
-  const hasError = allEvents.some(e => e.kind === 'error');
-  const eventStages = !hasStructuredStages ? allEvents.map(e => ({
-    id: e.id,
-    kind: e.kind,
-    name: e.sourceName || e.toolName || e.model || e.kind,
-    duration: e.durationMs,
-    query: e.query,
-    resultCount: e.resultCount,
-    tokens: (e.inputTokens || 0) + (e.outputTokens || 0),
-    memoryFacts: e.memoryFactCount,
-  })) : [];
 
   const toggleStage = (stageName: string) => {
     const newExpanded = new Set(expandedStages);
-    if (newExpanded.has(stageName)) {
-      newExpanded.delete(stageName);
-    } else {
-      newExpanded.add(stageName);
-    }
+    if (newExpanded.has(stageName)) newExpanded.delete(stageName);
+    else newExpanded.add(stageName);
     setExpandedStages(newExpanded);
   };
 
-  // Auto-scroll to bottom when new events arrive
+  const hasError = allEvents.some(e => e.kind === 'error');
+
+  // Auto-expand newly completed stages
+  useEffect(() => {
+    for (const event of pipelineEvents) {
+      if (event.provenanceStages) {
+        for (const stage of event.provenanceStages) {
+          if (stage.durationMs !== undefined && !expandedStages.has(stage.stage)) {
+            setExpandedStages(prev => new Set([...prev, stage.stage]));
+          }
+        }
+      }
+    }
+  }, [eventVersion]);
+
   useEffect(() => {
     if (scrollRef.current && pipelineEvents.length > 0) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [eventVersion, pipelineEvents.length]);
 
-  // Auto-expand the current in-progress stage
-  useEffect(() => {
-    const displayTrace = useTraceStore.getState().getDisplayTrace();
-    if (!displayTrace) return;
-    for (const evt of displayTrace.events) {
-      if (evt.kind !== 'pipeline_stage') continue;
-      for (const stage of (evt.provenanceStages ?? [])) {
-        if (stage.durationMs === undefined) {
-          setExpandedStages(prev => new Set([...prev, stage.stage]));
-        }
-      }
-    }
-  }, [eventVersion]);
+  /* ── Empty States ── */
 
-  const hasAnyData = pipelineEvents.length > 0 || eventStages.length > 0;
-
-  if (!hasAnyData) {
+  if (!trace) {
     return (
       <div className="flex flex-col h-full">
-        <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: t.border }}>
-          <div className="w-2 h-2 rounded-full bg-gray-400" />
-          <span className="text-sm font-medium" style={{ color: t.textDim }}>
-            Pipeline Observability
-          </span>
-        </div>
+        <PanelHeader selectedTraceId={selectedTraceId} stageCount={0} eventCount={0} />
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center">
-            <div className="text-sm" style={{ color: t.textDim }}>
-              No pipeline data available
-            </div>
+            <div className="text-sm" style={{ color: t.textDim }}>No trace yet</div>
             <div className="text-xs mt-2" style={{ color: t.textFaint }}>
               Run a chat in the Test tab to see how your agent processes knowledge through the pipeline.
             </div>
@@ -676,118 +656,109 @@ export function PipelineObservabilityPanel() {
     );
   }
 
-  // Event kind to color/label mapping
-  const kindMeta: Record<string, { color: string; label: string }> = {
-    retrieval: { color: '#3498db', label: 'Retrieval' },
-    llm_call: { color: '#9b59b6', label: 'LLM' },
-    tool_call: { color: '#2ecc71', label: 'Tool' },
-    error: { color: '#e74c3c', label: 'Error' },
-    fact_extracted: { color: '#FE5000', label: 'Fact' },
-    token_usage: { color: '#f1c40f', label: 'Tokens' },
-  };
+  if (allEvents.length === 0) {
+    return (
+      <div className="flex flex-col h-full">
+        <PanelHeader selectedTraceId={selectedTraceId} stageCount={0} eventCount={0} />
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="text-sm" style={{ color: t.textDim }}>Trace started, waiting for events…</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: t.border }}>
-        <div className={`w-2 h-2 rounded-full ${selectedTraceId ? 'bg-blue-500' : 'bg-green-500 animate-pulse'}`} />
-        <span className="text-sm font-medium" style={{ color: t.textPrimary }}>
-          Pipeline Observability
-        </span>
-        {selectedTraceId && (
-          <button
-            type="button"
-            onClick={() => useTraceStore.getState().selectTrace(null)}
-            title="Stop viewing past trace"
-            className="text-[10px] px-1.5 py-0.5 rounded border-none cursor-pointer"
-            style={{ background: '#3b82f620', color: '#3b82f6', fontFamily: "'Geist Mono', monospace" }}
-          >
-            viewing past · ✕
-          </button>
-        )}
-        <span className="ml-auto text-xs" style={{ 
-          color: t.textDim,
-          fontFamily: "'Geist Mono', monospace" 
-        }}>
-          {stages.size} stage{stages.size !== 1 ? 's' : ''}
-        </span>
-      </div>
-
-      {/* Progress stepper — only when pipeline stages are present */}
-      {stages.size > 0 && <PipelineStepper stages={stages} hasError={hasError} />}
+      <PanelHeader selectedTraceId={selectedTraceId} stageCount={stages.size} eventCount={allEvents.length} />
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        {/* Event Timeline (from regular trace events) */}
-        {eventStages.length > 0 && (
-          <div className="px-4 py-3 space-y-2">
-            {eventStages.map((evt) => {
-              const meta = kindMeta[evt.kind] || { color: '#888', label: evt.kind };
-              return (
-                <div key={evt.id} className="flex items-center gap-3 p-2 rounded" style={{ background: t.isDark ? '#ffffff06' : '#00000006' }}>
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: meta.color }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] px-1.5 py-0.5 rounded font-medium" style={{ background: `${meta.color}20`, color: meta.color, fontFamily: "'Geist Mono', monospace" }}>
-                        {meta.label}
-                      </span>
-                      <span className="text-[12px] font-medium truncate" style={{ color: t.textPrimary }}>{evt.name}</span>
-                    </div>
-                    {evt.query && <div className="text-[11px] mt-0.5 truncate" style={{ color: t.textDim }}>{evt.query}</div>}
-                  </div>
-                  <div className="shrink-0 text-right">
-                    {evt.duration != null && <div className="text-[11px]" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>{evt.duration}ms</div>}
-                    {evt.resultCount != null && <div className="text-[10px]" style={{ color: t.textFaint }}>{evt.resultCount} results</div>}
-                  </div>
-                </div>
-              );
-            })}
+        {/* Progressive pipeline stepper */}
+        {stages.size > 0 && <PipelineStepper stages={stages} hasError={hasError} />}
+
+        {/* Trace-has-events-but-no-pipeline-stages notice */}
+        {stages.size === 0 && (
+          <div className="px-4 py-3">
+            <div className="text-sm" style={{ color: t.textDim }}>
+              Trace has {allEvents.length} event{allEvents.length !== 1 ? 's' : ''} but no pipeline stages.
+            </div>
+            <div className="text-xs mt-1" style={{ color: t.textFaint }}>
+              Events are visible in the timeline below.
+            </div>
           </div>
         )}
 
-        {/* Source Assembly (structured stages) */}
+        {/* Structured stages */}
         {stages.has('source_assembly') && (
           <SourceAssemblyStage
-            data={stages.get('source_assembly')!.data as SourceAssemblyData}
+            data={stages.get('source_assembly')!.data}
             expanded={expandedStages.has('source_assembly')}
             onToggle={() => toggleStage('source_assembly')}
           />
         )}
-
-        {/* Budget Allocation */}
         {stages.has('budget_allocation') && (
           <BudgetAllocationStage
-            data={stages.get('budget_allocation')!.data as BudgetAllocationData}
+            data={stages.get('budget_allocation')!.data}
             expanded={expandedStages.has('budget_allocation')}
             onToggle={() => toggleStage('budget_allocation')}
           />
         )}
-
-        {/* Retrieval */}
         {stages.has('retrieval') && (
           <RetrievalStage
-            data={stages.get('retrieval')!.data as RetrievalData}
+            data={stages.get('retrieval')!.data}
             expanded={expandedStages.has('retrieval')}
             onToggle={() => toggleStage('retrieval')}
           />
         )}
-
-        {/* Contradiction Check */}
         {stages.has('contradiction_check') && (
           <ContradictionStage
-            data={stages.get('contradiction_check')!.data as ContradictionData}
+            data={stages.get('contradiction_check')!.data}
             expanded={expandedStages.has('contradiction_check')}
             onToggle={() => toggleStage('contradiction_check')}
           />
         )}
-
-        {/* Provenance */}
         {stages.has('provenance') && (
           <ProvenanceStage
-            data={stages.get('provenance')!.data as ProvenanceData}
+            data={stages.get('provenance')!.data}
             expanded={expandedStages.has('provenance')}
             onToggle={() => toggleStage('provenance')}
           />
         )}
+
+        {/* Event timeline — always shown */}
+        <EventTimeline events={allEvents} />
       </div>
+    </div>
+  );
+}
+
+/* ── Panel Header ── */
+
+function PanelHeader({ selectedTraceId, stageCount, eventCount }: {
+  selectedTraceId: string | null;
+  stageCount: number;
+  eventCount: number;
+}) {
+  const t = useTheme();
+  return (
+    <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: t.border }}>
+      <div className={`w-2 h-2 rounded-full ${selectedTraceId ? 'bg-blue-500' : 'bg-green-500 animate-pulse'}`} />
+      <span className="text-sm font-medium" style={{ color: t.textPrimary }}>Pipeline Observability</span>
+      {selectedTraceId && (
+        <button
+          type="button"
+          onClick={() => useTraceStore.getState().selectTrace(null)}
+          title="Stop viewing past trace"
+          className="text-[10px] px-1.5 py-0.5 rounded border-none cursor-pointer"
+          style={{ background: '#3b82f620', color: '#3b82f6', fontFamily: "'Geist Mono', monospace" }}
+        >
+          viewing past · ✕
+        </button>
+      )}
+      <span className="ml-auto text-xs" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+        {stageCount} stage{stageCount !== 1 ? 's' : ''} · {eventCount} event{eventCount !== 1 ? 's' : ''}
+      </span>
     </div>
   );
 }
