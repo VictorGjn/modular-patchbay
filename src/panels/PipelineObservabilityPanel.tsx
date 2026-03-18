@@ -3,6 +3,22 @@ import { useTheme } from '../theme';
 import { useTraceStore, type TraceEvent } from '../store/traceStore';
 import { ChevronDown, ChevronRight, FileText, Scale, Search, AlertTriangle, GitBranch } from 'lucide-react';
 
+/* ── Pipeline Stage Order ── */
+
+const PIPELINE_STAGE_ORDER = [
+  'source_assembly', 'budget_allocation', 'retrieval', 'contradiction_check', 'provenance',
+] as const;
+
+type PipelineStageName = typeof PIPELINE_STAGE_ORDER[number];
+
+const STAGE_LABELS: Record<PipelineStageName, string> = {
+  source_assembly: 'Source',
+  budget_allocation: 'Budget',
+  retrieval: 'Retrieval',
+  contradiction_check: 'Conflicts',
+  provenance: 'Provenance',
+};
+
 /* ── Pipeline Stage Types ── */
 
 export interface PipelineStageData {
@@ -74,6 +90,69 @@ export interface ProvenanceData {
     method: string;
     to: string;
   }>;
+}
+
+/* ── Progress Stepper ── */
+
+function StageCircle({ status }: { status: 'pending' | 'active' | 'done' | 'error' }) {
+  const base = 'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0';
+  if (status === 'error') return <div className={base} style={{ background: '#ef4444', color: 'white' }}>✕</div>;
+  if (status === 'done') return <div className={base} style={{ background: '#10b981', color: 'white' }}>✓</div>;
+  if (status === 'active') return <div className={`${base} animate-pulse`} style={{ background: '#FE5000' }} />;
+  return <div className={base} style={{ background: '#6b7280' }} />;
+}
+
+function StageStep({ stageName, stageData, status }: {
+  stageName: PipelineStageName;
+  stageData: PipelineStageData | undefined;
+  status: 'pending' | 'active' | 'done' | 'error';
+}) {
+  const t = useTheme();
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <StageCircle status={status} />
+      <span className="text-[10px] text-center leading-tight" style={{ color: t.textDim }}>
+        {STAGE_LABELS[stageName]}
+      </span>
+      {stageData?.durationMs !== undefined && (
+        <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'Geist Mono', monospace" }}>
+          {stageData.durationMs}ms
+        </span>
+      )}
+    </div>
+  );
+}
+
+function PipelineStepper({ stages, hasError }: { stages: Map<string, PipelineStageData>; hasError: boolean }) {
+  const t = useTheme();
+  const lastActiveIdx = PIPELINE_STAGE_ORDER.reduce<number>((acc, s, i) => {
+    const d = stages.get(s);
+    return d && d.durationMs === undefined ? i : acc;
+  }, -1);
+
+  return (
+    <div className="flex items-start px-4 py-3 border-b" style={{ borderColor: t.border }}>
+      {PIPELINE_STAGE_ORDER.map((stageName, i) => {
+        const stageData = stages.get(stageName);
+        const isDone = stageData && stageData.durationMs !== undefined;
+        const isActive = stageData && stageData.durationMs === undefined;
+        const isError = hasError && i === lastActiveIdx;
+        const status = isError ? 'error' : isDone ? 'done' : isActive ? 'active' : 'pending';
+        const connectorLit = isDone || isActive;
+        return (
+          <div key={stageName} className="flex items-center flex-1 min-w-0">
+            <StageStep stageName={stageName} stageData={stageData} status={status} />
+            {i < PIPELINE_STAGE_ORDER.length - 1 && (
+              <div
+                className="flex-1 h-px mx-1"
+                style={{ background: connectorLit ? '#10b981' : '#6b7280', opacity: 0.5, marginTop: '-14px' }}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 /* ── Stage Components ── */
@@ -502,9 +581,10 @@ export function PipelineObservabilityPanel() {
   const t = useTheme();
   const getDisplayTrace = useTraceStore(s => s.getDisplayTrace);
   const selectedTraceId = useTraceStore(s => s.selectedTraceId);
+  const eventVersion = useTraceStore(s => s.eventVersion);
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
-  
+
   const trace = getDisplayTrace();
   
   // Extract ALL trace events (not just pipeline_stage)
@@ -528,7 +608,9 @@ export function PipelineObservabilityPanel() {
   
   // If no structured stages, build from regular trace events
   const hasStructuredStages = stages.size > 0;
+  const hasError = allEvents.some(e => e.kind === 'error');
   const eventStages = !hasStructuredStages ? allEvents.map(e => ({
+    id: e.id,
     kind: e.kind,
     name: e.sourceName || e.toolName || e.model || e.kind,
     duration: e.durationMs,
@@ -553,7 +635,21 @@ export function PipelineObservabilityPanel() {
     if (scrollRef.current && pipelineEvents.length > 0) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [pipelineEvents.length]);
+  }, [eventVersion, pipelineEvents.length]);
+
+  // Auto-expand the current in-progress stage
+  useEffect(() => {
+    const displayTrace = useTraceStore.getState().getDisplayTrace();
+    if (!displayTrace) return;
+    for (const evt of displayTrace.events) {
+      if (evt.kind !== 'pipeline_stage') continue;
+      for (const stage of (evt.provenanceStages ?? [])) {
+        if (stage.durationMs === undefined) {
+          setExpandedStages(prev => new Set([...prev, stage.stage]));
+        }
+      }
+    }
+  }, [eventVersion]);
 
   const hasAnyData = pipelineEvents.length > 0 || eventStages.length > 0;
 
@@ -615,15 +711,18 @@ export function PipelineObservabilityPanel() {
           {stages.size} stage{stages.size !== 1 ? 's' : ''}
         </span>
       </div>
-      
+
+      {/* Progress stepper — only when pipeline stages are present */}
+      {stages.size > 0 && <PipelineStepper stages={stages} hasError={hasError} />}
+
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {/* Event Timeline (from regular trace events) */}
         {eventStages.length > 0 && (
           <div className="px-4 py-3 space-y-2">
-            {eventStages.map((evt, i) => {
+            {eventStages.map((evt) => {
               const meta = kindMeta[evt.kind] || { color: '#888', label: evt.kind };
               return (
-                <div key={i} className="flex items-center gap-3 p-2 rounded" style={{ background: t.isDark ? '#ffffff06' : '#00000006' }}>
+                <div key={evt.id} className="flex items-center gap-3 p-2 rounded" style={{ background: t.isDark ? '#ffffff06' : '#00000006' }}>
                   <div className="w-2 h-2 rounded-full shrink-0" style={{ background: meta.color }} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
