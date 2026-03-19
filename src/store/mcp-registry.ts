@@ -46,10 +46,10 @@ export const MCP_REGISTRY: McpRegistryEntry[] = [
     authMethod: 'none',
   },
   {
-    id: 'mcp-fetch', name: 'Fetch', npmPackage: '@modelcontextprotocol/server-fetch',
+    id: 'mcp-fetch', name: 'Fetch', npmPackage: '@anthropic-ai/mcp-fetch',
     description: 'Fetch web content and convert to markdown for LLM consumption',
     icon: 'download', category: 'research', author: 'MCP Official', transport: 'stdio',
-    runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@modelcontextprotocol/server-fetch'],
+    runtimes: ['claude', 'amp', 'codex'], command: 'npx', defaultArgs: ['-y', '@anthropic-ai/mcp-fetch'],
     configFields: [],
     repo: 'https://github.com/modelcontextprotocol/servers', tags: ['web', 'fetch', 'scrape', 'markdown'],
     authMethod: 'none',
