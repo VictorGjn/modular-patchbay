@@ -1,6 +1,6 @@
 {
   "name": "modular-studio",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Context engineering IDE for AI agents. Design knowledge pipelines, not just prompts.",
   "type": "module",
   "license": "Apache-2.0",
