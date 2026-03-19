@@ -29,7 +29,10 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
   const mcpServers = useConsoleStore(s => s.mcpServers);
   const skills = useConsoleStore(s => s.skills);
   const providers = useProviderStore(s => s.providers);
-  const hasProvider = providers.some(p => p.apiKey && p.models && p.models.length > 0);
+  const hasProvider = providers.some(p =>
+    (p.status === 'connected' || p.status === 'configured') &&
+    (p._hasStoredKey || p._hasStoredAccessToken || Boolean(p.apiKey?.trim()) || p.authMethod === 'claude-agent-sdk')
+  );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [generating, setGenerating] = useState(false);
