@@ -227,57 +227,113 @@ router.post('/install', async (req: Request, res: Response) => {
     if (scope === 'global') args.push('-g');
     
     try {
-      const { stdout, stderr } = await exec('npx', args, { timeout: 60000 });
-      res.json({ status: 'ok', output: stdout + stderr });
+      // Use shell: true so Windows resolves npx.cmd properly
+      const { stdout, stderr } = await exec('npx', args, { timeout: 60000, shell: true } as Parameters<typeof exec>[2]);
+      res.json({ status: 'ok', output: String(stdout) + String(stderr) });
       return;
     } catch (cliError) {
       console.log('Skills CLI failed, trying fallback:', (cliError as Error).message);
     }
 
-    // Fallback: Direct download from GitHub
-    console.log('Using fallback: downloading skill directly from GitHub');
+    // Fallback: Download full skill directory from GitHub via API
+    console.log('Using fallback: downloading skill from GitHub API');
 
-    // Extract repo and skill name from skillId (format: owner/repo@skillName)
-    const [repoPath, skillName] = skillId.includes('@') ? skillId.split('@') : [skillId, skillId.split('/').pop() || skillId];
-
-    // Try multiple path patterns since repos have different layouts
-    const base = `https://raw.githubusercontent.com/${repoPath}`;
-    const candidates = [
-      `${base}/main/${skillName}/SKILL.md`,
-      `${base}/main/SKILL.md`,
-      `${base}/master/${skillName}/SKILL.md`,
-      `${base}/master/SKILL.md`,
-    ];
-
-    let skillContent: string | null = null;
-    let resolvedUrl = '';
-    for (const url of candidates) {
-      const r = await fetch(url);
-      if (r.ok) { skillContent = await r.text(); resolvedUrl = url; break; }
-    }
-
-    if (skillContent === null) {
-      throw new Error(`SKILL.md not found in ${repoPath}. Tried: ${candidates.join(', ')}`);
-    }
-    console.log(`Resolved SKILL.md from ${resolvedUrl}`);
-    
-    // Get user's home directory and create skill directory
     const os = await import('os');
     const path = await import('path');
     const fs = await import('fs/promises');
-    
-    const skillsDir = path.join(os.homedir(), '.agents', 'skills');
-    const skillDir = path.join(skillsDir, skillName);
-    
-    // Create directories
+
+    // Extract repo and skill name from skillId (format: owner/repo@skillName)
+    const [repoPath, skillName] = skillId.includes('@') ? skillId.split('@') : [skillId, skillId.split('/').pop() || skillId];
+    const [owner, repo] = repoPath.split('/');
+
+    // Try to find the skill directory via GitHub API (supports nested layouts)
+    const candidatePaths = [skillName, `skills/${skillName}`, `src/${skillName}`];
+    let treePath = '';
+    let treeData: Array<{ name: string; path: string; type: string; download_url?: string | null }> = [];
+
+    for (const cp of candidatePaths) {
+      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${cp}`;
+      const apiRes = await fetch(apiUrl, {
+        headers: { 'User-Agent': 'modular-patchbay/1.0', 'Accept': 'application/vnd.github.v3+json' },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (apiRes.ok) {
+        const data = await apiRes.json();
+        if (Array.isArray(data) && data.some((f: { name: string }) => f.name === 'SKILL.md')) {
+          treeData = data;
+          treePath = cp;
+          break;
+        }
+      }
+    }
+
+    // If GitHub API didn't find it, fall back to raw SKILL.md download
+    if (treeData.length === 0) {
+      const base = `https://raw.githubusercontent.com/${repoPath}`;
+      const rawCandidates = [
+        `${base}/main/${skillName}/SKILL.md`,
+        `${base}/main/SKILL.md`,
+        `${base}/master/${skillName}/SKILL.md`,
+        `${base}/master/SKILL.md`,
+      ];
+
+      let skillContent: string | null = null;
+      for (const url of rawCandidates) {
+        const r = await fetch(url);
+        if (r.ok) { skillContent = await r.text(); break; }
+      }
+
+      if (skillContent === null) {
+        throw new Error(`Skill not found in ${repoPath}/${skillName}. Tried GitHub API and raw URLs.`);
+      }
+
+      const skillDir = path.join(os.homedir(), '.agents', 'skills', skillName);
+      await fs.mkdir(skillDir, { recursive: true });
+      await fs.writeFile(path.join(skillDir, 'SKILL.md'), skillContent, 'utf8');
+      res.json({ status: 'ok', output: `Skill ${skillName} installed (SKILL.md only — directory listing unavailable)` });
+      return;
+    }
+
+    // Download all files in the skill directory (including subdirs like references/, scripts/)
+    const skillDir = path.join(os.homedir(), '.agents', 'skills', skillName);
     await fs.mkdir(skillDir, { recursive: true });
-    
-    // Write SKILL.md file
-    await fs.writeFile(path.join(skillDir, 'SKILL.md'), skillContent, 'utf8');
+
+    const downloadDir = async (items: Array<{ name: string; path: string; type: string; download_url?: string | null }>, localDir: string): Promise<number> => {
+      let count = 0;
+      for (const item of items) {
+        if (item.type === 'file' && item.download_url) {
+          const fileRes = await fetch(item.download_url);
+          if (fileRes.ok) {
+            const content = await fileRes.text();
+            await fs.writeFile(path.join(localDir, item.name), content, 'utf8');
+            count++;
+          }
+        } else if (item.type === 'dir') {
+          const subDir = path.join(localDir, item.name);
+          await fs.mkdir(subDir, { recursive: true });
+          // Fetch subdirectory contents
+          const subUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${item.path}`;
+          const subRes = await fetch(subUrl, {
+            headers: { 'User-Agent': 'modular-patchbay/1.0', 'Accept': 'application/vnd.github.v3+json' },
+            signal: AbortSignal.timeout(10000),
+          });
+          if (subRes.ok) {
+            const subItems = await subRes.json();
+            if (Array.isArray(subItems)) {
+              count += await downloadDir(subItems, subDir);
+            }
+          }
+        }
+      }
+      return count;
+    }
+
+    const fileCount = await downloadDir(treeData, skillDir);
+    console.log(`Installed skill ${skillName}: ${fileCount} files from ${owner}/${repo}/${treePath}`);
     
     res.json({ 
       status: 'ok', 
-      output: `Skill ${skillName} installed to ${skillDir} via direct download fallback` 
+      output: `Skill ${skillName} installed to ${skillDir} (${fileCount} files from GitHub)` 
     });
     
   } catch (err: unknown) {
