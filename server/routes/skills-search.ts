@@ -153,6 +153,37 @@ router.get('/audit/:owner/:repo/:skill', async (req: Request, res: Response) => 
   }
 });
 
+// Parse `npx skills find` output into structured results
+function parseSkillsFindOutput(output: string): SkillResult[] {
+  const results: SkillResult[] = [];
+  // Each skill appears as: owner/repo@skillName followed by install count
+  // e.g. "vercel-labs/agent-skills@vercel-react-best-practices  226.6K installs"
+  //      "└ https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices"
+  const lines = output.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    // Strip ANSI escape codes
+    const clean = lines[i].replace(/\x1b\[[0-9;]*m/g, '').trim();
+    // Match: owner/repo@skillName  NNK installs
+    const m = clean.match(/^([a-z0-9_.-]+\/[a-z0-9_.-]+)@([a-z0-9_:.-]+)\s+([\d,.]+[KkMm]?)\s*installs?/i);
+    if (m) {
+      const repo = m[1];
+      const name = m[2];
+      const installs = m[3];
+      // Next line might have the URL
+      const nextClean = (lines[i + 1] || '').replace(/\x1b\[[0-9;]*m/g, '').trim();
+      const urlMatch = nextClean.match(/(https:\/\/skills\.sh\/[^\s]+)/);
+      results.push({
+        id: `${repo}@${name}`,
+        name,
+        repo,
+        installs,
+        url: urlMatch ? urlMatch[1] : `https://skills.sh/${repo}/${name}`,
+      });
+    }
+  }
+  return results;
+}
+
 // GET /api/skills/search?q=react
 router.get('/search', async (req: Request, res: Response) => {
   const query = (req.query.q as string) || '';
@@ -161,6 +192,22 @@ router.get('/search', async (req: Request, res: Response) => {
     return;
   }
 
+  // Try `npx skills find <query>` first — uses the official skills.sh CLI
+  try {
+    const { stdout } = await exec('npx', ['-y', 'skills', 'find', query], {
+      timeout: 30000,
+      shell: true,
+    } as Parameters<typeof exec>[2]);
+    const cliResults = parseSkillsFindOutput(String(stdout));
+    if (cliResults.length > 0) {
+      res.json({ data: cliResults.slice(0, 10), query, source: 'skills-cli' });
+      return;
+    }
+  } catch {
+    // CLI not available or failed — fall back to catalog scraping
+  }
+
+  // Fallback: scrape skills.sh catalog
   try {
     const catalog = await fetchCatalog();
 
@@ -201,7 +248,7 @@ router.get('/search', async (req: Request, res: Response) => {
         };
       });
 
-    res.json({ data: results, query });
+    res.json({ data: results, query, source: 'catalog-scrape' });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Search failed';
     res.json({ data: [], query, error: message });
@@ -222,17 +269,14 @@ router.post('/install', async (req: Request, res: Response) => {
   }
 
   try {
-    // Try the correct skills CLI command first
-    let args = ['-y', '@anthropic/skills', 'add', skillId];
-    if (scope === 'global') args.push('-g');
-    
+    // Try the skills CLI first: `npx skills add <skillId>`
     try {
-      // Use shell: true so Windows resolves npx.cmd properly
-      const { stdout, stderr } = await exec('npx', args, { timeout: 60000, shell: true } as Parameters<typeof exec>[2]);
+      const addArgs = ['-y', 'skills', 'add', skillId];
+      const { stdout, stderr } = await exec('npx', addArgs, { timeout: 60000, shell: true } as Parameters<typeof exec>[2]);
       res.json({ status: 'ok', output: String(stdout) + String(stderr) });
       return;
     } catch (cliError) {
-      console.log('Skills CLI failed, trying fallback:', (cliError as Error).message);
+      console.log('Skills CLI (npx skills add) failed, trying GitHub fallback:', (cliError as Error).message);
     }
 
     // Fallback: Download full skill directory from GitHub via API
