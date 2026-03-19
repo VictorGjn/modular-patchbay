@@ -313,7 +313,7 @@ router.post('/install', async (req: Request, res: Response) => {
         }
       );
       if (treeRes.ok) {
-        const treeJson = await treeRes.json();
+        const treeJson = await treeRes.json() as { tree?: Array<{ path: string; type: string }> };
         const allFiles: Array<{ path: string; type: string }> = treeJson.tree || [];
         
         // Find SKILL.md in a directory matching the skill name
