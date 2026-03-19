@@ -680,6 +680,17 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         set({ providers: nextProviders, selectedProviderId: fallbackSelected });
         persistProviders(get().providers);
         await flushPendingProviderSync(get().providers);
+
+        // Auto-fetch models for configured providers that have stored credentials but empty model lists
+        for (const p of nextProviders) {
+          if (
+            (p._hasStoredKey || p._hasStoredAccessToken || p.authMethod === 'claude-agent-sdk') &&
+            (p.status === 'configured' || p.status === 'connected') &&
+            (!Array.isArray(p.models) || p.models.length === 0)
+          ) {
+            setTimeout(() => useProviderStore.getState().testConnection(p.id), 200);
+          }
+        }
       }
     } catch {
       // Backend not available, use localStorage
