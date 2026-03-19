@@ -21,3 +21,5 @@ export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { StatusDot, type StatusDotProps } from './StatusDot';
 export { SkeletonLoader, type SkeletonLoaderProps } from './SkeletonLoader';
 export { StatusIndicator, type StatusIndicatorProps, MultiPhaseStatus, type MultiPhaseStatusProps } from './StatusIndicator';
+export { Section } from './Section';
+export { GenerateBtn } from './GenerateBtn';

@@ -3,6 +3,7 @@ import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { X, Plus, Sparkles, Check, Loader2 } from 'lucide-react';
 import { generateWorkflow } from '../utils/generateSection';
+import type { WorkflowStep } from '../types/console.types';
 
 interface WorkflowModalProps {
   open: boolean;
@@ -54,11 +55,31 @@ export function WorkflowModal({ open, onClose }: WorkflowModalProps) {
         // Refine: generate proper steps based on what the user typed
         const { refineWorkflowSteps } = await import('../utils/generateSection');
         const refined = await refineWorkflowSteps(existingLabels);
-        if (refined) updateWorkflowSteps(refined as any);
+        if (refined) {
+          // Transform to WorkflowStep format
+          const workflowSteps: WorkflowStep[] = refined.map((s, i) => ({
+            id: `step-${Date.now()}-${i}`,
+            label: s.label,
+            action: s.action,
+            tool: '',
+            condition: s.condition ? 'if' : 'always',
+          }));
+          updateWorkflowSteps(workflowSteps);
+        }
       } else {
         // Generate from scratch based on agent identity
         const steps = await generateWorkflow();
-        if (steps) updateWorkflowSteps(steps as any);
+        if (steps) {
+          // Transform to WorkflowStep format
+          const workflowSteps: WorkflowStep[] = steps.map((s, i) => ({
+            id: `step-${Date.now()}-${i}`,
+            label: s.label,
+            action: s.action,
+            tool: '',
+            condition: s.condition ? 'if' : 'always',
+          }));
+          updateWorkflowSteps(workflowSteps);
+        }
       }
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : 'Generation failed');

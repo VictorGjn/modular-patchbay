@@ -1,47 +1,50 @@
+import { useState, useEffect, useRef } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
+import { useVersionStore } from '../store/versionStore';
+import type { AgentVersion } from '../store/versionStore';
 import { useThemeStore } from '../store/themeStore';
 import { useTheme } from '../theme';
-import { useMemo } from 'react';
-import { Play, Square, Sun, Moon, Settings, ShoppingBag } from 'lucide-react';
-import { useProviderStore } from '../store/providerStore';
+import { Play, Square, Sun, Moon, Settings, ChevronDown, RotateCcw, ArrowLeft, GitCompare } from 'lucide-react';
+import { VersionDiffView } from './VersionDiffView';
 
 
 
-function TopbarSelect({ value, onChange, children, t, ariaLabel }: { value: string; onChange: (v: string) => void; children: React.ReactNode; t: ReturnType<typeof useTheme>; ariaLabel?: string }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      aria-label={ariaLabel}
-      className="appearance-none cursor-pointer outline-none text-[14px] h-8 pl-3 pr-7 rounded-lg"
-      style={{
-        fontFamily: "'Geist Sans', sans-serif",
-        background: t.surfaceOpaque,
-        border: `1px solid ${t.border}`,
-        color: t.isDark ? t.textSecondary : '#1a1a20',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M0 2l4 4 4-4' fill='none' stroke='%23${t.isDark ? '555' : '999'}' stroke-width='1.5'/%3E%3C/svg%3E")`,
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'right 8px center',
-      }}
-    >
-      {children}
-    </select>
-  );
-}
 
-
-export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
-  const selectedModel = useConsoleStore((s) => s.selectedModel);
-  const setModel = useConsoleStore((s) => s.setModel);
+export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => void; onBack?: () => void }) {
   const running = useConsoleStore((s) => s.running);
   const run = useConsoleStore((s) => s.run);
+  const agentMeta = useConsoleStore((s) => s.agentMeta);
+  const currentVersion = useVersionStore(s => s.currentVersion);
+  const versions = useVersionStore(s => s.versions);
+  const restoreVersion = useVersionStore(s => s.restoreVersion);
+  const agentId = useVersionStore(s => s.agentId);
+  const loadVersions = useVersionStore(s => s.loadVersions);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
+  const [showVersionDropdown, setShowVersionDropdown] = useState(false);
+  const [compareVersion, setCompareVersion] = useState<AgentVersion | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useTheme();
-  const setShowMarketplace = useConsoleStore((s) => s.setShowMarketplace);
-  const getAllModels = useProviderStore((s) => s.getAllModels);
-  const providers = useProviderStore((s) => s.providers);
-  const allModels = useMemo(() => getAllModels(), [getAllModels, providers]);
-  const hasModels = allModels.length > 0;
+
+  // Load versions when agentId is available
+  useEffect(() => {
+    if (agentId && versions.length === 0) {
+      loadVersions();
+    }
+  }, [agentId, loadVersions]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowVersionDropdown(false);
+      }
+    };
+
+    if (showVersionDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showVersionDropdown]);
 
   return (
     <div
@@ -50,77 +53,165 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
         background: t.surface,
         backdropFilter: 'blur(12px)',
         borderColor: t.border,
+        position: 'relative',
+        zIndex: 50,
       }}
     >
+      {/* Back button */}
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer border-none bg-transparent hover:bg-[#FE500015]"
+          style={{ color: t.textSecondary }}
+          aria-label="Back to library"
+          title="Back to library"
+        >
+          <ArrowLeft size={16} />
+        </button>
+      )}
+
       {/* Logo */}
       <div className="flex items-center gap-2 mr-4">
         <div
           className="w-2 h-2 rounded-full"
           style={{ background: '#FE5000', boxShadow: '0 0 8px rgba(254,80,0,0.4)' }}
+          aria-hidden="true"
         />
-        <span
-          className="text-[17px] font-bold tracking-[3px] uppercase"
+        <h1
+          className="text-[17px] font-bold tracking-[3px] uppercase m-0"
           style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}
         >
           MODULAR
-        </span>
+        </h1>
       </div>
 
+      {/* Agent name and version */}
+      {agentMeta.name && (
+        <div className="flex items-center gap-2 mx-4">
+          <span 
+            className="text-[15px] font-semibold"
+            style={{ color: t.textPrimary }}
+          >
+            {agentMeta.name}
+          </span>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowVersionDropdown(!showVersionDropdown)}
+              aria-expanded={showVersionDropdown}
+              aria-haspopup="menu"
+              aria-label={`Version ${currentVersion} dropdown menu`}
+              title="Select version"
+              className="flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer border-none text-[13px] font-semibold"
+              style={{
+                background: t.surfaceElevated,
+                color: t.textSecondary,
+                fontFamily: "'Geist Mono', monospace",
+                border: `1px solid ${t.border}`,
+              }}
+            >
+              v{currentVersion}
+              <ChevronDown size={10} />
+            </button>
 
-      {/* Model selector */}
-      <TopbarSelect
-        value={hasModels ? `${useProviderStore.getState().selectedProviderId}::${selectedModel}` : '__no_models__'}
-        onChange={(val) => {
-          if (val === '__no_models__') return;
-          const [providerId, ...rest] = val.split('::');
-          const modelId = rest.join('::');
-          useProviderStore.getState().selectProvider(providerId);
-          setModel(modelId);
-        }}
-        t={t}
-        ariaLabel="Select AI model"
-      >
-
-        {allModels.map((m) => (
-          <option key={`${m.providerId}-${m.id}`} value={`${m.providerId}::${m.id}`}>
-            {m.providerName} — {m.label}
-          </option>
-        ))}
-      </TopbarSelect>
-
-      {!hasModels && (
-        <button
-          onClick={() => useConsoleStore.getState().setShowSettings(true, 'providers')}
-          style={{
-            background: 'none',
-            border: `1px solid ${t.border}`,
-            borderRadius: 6,
-            padding: '4px 10px',
-            color: '#FE5000',
-            cursor: 'pointer',
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: '12px',
-          }}
-        >
-          ⚡ Connect a model provider
-        </button>
+            {/* Version dropdown */}
+            {showVersionDropdown && (
+              <div
+                className="absolute top-full right-0 mt-1 w-64 rounded-lg border shadow-lg overflow-hidden"
+                style={{
+                  background: t.surface,
+                  borderColor: t.border,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  zIndex: 100,
+                }}
+              >
+                <div className="p-2 max-h-80 overflow-y-auto">
+                  {versions
+                    .slice(-5)
+                    .reverse()
+                    .map((version) => (
+                      <div
+                        key={version.id}
+                        className="flex items-center justify-between p-2 rounded-md hover:bg-opacity-50"
+                        style={{ 
+                          background: version.version === currentVersion ? 'rgba(254, 80, 0, 0.1)' : 'transparent',
+                        }}
+                      >
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="text-[13px] font-bold"
+                              style={{ 
+                                fontFamily: "'Geist Mono', monospace", 
+                                color: version.version === currentVersion ? '#FE5000' : t.textPrimary 
+                              }}
+                            >
+                              v{version.version}
+                            </span>
+                            {version.version === currentVersion && (
+                              <span className="text-[10px] px-1 py-0.5 rounded text-white bg-green-600">
+                                CURRENT
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] truncate" style={{ color: t.textMuted }}>
+                            {version.label || 'Checkpoint'}
+                          </span>
+                          <span className="text-[10px]" style={{ color: t.textFaint }}>
+                            {new Date(version.timestamp).toLocaleString()}
+                          </span>
+                        </div>
+                        {version.version !== currentVersion && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentV = versions.find(v => v.version === currentVersion);
+                                if (currentV) {
+                                  setCompareVersion(version);
+                                  setShowVersionDropdown(false);
+                                }
+                              }}
+                              title={`Compare v${version.version} with current`}
+                              className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border-none cursor-pointer"
+                              style={{ background: t.surfaceElevated, color: t.textSecondary, border: `1px solid ${t.border}` }}
+                            >
+                              <GitCompare size={10} />
+                              Compare
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                restoreVersion(version.version);
+                                setShowVersionDropdown(false);
+                              }}
+                              title={`Restore version ${version.version}`}
+                              className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border-none cursor-pointer"
+                              style={{ background: '#FE5000', color: 'white' }}
+                            >
+                              <RotateCcw size={10} />
+                              Restore
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  {versions.length === 0 && (
+                    <div className="p-4 text-center">
+                      <div className="text-[12px]" style={{ color: t.textFaint }}>
+                        No versions yet
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       <div className="flex-1" />
-
-      {/* Marketplace */}
-      <button
-        type="button"
-        onClick={() => setShowMarketplace(true)}
-        className="flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-[14px] font-medium cursor-pointer border-none"
-        style={{ background: '#FE500012', color: '#FE5000', transition: 'background 0.15s' }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
-        aria-label="Open Marketplace"
-      >
-        <ShoppingBag size={13} />
-        Marketplace
-      </button>
 
       {/* Settings */}
       <button
@@ -129,6 +220,7 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
         className="flex items-center justify-center w-11 h-11 rounded-md cursor-pointer border-none bg-transparent hover-accent-text focus-visible:outline focus-visible:outline-2"
         style={{ color: t.textDim }}
         aria-label="LLM settings"
+        title="LLM settings"
       >
         <Settings size={14} />
       </button>
@@ -140,6 +232,7 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
         className="flex items-center justify-center w-11 h-11 rounded-md cursor-pointer border-none bg-transparent hover-accent-text focus-visible:outline focus-visible:outline-2"
         style={{ color: t.textDim }}
         aria-label={t.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        title={t.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
         {t.isDark ? <Sun size={14} /> : <Moon size={14} />}
       </button>
@@ -148,6 +241,7 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
       <button
         type="button"
         onClick={run}
+        title={running ? 'Stop execution' : 'Run agent'}
         className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg text-[14px] font-semibold tracking-wider uppercase cursor-pointer border-none"
         style={{
           background: running ? '#CC4000' : '#FE5000',
@@ -162,6 +256,19 @@ export function Topbar({ onSettingsClick }: { onSettingsClick?: () => void }) {
         {running ? 'Stop' : 'Run'}
         <span className="text-[13px] opacity-60 tracking-normal font-normal ml-1">{running ? 'click to cancel' : 'Ctrl+Enter'}</span>
       </button>
+
+      {/* Version diff modal */}
+      {compareVersion && (() => {
+        const currentV = versions.find(v => v.version === currentVersion);
+        if (!currentV) return null;
+        return (
+          <VersionDiffView
+            versionA={compareVersion}
+            versionB={currentV}
+            onClose={() => setCompareVersion(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

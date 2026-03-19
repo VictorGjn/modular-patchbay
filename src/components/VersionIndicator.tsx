@@ -77,7 +77,10 @@ function VersionRow({ v, isCurrent, onRestore, onDelete }: {
 
 export function VersionIndicator() {
   const t = useTheme();
-  const { versions, currentVersion, dirty, checkpoint } = useVersionStore();
+  const versions = useVersionStore(s => s.versions);
+  const currentVersion = useVersionStore(s => s.currentVersion);
+  const dirty = useVersionStore(s => s.dirty);
+  const checkpoint = useVersionStore(s => s.checkpoint);
   const [showHistory, setShowHistory] = useState(false);
 
   return (

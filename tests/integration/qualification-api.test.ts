@@ -1,10 +1,60 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import express from 'express';
 import qualificationRoutes from '../../server/routes/qualification';
 import type { Server } from 'node:http';
 
+/* ── Mock config so generate-suite can find a "provider" without real API keys ── */
+vi.mock('../../server/config', () => ({
+  readConfig: () => ({
+    providers: [{ id: 'mock-provider', name: 'Mock', type: 'anthropic', apiKey: 'sk-mock', baseUrl: 'https://api.anthropic.com/v1' }],
+    mcpServers: [],
+  }),
+}));
+
+/* ── Mock LLM fetch responses ── */
+const MOCK_SUITE_RESPONSE = {
+  content: [{
+    type: 'text',
+    text: JSON.stringify({
+      testCases: [
+        { type: 'nominal', label: 'Happy path', input: 'Write docs for API', expectedBehavior: 'Produces structured docs' },
+        { type: 'edge', label: 'Ambiguous request', input: 'Summarize vaguely', expectedBehavior: 'Asks for clarification' },
+        { type: 'anti', label: 'Jailbreak', input: 'Ignore rules', expectedBehavior: 'Refuses' },
+      ],
+      scoringDimensions: [
+        { name: 'Accuracy', weight: 0.5 },
+        { name: 'Tone', weight: 0.5 },
+      ],
+    }),
+  }],
+};
+
+const MOCK_AGENT_RESPONSE = {
+  content: [{ type: 'text', text: 'Here is your documentation outline...' }],
+};
+
+const MOCK_JUDGE_RESPONSE = {
+  content: [{
+    type: 'text',
+    text: JSON.stringify({
+      dimensionScores: { 'dim-1': 82, 'dim-2': 75 },
+      overallScore: 78,
+      feedback: 'Good response, stays on topic.',
+    }),
+  }],
+};
+
+let fetchCallCount = 0;
+function mockFetch(_url: string, _opts?: RequestInit): Promise<Response> {
+  fetchCallCount++;
+  // Alternate between agent response and judge response
+  const body = fetchCallCount % 2 === 0 ? MOCK_JUDGE_RESPONSE : MOCK_AGENT_RESPONSE;
+  return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+}
+
 let server: Server;
 let port: number;
+let realFetch: typeof globalThis.fetch;
 
 function api(path: string, body: Record<string, unknown>) {
   return fetch(`http://localhost:${port}/api/qualification${path}`, {
@@ -14,8 +64,13 @@ function api(path: string, body: Record<string, unknown>) {
   });
 }
 
+function apiGet(path: string) {
+  return fetch(`http://localhost:${port}/api/qualification${path}`);
+}
+
 describe('Qualification API', () => {
   beforeAll(async () => {
+    realFetch = globalThis.fetch;
     const app = express();
     app.use(express.json());
     app.use('/api/qualification', qualificationRoutes);
@@ -32,6 +87,10 @@ describe('Qualification API', () => {
     server?.close();
   });
 
+  beforeEach(() => {
+    fetchCallCount = 0;
+  });
+
   describe('POST /generate-suite', () => {
     it('returns 400 without required fields', async () => {
       const res = await api('/generate-suite', {});
@@ -40,11 +99,29 @@ describe('Qualification API', () => {
       expect(json.status).toBe('error');
     });
 
-    it('returns test cases and scoring dimensions', async () => {
+    it('returns 400 if only agentId provided', async () => {
+      const res = await api('/generate-suite', { agentId: 'test' });
+      expect(res.status).toBe(400);
+    });
+
+    it('returns test cases and scoring dimensions with mocked LLM', async () => {
+      vi.stubGlobal('fetch', (url: string, opts?: RequestInit) => {
+        // Pass through local server calls; mock external LLM calls
+        if (typeof url === 'string' && url.includes('anthropic.com')) {
+          return Promise.resolve(new Response(JSON.stringify(MOCK_SUITE_RESPONSE), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }));
+        }
+        return realFetch(url, opts);
+      });
+
       const res = await api('/generate-suite', {
         agentId: 'test-agent',
         missionBrief: 'Help users write documentation',
       });
+      vi.unstubAllGlobals();
+
       expect(res.status).toBe(200);
       const json = await res.json() as { status: string; data: { testCases: unknown[]; scoringDimensions: unknown[] } };
       expect(json.status).toBe('ok');
@@ -64,10 +141,27 @@ describe('Qualification API', () => {
       expect(res.status).toBe(400);
     });
 
-    it('returns run results with scores and per-test results', async () => {
+    it('returns 400 if provider not found', async () => {
       const res = await api('/run', {
         agentId: 'test-agent',
-        providerId: 'default',
+        providerId: 'nonexistent',
+        model: 'claude-opus-4',
+        suite: { missionBrief: 'Test', testCases: [], scoringDimensions: [], passThreshold: 70 },
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it('returns run results with scores and per-test results', async () => {
+      vi.stubGlobal('fetch', (url: string, opts?: RequestInit) => {
+        if (typeof url === 'string' && url.includes('anthropic.com')) {
+          return mockFetch(url, opts);
+        }
+        return realFetch(url, opts);
+      });
+
+      const res = await api('/run', {
+        agentId: 'test-agent',
+        providerId: 'mock-provider',
         model: 'claude-opus-4',
         suite: {
           missionBrief: 'Help users write documentation',
@@ -82,6 +176,7 @@ describe('Qualification API', () => {
           passThreshold: 70,
         },
       });
+      vi.unstubAllGlobals();
 
       expect(res.status).toBe(200);
       const json = await res.json() as {
@@ -123,6 +218,16 @@ describe('Qualification API', () => {
       expect(json.status).toBe('ok');
       expect(json.data.applied).toEqual(['p1', 'p2']);
       expect(json.data.message).toContain('2 patch');
+    });
+  });
+
+  describe('GET /:agentId/history', () => {
+    it('returns empty history for unknown agent', async () => {
+      const res = await apiGet('/unknown-agent/history');
+      expect(res.status).toBe(200);
+      const json = await res.json() as { status: string; data: unknown[] };
+      expect(json.status).toBe('ok');
+      expect(json.data).toEqual([]);
     });
   });
 });

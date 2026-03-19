@@ -12,7 +12,7 @@ import { ConstraintModal } from '../components/ConstraintModal';
 import { WorkflowModal } from '../components/WorkflowModal';
 import { refineField, type RefinedAgent } from '../utils/refineInstruction';
 import { formatTokens } from '../utils/formatTokens';
-import { OUTPUT_FORMATS } from '../store/knowledgeBase';
+import { OUTPUT_FORMATS, type OutputFormat } from '../store/knowledgeBase';
 import { exportAsAgent, downloadAgentFile } from '../utils/agentExport';
 import {
   Bot, Sparkles, Loader2,
@@ -211,7 +211,7 @@ function AgentActionBar() {
       <VersionIndicator />
 
       {/* Output Format Selector */}
-      <OutputFormatSelect value={outputFormat} onChange={(v) => setOutputFormat(v as typeof outputFormat)} t={t} />
+      <OutputFormatSelect value={outputFormat} onChange={(v) => setOutputFormat(v as OutputFormat)} t={t} />
 
       <div className="flex-1" />
 
@@ -300,7 +300,6 @@ function AgentActionBar() {
             reader.onload = () => {
               try {
                 // This would require parsing the agent file - implementation pending
-                console.log('Agent import functionality not implemented yet');
               } catch (err) {
                 console.error('Failed to import agent:', err);
               }
@@ -561,7 +560,7 @@ export function AgentBuilder() {
   const progress = Object.values(done).filter(Boolean).length;
 
   // Token budget breakdown
-  const knowledgeTokens = channels.reduce((sum, c) => sum + ((c as any).effectiveTokens ?? c.baseTokens ?? 0), 0);
+  const knowledgeTokens = channels.reduce((sum, c) => sum + (c.effectiveTokens ?? c.baseTokens ?? 0), 0);
   const instructionTokens = Math.ceil(persona.length / 4) + Math.ceil(constraints.customConstraints.length / 4);
   const workflowTokens = workflowSteps.reduce((sum, s) => sum + Math.ceil(s.label.length / 4), 0);
   const totalUsed = knowledgeTokens + instructionTokens + workflowTokens;

@@ -1,6 +1,6 @@
 import { type ChannelConfig, type KnowledgeSource } from '../store/knowledgeBase';
 
-interface GhostSuggestion {
+export interface GhostSuggestion {
   source: KnowledgeSource;
   reason: string;
 }

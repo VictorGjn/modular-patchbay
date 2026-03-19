@@ -7,7 +7,7 @@
 
 import { API_BASE } from '../config';
 import { useConsoleStore } from '../store/consoleStore';
-import type { ChannelConfig } from '../store/knowledgeBase';
+import type { ChannelConfig, Category } from '../store/knowledgeBase';
 
 const fileContentCache = new Map<string, string>();
 
@@ -17,6 +17,40 @@ export interface BuiltinTool {
   inputSchema: Record<string, unknown>;
   execute: (args: Record<string, unknown>) => Promise<string>;
 }
+
+
+
+interface GitHubRepoResponse {
+  status: string;
+  data?: {
+    outputDir: string;
+    files: string[];
+    scan?: {
+      totalTokens?: number;
+      totalFiles?: number;
+      baseUrl?: string;
+      stack?: string[] | Record<string, string>;
+      features?: { name: string }[];
+    };
+    totalTokens?: number;
+    overviewMarkdown?: string;
+    name?: string;
+    contentSourceId?: string;
+  };
+  error?: string;
+}
+
+interface LocalRepoResponse {
+  status: string;
+  data?: {
+    outputDir: string;
+    files: string[];
+    totalTokens?: number;
+  };
+  error?: string;
+}
+
+
 
 /**
  * Index a GitHub repository and make its code available as knowledge context.
@@ -30,7 +64,7 @@ async function indexGitHubRepo(args: Record<string, unknown>): Promise<string> {
 
   try {
     const payload: { url: string; ref?: string; subdir?: string; persist: boolean } = {
-      url: url as string,
+      url: url, // TypeScript now knows this is string due to the guard above
       persist: true,
     };
     
@@ -48,25 +82,7 @@ async function indexGitHubRepo(args: Record<string, unknown>): Promise<string> {
       throw new Error(`Failed to index GitHub repo: ${response.status} ${errorText}`);
     }
 
-    const json = await response.json() as {
-      status: string;
-      data?: {
-        outputDir: string;
-        files: string[];
-        scan?: {
-          totalTokens?: number;
-          totalFiles?: number;
-          baseUrl?: string;
-          stack?: string[] | Record<string, string>;
-          features?: { name: string }[];
-        };
-        totalTokens?: number;
-        overviewMarkdown?: string;
-        name?: string;
-        contentSourceId?: string;
-      };
-      error?: string;
-    };
+    const json = await response.json() as GitHubRepoResponse;
 
     if (json.status !== 'ok' || !json.data) {
       throw new Error(json.error || 'Indexing failed');
@@ -93,12 +109,12 @@ async function indexGitHubRepo(args: Record<string, unknown>): Promise<string> {
         sourceId: `repo-${file}-${Date.now()}`,
         name: file.replace('.compressed.md', '').replace('.md', '').replace(/^\d+-/, ''),
         path: filePath,
-        category: 'knowledge' as any,
+        category: 'knowledge' as Category,
         knowledgeType: 'ground-truth',
         depth: isOverview ? 1 : 2,
         baseTokens: Math.floor(totalTokens / data.files.length),
         repoMeta: {
-          name: data.name || extractRepoName(url as string),
+          name: data.name || extractRepoName(url), // url is already validated as string above
           totalFiles: scan?.totalFiles ?? data.files.length,
           stack: normalizedStack,
           features: scan?.features?.map(f => f.name) ?? [],
@@ -114,7 +130,7 @@ async function indexGitHubRepo(args: Record<string, unknown>): Promise<string> {
       channelsAdded++;
     }
 
-    return `Successfully indexed GitHub repository "${extractRepoName(url as string)}". Added ${channelsAdded} knowledge sources:\n` +
+    return `Successfully indexed GitHub repository "${extractRepoName(url)}". Added ${channelsAdded} knowledge sources:\n` +
            data.files.map(f => `- ${f.replace('.compressed.md', '').replace('.md', '').replace(/^\d+-/, '')}`).join('\n') +
            `\n\nRepository stats: ${scan?.totalFiles ?? data.files.length} files, ${normalizedStack.length} tech stack items, ${totalTokens} tokens`;
   } catch (error) {
@@ -144,15 +160,7 @@ async function indexLocalRepo(args: Record<string, unknown>): Promise<string> {
       throw new Error(`Failed to index local repo: ${response.status} ${errorText}`);
     }
 
-    const json = await response.json() as {
-      status: string;
-      data?: {
-        outputDir: string;
-        files: string[];
-        totalTokens?: number;
-      };
-      error?: string;
-    };
+    const json = await response.json() as LocalRepoResponse;
 
     if (json.status !== 'ok' || !json.data) {
       throw new Error(json.error || 'Indexing failed');
@@ -169,7 +177,7 @@ async function indexLocalRepo(args: Record<string, unknown>): Promise<string> {
         sourceId: `local-repo-${file}-${Date.now()}`,
         name: file.replace('.compressed.md', '').replace('.md', '').replace(/^\d+-/, ''),
         path: filePath,
-        category: 'knowledge' as any,
+        category: 'knowledge' as Category,
         knowledgeType: 'ground-truth',
         depth: 2,
         baseTokens: Math.floor((data.totalTokens ?? 5000) / data.files.length),
@@ -291,8 +299,8 @@ async function indexKnowledgeFile(args: Record<string, unknown>): Promise<string
     const channelConfig: Omit<ChannelConfig, 'enabled'> = {
       sourceId: `file-${Date.now()}`,
       name: data.name,
-      path: path as string,
-      category: 'knowledge' as any,
+      path: path as string, // path is validated as string in the function check above  
+      category: 'knowledge' as Category,
       knowledgeType: 'evidence',
       depth: 1,
       baseTokens: data.tokens,

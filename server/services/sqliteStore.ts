@@ -34,6 +34,29 @@ export async function getDb(): Promise<Database> {
     created_at INTEGER DEFAULT (strftime('%s','now')),
     updated_at INTEGER DEFAULT (strftime('%s','now'))
   )`);
+  db.run(`CREATE TABLE IF NOT EXISTS qualification_runs (
+    run_id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    global_score REAL NOT NULL,
+    pass_threshold INTEGER NOT NULL
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS response_cache (
+    id TEXT PRIMARY KEY,
+    query_hash TEXT NOT NULL,
+    query_embedding BLOB,
+    query TEXT NOT NULL,
+    response TEXT NOT NULL,
+    model TEXT NOT NULL,
+    agent_id TEXT NOT NULL,
+    system_prompt_hash TEXT NOT NULL,
+    created_at INTEGER DEFAULT (strftime('%s','now')),
+    hit_count INTEGER DEFAULT 0,
+    last_hit_at INTEGER DEFAULT (strftime('%s','now')),
+    ttl INTEGER DEFAULT 3600
+  )`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_rc_query_hash ON response_cache (query_hash)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_rc_agent_id ON response_cache (agent_id)`);
   return db;
 }
 
@@ -102,4 +125,35 @@ export async function deleteConversation(id: string): Promise<void> {
   const d = await getDb();
   d.run(`DELETE FROM conversations WHERE id = ?`, [id]);
   saveDb();
+}
+
+export interface QualRunEntry {
+  runId: string;
+  timestamp: number;
+  globalScore: number;
+  passThreshold: number;
+}
+
+export async function saveQualificationRun(agentId: string, run: QualRunEntry): Promise<void> {
+  const d = await getDb();
+  d.run(
+    `INSERT OR REPLACE INTO qualification_runs (run_id, agent_id, timestamp, global_score, pass_threshold) VALUES (?, ?, ?, ?, ?)`,
+    [run.runId, agentId, run.timestamp, run.globalScore, run.passThreshold],
+  );
+  saveDb();
+}
+
+export async function getQualificationHistory(agentId: string, limit = 50): Promise<QualRunEntry[]> {
+  const d = await getDb();
+  const result = d.exec(
+    `SELECT run_id, timestamp, global_score, pass_threshold FROM qualification_runs WHERE agent_id = ? ORDER BY timestamp DESC LIMIT ?`,
+    [agentId, limit],
+  );
+  if (result.length === 0) return [];
+  return result[0].values.map((row) => ({
+    runId: row[0] as string,
+    timestamp: row[1] as number,
+    globalScore: row[2] as number,
+    passThreshold: row[3] as number,
+  }));
 }

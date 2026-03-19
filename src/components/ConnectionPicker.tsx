@@ -60,13 +60,16 @@ function SectionHeader({ title, collapsed, onToggle, t }: {
 }) {
   return (
     <div
-      className="flex items-center gap-2 px-5 py-2 cursor-pointer select-none"
+      className="flex items-center gap-2 px-5 py-3 cursor-pointer select-none border-t transition-colors"
       onClick={onToggle}
+      style={{ borderColor: t.borderSubtle }}
+      onMouseEnter={e => { e.currentTarget.style.background = t.isDark ? '#ffffff08' : '#00000008'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
     >
-      {collapsed ? <ChevronRight size={12} style={{ color: t.textDim }} /> : <ChevronDown size={12} style={{ color: t.textDim }} />}
+      {collapsed ? <ChevronRight size={14} style={{ color: t.textSecondary }} /> : <ChevronDown size={14} style={{ color: t.textSecondary }} />}
       <span
-        className="text-[11px] tracking-[0.12em] uppercase font-bold"
-        style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}
+        className="text-[13px] font-semibold"
+        style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}
       >
         {title}
       </span>
@@ -163,6 +166,10 @@ export function ConnectionPicker() {
         description: entry.description,
         connected: true,
       });
+
+      // Force refresh the MCP store to show the newly connected server
+      const mcpStore = useMcpStore.getState();
+      await mcpStore.loadServers();
       
       const svc = entry.id as ConnectorService;
       if (!connectors.some((c) => c.service === svc)) {
@@ -311,12 +318,18 @@ export function ConnectionPicker() {
             type="button"
             onClick={() => handleOAuthConnect(entry)}
             disabled={loading}
-            className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-md cursor-pointer border-none"
+            className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-md cursor-pointer border-none transition-colors"
             style={{ 
               background: '#FE500018', 
               color: '#FE5000', 
               fontWeight: 600, 
               opacity: loading ? 0.7 : 1 
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = '#FE500030';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = '#FE500018';
             }}
           >
             {loading ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
@@ -364,8 +377,14 @@ export function ConnectionPicker() {
           <button
             type="button"
             onClick={() => entry.url && handleOAuthConnect(entry as McpRegistryEntry & { url: string })}
-            className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-md cursor-pointer border-none"
+            className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-md cursor-pointer border-none transition-colors"
             style={{ background: '#FE500018', color: '#FE5000', fontWeight: 600 }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = '#FE500030';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = '#FE500018';
+            }}
           >
             <Plus size={12} />
             Connect via OAuth
@@ -544,12 +563,24 @@ export function ConnectionPicker() {
                       key={category}
                       type="button"
                       onClick={() => setActiveCategory(category)}
-                      className="text-[11px] px-2 py-1 rounded-md cursor-pointer border-none whitespace-nowrap"
+                      className="text-[11px] px-2 py-1 rounded-md cursor-pointer border-none whitespace-nowrap transition-colors"
                       style={{
                         background: activeCategory === category ? '#FE5000' : 'transparent',
                         color: activeCategory === category ? 'white' : t.textDim,
                         fontFamily: "'Geist Mono', monospace",
                         fontWeight: 600,
+                      }}
+                      onMouseEnter={e => {
+                        if (activeCategory !== category) {
+                          e.currentTarget.style.background = '#FE500015';
+                          e.currentTarget.style.color = '#FE5000';
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (activeCategory !== category) {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = t.textDim;
+                        }
                       }}
                     >
                       {category}

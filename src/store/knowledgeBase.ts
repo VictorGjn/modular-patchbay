@@ -215,6 +215,22 @@ export const DEPTH_LEVELS: { label: DepthLevel; pct: number }[] = [
   { label: 'Mention', pct: 0.1 },
 ];
 
+/** Depth as continuous percentage (10-100). Used by UI depth slider. */
+export const DEPTH_MIN = 10;
+export const DEPTH_MAX = 100;
+export const DEPTH_STEP = 10;
+
+/** Convert depth percentage (10-100) to fraction (0.1-1.0) */
+export function depthPctToFraction(depthPct: number): number {
+  return Math.max(0.1, Math.min(1.0, depthPct / 100));
+}
+
+/** Convert legacy depth index (0-4) to depth percentage (10-100) */
+export function legacyDepthToPercent(depthIndex: number): number {
+  const pct = DEPTH_LEVELS[depthIndex]?.pct ?? 1.0;
+  return Math.round(pct * 100);
+}
+
 export interface ChannelConfig {
   sourceId: string;
   name: string;
@@ -222,7 +238,7 @@ export interface ChannelConfig {
   category: Category;
   knowledgeType: KnowledgeType;
   enabled: boolean;
-  depth: number; // 0-4 index into DEPTH_LEVELS
+  depth: number; // 10-100 percentage (10=minimal, 100=full)
   baseTokens: number;
   content?: string; // inline markdown content (e.g., overviewMarkdown)
   repoMeta?: {
@@ -233,6 +249,9 @@ export interface ChannelConfig {
     features: string[];
   };
   contentSourceId?: string; // links to backend content store
+  effectiveTokens?: number; // runtime token count after budget allocation
+  hint?: string; // optional display hint
+  codeFilePaths?: string[]; // paths to code files indexed by smart code indexer
 }
 
 export type PlanningMode = 'single-shot' | 'chain-of-thought' | 'react';

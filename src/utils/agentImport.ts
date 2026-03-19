@@ -1,4 +1,5 @@
-import { type ConsoleState, type AgentMeta, type ExportTarget, type InstructionState, type WorkflowStep } from '../store/consoleStore';
+import type { ConsoleState } from '../store/consoleStore';
+import type { AgentMeta, ExportTarget, InstructionState, WorkflowStep } from '../types/console.types';
 import { type KnowledgeType, type Category, type OutputFormat, classifyKnowledgeType, type KnowledgeSource } from '../store/knowledgeBase';
 
 interface ModularChannel {

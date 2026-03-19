@@ -44,113 +44,34 @@ function removeItemById<T extends { id: string; added: boolean; enabled: boolean
   return items.map((item) => item.id === id ? { ...item, added: false, enabled: false } : item);
 }
 
-export interface AgentMeta {
-  name: string;
-  description: string;
-  icon: string;
-  category: string;
-  tags: string[];
-  avatar: string;
-}
+import type { 
+  AgentMeta, 
+  InstructionState, 
+  WorkflowStep, 
+  PendingKnowledgeItem,
+  SuggestedSkill,
+  AgentPattern,
+  VerificationConfig,
+  ErrorHandling,
+  EvaluationConfig,
+  ExportTarget
+} from '../types/console.types';
 
-export type ExportTarget = 'claude' | 'amp' | 'codex' | 'vibe-kanban' | 'openclaw' | 'generic';
-
-export interface PendingKnowledgeItem {
-  id: string;
-  name: string;
-  type: string;
-  content?: string;
-  fromRun?: string;
-}
-
-export interface SuggestedSkill {
-  id: string;
-  name: string;
-  description: string;
-  installCmd: string;
-  installing?: boolean;
-  installed?: boolean;
-}
-
-export interface InstructionState {
-  persona: string;
-  tone: 'formal' | 'neutral' | 'casual';
-  expertise: number; // 1-5 slider
-  constraints: {
-    neverMakeUp: boolean;
-    askBeforeActions: boolean;
-    stayInScope: boolean;
-    useOnlyTools: boolean;
-    limitWords: boolean;
-    wordLimit: number;
-    customConstraints: string;
-    scopeDefinition: string;
-  };
-  objectives: {
-    primary: string;
-    successCriteria: string[];
-    failureModes: string[];
-  };
-  rawPrompt: string;
-  autoSync: boolean;
-}
-
-// Anthropic's 5 workflow patterns + true agent
-export type AgentPattern = 'prompt-chain' | 'routing' | 'parallelization' | 'orchestrator-workers' | 'evaluator-optimizer' | 'autonomous-agent';
-
-// Verification: how the agent checks its own work (Anthropic's highest-leverage improvement)
-export interface VerificationConfig {
-  enabled: boolean;
-  strategy: 'rules' | 'llm-judge' | 'cross-reference' | 'checklist' | 'none';
-  rules: string[]; // e.g. "All claims must cite a source", "No empty sections"
-  crossRefSources: string[]; // sourceIds to cross-reference against
-  confidenceRequired: boolean; // mark High/Medium/Low on findings
-  autoRetryOnFail: boolean;
-  maxRetries: number;
-}
-
-// Error handling per step
-export interface ErrorHandling {
-  onStepFailure: 'retry' | 'skip' | 'fallback' | 'abort';
-  retryCount: number;
-  fallbackAction: string; // what to do instead
-  checkpointEnabled: boolean; // save progress mid-workflow
-  timeoutSeconds: number; // 0 = no timeout
-  gracefulDegradation: boolean; // continue with partial results
-}
-
-// Evaluation criteria
-export interface EvaluationConfig {
-  enabled: boolean;
-  criteria: EvalCriterion[];
-  expectedOutputFormat: string; // e.g. "markdown with H2 sections", "JSON with 'recommendations' array"
-  qualityRubric: string; // freeform description of what "good" looks like
-}
-
-export interface EvalCriterion {
-  id: string;
-  name: string;
-  description: string;
-  weight: number; // 1-5
-  type: 'boolean' | 'scale' | 'regex' | 'contains';
-  value?: string; // regex pattern or required content
-}
-
-export interface WorkflowStep {
-  id: string;
-  label: string;
-  action: string;
-  tool: string;
-  condition: 'always' | 'if' | 'unless';
-  conditionValue?: string;
-  conditionText?: string;
-  loopTarget?: string;
-  loopMax?: number;
-  // Error handling per step
-  onError?: 'retry' | 'skip' | 'fallback' | 'abort';
-  retryCount?: number;
-  fallbackAction?: string;
-}
+// Re-export types for convenience
+export type { 
+  AgentMeta, 
+  InstructionState, 
+  WorkflowStep, 
+  PendingKnowledgeItem,
+  SuggestedSkill,
+  AgentPattern,
+  VerificationConfig,
+  ErrorHandling,
+  EvaluationConfig,
+  EvalCriterion,
+  ExportTarget,
+  McpTool
+} from '../types/console.types';
 
 export interface ConsoleState {
   channels: ChannelConfig[];
@@ -174,6 +95,9 @@ export interface ConsoleState {
   activeSettingsTab: 'providers' | 'mcp' | 'general';
   response: string;
   exportTarget: ExportTarget;
+
+  // Knowledge gaps from generator
+  knowledgeGaps: import('../utils/generateAgent').KnowledgeGap[];
 
   // Marketplace registry
   registrySkills: RegistrySkill[];
@@ -235,7 +159,7 @@ export interface ConsoleState {
   setAgentMeta: (meta: Partial<AgentMeta>) => void;
   setChannelKnowledgeType: (sourceId: string, typeIndex: number) => void;
   reorderChannels: (fromIndex: number, toIndex: number) => void;
-  run: () => void;
+  run: () => Promise<void>;
   cancelRun: () => void;
   clearChannels: () => void;
 
@@ -314,6 +238,9 @@ export interface ConsoleState {
   // Generator — hydrate all nodes from AI-generated config
   hydrateFromGenerated: (config: import('../utils/generateAgent').GeneratedAgentConfig) => void;
 
+  // Knowledge gaps actions
+  setKnowledgeGaps: (gaps: import('../utils/generateAgent').KnowledgeGap[]) => void;
+
   // Context and Agent management
   resetAgent: () => void;
   collectContextState: () => { channels: ChannelConfig[]; mcpServers: McpServer[]; skills: Skill[]; connectors: Connector[] };
@@ -350,6 +277,7 @@ export const useConsoleStore = create<ConsoleState>()(
   activeSettingsTab: 'providers' as const,
   response: '',
   exportTarget: 'claude' as ExportTarget,
+  knowledgeGaps: [],
   registrySkills: REGISTRY_SKILLS.map((s) => ({ ...s })),
   registryMcpServers: REGISTRY_MCP_SERVERS.map((s) => ({ ...s })),
   agentConfig: { ...DEFAULT_AGENT_CONFIG },
@@ -495,7 +423,7 @@ export const useConsoleStore = create<ConsoleState>()(
   setChannelDepth: (sourceId: string, depth: number) => {
     set({
       channels: get().channels.map((ch) =>
-        ch.sourceId === sourceId ? { ...ch, depth: Math.max(0, Math.min(4, depth)) } : ch,
+        ch.sourceId === sourceId ? { ...ch, depth: Math.max(10, Math.min(100, depth)) } : ch,
       ),
     });
   },
@@ -534,7 +462,7 @@ export const useConsoleStore = create<ConsoleState>()(
     set({ channels, selectedPreset: '' });
   },
 
-  run: () => {
+  run: async () => {
     const { running, prompt, channels } = get();
     if (running) {
       // Clicking while running cancels
@@ -556,7 +484,23 @@ export const useConsoleStore = create<ConsoleState>()(
 
     set({ running: true, response: '' });
 
-    const messages = assembleContext(channels, prompt);
+    const state = get();
+    const enabledSkills = state.skills.filter(s => s.enabled);
+    
+    // Get connected MCP tools via dynamic import to break circular dependency
+    const { useMcpStore } = await import('./mcpStore');
+    const connectedTools = useMcpStore.getState().getConnectedTools();
+    
+    const messages = assembleContext(
+      channels, 
+      prompt, 
+      undefined, 
+      state.instructionState,
+      state.workflowSteps, 
+      state.agentMeta,
+      enabledSkills,
+      connectedTools
+    );
     const model = get().agentConfig.model;
 
     let accumulated = '';
@@ -744,8 +688,44 @@ export const useConsoleStore = create<ConsoleState>()(
   restoreFullState: (state: Record<string, unknown>) => {
     const patch: Partial<ConsoleState> = {};
 
-    if (state.agentMeta) patch.agentMeta = state.agentMeta as AgentMeta;
-    if (state.instructionState) patch.instructionState = state.instructionState as InstructionState;
+    if (state.agentMeta) {
+      const meta = state.agentMeta as Record<string, unknown>;
+      patch.agentMeta = {
+        name: (meta.name as string) || '',
+        description: (meta.description as string) || '',
+        icon: (meta.icon as string) || 'brain',
+        category: (meta.category as string) || 'general',
+        tags: (meta.tags as string[]) || [],
+        avatar: (meta.avatar as string) || 'bot',
+      } as AgentMeta;
+    }
+    if (state.instructionState) {
+      const raw = state.instructionState as Record<string, unknown>;
+      const rawConstraints = (raw.constraints || {}) as Record<string, unknown>;
+      const rawObjectives = (raw.objectives || {}) as Record<string, unknown>;
+      patch.instructionState = {
+        persona: (raw.persona as string) || '',
+        tone: (raw.tone as 'formal' | 'neutral' | 'casual') || 'neutral',
+        expertise: (raw.expertise as number) || 3,
+        constraints: {
+          neverMakeUp: rawConstraints.neverMakeUp as boolean ?? true,
+          askBeforeActions: rawConstraints.askBeforeActions as boolean ?? false,
+          stayInScope: rawConstraints.stayInScope as boolean ?? true,
+          useOnlyTools: rawConstraints.useOnlyTools as boolean ?? false,
+          limitWords: rawConstraints.limitWords as boolean ?? false,
+          wordLimit: (rawConstraints.wordLimit as number) || 0,
+          customConstraints: (rawConstraints.customConstraints as string) || '',
+          scopeDefinition: (rawConstraints.scopeDefinition as string) || '',
+        },
+        objectives: {
+          primary: (rawObjectives.primary as string) || '',
+          successCriteria: (rawObjectives.successCriteria as string[]) || [],
+          failureModes: (rawObjectives.failureModes as string[]) || [],
+        },
+        rawPrompt: (raw.rawPrompt as string) || '',
+        autoSync: raw.autoSync as boolean ?? true,
+      };
+    }
     if (state.workflowSteps) patch.workflowSteps = state.workflowSteps as WorkflowStep[];
     if (state.mcpServers) patch.mcpServers = state.mcpServers as McpServer[];
     if (state.skills) patch.skills = state.skills as Skill[];
@@ -1151,8 +1131,16 @@ export const useConsoleStore = create<ConsoleState>()(
     }
     // If neither field present, keep existing channels untouched
 
+    // Store knowledge gaps
+    set({ knowledgeGaps: config.knowledgeGaps || [] });
+
     // Clear response
     set({ response: '', selectedPreset: '' });
+  },
+
+  // Knowledge gaps action
+  setKnowledgeGaps: (gaps) => {
+    set({ knowledgeGaps: gaps });
   },
 
   // Demo preset
@@ -1214,7 +1202,20 @@ export const useConsoleStore = create<ConsoleState>()(
         autoSync: true,
       },
       workflowSteps: [],
+      prompt: '',
+      channels: [],
+      mcpServers: [],
+      skills: [],
+      connectors: [],
+      knowledgeGaps: [],
+      response: '',
+      selectedPreset: '',
     });
+    // Also clear conversation state
+    try {
+      // Dynamic import to avoid circular dependency
+      import('./conversationStore').then(mod => mod.useConversationStore.getState().clearMessages());
+    } catch { /* silent */ }
   },
 
   // Collect current context state (channels, mcpServers, skills, connectors)

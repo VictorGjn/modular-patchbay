@@ -219,17 +219,7 @@ export function Marketplace() {
         }}
         onClick={() => setShowMarketplace(false)}
       >
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.90)',
-            backdropFilter: 'blur(4px)'
-          }}
-        />
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
         <div
           ref={modalRef}
@@ -240,14 +230,14 @@ export function Marketplace() {
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
-            borderRadius: 6,
+            borderRadius: '12px',
             overflow: 'hidden',
             isolation: 'isolate',
             zIndex: 1,
             width: '90vw',
             maxWidth: 1600,
             height: '80vh',
-            background: t.surfaceOpaque,
+            background: t.surface,
             border: `1px solid ${t.border}`,
             boxShadow: '0 24px 48px rgba(0,0,0,0.6)',
             animation: 'modal-in 0.2s ease-out',
@@ -318,6 +308,7 @@ export function Marketplace() {
               <button
                 type="button"
                 onClick={() => setShowMarketplace(false)}
+                className="transition-colors"
                 style={{
                   padding: 4,
                   borderRadius: 6,
@@ -328,6 +319,14 @@ export function Marketplace() {
                   color: t.textDim
                 }}
                 aria-label="Close marketplace"
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#ef444420';
+                  e.currentTarget.style.color = '#ef4444';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = t.textDim;
+                }}
               >
                 <X size={16} />
               </button>
@@ -665,6 +664,8 @@ function SkillCard({ skill, isInLibrary, installing, dropdownOpen, onToggleDropd
             }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
             onMouseLeave={(e) => { if (!dropdownOpen) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; } }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#FE5000'; }}
+            onBlur={(e) => { if (!dropdownOpen) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; } }}
           >
             Install <ChevronDown size={8} />
           </button>
@@ -803,6 +804,8 @@ function RemoteSkillCard({ skill, installing, installed, onInstall, t }: {
             aria-label={`Open ${skill.name} on skills.sh`}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = t.textDim; }}
+            onFocus={(e) => { e.currentTarget.style.color = '#FE5000'; }}
+            onBlur={(e) => { e.currentTarget.style.color = t.textDim; }}
           >
             <ExternalLink size={10} />
           </a>
@@ -959,6 +962,8 @@ function PresetRow({ preset, t, onLoad }: {
         }}
         onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#FE5000'; }}
         onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; e.currentTarget.style.background = 'transparent'; }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = '#FE5000'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#FE5000'; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textSecondary; e.currentTarget.style.background = 'transparent'; }}
       >
         Load Preset
       </button>

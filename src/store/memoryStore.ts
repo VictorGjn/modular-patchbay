@@ -4,7 +4,7 @@ import { create } from 'zustand';
 
 export type SessionStrategy = 'full' | 'sliding_window' | 'summarize_and_recent' | 'rag';
 export type SummaryModel = 'same' | 'fast';
-export type StoreBackend = 'local_sqlite' | 'postgres' | 'redis' | 'chromadb' | 'pinecone' | 'custom';
+export type StoreBackend = 'local_sqlite' | 'postgres' | 'redis' | 'chromadb' | 'pinecone' | 'custom' | 'hindsight';
 export type EmbeddingModel = 'text-embedding-3-small' | 'text-embedding-3-large' | 'voyage-3' | 'custom';
 export type RecallStrategy = 'top_k' | 'threshold' | 'hybrid';
 export type WriteMode = 'auto_extract' | 'explicit' | 'both';
@@ -63,6 +63,11 @@ export interface WriteConfig {
   extractTypes: ExtractType[];
 }
 
+export interface HindsightConfig {
+  baseUrl: string;
+  enabled: boolean;
+}
+
 export interface LongTermMemoryConfig {
   enabled: boolean;
   store: StoreBackend;
@@ -73,6 +78,7 @@ export interface LongTermMemoryConfig {
   maxEntries: number;
   ttl: string | null;
   tokenBudget: number;
+  hindsight: HindsightConfig;
 }
 
 export interface WorkingMemoryConfig {
@@ -84,12 +90,18 @@ export interface WorkingMemoryConfig {
   tokenBudget: number;
 }
 
+export interface ResponseCacheConfig {
+  enabled: boolean;
+  ttlSeconds: number;
+}
+
 export interface MemoryState {
   session: SessionMemoryConfig;
   longTerm: LongTermMemoryConfig;
   working: WorkingMemoryConfig;
   facts: Fact[];
   sandbox: SandboxConfig;
+  responseCache: ResponseCacheConfig;
 
   // Legacy aliases (for backward compat with MemoryNode)
   sessionMemory: SessionMemoryConfig;
@@ -119,6 +131,9 @@ export interface MemoryState {
   // Actions — sandbox
   setSandboxConfig: (patch: Partial<SandboxConfig>) => void;
   setSandboxDomain: (domain: keyof SandboxConfig['domains'], enabled: boolean) => void;
+
+  // Actions — response cache
+  setResponseCacheConfig: (patch: Partial<ResponseCacheConfig>) => void;
 
   // Queries — domain-filtered facts
   getFactsByDomain: (domain: MemoryDomain) => Fact[];
@@ -150,6 +165,7 @@ const DEFAULT_LONG_TERM: LongTermMemoryConfig = {
   maxEntries: 1000,
   ttl: null,
   tokenBudget: 5000,
+  hindsight: { baseUrl: 'http://localhost:8888', enabled: false },
 };
 
 const DEFAULT_WORKING: WorkingMemoryConfig = {
@@ -159,6 +175,11 @@ const DEFAULT_WORKING: WorkingMemoryConfig = {
   format: 'freeform',
   content: '',
   tokenBudget: 2000,
+};
+
+const DEFAULT_RESPONSE_CACHE: ResponseCacheConfig = {
+  enabled: true,
+  ttlSeconds: 3600,
 };
 
 const DEFAULT_SANDBOX: SandboxConfig = {
@@ -179,11 +200,12 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   working: { ...DEFAULT_WORKING },
   facts: [],
   sandbox: { ...DEFAULT_SANDBOX },
+  responseCache: { ...DEFAULT_RESPONSE_CACHE },
 
   // Legacy aliases — kept for MemoryNode backward compat
   // These are synced via subscriptions below
-  sessionMemory: { ...DEFAULT_SESSION } as any,
-  longTermMemory: [] as any[],
+  sessionMemory: { ...DEFAULT_SESSION },
+  longTermMemory: [] as Fact[],
   workingMemory: '' as string,
 
   // Session
@@ -314,6 +336,10 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         domains: { ...s.sandbox.domains, [domain]: { enabled } },
       },
     }));
+  },
+
+  setResponseCacheConfig: (patch) => {
+    set((s) => ({ responseCache: { ...s.responseCache, ...patch } }));
   },
 
   // Domain queries

@@ -26,10 +26,50 @@ import { buildSystemFrame, buildKnowledgeFormatGuide } from './systemFrameBuilde
 import { routeSources } from './sourceRouter';
 import { compressKnowledge } from './knowledgePipeline';
 import { buildOrientationBlock, assemblePipelineContext } from './contextAssembler';
+import { detectCacheStrategy, computeCacheMetrics } from './cacheAwareAssembler';
 import { executeChat } from './executionRouter';
 import { postProcess } from './postProcessor';
 import type { PipelineResult } from './pipeline';
 import type { ToolCallResult } from './toolRunner';
+import { useLessonStore } from '../store/lessonStore';
+
+/** FNV-1a 32-bit hash — fast, deterministic, no async needed */
+function fnv1a(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+async function checkResponseCache(
+  query: string, agentId: string, model: string, systemPromptHash: string, ttl: number,
+): Promise<{ response: string; hitCount: number } | null> {
+  try {
+    const res = await fetch('/api/cache/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, agentId, model, systemPromptHash, ttl }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { hit: boolean; cached?: { response: string; hitCount: number } };
+    return data.hit && data.cached ? data.cached : null;
+  } catch { return null; }
+}
+
+async function storeResponseCache(
+  query: string, response: string, agentId: string, model: string,
+  systemPromptHash: string, ttl: number,
+): Promise<void> {
+  try {
+    await fetch('/api/cache/store', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, response, agentId, model, systemPromptHash, ttl }),
+    });
+  } catch { /* fire-and-forget */ }
+}
 
 // ── Re-export types from sub-modules so external consumers keep working ──
 export type { FrameworkSummary } from './sourceRouter';
@@ -54,6 +94,7 @@ export interface PipelineChatOptions {
 }
 
 export interface PipelineChatStats {
+  traceId?: string;
   pipeline: PipelineResult | null;
   systemTokens: number;
   totalContextTokens: number;
@@ -96,11 +137,20 @@ export interface ResolvedProvider {
  * Centralises the logic so ConversationTester and TestPanel behave identically.
  */
 export function resolveProviderAndModel(): ResolvedProvider {
-  const { agentConfig } = useConsoleStore.getState();
-  const { selectedProviderId, providers } = useProviderStore.getState();
+  const { selectedModel, agentConfig } = useConsoleStore.getState();
+  const { providers } = useProviderStore.getState();
 
-  const selected = providers.find((p: any) => p.id === selectedProviderId);
-  const models = Array.isArray(selected?.models) ? selected!.models : [];
+  // selectedModel may be "providerId::modelId" format from the dynamic selector
+  const colonIdx = selectedModel.indexOf('::');
+  const hasPrefix = colonIdx > 0;
+  const targetProviderId = hasPrefix ? selectedModel.slice(0, colonIdx) : '';
+  const targetModelId = hasPrefix ? selectedModel.slice(colonIdx + 2) : (selectedModel || agentConfig.model);
+
+  // Find the provider — prefer the one from selectedModel prefix, fallback to selectedProviderId
+  const { selectedProviderId } = useProviderStore.getState();
+  const providerIdToUse = targetProviderId || selectedProviderId;
+  const selected = providers.find((p) => p.id === providerIdToUse);
+  const models = Array.isArray(selected?.models) ? selected.models : [];
 
   if (!selected || (selected.status !== 'connected' && selected.status !== 'configured') || models.length === 0) {
     return {
@@ -110,10 +160,11 @@ export function resolveProviderAndModel(): ResolvedProvider {
     };
   }
 
-  const hasCurrentModel = models.some((m: any) => m.id === agentConfig.model);
+  // Check if target model exists in this provider's models
+  const hasTarget = models.some((m) => m.id === targetModelId);
   return {
     providerId: selected.id,
-    model: hasCurrentModel ? agentConfig.model : models[0].id,
+    model: hasTarget ? targetModelId : models[0].id,
   };
 }
 
@@ -159,7 +210,17 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       knowledgeBlock = knowledgeBlock ? `${knowledgeBlock}\n\n${connectorBlock}` : connectorBlock;
     }
 
-    // 3b. Pre-recall: inject relevant memory facts into context
+    // 3b. Inject approved lessons into context
+    const agentLessons = options.agentId
+      ? useLessonStore.getState().getApprovedLessons(options.agentId)
+      : [];
+    let lessonsBlock = '';
+    if (agentLessons.length > 0) {
+      const lines = agentLessons.map((l) => `- [${l.category}] ${l.rule}`).join('\n');
+      lessonsBlock = `<lessons>\n${lines}\n</lessons>`;
+    }
+
+    // 3c. Pre-recall: inject relevant memory facts into context
     const memoryConfig = useMemoryStore.getState();
     let memoryBlock = '';
     let memoryStats: import('./postProcessor').MemoryStats | undefined;
@@ -190,25 +251,39 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       };
     }
 
-    // 3c. Rebuild system frame with provenance data
+    // 3d. Rebuild system frame with provenance data
     if (provenance) {
       systemFrame = buildSystemFrame(provenance);
     }
 
-    // 4. Assemble final system prompt
-    //    Order: frame → orientation → knowledge_format → framework → memory → knowledge
+    // 4. Assemble final system prompt with cache-aware block ordering
     const orientationBlock = buildOrientationBlock(channels, useTreeIndexStore.getState().getIndex);
     const hasRepos = channels.some(ch => ch.enabled && ch.repoMeta);
+    const currentProvider = useProviderStore.getState().providers.find(p => p.id === providerId);
+    const providerType = currentProvider?.type ?? 'openai';
+    if (agentLessons.length > 0) {
+      traceStore.addEvent(traceId, { kind: 'lesson_applied', memoryFactCount: agentLessons.length });
+    }
     const systemPrompt = assemblePipelineContext({
       frame: systemFrame,
       orientationBlock,
       hasRepos,
       knowledgeFormatGuide: buildKnowledgeFormatGuide(),
       frameworkBlock,
+      lessonsBlock: lessonsBlock || undefined,
       memoryBlock,
       knowledgeBlock,
+      providerType,
     });
     const systemTokens = estimateTokens(systemPrompt);
+
+    // Log cache metrics to trace
+    const cacheStrategy = detectCacheStrategy(providerType);
+    const cacheMetrics = computeCacheMetrics(systemPrompt, cacheStrategy);
+    traceStore.addEvent(traceId, {
+      kind: 'cache',
+      cacheMetrics,
+    });
 
     // 5. Build messages array
     const msgs = [
@@ -216,6 +291,37 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       ...history.filter(m => m.content.trim() !== '').map(m => ({ role: m.role, content: m.content })),
       { role: 'user' as const, content: userMessage },
     ];
+
+    // 5a. Check response cache before LLM call
+    const { responseCache } = useMemoryStore.getState();
+    const systemPromptHash = fnv1a(systemPrompt);
+    const effectiveAgentId = options.agentId ?? 'default';
+    if (responseCache.enabled) {
+      const cached = await checkResponseCache(userMessage, effectiveAgentId, model, systemPromptHash, responseCache.ttlSeconds);
+      if (cached) {
+        const savingsUsd = (cached.response.length / 4) * 0.000015;
+        traceStore.addEvent(traceId, {
+          kind: 'response_cache_hit',
+          responseCacheHit: true,
+          responseCacheSavingsUsd: savingsUsd,
+          responseCacheAgentId: effectiveAgentId,
+          responseCacheModel: model,
+        });
+        onChunk(cached.response);
+        const { heatmap, memoryStats: updatedMemoryStats } = await postProcess({
+          fullResponse: cached.response, userMessage, agentId: options.agentId,
+          sandboxRunId: options.sandboxRunId, traceId, activeChannels, memoryStats,
+        });
+        onDone({ traceId, pipeline: pipelineResult, systemTokens, totalContextTokens: systemTokens, heatmap, frameworkSummary, memory: updatedMemoryStats });
+        return;
+      }
+      traceStore.addEvent(traceId, {
+        kind: 'response_cache_miss',
+        responseCacheHit: false,
+        responseCacheAgentId: effectiveAgentId,
+        responseCacheModel: model,
+      });
+    }
 
     // 6. Execute: tool loop / text streaming / agent SDK
     const { fullResponse, toolCallResults, toolTurns } = await executeChat({
@@ -228,6 +334,11 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       onChunk,
     });
 
+    // 6a. Store response in cache after successful LLM call
+    if (responseCache.enabled && fullResponse) {
+      void storeResponseCache(userMessage, fullResponse, effectiveAgentId, model, systemPromptHash, responseCache.ttlSeconds);
+    }
+
     // 7–9. Post-process: memory write, end trace, heatmap + stats
     const { heatmap, memoryStats: updatedMemoryStats } = await postProcess({
       fullResponse,
@@ -238,6 +349,10 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       activeChannels,
       memoryStats,
     });
+
+    // 10. Detect corrections → extract lesson → add to pending
+    const lastAssistant = history.filter(m => m.role === 'assistant').at(-1)?.content ?? '';
+    void detectAndAddLesson(userMessage, lastAssistant, providerId, model, options.agentId, traceId);
 
     const totalContextTokens =
       systemTokens +
@@ -265,6 +380,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     } : undefined;
 
     onDone({
+      traceId,
       pipeline: pipelineResult,
       systemTokens,
       totalContextTokens,
@@ -283,5 +399,30 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     });
     traceStore.endTrace(traceId);
     onError(err instanceof Error ? err : new Error('Unknown error'));
+  }
+}
+
+async function detectAndAddLesson(
+  userMessage: string,
+  previousAssistant: string,
+  providerId: string,
+  model: string,
+  agentId: string | undefined,
+  traceId: string,
+): Promise<void> {
+  try {
+    const res = await fetch('/api/lessons/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userMessage, previousAssistant, providerId, model, agentId }),
+    });
+    if (!res.ok) return;
+    const data = await res.json() as { lesson: import('../store/lessonStore').Lesson | null };
+    if (!data.lesson) return;
+    const { rule, category, agentId: lid, sourceUserMessage, sourcePreviousAssistant } = data.lesson;
+    useLessonStore.getState().addLesson({ rule, category, agentId: lid, sourceUserMessage, sourcePreviousAssistant });
+    useTraceStore.getState().addEvent(traceId, { kind: 'lesson_proposed' });
+  } catch {
+    // Lesson extraction is best-effort — never surface errors
   }
 }

@@ -76,7 +76,7 @@ export function exportAgentYaml(): string {
   };
 
   // Instructions
-  const instructions: any = {};
+  const instructions: Record<string, unknown> = {};
   if (state.instructionState.persona) {
     instructions.persona = state.instructionState.persona;
   }
@@ -113,15 +113,16 @@ export function exportAgentYaml(): string {
 
   // Objectives
   if (state.instructionState.objectives.primary) {
-    instructions.objectives = {
+    const objectives: Record<string, unknown> = {
       primary: state.instructionState.objectives.primary,
     };
     if (state.instructionState.objectives.successCriteria.length > 0) {
-      instructions.objectives.success_criteria = state.instructionState.objectives.successCriteria;
+      objectives.success_criteria = state.instructionState.objectives.successCriteria;
     }
     if (state.instructionState.objectives.failureModes.length > 0) {
-      instructions.objectives.failure_modes = state.instructionState.objectives.failureModes;
+      objectives.failure_modes = state.instructionState.objectives.failureModes;
     }
+    instructions.objectives = objectives;
   }
 
   if (state.instructionState.constraints.scopeDefinition) {
@@ -131,7 +132,7 @@ export function exportAgentYaml(): string {
   agentDef.instructions = instructions;
 
   // Context
-  const context: any = {};
+  const context: Record<string, unknown> = {};
 
   // Knowledge
   const enabledChannels = state.channels.filter(ch => ch.enabled);
@@ -183,7 +184,7 @@ export function exportAgentYaml(): string {
   return toYamlString(agentDef);
 }
 
-function toYamlString(obj: any, indent = 0): string {
+function toYamlString(obj: unknown, indent = 0): string {
   const spaces = '  '.repeat(indent);
 
   if (Array.isArray(obj)) {
