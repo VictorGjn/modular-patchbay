@@ -32,9 +32,24 @@ export class McpManager {
       throw new Error('MCP command cannot be empty');
     }
 
-    // Extract base command (remove path prefixes)
-    const baseCommand = command.split(/[/\\]/).pop()?.split('.')[0] || '';
+    // Extract base command (remove path prefixes and .cmd/.exe/.bat extensions)
+    const baseCommand = (command.split(/[/\\]/).pop() || '')
+      .replace(/\.(cmd|exe|bat)$/i, '')
+      .toLowerCase();
     
+    // On Windows, allow `cmd /c <allowed>` pattern — check that the actual program is allowed
+    if (baseCommand === 'cmd' && args.length >= 2) {
+      const cmdFlag = args[0].toLowerCase();
+      if (cmdFlag === '/c' || cmdFlag === '/k') {
+        const actualCommand = (args[1].split(/[/\\]/).pop() || '')
+          .replace(/\.(cmd|exe|bat)$/i, '')
+          .toLowerCase();
+        if (this.ALLOWED_MCP_COMMANDS.has(actualCommand)) {
+          return; // cmd /c npx ... is fine
+        }
+      }
+    }
+
     // Check if command is in allowlist or starts with allowed prefix
     const isAllowed = this.ALLOWED_MCP_COMMANDS.has(baseCommand) ||
       Array.from(this.ALLOWED_MCP_COMMANDS).some(allowed => command.startsWith(allowed));
