@@ -17,12 +17,13 @@ import {
   FileText, FileCode, Zap, ChevronDown, ChevronRight, Users, Plus, X, Play, Square,
   Maximize2, Minimize2,
 } from 'lucide-react';
-import { TraceViewer } from './TraceViewer';
+// import { TraceViewer } from './TraceViewer';
 import { InlineTraceView } from '../components/InlineTraceView';
 import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
 import { CapabilityGate } from '../components/CapabilityGate';
 import { RuntimeResults } from './RuntimePanel';
 import { PipelineTraceView } from '../components/PipelineTraceView';
+
 import { API_BASE } from '../config';
 import { runTeam as runTeamService, type RunTeamConfig } from '../services/runtimeService';
 import { useRuntimeStore } from '../store/runtimeStore';
@@ -145,7 +146,8 @@ function PipelineStatsBar() {
             <span title="Pipeline processing time">{p.timing.totalMs}ms</span>
           </>
         )}
-        <ChevronDown size={8} className="ml-auto" style={{ transform: expanded ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms' }} />
+
+        <ChevronDown size={8} style={{ transform: expanded ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms' }} />
       </button>
 
       {/* Pipeline Trace View or Depth Heatmap */}
@@ -220,8 +222,7 @@ function ChatSection() {
   const setStreaming = useConversationStore(s => s.setStreaming);
   const updateLastAssistant = useConversationStore(s => s.updateLastAssistant);
   const setLastPipelineStats = useConversationStore(s => s.setLastPipelineStats);
-  const updateMessagePipelineStats = useConversationStore(s => s.updateMessagePipelineStats);
-
+  // const updateMessagePipelineStats = useConversationStore(s => s.updateMessagePipelineStats);
   const channels = useConsoleStore(s => s.channels);
   const connectors = useConsoleStore(s => s.connectors);
   const mcpServers = useConsoleStore(s => s.mcpServers);
@@ -276,11 +277,17 @@ function ChatSection() {
         onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
         onDone: (stats) => { 
           setLastPipelineStats(stats);
-          // Attach stats to the last assistant message
+          // Attach stats + traceId to the last assistant message in a single update
           const currentMessages = useConversationStore.getState().messages;
           const lastAssistantMsg = [...currentMessages].reverse().find(m => m.role === 'assistant');
           if (lastAssistantMsg) {
-            updateMessagePipelineStats(lastAssistantMsg.id, stats);
+            useConversationStore.setState({
+              messages: currentMessages.map(m =>
+                m.id === lastAssistantMsg.id 
+                  ? { ...m, pipelineStats: stats, traceId: stats.traceId } 
+                  : m
+              ),
+            });
           }
         },
         onError: (err: Error) => { updateLastAssistant(accum + `\n\n_Error: ${err.message}_`); },
@@ -316,6 +323,7 @@ function ChatSection() {
                 <button
                   type="button"
                   onClick={() => setInputText("What is this codebase about?")}
+                  title="Ask about codebase"
                   className="px-3 py-2 rounded-lg border cursor-pointer text-[12px] hover:border-[#FE5000] transition-colors"
                   style={{ 
                     background: t.surface, 
@@ -329,6 +337,7 @@ function ChatSection() {
                 <button
                   type="button"
                   onClick={() => setInputText("Explain the main architecture")}
+                  title="Ask about architecture"
                   className="px-3 py-2 rounded-lg border cursor-pointer text-[12px] hover:border-[#FE5000] transition-colors"
                   style={{ 
                     background: t.surface, 
@@ -342,6 +351,7 @@ function ChatSection() {
                 <button
                   type="button"
                   onClick={() => setInputText("What are the key features?")}
+                  title="Ask about features"
                   className="px-3 py-2 rounded-lg border cursor-pointer text-[12px] hover:border-[#FE5000] transition-colors"
                   style={{ 
                     background: t.surface, 
@@ -420,7 +430,7 @@ function ChatSection() {
             )}
             {/* Inline trace view for assistant messages with pipeline stats */}
             {msg.role === 'assistant' && msg.pipelineStats && (
-              <InlineTraceView stats={msg.pipelineStats} />
+              <InlineTraceView stats={msg.pipelineStats} traceId={msg.traceId} />
             )}
           </div>
         ))}
@@ -452,7 +462,7 @@ function ChatSection() {
             fontFamily: "'Geist Sans', sans-serif",
           }}
         />
-        <button type="button" aria-label="Send message" onClick={handleSend} disabled={streaming || !inputText.trim()}
+        <button type="button" aria-label="Send message" title="Send message" onClick={handleSend} disabled={streaming || !inputText.trim()}
           className="px-4 rounded-lg cursor-pointer border-none text-[12px] font-semibold tracking-wider uppercase min-h-[44px] min-w-[44px]"
           style={{ background: '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace", opacity: streaming || !inputText.trim() ? 0.5 : 1 }}>
           <Send size={12} />
@@ -566,17 +576,25 @@ function TeamSection() {
     const provider = providerStore.providers.find(p => p.id === providerId);
     const isAgentSdk = provider?.authMethod === 'claude-agent-sdk';
 
-    console.log('[TeamRunner] Starting team run with provider:', providerId, 'model:', model, 'Agent SDK:', isAgentSdk);
+
     
     try {
-      // Start trace for pipeline
+      // Start trace for pipeline — use conversationStore's ID so TracePanel can find it
       const traceStore = useTraceStore.getState();
       const versionStore = useVersionStore.getState();
+      const convStore = useConversationStore.getState();
       const agentVersion = versionStore.currentVersion || '0.0.0';
-      const traceId = traceStore.startTrace(`team-${Date.now()}`, agentVersion);
+      const convId = convStore.conversationId || `conv-${Date.now()}`;
+      const traceId = traceStore.startTrace(convId, agentVersion);
+
+      const addTraceEvent = (event: Parameters<typeof traceStore.addEvent>[1]) => {
+        traceStore.addEvent(traceId, event);
+      };
 
       // 1. Build system frame (identity, constraints, workflow)
+      const frameStart = Date.now();
       let systemFrame = buildSystemFrame();
+      addTraceEvent({ kind: 'retrieval', sourceName: 'System Frame', query: 'identity + constraints + workflow', resultCount: 1, durationMs: Date.now() - frameStart });
 
       // 2. Run knowledge pipeline (same as Chat tab does)
       const consoleStore = useConsoleStore.getState();
@@ -588,12 +606,15 @@ function TeamSection() {
       let provenance = null;
       
       if (activeChannels.length > 0) {
-        console.log('[TeamRunner] Preparing knowledge...');
+
         setStatusMessage('Preparing knowledge...');
         
+        const routeStart = Date.now();
         const routeResult = await routeSources(activeChannels, traceId);
         frameworkBlock = routeResult.frameworkBlock;
+        addTraceEvent({ kind: 'retrieval', sourceName: 'Source Router', query: `${activeChannels.length} channels`, resultCount: routeResult.regularChannels?.length ?? 0, durationMs: Date.now() - routeStart });
         
+        const compressStart = Date.now();
         const result = await compressKnowledge(channels, routeResult.regularChannels, routeResult.residualKnowledgeBlock, { 
           userMessage: task, 
           navigationMode: 'manual', 
@@ -602,6 +623,7 @@ function TeamSection() {
         }, traceId);
         knowledgeBlock = result.knowledgeBlock;
         provenance = result.provenance;
+        addTraceEvent({ kind: 'retrieval', sourceName: 'Knowledge Pipeline', query: task.substring(0, 80), resultCount: activeChannels.length, durationMs: Date.now() - compressStart });
       }
 
       // 3. Add connector references (services like Notion, Slack, HubSpot)
@@ -620,8 +642,9 @@ function TeamSection() {
       let memoryBlock = '';
       
       if (memoryConfig.longTerm.enabled) {
-        console.log('[TeamRunner] Recalling memory...');
+
         setStatusMessage('Recalling memory...');
+        const memStart = Date.now();
         const memoryResult = await preRecall({ 
           userMessage: task, 
           agentId: 'team', 
@@ -630,6 +653,7 @@ function TeamSection() {
         if (memoryResult.contextBlock) {
           memoryBlock = memoryResult.contextBlock;
         }
+        addTraceEvent({ kind: 'retrieval', sourceName: 'Memory Recall', query: task.substring(0, 80), durationMs: Date.now() - memStart });
       }
       
       // 5. Rebuild system frame with provenance data
@@ -655,7 +679,9 @@ function TeamSection() {
         systemFrame = fullSystemPrompt;
       }
 
-      console.log('[TeamRunner] Running team...');
+
+      addTraceEvent({ kind: 'llm_call', model, sourceName: 'LLM Request' });
+
       setStatusMessage('Running team...');
       setRunError(null);
 
@@ -1138,21 +1164,20 @@ export function TestPanel({
         </span>
         <div className="flex gap-0.5 rounded-md overflow-hidden" role="tablist" style={{ border: `1px solid ${t.border}` }}>
           <button type="button" role="tab" id="tab-chat" aria-selected={activeTab === 'chat'} aria-controls="tabpanel-chat" onClick={() => setActiveTab('chat')}
+            title="Chat with agent"
             className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
             style={{ background: activeTab === 'chat' ? '#FE5000' : 'transparent', color: activeTab === 'chat' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
             Chat
           </button>
           <button type="button" role="tab" id="tab-team" aria-selected={activeTab === 'team'} aria-controls="tabpanel-team" onClick={() => setActiveTab('team')}
+            title="Run team mode"
             className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
             style={{ background: activeTab === 'team' ? '#FE5000' : 'transparent', color: activeTab === 'team' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
             Team
           </button>
-          <button type="button" role="tab" id="tab-traces" aria-selected={activeTab === 'traces'} aria-controls="tabpanel-traces" onClick={() => setActiveTab('traces')}
-            className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
-            style={{ background: activeTab === 'traces' ? '#FE5000' : 'transparent', color: activeTab === 'traces' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
-            Traces
-          </button>
+
           <button type="button" role="tab" id="tab-export" aria-selected={activeTab === 'export'} aria-controls="tabpanel-export" onClick={() => setActiveTab('export')}
+            title="Export agent"
             className="text-[13px] px-2.5 py-2 cursor-pointer border-none min-h-[44px]"
             style={{ background: activeTab === 'export' ? '#FE5000' : 'transparent', color: activeTab === 'export' ? '#fff' : t.textDim, fontFamily: "'Geist Mono', monospace" }}>
             Export
@@ -1160,21 +1185,21 @@ export function TestPanel({
 
         </div>
         {isExpanded && onMinimize && (
-          <button type="button" onClick={onMinimize} aria-label="Minimize test panel"
+          <button type="button" onClick={onMinimize} aria-label="Minimize test panel" title="Minimize panel"
             className="w-7 h-7 rounded-md border-none cursor-pointer flex items-center justify-center"
             style={{ background: 'transparent', color: t.textDim }}>
             <Minimize2 size={14} />
           </button>
         )}
         {!isExpanded && onExpand && (
-          <button type="button" onClick={onExpand} aria-label="Expand test panel"
+          <button type="button" onClick={onExpand} aria-label="Expand test panel" title="Expand panel"
             className="w-7 h-7 rounded-md border-none cursor-pointer flex items-center justify-center"
             style={{ background: 'transparent', color: t.textDim }}>
             <Maximize2 size={14} />
           </button>
         )}
         {onCollapse && (
-          <button type="button" onClick={onCollapse} aria-label="Collapse test panel"
+          <button type="button" onClick={onCollapse} aria-label="Collapse test panel" title="Collapse panel"
             className="w-7 h-7 rounded-md border-none cursor-pointer flex items-center justify-center"
             style={{ background: 'transparent', color: t.textDim }}>
             <ChevronRight size={14} />
@@ -1184,11 +1209,7 @@ export function TestPanel({
 
       {activeTab === 'chat' && <div role="tabpanel" id="tabpanel-chat" aria-labelledby="tab-chat" className="flex flex-col flex-1 min-h-0"><ChatSection /></div>}
       {activeTab === 'team' && <div role="tabpanel" id="tabpanel-team" aria-labelledby="tab-team" className="flex flex-col flex-1 min-h-0"><TeamSection /></div>}
-      {activeTab === 'traces' && (
-        <div role="tabpanel" id="tabpanel-traces" aria-labelledby="tab-traces" className="flex-1 overflow-y-auto">
-          <TraceViewer />
-        </div>
-      )}
+
       {activeTab === 'export' && (
         <div role="tabpanel" id="tabpanel-export" aria-labelledby="tab-export" className="flex-1 overflow-y-auto">
           <ExportSection />

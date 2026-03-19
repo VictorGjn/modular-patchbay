@@ -78,10 +78,13 @@ export function streamAgentSdk(params: StreamAgentSdkParams): AbortController {
   return controller;
 }
 
+export type MessageBlock = { type: 'text'; text: string; cache_control?: { type: 'ephemeral' } };
+export type MessageContent = string | MessageBlock[];
+
 export interface StreamCompletionParams {
   providerId: string;
   model: string;
-  messages: { role: string; content: string }[];
+  messages: { role: string; content: MessageContent }[];
   temperature?: number;
   maxTokens?: number;
   onChunk: (text: string) => void;

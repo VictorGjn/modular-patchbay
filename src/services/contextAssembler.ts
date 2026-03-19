@@ -1,10 +1,10 @@
-import { type ChannelConfig, KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
-import { useMcpStore, type McpTool } from '../store/mcpStore';
-import { useConsoleStore } from '../store/consoleStore';
-import { compileWorkflow } from '../nodes/WorkflowNode';
+import { type ChannelConfig, KNOWLEDGE_TYPES } from '../store/knowledgeBase';
+import { reorderForCache, CACHE_BOUNDARY_MARKER, detectCacheStrategy } from './cacheAwareAssembler';
+import type { InstructionState, WorkflowStep, AgentMeta, McpTool } from '../types/console.types';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { applyDepthFilter, renderFilteredMarkdown } from '../utils/depthFilter';
 import { type TreeNode } from './treeIndexer';
+import { compileWorkflow } from '../utils/workflowCompiler';
 
 export interface AssembledMessage {
   role: 'system' | 'user';
@@ -35,15 +35,19 @@ export function assembleContext(
   channels: ChannelConfig[],
   prompt: string,
   agentConfig?: { name?: string; description?: string },
+  instructionState: InstructionState = {
+    persona: '', tone: 'neutral', expertise: 3,
+    constraints: { neverMakeUp: false, askBeforeActions: false, stayInScope: false, useOnlyTools: false, limitWords: false, wordLimit: 500, customConstraints: '', scopeDefinition: '' },
+    objectives: { primary: '', successCriteria: [], failureModes: [] },
+    rawPrompt: '', autoSync: true
+  },
+  workflowSteps: WorkflowStep[] = [],
+  agentMeta: AgentMeta = { name: '', description: '', icon: 'brain', category: 'general', tags: [], avatar: 'bot' },
+  enabledSkills: Array<{ name: string; description?: string }> = [],
+  connectedTools: McpTool[] = [],
 ): AssembledMessage[] {
   const messages: AssembledMessage[] = [];
   const activeChannels = channels.filter((ch) => ch.enabled);
-
-  // Get additional context from console store
-  const consoleState = useConsoleStore.getState();
-  const instructionState = consoleState.instructionState;
-  const workflowSteps = consoleState.workflowSteps;
-  const agentMeta = consoleState.agentMeta;
 
   // Build comprehensive system prompt with XML tags
   const systemParts: string[] = [];
@@ -115,7 +119,7 @@ export function assembleContext(
 
   // Workflow
   if (workflowSteps.length > 0) {
-    const compiledWorkflow = compileWorkflow(workflowSteps as any);
+    const compiledWorkflow = compileWorkflow(workflowSteps);
     systemParts.push(`<workflow>\n${compiledWorkflow}\n</workflow>`);
   }
 
@@ -140,7 +144,9 @@ export function assembleContext(
       const sourceBlocks: string[] = [];
 
       for (const ch of group) {
-        const depth = DEPTH_LEVELS[ch.depth];
+        const depthPct = ch.depth || 100; // 10-100%
+        const fraction = depthPct / 100;
+        const depthLabel = `${depthPct}%`;
         const treeIndex = treeStore.getIndex(ch.path);
 
         if (treeIndex) {
@@ -149,15 +155,15 @@ export function assembleContext(
           const content = renderFilteredMarkdown(filtered.filtered);
           if (content.trim()) {
             sourceBlocks.push(
-              `<source name="${ch.name}" type="${kt.label}" depth="${depth.label}" tokens="${filtered.totalTokens}">\n${content}\n</source>`,
+              `<source name="${ch.name}" type="${kt.label}" depth="${depthLabel}" tokens="${filtered.totalTokens}">\n${content}\n</source>`,
             );
           } else {
-            sourceBlocks.push(`- ${ch.name} (${depth.label}, title only) [${ch.path}]`);
+            sourceBlocks.push(`- ${ch.name} (${depthLabel}, title only) [${ch.path}]`);
           }
         } else {
           // No tree index — fallback to metadata-only reference
           sourceBlocks.push(
-            `- ${ch.name} (${depth.label}, ~${Math.round(ch.baseTokens * depth.pct).toLocaleString()} tokens) [${ch.path}]`,
+            `- ${ch.name} (${depthLabel}, ~${Math.round(ch.baseTokens * fraction).toLocaleString()} tokens) [${ch.path}]`,
           );
         }
       }
@@ -170,8 +176,6 @@ export function assembleContext(
   }
 
   // Available Tools
-  const connectedTools: McpTool[] = useMcpStore.getState().getConnectedTools();
-  const enabledSkills = consoleState.skills.filter(s => s.enabled);
 
   if (connectedTools.length > 0 || enabledSkills.length > 0) {
     const toolLines = [];
@@ -367,8 +371,9 @@ export function buildOrientationBlock(channels: ChannelConfig[], getTreeIndex: T
 
 /**
  * Assemble the final system prompt from all pipeline parts.
- * Order: frame → orientation → knowledge_format → framework → memory → knowledge
- * Applies attention-aware ordering to knowledge sources by epistemic priority.
+ * When providerType is given, reorders blocks by stability for cache optimization.
+ * Default order (no providerType): frame → orientation → knowledge_format → framework → memory → knowledge
+ * Cache-optimized order: frame → knowledge_format → framework → knowledge → memory → orientation
  */
 export function assemblePipelineContext(parts: {
   frame: string;
@@ -378,21 +383,58 @@ export function assemblePipelineContext(parts: {
   frameworkBlock: string;
   memoryBlock: string;
   knowledgeBlock: string;
+  lessonsBlock?: string;
+  providerType?: string;
 }): string {
-  const { frame, orientationBlock, hasRepos, knowledgeFormatGuide, frameworkBlock, memoryBlock, knowledgeBlock } = parts;
+  const { providerType } = parts;
+  const orderedKnowledge = parts.knowledgeBlock ? applyAttentionOrdering(parts.knowledgeBlock) : '';
+
+  if (providerType && detectCacheStrategy(providerType) !== 'none') {
+    return assembleCacheOptimized({ ...parts, knowledgeBlock: orderedKnowledge }, providerType);
+  }
+
+  return assembleDefault({ ...parts, knowledgeBlock: orderedKnowledge });
+}
+
+function assembleDefault(parts: {
+  frame: string;
+  orientationBlock: string;
+  hasRepos: boolean;
+  knowledgeFormatGuide: string;
+  frameworkBlock: string;
+  memoryBlock: string;
+  knowledgeBlock: string;
+  lessonsBlock?: string;
+}): string {
+  const { frame, orientationBlock, hasRepos, knowledgeFormatGuide, frameworkBlock, memoryBlock, knowledgeBlock, lessonsBlock } = parts;
   const systemParts = [frame];
+  if (lessonsBlock) systemParts.push(lessonsBlock);
   if (orientationBlock) systemParts.push(orientationBlock);
   if (hasRepos) systemParts.push(knowledgeFormatGuide);
   if (frameworkBlock) systemParts.push(frameworkBlock);
   if (memoryBlock) systemParts.push(memoryBlock);
-
-  if (knowledgeBlock) {
-    // Apply attention-aware ordering to knowledge sources
-    const orderedKnowledgeBlock = applyAttentionOrdering(knowledgeBlock);
-    systemParts.push(orderedKnowledgeBlock);
-  }
-
+  if (knowledgeBlock) systemParts.push(knowledgeBlock);
   return systemParts.filter(Boolean).join('\n\n');
+}
+
+function assembleCacheOptimized(parts: {
+  frame: string;
+  orientationBlock: string;
+  hasRepos: boolean;
+  knowledgeFormatGuide: string;
+  frameworkBlock: string;
+  memoryBlock: string;
+  knowledgeBlock: string;
+  lessonsBlock?: string;
+}, providerType: string): string {
+  const { stable, volatile } = reorderForCache(parts);
+  const strategy = detectCacheStrategy(providerType);
+  const stableSection = stable.filter(Boolean).join('\n\n');
+  const volatileSection = volatile.filter(Boolean).join('\n\n');
+  if (strategy === 'anthropic-prefix') {
+    return [stableSection, CACHE_BOUNDARY_MARKER, volatileSection].filter(Boolean).join('\n\n');
+  }
+  return [stableSection, volatileSection].filter(Boolean).join('\n\n');
 }
 
 /**

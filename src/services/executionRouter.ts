@@ -4,10 +4,11 @@
  * Step 5 from the original pipeline: tool-calling loop, text streaming, or agent SDK.
  */
 
-import { streamCompletion, streamAgentSdk } from './llmService';
+import { streamCompletion, streamAgentSdk, type MessageContent } from './llmService';
 import { runToolLoop, type ToolCallResult } from './toolRunner';
+import { buildAnthropicCacheBlocks } from './cacheAwareAssembler';
 import { getUnifiedTools, supportsToolCalling } from './toolRegistry';
-import { useProviderStore } from '../store/providerStore';
+import { useProviderStore, type ProviderConfig } from '../store/providerStore';
 import { useTraceStore } from '../store/traceStore';
 import { estimateTokens } from './treeIndexer';
 
@@ -15,6 +16,17 @@ export interface ExecutionResult {
   fullResponse: string;
   toolCallResults: ToolCallResult[];
   toolTurns: number;
+}
+
+function buildMessagesForProvider(
+  messages: { role: 'system' | 'user' | 'assistant'; content: string }[],
+  providerType: string,
+): { role: string; content: MessageContent }[] {
+  if (providerType !== 'anthropic') return messages;
+  return messages.map(m => {
+    if (m.role !== 'system') return m;
+    return { ...m, content: buildAnthropicCacheBlocks(m.content) };
+  });
 }
 
 export async function executeChat(options: {
@@ -31,8 +43,9 @@ export async function executeChat(options: {
 
   const unifiedTools = getUnifiedTools();
   const providerState = useProviderStore.getState();
-  const currentProvider = providerState.providers.find((p: any) => p.id === providerId);
+  const currentProvider = providerState.providers.find((p: ProviderConfig) => p.id === providerId);
   const providerType = currentProvider?.type ?? 'openai';
+  const routedMessages = buildMessagesForProvider(messages, providerType);
   const useToolLoop = unifiedTools.length > 0
     && supportsToolCalling(providerType)
     && providerId !== 'claude-agent-sdk';
@@ -47,7 +60,7 @@ export async function executeChat(options: {
     traceStore.addEvent(traceId, {
       kind: 'llm_call',
       model,
-      inputTokens: messages.reduce(
+      inputTokens: routedMessages.reduce(
         (sum, m) => sum + estimateTokens(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)),
         0,
       ),
@@ -57,7 +70,7 @@ export async function executeChat(options: {
       runToolLoop({
         providerId,
         model,
-        messages,
+        messages: routedMessages,
         traceId,
         maxTurns: 10,
         callbacks: {
@@ -93,7 +106,7 @@ export async function executeChat(options: {
     traceStore.addEvent(traceId, {
       kind: 'llm_call',
       model,
-      inputTokens: messages.reduce(
+      inputTokens: routedMessages.reduce(
         (sum, m) => sum + estimateTokens(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)),
         0,
       ),
@@ -126,7 +139,7 @@ export async function executeChat(options: {
         streamCompletion({
           providerId,
           model,
-          messages,
+          messages: routedMessages,
           ...callbacks,
         });
       }

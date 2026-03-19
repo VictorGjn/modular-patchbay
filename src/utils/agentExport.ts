@@ -1,4 +1,5 @@
-import { type ConsoleState, type AgentMeta, type ExportTarget, type InstructionState, type WorkflowStep } from '../store/consoleStore';
+import type { ConsoleState } from '../store/consoleStore';
+import type { AgentMeta, ExportTarget, InstructionState, WorkflowStep } from '../types/console.types';
 import { KNOWLEDGE_TYPES, OUTPUT_FORMATS, type McpServer, type Skill, type Connector } from '../store/knowledgeBase';
 import { type OutputTemplateConfig, templateConfigToSchema } from '../store/outputTemplates';
 

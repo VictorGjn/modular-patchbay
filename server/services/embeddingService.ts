@@ -41,28 +41,42 @@ class EmbeddingServiceImpl implements EmbeddingService {
     return this.initPromise;
   }
 
+  private static readonly MAX_RETRIES = 3;
+  private static readonly RETRY_DELAYS_MS = [2000, 5000, 10000];
+
   private async _doInitialize(): Promise<void> {
-    try {
-      console.log('[Embedding] Loading model Xenova/all-MiniLM-L6-v2...');
-      const startTime = Date.now();
-      
-      // Dynamic import to avoid top-level side effects and enable mocking in tests
-      // Note: sharp (image processing) is stubbed by postinstall script — we only need text embeddings
-      const { pipeline, env } = await import('@huggingface/transformers');
-      env.allowLocalModels = false;
-      env.useBrowserCache = false;
-      
-      this.model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-      
-      const loadTime = Date.now() - startTime;
-      console.log(`[Embedding] Model loaded in ${loadTime}ms`);
-      
-      this.ready = true;
-    } catch (error) {
-      console.error('[Embedding] Failed to load model:', error);
-      this.ready = false;
-      this.initPromise = null; // Allow retry
-      throw error;
+    const { pipeline, env } = await import('@huggingface/transformers');
+    env.allowLocalModels = true;   // Use cached model if available
+    env.useBrowserCache = false;
+
+    for (let attempt = 0; attempt <= EmbeddingServiceImpl.MAX_RETRIES; attempt++) {
+      try {
+        const label = attempt === 0 ? '' : ` (retry ${attempt}/${EmbeddingServiceImpl.MAX_RETRIES})`;
+        console.log(`[Embedding] Loading model Xenova/all-MiniLM-L6-v2...${label}`);
+        const startTime = Date.now();
+
+        this.model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+
+        const loadTime = Date.now() - startTime;
+        console.log(`[Embedding] Model loaded in ${loadTime}ms`);
+        this.ready = true;
+        return;
+      } catch (error) {
+        const isNetworkError = error instanceof TypeError && 
+          (error.message.includes('fetch failed') || error.message.includes('ECONNRESET'));
+
+        if (isNetworkError && attempt < EmbeddingServiceImpl.MAX_RETRIES) {
+          const delay = EmbeddingServiceImpl.RETRY_DELAYS_MS[attempt];
+          console.warn(`[Embedding] Network error, retrying in ${delay}ms...`, (error as any)?.cause?.code ?? error);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+
+        console.error('[Embedding] Failed to load model after all attempts:', error);
+        this.ready = false;
+        this.initPromise = null; // Allow retry on next call
+        throw error;
+      }
     }
   }
 

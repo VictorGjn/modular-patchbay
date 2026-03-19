@@ -19,7 +19,7 @@ const panelFiles = [
   'panels/TraceViewer.tsx',
 ];
 
-const allFiles = [...panelFiles, 'layouts/DashboardLayout.tsx'];
+const allFiles = [...panelFiles, 'layouts/WizardLayout.tsx'];
 
 describe('UX Audit: Accessibility', () => {
 

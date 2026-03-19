@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["@playwright/test", "vite/client", "node"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "verbatimModuleSyntax": false,
+    "noEmit": true
+  },
+  "include": ["tests/e2e/**/*"],
+  "exclude": ["tests/unit/**/*", "tests/integration/**/*"]
+}

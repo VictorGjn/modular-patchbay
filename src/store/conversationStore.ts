@@ -16,6 +16,7 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   pipelineStats?: PipelineChatStats;
+  traceId?: string;
 }
 
 export interface TestCase {

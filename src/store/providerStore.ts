@@ -635,8 +635,9 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         const merged = DEFAULT_PROVIDERS.map((def) => {
           const remote = data.find((d: ProviderConfig) => d.id === def.id);
           if (!remote) return def;
-          const hasBackendKey = !!(remote as any).hasStoredKey;
-          const hasBackendToken = !!(remote as any).hasStoredAccessToken;
+          const backendData = remote as ProviderConfig & { hasStoredKey?: boolean; hasStoredAccessToken?: boolean };
+          const hasBackendKey = !!backendData.hasStoredKey;
+          const hasBackendToken = !!backendData.hasStoredAccessToken;
           return {
             ...def,
             ...remote,
@@ -679,6 +680,17 @@ export const useProviderStore = create<ProviderStore>((set, get) => ({
         set({ providers: nextProviders, selectedProviderId: fallbackSelected });
         persistProviders(get().providers);
         await flushPendingProviderSync(get().providers);
+
+        // Auto-fetch models for configured providers that have stored credentials but empty model lists
+        for (const p of nextProviders) {
+          if (
+            (p._hasStoredKey || p._hasStoredAccessToken || p.authMethod === 'claude-agent-sdk') &&
+            (p.status === 'configured' || p.status === 'connected') &&
+            (!Array.isArray(p.models) || p.models.length === 0)
+          ) {
+            setTimeout(() => useProviderStore.getState().testConnection(p.id), 200);
+          }
+        }
       }
     } catch {
       // Backend not available, use localStorage

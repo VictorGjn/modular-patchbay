@@ -90,7 +90,10 @@ export function FilePicker() {
   const showFilePicker = useConsoleStore((s) => s.showFilePicker);
   const setShowFilePicker = useConsoleStore((s) => s.setShowFilePicker);
   const addFileChannel = useConsoleStore((s) => s.addFileChannel);
-  const { tree, loaded, scanning, scanDirectory } = useKnowledgeStore();
+  const tree = useKnowledgeStore(s => s.tree);
+  const loaded = useKnowledgeStore(s => s.loaded);
+  const scanning = useKnowledgeStore(s => s.scanning);
+  const scanDirectory = useKnowledgeStore(s => s.scanDirectory);
   const readFile = useKnowledgeStore((s) => s.readFile);
   const lastDir = useKnowledgeStore((s) => s.lastDir);
   const [filter, setFilter] = useState('');

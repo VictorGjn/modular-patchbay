@@ -32,7 +32,7 @@ export async function probeMcpServer(serverId: string): Promise<HealthProbeResul
     let status: HealthStatus = 'healthy';
     let errorMessage: string | null = null;
     const toolCount = health.tools?.length ?? health.toolCount ?? null;
-    const tools = health.tools?.map((t: any) => typeof t === 'string' ? t : t.name) ?? undefined;
+    const tools = health.tools?.map((t: string | { name: string }) => typeof t === 'string' ? t : t.name) ?? undefined;
 
     if (health.status === 'error' || health.error) {
       status = 'error';

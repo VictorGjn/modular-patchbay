@@ -6,6 +6,11 @@
 import { API_BASE } from '../config';
 
 export async function startMcpOAuth(serverUrl: string): Promise<void> {
+  // Save current tab before OAuth flow
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentTab = urlParams.get('tab') || 'describe'; // Default to describe tab
+  localStorage.setItem('mcp-oauth-return-tab', currentTab);
+
   const resp = await fetch(`${API_BASE}/mcp/oauth/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -38,9 +43,13 @@ export async function startMcpOAuth(serverUrl: string): Promise<void> {
 
       if (data.type === 'mcp-oauth-success') {
         cleanup();
+        // Mark OAuth completion for tab restoration
+        localStorage.setItem('mcp-oauth-completed', 'true');
         resolve();
       } else if (data.type === 'mcp-oauth-error') {
         cleanup();
+        // Clear saved tab on error
+        localStorage.removeItem('mcp-oauth-return-tab');
         reject(new Error(data.error || 'OAuth flow failed'));
       }
     };

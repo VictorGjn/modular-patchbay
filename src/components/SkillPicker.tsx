@@ -1,10 +1,10 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
 import { type SkillCategory } from '../store/knowledgeBase';
 import { useSkillsStore } from '../store/skillsStore';
 import { SkillIcon } from './icons/SectionIcons';
 import { useTheme } from '../theme';
-import { Plus, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { PickerModal } from './PickerModal';
 import { SecurityBadges } from './SecurityBadges';
 
@@ -35,13 +35,24 @@ export function SkillPicker() {
   const loaded = useSkillsStore((s) => s.loaded);
   const loading = useSkillsStore((s) => s.loading);
   const loadSkills = useSkillsStore((s) => s.loadSkills);
+  const toggleSkillInStore = useSkillsStore((s) => s.toggleSkill);
   const t = useTheme();
+
+  // Local state for selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (showSkillPicker && !loaded && !loading) {
       void loadSkills();
     }
   }, [showSkillPicker, loaded, loading, loadSkills]);
+
+  useEffect(() => {
+    // Reset selection when picker opens
+    if (showSkillPicker) {
+      setSelectedIds(new Set());
+    }
+  }, [showSkillPicker]);
 
   useEffect(() => {
     if (installedSkills.length === 0) return;
@@ -71,11 +82,42 @@ export function SkillPicker() {
     return Array.from(byId.values());
   }, [consoleSkills, installedSkills]);
 
+  const handleToggleSelection = (skillId: string, isAdded: boolean) => {
+    if (isAdded) return; // Don't allow selecting already added skills
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(skillId)) {
+        newSet.delete(skillId);
+      } else {
+        newSet.add(skillId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleConfirm = () => {
+    selectedIds.forEach(id => {
+      addSkill(id);
+      // Also ensure the skill is enabled in the skillsStore if it exists there
+      const skill = installedSkills.find(s => s.id === id);
+      if (skill && !skill.enabled) {
+        toggleSkillInStore(id);
+      }
+    });
+    setSelectedIds(new Set());
+    setShowSkillPicker(false);
+  };
+
+  const handleCancel = () => {
+    setSelectedIds(new Set());
+    setShowSkillPicker(false);
+  };
+
   return (
     <PickerModal
       open={showSkillPicker}
-      onClose={() => setShowSkillPicker(false)}
-      title="Add Skill"
+      onClose={handleCancel}
+      title="Select Skills"
       searchPlaceholder="Search skills..."
     >
       {(filter) => {
@@ -91,60 +133,105 @@ export function SkillPicker() {
           skills: filtered.filter((s) => s.category === cat),
         })).filter((g) => g.skills.length > 0);
 
-        return grouped.map((group) => (
-          <div key={group.category}>
-            <div className="px-5 py-1.5">
-              <span className="text-[12px] font-medium tracking-wider uppercase" style={{ color: t.textDim }}>
-                {group.label}
-              </span>
-            </div>
-            {group.skills.map((skill) => (
-              <div
-                key={skill.id}
-                className="flex items-center gap-3 px-5 py-2.5 hover-row cursor-default"
-              >
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: t.surfaceElevated }}
-                >
-                  <SkillIcon icon={skill.icon} size={16} style={{ color: t.textSecondary }} />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[17px] font-medium" style={{ color: t.textPrimary }}>{skill.name}</span>
-                    {skill.skillUrl?.startsWith('https://skills.sh/') && (
-                      <SecurityBadges skillPath={skill.skillUrl.replace('https://skills.sh/', '').split('/').pop() ?? ''} />
-                    )}
+        return (
+          <div className="flex flex-col h-full">
+            {/* Skills list */}
+            <div className="flex-1 overflow-y-auto">
+              {grouped.map((group) => (
+                <div key={group.category}>
+                  <div className="px-5 py-1.5">
+                    <span className="text-[12px] font-medium tracking-wider uppercase" style={{ color: t.textDim }}>
+                      {group.label}
+                    </span>
                   </div>
-                  <span className="text-[14px]" style={{ color: t.textDim }}>{skill.description}</span>
-                </div>
+                  {group.skills.map((skill) => {
+                    const isSelected = selectedIds.has(skill.id);
+                    const isAdded = skill.added;
+                    return (
+                      <div
+                        key={skill.id}
+                        className={`flex items-center gap-3 px-5 py-2.5 ${!isAdded ? 'hover-row cursor-pointer' : 'cursor-default'}`}
+                        style={{
+                          background: isSelected ? '#FE500012' : 'transparent',
+                        }}
+                        onClick={() => handleToggleSelection(skill.id, isAdded)}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ background: t.surfaceElevated }}
+                        >
+                          <SkillIcon icon={skill.icon} size={16} style={{ color: t.textSecondary }} />
+                        </div>
 
-                {skill.added ? (
-                  <span className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
-                    <Check size={12} /> Added
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => addSkill(skill.id)}
-                    className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md cursor-pointer border-none"
-                    style={{
-                      color: '#FE5000',
-                      background: '#FE500012',
-                      transition: 'background 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#FE500025'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = '#FE500012'; }}
-                    aria-label={`Add ${skill.name}`}
-                  >
-                    <Plus size={12} /> Add
-                  </button>
-                )}
-              </div>
-            ))}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[17px] font-medium" style={{ color: t.textPrimary }}>{skill.name}</span>
+                            {skill.skillUrl?.startsWith('https://skills.sh/') && (
+                              <SecurityBadges skillPath={skill.skillUrl.replace('https://skills.sh/', '').split('/').pop() ?? ''} />
+                            )}
+                          </div>
+                          <span className="text-[14px]" style={{ color: t.textDim }}>{skill.description}</span>
+                        </div>
+
+                        {isAdded ? (
+                          <span className="flex items-center gap-1 text-[14px] px-2.5 py-1 rounded-md" style={{ color: t.statusSuccess, background: t.statusSuccessBg }}>
+                            <Check size={12} /> Added
+                          </span>
+                        ) : (
+                          <div
+                            className="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0"
+                            style={{
+                              borderColor: isSelected ? '#FE5000' : t.border,
+                              background: isSelected ? '#FE5000' : 'transparent',
+                            }}
+                          >
+                            {isSelected && <Check size={10} style={{ color: '#fff' }} />}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {/* Sticky footer */}
+            <div 
+              className="flex items-center justify-end gap-3 px-5 py-3"
+              style={{ 
+                borderTop: `1px solid ${t.border}`,
+                background: t.surfaceOpaque,
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-4 py-2 text-[14px] rounded-lg cursor-pointer border"
+                style={{
+                  background: 'transparent',
+                  border: `1px solid ${t.border}`,
+                  color: t.textSecondary,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={selectedIds.size === 0}
+                className="px-4 py-2 text-[14px] rounded-lg cursor-pointer border-none"
+                style={{
+                  background: selectedIds.size > 0 ? '#FE5000' : t.surfaceElevated,
+                  color: selectedIds.size > 0 ? '#fff' : t.textDim,
+                  opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  cursor: selectedIds.size > 0 ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Add {selectedIds.size > 0 ? `${selectedIds.size} skill${selectedIds.size === 1 ? '' : 's'}` : 'skills'}
+              </button>
+            </div>
           </div>
-        ));
+        );
       }}
     </PickerModal>
   );

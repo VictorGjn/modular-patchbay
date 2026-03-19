@@ -1,12 +1,10 @@
 import { create } from 'zustand';
+import type { McpTool } from '../types/console.types';
 
 // ── Types ──
 
-export interface McpTool {
-  name: string;
-  description: string;
-  inputSchema: object;
-}
+// Re-export for convenience
+export type { McpTool } from '../types/console.types';
 
 export type McpServerStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -34,7 +32,7 @@ interface McpStore {
   error?: string;
 
   loadServers: () => Promise<void>;
-  syncFromConfig: () => Promise<void>;
+  syncFromConfig: (mcpServers?: Array<{ id: string; name: string; added: boolean; enabled?: boolean }>) => Promise<void>;
   addServer: (config: { id?: string; name: string; type?: 'stdio' | 'sse' | 'http'; command: string; args: string[]; env: Record<string, string>; autoConnect?: boolean; url?: string; headers?: Record<string, string> }) => Promise<McpServerState | null>;
   updateServer: (id: string, patch: Partial<Pick<McpServerState, 'name' | 'command' | 'args' | 'env' | 'autoConnect' | 'url' | 'headers' | 'type'>>) => Promise<McpServerState | null>;
   connectServer: (id: string) => Promise<void>;
@@ -162,10 +160,22 @@ export const useMcpStore = create<McpStore>((set, get) => ({
       method: 'POST',
       body: JSON.stringify(config),
     });
-    if (data) {
-      set({ servers: [...get().servers, data] });
-    }
-    return data;
+    // Always add to local state so the server appears in ToolsTab even if backend is unavailable
+    const server: McpServerState = data ?? {
+      id: config.id ?? `mcp-${Date.now()}`,
+      name: config.name,
+      type: config.type,
+      command: config.command,
+      args: config.args,
+      env: config.env,
+      url: config.url,
+      headers: config.headers,
+      autoConnect: config.autoConnect,
+      status: 'disconnected',
+      tools: [],
+    };
+    set({ servers: [...get().servers, server] });
+    return server;
   },
 
   updateServer: async (id, patch) => {

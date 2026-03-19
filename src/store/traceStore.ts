@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { PipelineStageData } from '../types/pipelineStageTypes';
 
 /* ── Types ── */
 
@@ -12,7 +13,16 @@ export type TraceEventKind =
   | 'memory_recall'   // Memory pre-recall: facts injected into context
   | 'memory_write'    // Memory post-write: facts extracted from response
   | 'handoff'         // Cross-agent handoff
-  | 'provenance';     // Provenance chain tracking
+  | 'provenance'      // Provenance chain tracking
+  | 'pipeline_stage'       // Pipeline observability stages
+  | 'cache'               // Cache-aware assembly metrics
+  | 'hindsight_retain'    // Hindsight memory retention
+  | 'hindsight_recall'    // Hindsight memory recall
+  | 'hindsight_reflect'   // Hindsight higher-order reflection
+  | 'response_cache_hit'  // LLM response served from cache
+  | 'response_cache_miss' // Cache miss — LLM call required
+  | 'lesson_proposed'     // Auto-lesson extracted from user correction
+  | 'lesson_applied';     // Approved lesson injected into context
 
 export interface TraceEvent {
   id: string;
@@ -76,6 +86,23 @@ export interface TraceEvent {
     reason: string;
     confidence: number;
   }>;
+
+  // Pipeline stages
+  provenanceStages?: Array<PipelineStageData>;
+
+  // Cache metrics (kind === 'cache')
+  cacheMetrics?: {
+    strategy: string;
+    stableTokens: number;
+    volatileTokens: number;
+    estimatedSavings: number;
+  };
+
+  // Response cache (kind === 'response_cache_hit' | 'response_cache_miss')
+  responseCacheHit?: boolean;
+  responseCacheSavingsUsd?: number;
+  responseCacheAgentId?: string;
+  responseCacheModel?: string;
 }
 
 export interface ConversationTrace {
@@ -97,7 +124,9 @@ export interface ConversationTrace {
 export interface TraceState {
   traces: ConversationTrace[];
   activeTraceId: string | null;
+  selectedTraceId: string | null;
   maxTraces: number;
+  eventVersion: number;
 
   // Actions
   startTrace: (conversationId: string, agentVersion: string) => string;
@@ -105,6 +134,8 @@ export interface TraceState {
   endTrace: (traceId: string) => void;
   getTrace: (traceId: string) => ConversationTrace | undefined;
   getActiveTrace: () => ConversationTrace | undefined;
+  getDisplayTrace: () => ConversationTrace | undefined;
+  selectTrace: (traceId: string | null) => void;
   clearTraces: () => void;
 }
 
@@ -135,7 +166,9 @@ function summarize(events: TraceEvent[]): ConversationTrace['summary'] {
 export const useTraceStore = create<TraceState>((set, get) => ({
   traces: [],
   activeTraceId: null,
+  selectedTraceId: null,
   maxTraces: 50,
+  eventVersion: 0,
 
   startTrace: (conversationId, agentVersion) => {
     const id = `trace-${genId()}`;
@@ -149,6 +182,7 @@ export const useTraceStore = create<TraceState>((set, get) => ({
     set(s => ({
       traces: [...s.traces, trace].slice(-s.maxTraces),
       activeTraceId: id,
+      selectedTraceId: null, // Clear selection so sidebar shows the live trace
     }));
     return id;
   },
@@ -159,13 +193,15 @@ export const useTraceStore = create<TraceState>((set, get) => ({
         ? { ...t, events: [...t.events, { ...event, id: genId(), timestamp: Date.now() }] }
         : t
     ),
+    eventVersion: s.eventVersion + 1,
   })),
 
   endTrace: (traceId) => set(s => ({
     traces: s.traces.map(t =>
       t.id === traceId ? { ...t, summary: summarize(t.events) } : t
     ),
-    activeTraceId: s.activeTraceId === traceId ? null : s.activeTraceId,
+    // Keep activeTraceId so the observability panel can still display the finished trace
+    activeTraceId: s.activeTraceId,
   })),
 
   getTrace: (traceId) => get().traces.find(t => t.id === traceId),
@@ -173,6 +209,12 @@ export const useTraceStore = create<TraceState>((set, get) => ({
     const id = get().activeTraceId;
     return id ? get().traces.find(t => t.id === id) : undefined;
   },
+  getDisplayTrace: () => {
+    const { selectedTraceId, activeTraceId, traces } = get();
+    const id = selectedTraceId || activeTraceId;
+    return id ? traces.find(t => t.id === id) : undefined;
+  },
+  selectTrace: (traceId) => set({ selectedTraceId: traceId }),
 
-  clearTraces: () => set({ traces: [], activeTraceId: null }),
+  clearTraces: () => set({ traces: [], activeTraceId: null, selectedTraceId: null }),
 }));
