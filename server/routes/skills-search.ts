@@ -194,7 +194,8 @@ router.get('/search', async (req: Request, res: Response) => {
 
   // Try `npx skills find <query>` first — uses the official skills.sh CLI
   try {
-    const { stdout } = await exec('npx', ['-y', 'skills', 'find', query], {
+    const findCmd = `npx -y skills find ${query.replace(/[^a-z0-9_ -]/gi, '')}`;
+    const { stdout } = await exec(findCmd, [], {
       timeout: 30000,
       shell: true,
     } as Parameters<typeof exec>[2]);
@@ -269,10 +270,14 @@ router.post('/install', async (req: Request, res: Response) => {
   }
 
   try {
-    // Try the skills CLI first: `npx skills add <skillId>`
+    // Try the skills CLI first: `npx skills add <skillId> -y -g`
     try {
-      const addArgs = ['-y', 'skills', 'add', skillId];
-      const { stdout, stderr } = await exec('npx', addArgs, { timeout: 60000, shell: true } as Parameters<typeof exec>[2]);
+      // Use single command string to avoid DEP0190 deprecation warning
+      const safeSkillId = skillId.replace(/[^a-z0-9@/_.-]/gi, '');
+      const addCmd = scope === 'global'
+        ? `npx -y skills add ${safeSkillId} -y -g`
+        : `npx -y skills add ${safeSkillId} -y`;
+      const { stdout, stderr } = await exec(addCmd, [], { timeout: 60000, shell: true } as Parameters<typeof exec>[2]);
       res.json({ status: 'ok', output: String(stdout) + String(stderr) });
       return;
     } catch (cliError) {
@@ -280,6 +285,8 @@ router.post('/install', async (req: Request, res: Response) => {
     }
 
     // Fallback: Download full skill directory from GitHub via API
+    // Repos like anthropics/knowledge-work-plugins nest skills deeply:
+    //   <category>/skills/<skillName>/SKILL.md
     console.log('Using fallback: downloading skill from GitHub API');
 
     const os = await import('os');
@@ -290,28 +297,80 @@ router.post('/install', async (req: Request, res: Response) => {
     const [repoPath, skillName] = skillId.includes('@') ? skillId.split('@') : [skillId, skillId.split('/').pop() || skillId];
     const [owner, repo] = repoPath.split('/');
 
-    // Try to find the skill directory via GitHub API (supports nested layouts)
-    const candidatePaths = [skillName, `skills/${skillName}`, `src/${skillName}`];
-    let treePath = '';
-    let treeData: Array<{ name: string; path: string; type: string; download_url?: string | null }> = [];
+    type GHItem = { name: string; path: string; type: string; download_url?: string | null };
 
-    for (const cp of candidatePaths) {
-      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${cp}`;
-      const apiRes = await fetch(apiUrl, {
-        headers: { 'User-Agent': 'modular-patchbay/1.0', 'Accept': 'application/vnd.github.v3+json' },
-        signal: AbortSignal.timeout(10000),
-      });
-      if (apiRes.ok) {
-        const data = await apiRes.json();
-        if (Array.isArray(data) && data.some((f: { name: string }) => f.name === 'SKILL.md')) {
-          treeData = data;
-          treePath = cp;
-          break;
+    // Use the Git Trees API to find SKILL.md anywhere in the repo
+    // This handles arbitrarily nested structures like category/skills/name/SKILL.md
+    let treeData: GHItem[] = [];
+    let treePath = '';
+
+    try {
+      const treeRes = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`,
+        {
+          headers: { 'User-Agent': 'modular-patchbay/1.0', 'Accept': 'application/vnd.github.v3+json' },
+          signal: AbortSignal.timeout(15000),
+        }
+      );
+      if (treeRes.ok) {
+        const treeJson = await treeRes.json();
+        const allFiles: Array<{ path: string; type: string }> = treeJson.tree || [];
+        
+        // Find SKILL.md in a directory matching the skill name
+        const skillMdEntries = allFiles.filter(f => 
+          f.type === 'blob' && f.path.endsWith('/SKILL.md')
+        );
+        
+        // Match: exact directory name, or directory ends with skillName
+        const match = skillMdEntries.find(f => {
+          const dir = f.path.replace('/SKILL.md', '');
+          const dirName = dir.split('/').pop();
+          return dirName === skillName;
+        });
+
+        if (match) {
+          treePath = match.path.replace('/SKILL.md', '');
+          // Now fetch that directory's contents via Contents API
+          const dirRes = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/contents/${treePath}`,
+            {
+              headers: { 'User-Agent': 'modular-patchbay/1.0', 'Accept': 'application/vnd.github.v3+json' },
+              signal: AbortSignal.timeout(10000),
+            }
+          );
+          if (dirRes.ok) {
+            const dirData = await dirRes.json();
+            if (Array.isArray(dirData)) {
+              treeData = dirData;
+            }
+          }
+        }
+      }
+    } catch {
+      // Tree API failed, continue to static path fallback
+    }
+
+    // Static path fallback if tree search didn't find it
+    if (treeData.length === 0) {
+      const candidatePaths = [skillName, `skills/${skillName}`, `src/${skillName}`];
+      for (const cp of candidatePaths) {
+        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${cp}`;
+        const apiRes = await fetch(apiUrl, {
+          headers: { 'User-Agent': 'modular-patchbay/1.0', 'Accept': 'application/vnd.github.v3+json' },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (apiRes.ok) {
+          const data = await apiRes.json();
+          if (Array.isArray(data) && data.some((f: { name: string }) => f.name === 'SKILL.md')) {
+            treeData = data;
+            treePath = cp;
+            break;
+          }
         }
       }
     }
 
-    // If GitHub API didn't find it, fall back to raw SKILL.md download
+    // Last resort: raw SKILL.md download
     if (treeData.length === 0) {
       const base = `https://raw.githubusercontent.com/${repoPath}`;
       const rawCandidates = [
@@ -328,7 +387,7 @@ router.post('/install', async (req: Request, res: Response) => {
       }
 
       if (skillContent === null) {
-        throw new Error(`Skill not found in ${repoPath}/${skillName}. Tried GitHub API and raw URLs.`);
+        throw new Error(`Skill "${skillName}" not found in ${repoPath}. Tried: skills CLI, GitHub tree search, static paths, and raw URLs.`);
       }
 
       const skillDir = path.join(os.homedir(), '.agents', 'skills', skillName);
@@ -342,7 +401,7 @@ router.post('/install', async (req: Request, res: Response) => {
     const skillDir = path.join(os.homedir(), '.agents', 'skills', skillName);
     await fs.mkdir(skillDir, { recursive: true });
 
-    const downloadDir = async (items: Array<{ name: string; path: string; type: string; download_url?: string | null }>, localDir: string): Promise<number> => {
+    const downloadDir = async (items: GHItem[], localDir: string): Promise<number> => {
       let count = 0;
       for (const item of items) {
         if (item.type === 'file' && item.download_url) {
@@ -355,7 +414,6 @@ router.post('/install', async (req: Request, res: Response) => {
         } else if (item.type === 'dir') {
           const subDir = path.join(localDir, item.name);
           await fs.mkdir(subDir, { recursive: true });
-          // Fetch subdirectory contents
           const subUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${item.path}`;
           const subRes = await fetch(subUrl, {
             headers: { 'User-Agent': 'modular-patchbay/1.0', 'Accept': 'application/vnd.github.v3+json' },
@@ -370,7 +428,7 @@ router.post('/install', async (req: Request, res: Response) => {
         }
       }
       return count;
-    }
+    };
 
     const fileCount = await downloadDir(treeData, skillDir);
     console.log(`Installed skill ${skillName}: ${fileCount} files from ${owner}/${repo}/${treePath}`);
