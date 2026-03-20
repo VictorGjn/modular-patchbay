@@ -10,12 +10,18 @@ function parseJSON(text: string): unknown {
   return null;
 }
 
-async function searchWeb(_query: string): Promise<string | null> {
+/**
+ * Search the web using the Agent SDK's built-in WebSearch tool.
+ * Falls back to null if the server isn't available.
+ */
+async function searchWeb(query: string): Promise<string | null> {
   try {
-    // Attempt to use fetch for a simple DuckDuckGo instant answer (or any available search)
-    // In production this would use an MCP search tool or Firecrawl
-    // For now: gracefully return null to trigger fallback
-    return null;
+    const { fetchAgentSdkCompletion } = await import('../../services/llmService');
+    const result = await fetchAgentSdkCompletion({
+      prompt: `Search the web for: "${query}". Return ONLY the key findings as a concise summary (max 500 words). Focus on framework steps, methodology mechanics, scoring criteria.`,
+      maxTurns: 3,
+    });
+    return result && result.length > 20 ? result : null;
   } catch {
     return null;
   }
