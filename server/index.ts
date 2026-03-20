@@ -30,6 +30,7 @@ import memoryRoutes from './routes/memory.js';
 import cacheRoutes from './routes/cache.js';
 import lessonRoutes from './routes/lessons.js';
 import metapromptV2Routes from './routes/metaprompt-v2.js';
+import graphRoutes from './routes/graph.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -102,6 +103,7 @@ export function createApp() {
   app.use('/api/cache', cacheRoutes);
   app.use('/api/lessons', lessonRoutes);
   app.use('/api/metaprompt/v2', metapromptV2Routes);
+  app.use('/api/graph', graphRoutes);
 
   // API 404 catch-all — log unmatched API routes for debugging
   app.use('/api', (_req: express.Request, res: express.Response) => {
