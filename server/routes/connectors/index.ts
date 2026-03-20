@@ -16,6 +16,8 @@ import confluenceRoutes from './confluence.js';
 import googleSheetsRoutes from './google-sheets.js';
 import gmailRoutes from './gmail.js';
 import googleDriveRoutes from './google-drive.js';
+// Extra
+import planeRoutes from './plane.js';
 
 const router = Router();
 
@@ -32,5 +34,7 @@ router.use('/confluence', confluenceRoutes);
 router.use('/google-sheets', googleSheetsRoutes);
 router.use('/gmail', gmailRoutes);
 router.use('/google-drive', googleDriveRoutes);
+// Extra
+router.use('/plane', planeRoutes);
 
 export default router;
