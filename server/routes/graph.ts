@@ -68,6 +68,13 @@ router.post('/scan', async (req: Request, res: Response) => {
     res.status(400).json({ status: 'error', error: 'rootPath is required' });
     return;
   }
+  // Security: prevent scanning sensitive directories
+  const normalized = rootPath.replace(/\\/g, '/').toLowerCase();
+  if (normalized.includes('.ssh') || normalized.includes('.gnupg') || normalized.includes('.aws') ||
+      normalized.includes('/etc/') || normalized.includes('system32')) {
+    res.status(403).json({ status: 'error', error: 'Access denied: sensitive directory' });
+    return;
+  }
 
   try {
     const eng = await getEngine();
