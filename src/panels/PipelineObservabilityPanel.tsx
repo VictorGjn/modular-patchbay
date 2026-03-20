@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../theme';
 import { useTraceStore, type TraceEvent } from '../store/traceStore';
 import { ChevronDown, ChevronRight, FileText, Scale, Search, AlertTriangle, GitBranch, Code, Zap } from 'lucide-react';
+import { formatDisplayPath } from '../utils/formatPath';
 import type {
   PipelineStageData,
   SourceAssemblyData,
@@ -80,14 +81,16 @@ function StageNoData({ name, data }: { name: string; data: unknown }) {
 
 /* ── Stage Components ── */
 
-function SourceAssemblyStage({ data, expanded, onToggle }: {
+function SourceAssemblyStage({ data, expanded, onToggle, pending }: {
   data: unknown;
   expanded: boolean;
   onToggle: () => void;
+  pending?: boolean;
 }) {
   const t = useTheme();
   const typed = isSourceAssemblyData(data) ? data : null;
   const includedCount = typed ? typed.sources.filter(s => s.included).length : 0;
+  if (pending) return <PendingStage icon={<FileText size={14} />} label="Source Assembly" description="Waiting for sources..." />;
 
   return (
     <div className="border-b" style={{ borderColor: t.border }}>
@@ -149,12 +152,14 @@ function SourceAssemblyStage({ data, expanded, onToggle }: {
   );
 }
 
-function BudgetAllocationStage({ data, expanded, onToggle }: {
+function BudgetAllocationStage({ data, expanded, onToggle, pending }: {
   data: unknown;
   expanded: boolean;
   onToggle: () => void;
+  pending?: boolean;
 }) {
   const t = useTheme();
+  if (pending) return <PendingStage icon={<Scale size={14} />} label="Budget Allocation" description="Waiting for budget computation..." />;
   const typed = isBudgetAllocationData(data) ? data : null;
   const totalAllocated = typed ? typed.allocations.reduce((sum, a) => sum + a.allocatedTokens, 0) : 0;
   const totalUsed = typed ? typed.allocations.reduce((sum, a) => sum + a.usedTokens, 0) : 0;
@@ -224,12 +229,14 @@ function BudgetAllocationStage({ data, expanded, onToggle }: {
   );
 }
 
-function RetrievalStage({ data, expanded, onToggle }: {
+function RetrievalStage({ data, expanded, onToggle, pending }: {
   data: unknown;
   expanded: boolean;
   onToggle: () => void;
+  pending?: boolean;
 }) {
   const t = useTheme();
+  if (pending) return <PendingStage icon={<Search size={14} />} label="Retrieval" description="Waiting for context retrieval..." />;
   const typed = isRetrievalData(data) ? data : null;
   const diversityColor = typed
     ? typed.diversityScore > 0.5 ? '#10b981' : typed.diversityScore > 0.3 ? '#f59e0b' : '#ef4444'
@@ -307,12 +314,14 @@ function RetrievalStage({ data, expanded, onToggle }: {
   );
 }
 
-function ContradictionStage({ data, expanded, onToggle }: {
+function ContradictionStage({ data, expanded, onToggle, pending }: {
   data: unknown;
   expanded: boolean;
   onToggle: () => void;
+  pending?: boolean;
 }) {
   const t = useTheme();
+  if (pending) return <PendingStage icon={<AlertTriangle size={14} />} label="Conflict Check" description="Waiting for contradiction analysis..." />;
   const typed = isContradictionData(data) ? data : null;
   const hasContradictions = typed ? typed.contradictionsFound > 0 : false;
 
@@ -385,12 +394,14 @@ function ContradictionStage({ data, expanded, onToggle }: {
   );
 }
 
-function ProvenanceStage({ data, expanded, onToggle }: {
+function ProvenanceStage({ data, expanded, onToggle, pending }: {
   data: unknown;
   expanded: boolean;
   onToggle: () => void;
+  pending?: boolean;
 }) {
   const t = useTheme();
+  if (pending) return <PendingStage icon={<GitBranch size={14} />} label="Provenance" description="Waiting for source attribution..." />;
   const typed = isProvenanceData(data) ? data : null;
   const totalTransformations = typed ? typed.sources.reduce((sum, s) => sum + s.transformations.length, 0) : 0;
 
@@ -442,7 +453,7 @@ function ProvenanceStage({ data, expanded, onToggle }: {
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {typed.sources.map((source, idx) => (
                       <div key={idx} className="p-2 rounded" style={{ background: t.surface }}>
-                        <div className="text-sm font-medium mb-1" style={{ color: t.textPrimary }}>{source.path}</div>
+                        <div className="text-sm font-medium mb-1" style={{ color: t.textPrimary }} title={source.path}>{formatDisplayPath(source.path)}</div>
                         <div className="text-xs" style={{ color: t.textDim }}>{source.type}</div>
                         {source.transformations.length > 0 && (
                           <div className="mt-2 space-y-1">
@@ -553,6 +564,21 @@ function EventTimeline({ events }: { events: TraceEvent[] }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/* ── Pending Stage Placeholder ── */
+
+function PendingStage({ icon, label, description }: { icon: React.ReactNode; label: string; description: string }) {
+  const t = useTheme();
+  return (
+    <div className="px-4 py-3 border-b flex items-center gap-3 opacity-40" style={{ borderColor: t.border }}>
+      <div style={{ color: t.textDim }}>{icon}</div>
+      <div>
+        <div className="text-sm font-medium" style={{ color: t.textDim }}>{label}</div>
+        <div className="text-xs" style={{ color: t.textFaint }}>{description}</div>
+      </div>
     </div>
   );
 }
@@ -731,42 +757,37 @@ export function PipelineObservabilityPanel() {
           </div>
         )}
 
-        {/* Structured stages */}
-        {stages.has('source_assembly') && (
-          <SourceAssemblyStage
-            data={stages.get('source_assembly')!.data}
-            expanded={expandedStages.has('source_assembly')}
-            onToggle={() => toggleStage('source_assembly')}
-          />
-        )}
-        {stages.has('budget_allocation') && (
-          <BudgetAllocationStage
-            data={stages.get('budget_allocation')!.data}
-            expanded={expandedStages.has('budget_allocation')}
-            onToggle={() => toggleStage('budget_allocation')}
-          />
-        )}
-        {stages.has('retrieval') && (
-          <RetrievalStage
-            data={stages.get('retrieval')!.data}
-            expanded={expandedStages.has('retrieval')}
-            onToggle={() => toggleStage('retrieval')}
-          />
-        )}
-        {stages.has('contradiction_check') && (
-          <ContradictionStage
-            data={stages.get('contradiction_check')!.data}
-            expanded={expandedStages.has('contradiction_check')}
-            onToggle={() => toggleStage('contradiction_check')}
-          />
-        )}
-        {stages.has('provenance') && (
-          <ProvenanceStage
-            data={stages.get('provenance')!.data}
-            expanded={expandedStages.has('provenance')}
-            onToggle={() => toggleStage('provenance')}
-          />
-        )}
+        {/* Structured stages — always show all 5, with "pending" state if not yet reached */}
+        <SourceAssemblyStage
+          data={stages.get('source_assembly')?.data}
+          expanded={expandedStages.has('source_assembly')}
+          onToggle={() => toggleStage('source_assembly')}
+          pending={!stages.has('source_assembly')}
+        />
+        <BudgetAllocationStage
+          data={stages.get('budget_allocation')?.data}
+          expanded={expandedStages.has('budget_allocation')}
+          onToggle={() => toggleStage('budget_allocation')}
+          pending={!stages.has('budget_allocation')}
+        />
+        <RetrievalStage
+          data={stages.get('retrieval')?.data}
+          expanded={expandedStages.has('retrieval')}
+          onToggle={() => toggleStage('retrieval')}
+          pending={!stages.has('retrieval')}
+        />
+        <ContradictionStage
+          data={stages.get('contradiction_check')?.data}
+          expanded={expandedStages.has('contradiction_check')}
+          onToggle={() => toggleStage('contradiction_check')}
+          pending={!stages.has('contradiction_check')}
+        />
+        <ProvenanceStage
+          data={stages.get('provenance')?.data}
+          expanded={expandedStages.has('provenance')}
+          onToggle={() => toggleStage('provenance')}
+          pending={!stages.has('provenance')}
+        />
 
         {/* Cache strategy visualization */}
         {cacheEvent && <CacheStage event={cacheEvent} />}
