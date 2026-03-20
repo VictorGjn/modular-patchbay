@@ -5,7 +5,9 @@ import { useProviderStore } from '../store/providerStore';
 import { TextArea } from '../components/ds/TextArea';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
 import { getGhostSuggestions, type GhostSuggestion } from '../utils/ghostSuggestions';
-import { Lightbulb, Sparkles, Loader2, Check, X, Settings } from 'lucide-react';
+import V2PipelineProgress from '../components/V2PipelineProgress';
+import type { V2GenerationResult } from '../services/metapromptV2Client';
+import { Lightbulb, Sparkles, Loader2, Check, X, Settings, Zap } from 'lucide-react';
 
 const CHARACTER_LIMIT = 10000;
 const MIN_CHARACTERS = 20;
@@ -42,6 +44,12 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
   const ghostDebounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const dismissedIds = useRef<Set<string>>(new Set());
   const [ghostSuggestions, setGhostSuggestions] = useState<GhostSuggestion[]>([]);
+  const [useV2, setUseV2] = useState(true);
+  const [v2Running, setV2Running] = useState(false);
+  const [v2Result, setV2Result] = useState<V2GenerationResult | null>(null);
+
+  // Check if Agent SDK is available (needed for V2's WebSearch)
+  const hasAgentSdk = providers.some(p => p.authMethod === 'claude-agent-sdk' && (p.status === 'connected' || p.status === 'configured'));
 
   const headerStyles = {
     color: t.textPrimary,
@@ -241,7 +249,78 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
           </div>
         )}
 
+        {/* V2 Pipeline Toggle */}
+        {hasAgentSdk && prompt.trim().length >= MIN_CHARACTERS && (
+          <div className="mt-6">
+            <div
+              className="flex items-center gap-3 p-4 rounded-lg cursor-pointer"
+              style={{
+                background: useV2 ? '#FE500010' : t.surfaceAlt,
+                border: `1px solid ${useV2 ? '#FE500040' : t.border}`,
+              }}
+              onClick={() => { if (!v2Running && !generating) setUseV2(!useV2); }}
+            >
+              <Zap size={18} style={{ color: useV2 ? '#FE5000' : t.textSecondary }} />
+              <div className="flex-1">
+                <div className="text-sm font-semibold" style={{ color: t.textPrimary }}>
+                  Research-Augmented Generation (V2)
+                </div>
+                <div className="text-xs mt-1" style={{ color: t.textSecondary }}>
+                  Names experts and methodologies? V2 will research and decompose them into executable workflow steps — not just mention them.
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 40,
+                  height: 22,
+                  borderRadius: 11,
+                  background: useV2 ? '#FE5000' : t.border,
+                  position: 'relative',
+                  transition: 'background 0.2s',
+                }}
+              >
+                <div
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    background: '#fff',
+                    position: 'absolute',
+                    top: 2,
+                    left: useV2 ? 20 : 2,
+                    transition: 'left 0.2s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* V2 Pipeline Progress */}
+            {useV2 && (
+              <div className="mt-4">
+                <V2PipelineProgress
+                  prompt={prompt}
+                  tokenBudget={4000}
+                  onComplete={(result) => {
+                    setV2Result(result);
+                    setV2Running(false);
+                    // Auto-advance after viewing results
+                    setTimeout(() => {
+                      onNavigateToNext?.();
+                    }, 3000);
+                  }}
+                  onError={(error) => {
+                    setGenerationError(error);
+                    setV2Running(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Generate Explanation */}
+        {!useV2 && (
         <div className="mt-6 mb-4 text-center">
           <p 
             className="text-sm px-4"
@@ -250,6 +329,7 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
             Generate will use AI to create a complete agent configuration from your description — including persona, constraints, objectives, workflow, and tool selection.
           </p>
         </div>
+        )}
 
         {/* Provider setup prompt */}
         {!hasProvider && (
@@ -262,7 +342,8 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
           </div>
         )}
 
-        {/* Generate Agent Button */}
+        {/* Generate Agent Button (V1 — shown when V2 is off) */}
+        {!useV2 && (
         <div className="mt-4 flex justify-center">
           <button
             type="button"
@@ -307,6 +388,7 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
             )}
           </button>
         </div>
+        )}
 
         {/* Generation Status */}
         {generationError && (
