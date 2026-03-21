@@ -1,13 +1,25 @@
 import { create } from 'zustand';
 
 export type LessonCategory = 'style' | 'format' | 'factual' | 'behavioral' | 'domain';
+export type InstinctDomain = 'accuracy' | 'output-style' | 'safety' | 'workflow' | 'general';
+
+export interface EvidenceEntry {
+  type: 'correction' | 'approval' | 'positive_run';
+  timestamp: string;
+  description: string;
+}
 
 export interface Lesson {
   id: string;
   agentId: string;
   rule: string;
   category: LessonCategory;
-  /** pending = proposed (awaiting review); approved = active; rejected = dismissed */
+  /** Instinct model fields */
+  confidence: number;          // 0.0–1.0, default 0.30
+  domain: InstinctDomain;      // maps from category
+  evidence: EvidenceEntry[];   // audit trail
+  lastSeenAt: string;          // ISO string
+  /** pending = proposed; approved = active; rejected = dismissed */
   status: 'pending' | 'approved' | 'rejected';
   createdAt: number;
   appliedCount: number;
@@ -17,14 +29,33 @@ export interface Lesson {
 
 export interface LessonState {
   lessons: Lesson[];
-  addLesson: (data: Omit<Lesson, 'id' | 'createdAt' | 'appliedCount' | 'status'>) => void;
+  addLesson: (data: Omit<Lesson, 'id' | 'createdAt' | 'appliedCount' | 'status' | 'confidence' | 'evidence' | 'lastSeenAt'> & { confidence?: number; domain?: InstinctDomain }) => void;
   approveLesson: (id: string) => void;
   rejectLesson: (id: string) => void;
   removeLesson: (id: string) => void;
   updateLesson: (id: string, rule: string) => void;
   incrementApplied: (id: string) => void;
+  bumpConfidence: (id: string, delta?: number) => void;
+  decayConfidence: (id: string, delta?: number) => void;
   getPendingLessons: (agentId: string) => Lesson[];
   getApprovedLessons: (agentId: string) => Lesson[];
+  getActiveInstincts: (agentId: string) => Lesson[];
+}
+
+/** Map legacy category → domain */
+function categoryToDomain(category: LessonCategory): InstinctDomain {
+  switch (category) {
+    case 'style':
+    case 'format':
+      return 'output-style';
+    case 'factual':
+      return 'accuracy';
+    case 'behavioral':
+      return 'workflow';
+    case 'domain':
+    default:
+      return 'general';
+  }
 }
 
 const STORAGE_KEY = 'modular-lessons-v2';
@@ -32,7 +63,16 @@ const STORAGE_KEY = 'modular-lessons-v2';
 function load(): Lesson[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Lesson[]) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Lesson[];
+    // Back-fill new fields for existing lessons
+    return parsed.map((l) => ({
+      confidence: 0.30,
+      domain: categoryToDomain(l.category),
+      evidence: [],
+      lastSeenAt: new Date(l.createdAt).toISOString(),
+      ...l,
+    }));
   } catch {
     return [];
   }
@@ -52,12 +92,18 @@ export const useLessonStore = create<LessonState>((set, get) => ({
   lessons: load(),
 
   addLesson: (data) => {
+    const now = Date.now();
+    const domain = data.domain ?? categoryToDomain(data.category);
     const lesson: Lesson = {
-      ...data,
       id: genId(),
       status: 'pending',
-      createdAt: Date.now(),
+      createdAt: now,
       appliedCount: 0,
+      confidence: data.confidence ?? 0.30,
+      domain,
+      evidence: [{ type: 'correction', timestamp: new Date(now).toISOString(), description: 'Extracted from user correction' }],
+      lastSeenAt: new Date(now).toISOString(),
+      ...data,
     };
     set((s) => {
       const lessons = [...s.lessons, lesson];
@@ -67,7 +113,16 @@ export const useLessonStore = create<LessonState>((set, get) => ({
   },
 
   approveLesson: (id) => set((s) => {
-    const lessons = s.lessons.map((l) => l.id === id ? { ...l, status: 'approved' as const } : l);
+    const lessons = s.lessons.map((l) =>
+      l.id === id
+        ? {
+            ...l,
+            status: 'approved' as const,
+            confidence: Math.min(1, l.confidence + 0.2),
+            evidence: [...l.evidence, { type: 'approval' as const, timestamp: new Date().toISOString(), description: 'User approved' }],
+          }
+        : l,
+    );
     persist(lessons);
     return { lessons };
   }),
@@ -92,7 +147,29 @@ export const useLessonStore = create<LessonState>((set, get) => ({
 
   incrementApplied: (id) => set((s) => {
     const lessons = s.lessons.map((l) =>
-      l.id === id ? { ...l, appliedCount: l.appliedCount + 1 } : l,
+      l.id === id ? { ...l, appliedCount: l.appliedCount + 1, lastSeenAt: new Date().toISOString() } : l,
+    );
+    persist(lessons);
+    return { lessons };
+  }),
+
+  bumpConfidence: (id, delta = 0.05) => set((s) => {
+    const lessons = s.lessons.map((l) =>
+      l.id === id
+        ? {
+            ...l,
+            confidence: Math.min(1, l.confidence + delta),
+            evidence: [...l.evidence, { type: 'positive_run' as const, timestamp: new Date().toISOString(), description: 'Run completed without correction' }],
+          }
+        : l,
+    );
+    persist(lessons);
+    return { lessons };
+  }),
+
+  decayConfidence: (id, delta = 0.05) => set((s) => {
+    const lessons = s.lessons.map((l) =>
+      l.id === id ? { ...l, confidence: Math.max(0, l.confidence - delta) } : l,
     );
     persist(lessons);
     return { lessons };
@@ -103,4 +180,7 @@ export const useLessonStore = create<LessonState>((set, get) => ({
 
   getApprovedLessons: (agentId) =>
     get().lessons.filter((l) => l.agentId === agentId && l.status === 'approved'),
+
+  getActiveInstincts: (agentId) =>
+    get().lessons.filter((l) => l.agentId === agentId && l.status === 'approved' && l.confidence >= 0.5),
 }));

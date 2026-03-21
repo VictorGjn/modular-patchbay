@@ -57,6 +57,20 @@ export async function getDb(): Promise<Database> {
   )`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_rc_query_hash ON response_cache (query_hash)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_rc_agent_id ON response_cache (agent_id)`);
+  db.run(`CREATE TABLE IF NOT EXISTS instincts (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    trigger TEXT NOT NULL,
+    action TEXT NOT NULL,
+    confidence REAL DEFAULT 0.3,
+    domain TEXT DEFAULT 'general',
+    scope TEXT DEFAULT 'agent',
+    evidence TEXT DEFAULT '[]',
+    status TEXT DEFAULT 'pending',
+    created_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL
+  )`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_instincts_agent_id ON instincts (agent_id)`);
   return db;
 }
 
@@ -155,5 +169,87 @@ export async function getQualificationHistory(agentId: string, limit = 50): Prom
     timestamp: row[1] as number,
     globalScore: row[2] as number,
     passThreshold: row[3] as number,
+  }));
+}
+
+// ── Instinct operations ─────────────────────────────────────────────────────
+
+export interface InstinctEntry {
+  id: string;
+  agentId: string;
+  trigger: string;
+  action: string;
+  confidence: number;
+  domain: string;
+  scope: string;
+  evidence: string; // JSON
+  status: string;
+  createdAt: string;
+  lastSeenAt: string;
+}
+
+export async function saveInstinct(entry: InstinctEntry): Promise<void> {
+  const d = await getDb();
+  d.run(
+    `INSERT OR REPLACE INTO instincts (id, agent_id, trigger, action, confidence, domain, scope, evidence, status, created_at, last_seen_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [entry.id, entry.agentId, entry.trigger, entry.action, entry.confidence, entry.domain, entry.scope, entry.evidence, entry.status, entry.createdAt, entry.lastSeenAt],
+  );
+  saveDb();
+}
+
+export async function getInstincts(agentId: string): Promise<InstinctEntry[]> {
+  const d = await getDb();
+  const result = d.exec(
+    `SELECT id, agent_id, trigger, action, confidence, domain, scope, evidence, status, created_at, last_seen_at FROM instincts WHERE agent_id = ? ORDER BY created_at DESC`,
+    [agentId],
+  );
+  if (result.length === 0) return [];
+  return result[0].values.map((row) => ({
+    id: row[0] as string,
+    agentId: row[1] as string,
+    trigger: row[2] as string,
+    action: row[3] as string,
+    confidence: row[4] as number,
+    domain: row[5] as string,
+    scope: row[6] as string,
+    evidence: row[7] as string,
+    status: row[8] as string,
+    createdAt: row[9] as string,
+    lastSeenAt: row[10] as string,
+  }));
+}
+
+export async function updateConfidence(id: string, confidence: number): Promise<void> {
+  const d = await getDb();
+  d.run(`UPDATE instincts SET confidence = ?, last_seen_at = ? WHERE id = ?`, [confidence, new Date().toISOString(), id]);
+  saveDb();
+}
+
+export async function deleteInstinct(id: string): Promise<void> {
+  const d = await getDb();
+  d.run(`DELETE FROM instincts WHERE id = ?`, [id]);
+  saveDb();
+}
+
+export async function getInstinctHistory(agentId: string, limit = 100): Promise<InstinctEntry[]> {
+  const d = await getDb();
+  const result = d.exec(
+    `SELECT id, agent_id, trigger, action, confidence, domain, scope, evidence, status, created_at, last_seen_at FROM instincts WHERE agent_id = ? ORDER BY last_seen_at DESC LIMIT ?`,
+    [agentId, limit],
+  );
+  if (result.length === 0) return [];
+  return result[0].values.map((row) => ({
+    id: row[0] as string,
+    agentId: row[1] as string,
+    trigger: row[2] as string,
+    action: row[3] as string,
+    confidence: row[4] as number,
+    domain: row[5] as string,
+    scope: row[6] as string,
+    evidence: row[7] as string,
+    status: row[8] as string,
+    createdAt: row[9] as string,
+    lastSeenAt: row[10] as string,
   }));
 }
