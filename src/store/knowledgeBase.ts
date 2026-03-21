@@ -203,8 +203,6 @@ export interface KnowledgeSource {
   children?: KnowledgeSource[];
 }
 
-// KNOWLEDGE_TREE removed — knowledge sources now come from knowledgeStore (real /api/knowledge/scan endpoint)
-
 export type DepthLevel = 'Full' | 'Detail' | 'Summary' | 'Headlines' | 'Mention';
 
 export const DEPTH_LEVELS: { label: DepthLevel; pct: number }[] = [
@@ -300,8 +298,6 @@ export interface McpServer {
   description: string;
 }
 
-// MOCK_MCP_SERVERS removed — MCP servers now come from mcpStore (real backend) and registry
-
 // Skill categories
 export type SkillCategory = 'content' | 'analysis' | 'development' | 'domain';
 
@@ -319,8 +315,6 @@ export interface Skill {
   installs?: string; // download count string e.g. '134.8K'
 }
 
-// MOCK_SKILLS removed — skills now derive from registry.ts installed state
-
 // Mock Agents
 export interface AgentDef {
   id: string;
@@ -330,8 +324,6 @@ export interface AgentDef {
   description: string;
   linkedSkills?: string[];
 }
-
-// MOCK_AGENTS removed — agents now populated dynamically from real agent definitions
 
 // Connector types
 export type ConnectorService = 'notion' | 'hubspot' | 'slack' | 'granola' | 'github' | 'google-drive' | 'custom';
@@ -353,8 +345,6 @@ export interface Connector {
   url?: string;
   hint?: string;
 }
-
-// MOCK_CONNECTORS removed — connectors now populated dynamically from MCP server connections
 
 export const PRESETS: Preset[] = [
   {
