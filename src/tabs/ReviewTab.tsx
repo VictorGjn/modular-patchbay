@@ -20,6 +20,7 @@ import { ExportActions } from '../panels/review/ExportActions';
 import { FactInsightsSection } from '../panels/review/FactInsightsSection';
 import { LessonsSection } from '../panels/review/LessonsSection';
 import { CostIntelligenceSection } from '../panels/review/CostIntelligenceSection';
+import { AdaptiveContextSection } from '../panels/review/AdaptiveContextSection';
 import { PromptPreviewModal } from '../panels/review/PromptPreviewModal';
 
 export function ReviewTab() {
@@ -328,6 +329,9 @@ export function ReviewTab() {
 
       {/* Cost Intelligence — model routing, estimation, budget tracking */}
       <CostIntelligenceSection />
+
+      {/* Smart Retrieval — adaptive context refinement */}
+      <AdaptiveContextSection />
 
       {/* Version indicator */}
       <div className="mt-4">

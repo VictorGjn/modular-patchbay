@@ -241,6 +241,10 @@ export interface ConsoleState {
   // Knowledge gaps actions
   setKnowledgeGaps: (gaps: import('../utils/generateAgent').KnowledgeGap[]) => void;
 
+  // Adaptive retrieval config
+  adaptiveConfig: { enabled: boolean; maxCycles: number; gapThreshold: number; minRelevance: number; totalTimeoutMs: number };
+  setAdaptiveConfig: (cfg: Partial<{ enabled: boolean; maxCycles: number; gapThreshold: number; minRelevance: number; totalTimeoutMs: number }>) => void;
+
   // Context and Agent management
   resetAgent: () => void;
   collectContextState: () => { channels: ChannelConfig[]; mcpServers: McpServer[]; skills: Skill[]; connectors: Connector[] };
@@ -282,6 +286,7 @@ export const useConsoleStore = create<ConsoleState>()(
   registryMcpServers: REGISTRY_MCP_SERVERS.map((s) => ({ ...s })),
   agentConfig: { ...DEFAULT_AGENT_CONFIG },
   agentMeta: { name: '', description: '', icon: 'brain', category: 'general', tags: [], avatar: 'bot' },
+  adaptiveConfig: { enabled: false, maxCycles: 1, gapThreshold: 0.4, minRelevance: 0.5, totalTimeoutMs: 8000 },
   mcpServers: [] as McpServer[],
   skills: REGISTRY_SKILLS.filter((s) => s.installed).map((s) => ({
     id: s.id,
@@ -1218,6 +1223,8 @@ export const useConsoleStore = create<ConsoleState>()(
     } catch { /* silent */ }
   },
 
+  setAdaptiveConfig: (cfg) => set((s) => ({ adaptiveConfig: { ...s.adaptiveConfig, ...cfg } })),
+
   // Collect current context state (channels, mcpServers, skills, connectors)
   collectContextState: () => ({
     channels: get().channels,
@@ -1250,6 +1257,7 @@ export const useConsoleStore = create<ConsoleState>()(
         outputFormat: state.outputFormat,
         tokenBudget: state.tokenBudget,
         agentConfig: state.agentConfig,
+        adaptiveConfig: state.adaptiveConfig,
       }),
       version: 1,
     }

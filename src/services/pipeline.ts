@@ -38,7 +38,7 @@ import type { PipelineStageData, PipelineStageDataMap } from '../types/pipelineS
 
 // ── Pipeline Event Emitters ──
 
-type PipelineStage = 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance';
+type PipelineStage = 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance' | 'adaptive_retrieval';
 
 function emitPipelineStage(traceId: string, stage: PipelineStage, data: PipelineStageDataMap[PipelineStage], durationMs?: number) {
   const traceStore = useTraceStore.getState();

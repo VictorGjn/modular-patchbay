@@ -64,12 +64,28 @@ export interface ProvenanceData {
   }>;
 }
 
+export interface AdaptiveRetrievalData {
+  enabled: boolean;
+  hedgingScore: number;
+  threshold: number;
+  cycleCount: number;
+  droppedChunks: Array<{ nodeId: string; relevance: number }>;
+  addedChunks: Array<{ nodeId: string; relevance: number; source: string }>;
+  avgRelevanceBefore: number;
+  avgRelevanceAfter: number;
+  tokenBudget: number;
+  durationMs: number;
+  aborted: boolean;
+  abortReason?: string;
+}
+
 export type PipelineStageDataMap = {
   source_assembly: SourceAssemblyData;
   budget_allocation: BudgetAllocationData;
   retrieval: RetrievalData;
   contradiction_check: ContradictionData;
   provenance: ProvenanceData;
+  adaptive_retrieval: AdaptiveRetrievalData;
 };
 
 export type PipelineStageData =
@@ -77,4 +93,5 @@ export type PipelineStageData =
   | { stage: 'budget_allocation'; timestamp: number; durationMs?: number; data: BudgetAllocationData }
   | { stage: 'retrieval'; timestamp: number; durationMs?: number; data: RetrievalData }
   | { stage: 'contradiction_check'; timestamp: number; durationMs?: number; data: ContradictionData }
-  | { stage: 'provenance'; timestamp: number; durationMs?: number; data: ProvenanceData };
+  | { stage: 'provenance'; timestamp: number; durationMs?: number; data: ProvenanceData }
+  | { stage: 'adaptive_retrieval'; timestamp: number; durationMs?: number; data: AdaptiveRetrievalData };

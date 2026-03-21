@@ -34,6 +34,8 @@ import type { ToolCallResult } from './toolRunner';
 import { useLessonStore } from '../store/lessonStore';
 import type { Lesson } from '../store/lessonStore';
 import { computeActualCost } from './costEstimator';
+import { runAdaptiveRetrieval } from './adaptiveRetrieval';
+import type { AdaptiveRetrievalData } from '../types/pipelineStageTypes';
 
 /** FNV-1a 32-bit hash — fast, deterministic, no async needed */
 function fnv1a(s: string): string {
@@ -369,12 +371,228 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     }
 
     // 6. Execute: tool loop / text streaming / agent SDK
+    // Smart Retrieval: if adaptive is enabled and agent has 5+ enabled channels, buffer first response
+    const { adaptiveConfig } = useConsoleStore.getState();
+    const enabledChannelCount = channels.filter(ch => ch.enabled).length;
+    const useAdaptive = adaptiveConfig.enabled && enabledChannelCount >= 5 && retrievalResult && retrievalResult.chunks.length > 0;
+
+    let finalSystemPrompt = systemPrompt;
+    let finalMsgs = msgs;
+
+    if (useAdaptive) {
+      // Buffer first LLM call — don't stream to UI yet
+      let buffered = '';
+      const { fullResponse: bufferedResponse } = await executeChat({
+        providerId,
+        model,
+        messages: msgs,
+        userMessage,
+        systemPrompt,
+        traceId,
+        onChunk: (chunk) => { buffered += chunk; },
+      });
+      buffered = bufferedResponse || buffered;
+
+      // Rebuild indexed sources from active channels + treeIndexStore for adaptive retrieval
+      const treeStore = useTreeIndexStore.getState();
+      const adaptiveIndexedSources: import('./adaptiveRetrieval').IndexedSource[] = [];
+      for (const ch of activeChannels) {
+        if (ch.content) {
+          const { indexMarkdown } = await import('./treeIndexer');
+          const virtualPath = `content://${ch.sourceId}`;
+          adaptiveIndexedSources.push({ treeIndex: indexMarkdown(virtualPath, ch.content), knowledgeType: ch.knowledgeType });
+        } else if (ch.path) {
+          const treeIndex = treeStore.getIndex(ch.path);
+          if (treeIndex) adaptiveIndexedSources.push({ treeIndex, knowledgeType: ch.knowledgeType });
+        }
+      }
+
+      // Run adaptive retrieval
+      const adaptiveStart = Date.now();
+      const adaptiveAbort = new AbortController();
+      const adaptiveResult = await runAdaptiveRetrieval(
+        buffered,
+        retrievalResult!.chunks,
+        adaptiveIndexedSources,
+        userMessage,
+        adaptiveConfig,
+        estimateTokens(knowledgeBlock),
+        adaptiveAbort.signal,
+      );
+      const adaptiveDurationMs = Date.now() - adaptiveStart;
+
+      // Emit adaptive_retrieval pipeline stage
+      const lastCycle = adaptiveResult.cycles[0];
+      const adaptiveStageData: AdaptiveRetrievalData = {
+        enabled: true,
+        hedgingScore: adaptiveResult.hedgingScore,
+        threshold: adaptiveConfig.gapThreshold,
+        cycleCount: adaptiveResult.cycles.length,
+        droppedChunks: lastCycle?.droppedChunks ?? [],
+        addedChunks: lastCycle?.addedChunks ?? [],
+        avgRelevanceBefore: lastCycle?.avgRelevanceBefore ?? 0,
+        avgRelevanceAfter: lastCycle?.avgRelevanceAfter ?? 0,
+        tokenBudget: estimateTokens(knowledgeBlock),
+        durationMs: adaptiveDurationMs,
+        aborted: adaptiveResult.aborted,
+        abortReason: adaptiveResult.abortReason,
+      };
+      traceStore.addEvent(traceId, {
+        kind: 'pipeline_stage',
+        durationMs: adaptiveDurationMs,
+        provenanceStages: [{
+          stage: 'adaptive_retrieval',
+          timestamp: Date.now(),
+          durationMs: adaptiveDurationMs,
+          data: adaptiveStageData,
+        }],
+      });
+
+      if (adaptiveResult.improved && lastCycle && lastCycle.addedChunks.length > 0) {
+        // Rebuild knowledgeBlock from improved chunks
+        const improvedChunks = adaptiveResult.chunks;
+        const formattedImproved = improvedChunks.map(chunk =>
+          `<chunk source="${chunk.source}" section="${chunk.section}" type="${chunk.knowledgeType}" depth="${chunk.depth}" method="adaptive">\n${chunk.content}\n</chunk>`
+        );
+        const sourceAnnotations = improvedChunks
+          .map(c => c.source)
+          .filter((v, i, a) => a.indexOf(v) === i)
+          .join(', ');
+        const improvedKnowledgeBlock = `<knowledge sources="${sourceAnnotations}" method="adaptive-tree-aware" metadata="Adaptive retrieval: ${lastCycle.addedChunks.length} chunks replaced">\n${formattedImproved.join('\n\n')}\n</knowledge>`;
+
+        // Rebuild system prompt with improved knowledge block
+        finalSystemPrompt = assemblePipelineContext({
+          frame: systemFrame,
+          orientationBlock,
+          hasRepos: channels.some(ch => ch.enabled && ch.repoMeta),
+          knowledgeFormatGuide: buildKnowledgeFormatGuide(),
+          frameworkBlock,
+          lessonsBlock: lessonsBlock || undefined,
+          memoryBlock,
+          knowledgeBlock: improvedKnowledgeBlock,
+          providerType,
+        });
+        finalMsgs = [
+          { role: 'system' as const, content: finalSystemPrompt },
+          ...history.filter(m => m.content.trim() !== '').map(m => ({ role: m.role, content: m.content })),
+          { role: 'user' as const, content: userMessage },
+        ];
+
+        // Dispatch AHA toast
+        window.dispatchEvent(new CustomEvent('smart-retrieval-refined', {
+          detail: {
+            found: lastCycle.addedChunks.map(c => c.source).join(', '),
+            replaced: lastCycle.droppedChunks.length.toString(),
+            relevance: lastCycle.avgRelevanceAfter.toFixed(2),
+          },
+        }));
+
+        // Record first buffered call cost
+        const bufferedOutputTokens = estimateTokens(buffered);
+        const bufferedInputTokens = systemTokens + history.reduce((s, m) => s + estimateTokens(m.content), 0) + estimateTokens(userMessage);
+        const bufferedCost = computeActualCost(model, bufferedInputTokens, bufferedOutputTokens);
+        void fetch(`/api/cost/${encodeURIComponent(effectiveAgentId)}/record`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model, inputTokens: bufferedInputTokens, outputTokens: bufferedOutputTokens, costUsd: bufferedCost, cachedTokens: 0 }),
+        }).catch(() => {});
+
+        // Second LLM call — stream to user with improved context
+        const { fullResponse, toolCallResults, toolTurns } = await executeChat({
+          providerId,
+          model,
+          messages: finalMsgs,
+          userMessage,
+          systemPrompt: finalSystemPrompt,
+          traceId,
+          onChunk,
+        });
+
+        // Continue to post-processing with second call's response
+        if (responseCache.enabled && fullResponse) {
+          void storeResponseCache(userMessage, fullResponse, effectiveAgentId, model, fnv1a(finalSystemPrompt), responseCache.ttlSeconds);
+        }
+
+        const { heatmap: heatmap2, memoryStats: updatedMemoryStats2 } = await postProcess({
+          fullResponse, userMessage, agentId: options.agentId, sandboxRunId: options.sandboxRunId, traceId, activeChannels, memoryStats,
+        });
+        void detectAndAddLesson(userMessage, history.filter(m => m.role === 'assistant').at(-1)?.content ?? '', providerId, model, options.agentId, traceId, lessonsBlock, agentLessons);
+
+        const totalCtxTokens2 = estimateTokens(finalSystemPrompt) + history.reduce((s, m) => s + estimateTokens(m.content), 0) + estimateTokens(userMessage);
+        const outTokens2 = estimateTokens(fullResponse);
+        const cost2 = computeActualCost(model, totalCtxTokens2, outTokens2);
+        void fetch(`/api/cost/${encodeURIComponent(effectiveAgentId)}/record`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model, inputTokens: totalCtxTokens2, outputTokens: outTokens2, costUsd: cost2, cachedTokens: 0 }),
+        }).catch(() => {});
+
+        onDone({
+          traceId, pipeline: pipelineResult, systemTokens: estimateTokens(finalSystemPrompt),
+          totalContextTokens: totalCtxTokens2, heatmap: heatmap2, frameworkSummary,
+          toolCalls: toolCallResults.length > 0 ? toolCallResults : undefined,
+          toolTurns: toolTurns > 0 ? toolTurns : undefined,
+          memory: updatedMemoryStats2,
+          retrieval: retrievalResult ? {
+            queryType: retrievalResult.queryType, diversityScore: retrievalResult.diversityScore,
+            collapseWarning: retrievalResult.collapseWarning, totalChunks: retrievalResult.totalChunks,
+            selectedChunks: retrievalResult.chunks.length, budgetUsed: retrievalResult.budgetUsed,
+            budgetTotal: retrievalResult.budgetTotal, retrievalMs: retrievalResult.retrievalMs,
+            embeddingMs: retrievalResult.embeddingMs,
+            chunks: retrievalResult.chunks.map(chunk => ({
+              section: chunk.section, source: chunk.source, relevanceScore: chunk.relevanceScore || 0,
+              inclusionReason: chunk.inclusionReason || 'unknown', knowledgeType: chunk.knowledgeType,
+              tokens: estimateTokens(chunk.content),
+            })),
+          } : undefined,
+          costUsd: bufferedCost + cost2, model, inputTokens: totalCtxTokens2, outputTokens: outTokens2, cachedTokens: 0,
+        });
+        return;
+      } else {
+        // No improvement — flush buffered response to user
+        onChunk(buffered);
+
+        // Continue with post-processing using the buffered response
+        if (responseCache.enabled && buffered) {
+          void storeResponseCache(userMessage, buffered, effectiveAgentId, model, systemPromptHash, responseCache.ttlSeconds);
+        }
+
+        const { heatmap, memoryStats: updatedMemoryStats } = await postProcess({
+          fullResponse: buffered, userMessage, agentId: options.agentId, sandboxRunId: options.sandboxRunId, traceId, activeChannels, memoryStats,
+        });
+        void detectAndAddLesson(userMessage, history.filter(m => m.role === 'assistant').at(-1)?.content ?? '', providerId, model, options.agentId, traceId, lessonsBlock, agentLessons);
+
+        const totalCtxTokens = systemTokens + history.reduce((s, m) => s + estimateTokens(m.content), 0) + estimateTokens(userMessage);
+        const outTokens = estimateTokens(buffered);
+        const costUsd = computeActualCost(model, totalCtxTokens, outTokens);
+        void fetch(`/api/cost/${encodeURIComponent(effectiveAgentId)}/record`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model, inputTokens: totalCtxTokens, outputTokens: outTokens, costUsd, cachedTokens: 0 }),
+        }).catch(() => {});
+
+        const retrievalStats = retrievalResult ? {
+          queryType: retrievalResult.queryType, diversityScore: retrievalResult.diversityScore,
+          collapseWarning: retrievalResult.collapseWarning, totalChunks: retrievalResult.totalChunks,
+          selectedChunks: retrievalResult.chunks.length, budgetUsed: retrievalResult.budgetUsed,
+          budgetTotal: retrievalResult.budgetTotal, retrievalMs: retrievalResult.retrievalMs,
+          embeddingMs: retrievalResult.embeddingMs,
+          chunks: retrievalResult.chunks.map(chunk => ({
+            section: chunk.section, source: chunk.source, relevanceScore: chunk.relevanceScore || 0,
+            inclusionReason: chunk.inclusionReason || 'unknown', knowledgeType: chunk.knowledgeType,
+            tokens: estimateTokens(chunk.content),
+          })),
+        } : undefined;
+
+        onDone({ traceId, pipeline: pipelineResult, systemTokens, totalContextTokens: totalCtxTokens, heatmap, frameworkSummary, memory: updatedMemoryStats, retrieval: retrievalStats, costUsd, model, inputTokens: totalCtxTokens, outputTokens: outTokens, cachedTokens: 0 });
+        return;
+      }
+    }
+
     const { fullResponse, toolCallResults, toolTurns } = await executeChat({
       providerId,
       model,
-      messages: msgs,
+      messages: finalMsgs,
       userMessage,
-      systemPrompt,
+      systemPrompt: finalSystemPrompt,
       traceId,
       onChunk,
     });
