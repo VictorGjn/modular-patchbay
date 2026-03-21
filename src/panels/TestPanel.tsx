@@ -285,6 +285,38 @@ function AhaToast() {
   );
 }
 
+/* ── Smart Retrieval Toast ── */
+function SmartRetrievalToast() {
+  const t = useTheme();
+  const [detail, setDetail] = useState<{ found: string; replaced: string; relevance: string } | null>(null);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent<{ found: string; replaced: string; relevance: string }>).detail;
+      setDetail(d);
+      const timer = setTimeout(() => setDetail(null), 5000);
+      return () => clearTimeout(timer);
+    };
+    window.addEventListener('smart-retrieval-refined', handler);
+    return () => window.removeEventListener('smart-retrieval-refined', handler);
+  }, []);
+  if (!detail) return null;
+  return (
+    <div
+      className="fixed bottom-16 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-[13px] max-w-sm"
+      style={{ background: t.isDark ? '#1c1c20' : '#fff', border: `1px solid #FE500040`, color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}
+    >
+      <span style={{ marginRight: 6 }}>🔄</span>
+      <span style={{ color: t.textDim, marginRight: 4 }}>Smart Retrieval found</span>
+      <span style={{ fontStyle: 'italic', color: t.textSecondary }}>{detail.found.length > 40 ? detail.found.slice(0, 40) + '...' : detail.found}</span>
+      <span style={{ color: t.textDim }}>{' — replaced '}</span>
+      <span style={{ color: t.textSecondary }}>{detail.replaced}</span>
+      <span style={{ color: t.textDim }}>{' (relevance: '}</span>
+      <span style={{ fontFamily: "'Geist Mono', monospace", color: '#10b981' }}>{detail.relevance}</span>
+      <span style={{ color: t.textDim }}>{')'}</span>
+    </div>
+  );
+}
+
 /* ── Correction Bar (shown after each assistant message) ── */
 interface CorrectionBarProps {
   messageContent: string;
@@ -1493,6 +1525,8 @@ export function TestPanel({
         </div>
       )}
 
+      <AhaToast />
+      <SmartRetrievalToast />
     </div>
   );
 }
