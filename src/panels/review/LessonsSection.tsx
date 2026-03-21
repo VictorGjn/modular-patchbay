@@ -2,8 +2,32 @@ import { useState } from 'react';
 import { BookOpen, Check, X, Trash2, Pencil } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { useLessonStore } from '../../store/lessonStore';
-import type { Lesson } from '../../store/lessonStore';
+import type { Lesson, InstinctDomain } from '../../store/lessonStore';
 import { useVersionStore } from '../../store/versionStore';
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 2) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function confidenceColor(confidence: number): string {
+  if (confidence < 0.5) return '#e74c3c';
+  if (confidence < 0.7) return '#f39c12';
+  return '#2ecc71';
+}
+
+const DOMAIN_LABELS: Record<InstinctDomain, string> = {
+  accuracy: 'Accuracy',
+  'output-style': 'Output Style',
+  safety: 'Safety',
+  workflow: 'Workflow',
+  general: 'General',
+};
 
 interface LessonRowProps {
   lesson: Lesson;
@@ -11,9 +35,10 @@ interface LessonRowProps {
   onReject?: () => void;
   onRemove?: () => void;
   onEdit?: (rule: string) => void;
+  showMeta?: boolean;
 }
 
-function LessonRow({ lesson, onApprove, onReject, onRemove, onEdit }: LessonRowProps) {
+function LessonRow({ lesson, onApprove, onReject, onRemove, onEdit, showMeta = false }: LessonRowProps) {
   const t = useTheme();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(lesson.rule);
@@ -28,6 +53,10 @@ function LessonRow({ lesson, onApprove, onReject, onRemove, onEdit }: LessonRowP
     borderRadius: 6,
     padding: '8px 10px',
   };
+
+  const conf = lesson.confidence;
+  const confColor = confidenceColor(conf);
+  const confPct = Math.round(conf * 100);
 
   return (
     <div className="space-y-1" style={rowStyle}>
@@ -70,6 +99,24 @@ function LessonRow({ lesson, onApprove, onReject, onRemove, onEdit }: LessonRowP
           )}
         </div>
       </div>
+      {showMeta && (
+        <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-1.5">
+            <div style={{ width: 60, height: 4, background: t.isDark ? '#2a2a2e' : '#e5e7eb', borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ width: `${confPct}%`, height: '100%', background: confColor, borderRadius: 2, transition: 'width 0.3s' }} />
+            </div>
+            <span className="text-[11px] tabular-nums" style={{ color: confColor }}>{confPct}%</span>
+          </div>
+          <span className="text-[11px]" style={{ color: t.textDim }}>
+            seen {lesson.evidence.length}×
+          </span>
+          {lesson.lastSeenAt && (
+            <span className="text-[11px]" style={{ color: t.textDim }}>
+              last: {relativeTime(lesson.lastSeenAt)}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -86,10 +133,26 @@ export function LessonsSection() {
   const [collapsed, setCollapsed] = useState(false);
 
   const pending = lessons.filter((l) => l.agentId === agentId && l.status === 'pending');
-  const active = lessons.filter((l) => l.agentId === agentId && l.status === 'approved');
+  const active = lessons.filter((l) => l.agentId === agentId && l.status === 'approved' && l.confidence >= 0.5);
+  const tentative = lessons.filter((l) => l.agentId === agentId && l.status === 'approved' && l.confidence < 0.5);
   const totalApplied = active.reduce((sum, l) => sum + l.appliedCount, 0);
 
-  if (pending.length === 0 && active.length === 0) return null;
+  // Group active lessons by domain
+  const byDomain = active.reduce<Record<string, Lesson[]>>((acc, l) => {
+    const key = l.domain ?? 'general';
+    acc[key] = acc[key] ?? [];
+    acc[key].push(l);
+    return acc;
+  }, {});
+
+  // PROMOTE: domains with 2+ lessons where all have confidence > 0.7
+  const promoteDomains = new Set(
+    Object.entries(byDomain)
+      .filter(([, ls]) => ls.length >= 2 && ls.every((l) => l.confidence > 0.7))
+      .map(([domain]) => domain),
+  );
+
+  if (pending.length === 0 && active.length === 0 && tentative.length === 0) return null;
 
   return (
     <div className="mt-6 space-y-4">
@@ -97,7 +160,7 @@ export function LessonsSection() {
         <div className="flex items-center gap-2">
           <BookOpen size={16} style={{ color: '#FE5000' }} />
           <h4 className="text-sm font-semibold m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
-            Auto-Lessons
+            Learned Behaviors
           </h4>
           {pending.length > 0 && (
             <span className="text-xs px-2 py-1 rounded" style={{ background: '#FE500015', color: '#FE5000' }}>
@@ -121,7 +184,8 @@ export function LessonsSection() {
       </div>
 
       {!collapsed && (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {/* Pending Review */}
           {pending.length > 0 && (
             <div className="space-y-2">
               <p className="text-[11px] uppercase tracking-wide m-0" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
@@ -133,24 +197,80 @@ export function LessonsSection() {
                   lesson={l}
                   onApprove={() => approveLesson(l.id)}
                   onReject={() => rejectLesson(l.id)}
+                  showMeta
                 />
               ))}
             </div>
           )}
 
-          {active.length > 0 && (
-            <div className="space-y-2">
+          {/* Active — grouped by domain */}
+          {Object.keys(byDomain).length > 0 && (
+            <div className="space-y-3">
               <p className="text-[11px] uppercase tracking-wide m-0" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
                 Active
               </p>
-              {active.map((l) => (
-                <LessonRow
-                  key={l.id}
-                  lesson={l}
-                  onEdit={(rule) => updateLesson(l.id, rule)}
-                  onRemove={() => removeLesson(l.id)}
-                />
+              {(Object.entries(byDomain) as [InstinctDomain, Lesson[]][]).map(([domain, domainLessons]) => (
+                <div key={domain} className="space-y-2">
+                  {/* Domain header */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                      {DOMAIN_LABELS[domain] ?? domain}
+                    </span>
+                    <div style={{ flex: 1, height: 1, background: t.border }} />
+                  </div>
+                  {domainLessons.map((l) => (
+                    <LessonRow
+                      key={l.id}
+                      lesson={l}
+                      onEdit={(rule) => updateLesson(l.id, rule)}
+                      onRemove={() => removeLesson(l.id)}
+                      showMeta
+                    />
+                  ))}
+                  {/* PROMOTE suggestion */}
+                  {promoteDomains.has(domain) && (
+                    <div
+                      className="flex items-center gap-2 px-3 py-2 rounded text-[11px]"
+                      style={{ background: '#FE500008', border: `1px dashed #FE500040`, color: t.textDim }}
+                    >
+                      <span>💡 These could merge into a Knowledge item.</span>
+                      <button
+                        type="button"
+                        className="ml-auto text-[11px] font-medium border-none bg-transparent cursor-pointer"
+                        style={{ color: '#FE5000' }}
+                        onClick={() => console.log('[Modular] Promote to Knowledge:', domain, domainLessons)}
+                      >
+                        Promote to Knowledge →
+                      </button>
+                    </div>
+                  )}
+                </div>
               ))}
+            </div>
+          )}
+
+          {/* TENTATIVE — approved but below confidence threshold */}
+          {tentative.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[11px] uppercase tracking-wide m-0" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                Tentative
+              </p>
+              {tentative.map((l) => {
+                const needed = Math.max(1, Math.ceil((0.5 - l.confidence) / 0.2));
+                return (
+                  <div key={l.id} className="space-y-1">
+                    <LessonRow
+                      lesson={l}
+                      onEdit={(rule) => updateLesson(l.id, rule)}
+                      onRemove={() => removeLesson(l.id)}
+                      showMeta
+                    />
+                    <p className="text-[10px] m-0 ml-1" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                      Needs {needed} more confirmation{needed !== 1 ? 's' : ''} to activate
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

@@ -1,6 +1,8 @@
 import { useTheme } from '../theme';
 import { QualificationPanel } from '../panels/QualificationPanel';
 import { useQualificationStore } from '../store/qualificationStore';
+import { useLessonStore } from '../store/lessonStore';
+import { useVersionStore } from '../store/versionStore';
 
 function QualificationSparkline() {
   const t = useTheme();
@@ -64,6 +66,76 @@ function QualificationSparkline() {
   );
 }
 
+function LearningVelocitySection() {
+  const t = useTheme();
+  const agentId = useVersionStore((s) => s.agentId) ?? '';
+  const lessons = useLessonStore((s) => s.lessons);
+
+  const agentLessons = lessons.filter((l) => l.agentId === agentId);
+  const approved = agentLessons.filter((l) => l.status === 'approved');
+  const avgConf = approved.length > 0
+    ? approved.reduce((s, l) => s + l.confidence, 0) / approved.length
+    : 0;
+
+  // Sort approved lessons by lastSeenAt for confidence progression bar chart
+  const sorted = [...approved].sort((a, b) => new Date(a.lastSeenAt).getTime() - new Date(b.lastSeenAt).getTime());
+
+  if (agentLessons.length === 0) return null;
+
+  const barWidth = 10;
+  const barGap = 3;
+  const chartHeight = 40;
+  const chartWidth = Math.max(100, sorted.length * (barWidth + barGap));
+
+  return (
+    <div
+      className="rounded-lg p-4 space-y-3"
+      style={{ background: t.surface, border: `1px solid ${t.border}`, fontFamily: "'Geist Sans', sans-serif" }}
+    >
+      <h4 className="text-sm font-semibold m-0" style={{ color: t.textPrimary }}>
+        Learning Velocity
+      </h4>
+      <div className="flex gap-6 flex-wrap">
+        <div>
+          <div className="text-[11px]" style={{ color: t.textDim }}>Corrections Retained</div>
+          <div className="text-lg font-semibold tabular-nums" style={{ color: t.textPrimary }}>{approved.length}</div>
+        </div>
+        <div>
+          <div className="text-[11px]" style={{ color: t.textDim }}>Repeated Mistakes</div>
+          <div className="text-lg font-semibold tabular-nums" style={{ color: t.textPrimary }}>0</div>
+        </div>
+        <div>
+          <div className="text-[11px]" style={{ color: t.textDim }}>Avg Confidence</div>
+          <div className="text-lg font-semibold tabular-nums" style={{ color: t.textPrimary }}>
+            {approved.length > 0 ? `${Math.round(avgConf * 100)}%` : '—'}
+          </div>
+        </div>
+      </div>
+
+      {sorted.length > 0 && (
+        <div>
+          <div className="text-[11px] mb-1" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+            CONFIDENCE BY LESSON (oldest → newest)
+          </div>
+          <svg width={chartWidth} height={chartHeight} style={{ display: 'block', overflow: 'visible' }}>
+            {sorted.map((l, i) => {
+              const barH = Math.max(2, Math.round(l.confidence * (chartHeight - 4)));
+              const x = i * (barWidth + barGap);
+              const y = chartHeight - barH;
+              const color = l.confidence < 0.5 ? '#e74c3c' : l.confidence < 0.7 ? '#f39c12' : '#2ecc71';
+              return (
+                <rect key={l.id} x={x} y={y} width={barWidth} height={barH} rx={2} fill={color} opacity={0.85}>
+                  <title>{`${Math.round(l.confidence * 100)}% — ${l.rule.slice(0, 40)}`}</title>
+                </rect>
+              );
+            })}
+          </svg>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function QualificationTab() {
   const t = useTheme();
 
@@ -83,6 +155,9 @@ export function QualificationTab() {
           <QualificationSparkline />
         </div>
       </div>
+
+      {/* Learning Velocity */}
+      <LearningVelocitySection />
 
       {/* QualificationPanel Content */}
       <QualificationPanel />
