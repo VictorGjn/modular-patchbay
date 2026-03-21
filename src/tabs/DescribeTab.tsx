@@ -2,12 +2,144 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useProviderStore } from '../store/providerStore';
+import { useVersionStore } from '../store/versionStore';
 import { TextArea } from '../components/ds/TextArea';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
 import { getGhostSuggestions, type GhostSuggestion } from '../utils/ghostSuggestions';
 import V2PipelineProgress from '../components/V2PipelineProgress';
 import type { V2GenerationResult } from '../services/metapromptV2Client';
-import { Lightbulb, Sparkles, Loader2, Check, X, Settings, Zap } from 'lucide-react';
+import { Lightbulb, Sparkles, Loader2, Check, X, Settings, Zap, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
+
+interface HealthMetrics {
+  qualityScore: number | null;
+  avgCostPerRun: number;
+  cacheHitPct: number;
+  lessonCount: number;
+  avgConfidence: number;
+  lessonsThisWeek: number;
+}
+
+function AgentHealthBar() {
+  const t = useTheme();
+  const agentId = useVersionStore((s) => s.agentId) ?? '';
+  const [metrics, setMetrics] = useState<HealthMetrics | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (!agentId) return;
+    setLoading(true);
+    Promise.allSettled([
+      fetch(`/api/qualification/${agentId}/history`).then((r) => r.json()),
+      fetch(`/api/cost/${agentId}/summary`).then((r) => r.json()),
+      fetch(`/api/lessons/${agentId}`).then((r) => r.json()),
+    ]).then(([qualRes, costRes, lessonsRes]) => {
+      const qualData = qualRes.status === 'fulfilled' ? qualRes.value : null;
+      const costData = costRes.status === 'fulfilled' ? costRes.value : null;
+      const lessonsData = lessonsRes.status === 'fulfilled' ? lessonsRes.value : null;
+
+      const runs: Array<{ globalScore: number }> = qualData?.data ?? [];
+      const latestScore = runs.length > 0 ? (runs[runs.length - 1]?.globalScore ?? null) : null;
+
+      const costSummary = costData?.data ?? {};
+
+      const instincts: Array<{ status?: string; confidence?: number; lastSeenAt?: string }> = lessonsData?.instincts ?? [];
+      const approved = instincts.filter((l) => l.status === 'approved');
+      const avgConf = approved.length > 0
+        ? approved.reduce((s, l) => s + (l.confidence ?? 0), 0) / approved.length
+        : 0;
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const recentCount = instincts.filter((l) => new Date(l.lastSeenAt ?? 0).getTime() > weekAgo).length;
+
+      setMetrics({
+        qualityScore: latestScore,
+        avgCostPerRun: costSummary.avgCostPerRun ?? 0,
+        cacheHitPct: costSummary.cacheHitPct ?? 0,
+        lessonCount: approved.length,
+        avgConfidence: avgConf,
+        lessonsThisWeek: recentCount,
+      });
+    }).finally(() => setLoading(false));
+  }, [agentId]);
+
+  const hasData = metrics !== null && (
+    metrics.qualityScore !== null || metrics.avgCostPerRun > 0 || metrics.lessonCount > 0
+  );
+
+  const cardStyle = {
+    background: t.surface,
+    border: `1px solid ${t.border}`,
+    borderRadius: 8,
+    padding: '12px 16px',
+    fontFamily: "'Geist Sans', sans-serif",
+  };
+
+  return (
+    <div style={cardStyle}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <BarChart2 size={14} style={{ color: '#FE5000' }} />
+          <span className="text-sm font-semibold" style={{ color: t.textPrimary }}>📊 Agent Health</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="border-none bg-transparent cursor-pointer p-0.5"
+          style={{ color: t.textDim }}
+        >
+          {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+        </button>
+      </div>
+
+      {!collapsed && (
+        loading ? (
+          <p className="text-xs m-0" style={{ color: t.textDim }}>Loading health metrics…</p>
+        ) : !hasData ? (
+          <p className="text-xs m-0" style={{ color: t.textDim }}>Run tests to see agent health metrics</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-4">
+              <div>
+                <span className="text-xs" style={{ color: t.textDim }}>Quality </span>
+                <span className="text-xs font-semibold" style={{ color: t.textPrimary }}>
+                  {metrics!.qualityScore !== null ? `${metrics!.qualityScore}/100` : 'N/A'}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs" style={{ color: t.textDim }}>Cost </span>
+                <span className="text-xs font-semibold" style={{ color: t.textPrimary }}>
+                  {metrics!.avgCostPerRun > 0 ? `$${metrics!.avgCostPerRun.toFixed(4)}/run` : 'N/A'}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs" style={{ color: t.textDim }}>Learning </span>
+                <span className="text-xs font-semibold" style={{ color: t.textPrimary }}>
+                  {metrics!.lessonCount > 0
+                    ? `${metrics!.lessonCount} lesson${metrics!.lessonCount !== 1 ? 's' : ''} (${Math.round(metrics!.avgConfidence * 100)}% avg)`
+                    : 'No lessons yet'}
+                </span>
+              </div>
+            </div>
+            {(metrics!.lessonsThisWeek > 0 || metrics!.cacheHitPct > 0) && (
+              <div className="flex gap-4 mt-2">
+                {metrics!.lessonsThisWeek > 0 && (
+                  <span className="text-xs" style={{ color: t.textDim }}>
+                    🧠 {metrics!.lessonsThisWeek} lesson{metrics!.lessonsThisWeek !== 1 ? 's' : ''} this week
+                  </span>
+                )}
+                {metrics!.cacheHitPct > 0 && (
+                  <span className="text-xs" style={{ color: t.textDim }}>
+                    💰 {Math.round(metrics!.cacheHitPct * 100)}% saved via caching
+                  </span>
+                )}
+              </div>
+            )}
+          </>
+        )
+      )}
+    </div>
+  );
+}
 
 const CHARACTER_LIMIT = 10000;
 const MIN_CHARACTERS = 20;
@@ -166,6 +298,9 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
 
   return (
     <div className="space-y-6">
+      {/* Agent Health Bar */}
+      <AgentHealthBar />
+
       {/* Header */}
       <div>
         <h2 className="text-2xl font-semibold mb-2 m-0" style={headerStyles}>
