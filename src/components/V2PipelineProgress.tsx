@@ -114,7 +114,7 @@ export default function V2PipelineProgress({
   const progressPercent = (completedCount / PHASE_ORDER.length) * 100;
 
   return (
-    <div style={{ background: t.surfaceAlt, borderRadius: 12, padding: 24, border: `1px solid ${t.border}` }}>
+    <div style={{ background: t.surfaceElevated, borderRadius: 12, padding: 24, border: `1px solid ${t.border}` }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
@@ -182,8 +182,8 @@ export default function V2PipelineProgress({
                   gap: 12,
                   padding: '10px 14px',
                   borderRadius: 8,
-                  background: isActive ? `${t.accent}10` : 'transparent',
-                  border: isActive ? `1px solid ${t.accent}30` : '1px solid transparent',
+                  background: isActive ? '#FE500010' : 'transparent',
+                  border: isActive ? '1px solid #FE500030' : '1px solid transparent',
                   opacity: p.status === 'pending' ? 0.4 : 1,
                   transition: 'all 0.2s ease',
                 }}
@@ -209,7 +209,7 @@ export default function V2PipelineProgress({
                     fontSize: 11,
                     padding: '2px 8px',
                     borderRadius: 10,
-                    background: p.toolCount > 0 ? '#FE500020' : t.surfaceAlt,
+                    background: p.toolCount > 0 ? '#FE500020' : t.surfaceElevated,
                     color: p.toolCount > 0 ? '#FE5000' : t.textSecondary,
                     fontWeight: 600,
                     border: `1px solid ${p.toolCount > 0 ? '#FE500040' : t.border}`,
@@ -243,30 +243,30 @@ export default function V2PipelineProgress({
               label="Role"
               value={result.parsed.role}
               color={t.textPrimary}
-              bg={t.surfaceAlt}
+              bg={t.surfaceElevated}
             />
             <InfoCard
               label="Domain"
               value={result.parsed.domain}
               color={t.textPrimary}
-              bg={t.surfaceAlt}
+              bg={t.surfaceElevated}
             />
             <InfoCard
               label="Experts Researched"
               value={result.parsed.named_experts.join(', ') || 'None'}
               color={t.textPrimary}
-              bg={t.surfaceAlt}
+              bg={t.surfaceElevated}
             />
             <InfoCard
               label="Methodologies"
               value={result.parsed.named_methodologies.join(', ') || 'None'}
               color={t.textPrimary}
-              bg={t.surfaceAlt}
+              bg={t.surfaceElevated}
             />
           </div>
 
           {/* Workflow pattern */}
-          <div style={{ padding: 12, borderRadius: 8, background: t.surfaceAlt, marginBottom: 12 }}>
+          <div style={{ padding: 12, borderRadius: 8, background: t.surfaceElevated, marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, marginBottom: 4 }}>
               Workflow Pattern: {result.pattern.pattern.replace(/_/g, ' ')}
             </div>
@@ -315,7 +315,7 @@ export default function V2PipelineProgress({
 
           {/* Research notes */}
           {result.research.notes.length > 0 && (
-            <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: t.surfaceAlt }}>
+            <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: t.surfaceElevated }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, marginBottom: 6 }}>
                 Research Notes
               </div>
