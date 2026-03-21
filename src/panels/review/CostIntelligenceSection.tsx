@@ -7,7 +7,6 @@ import { useConversationStore } from '../../store/conversationStore';
 import { useProviderStore } from '../../store/providerStore';
 import { estimateCost, classifyModel } from '../../services/costEstimator';
 import { computeComplexity, routeModel, getDowngradeHint } from '../../services/modelRouter';
-import { estimateTokens } from '../../services/treeIndexer';
 import { API_BASE } from '../../config';
 
 interface Summary {

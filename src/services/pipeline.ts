@@ -30,7 +30,7 @@ import {
   type NavigationPlan,
   type BranchSelection,
 } from './treeNavigator';
-import { compress, compressWithPriority } from './compress';
+import { compressWithPriority } from './compress';
 import { estimateTokens } from './treeIndexer';
 import { classifyQuery } from './treeAwareRetriever';
 import { useTraceStore } from '../store/traceStore';

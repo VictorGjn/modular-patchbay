@@ -101,8 +101,6 @@ function getHedgingPatterns(text: string): RegExp[] {
     : HEDGING_PATTERNS_EN;
 }
 
-// Keep backward-compat alias used by other modules
-const HEDGING_PATTERNS = HEDGING_PATTERNS_EN;
 
 /**
  * Count sentences in text (rough estimate).

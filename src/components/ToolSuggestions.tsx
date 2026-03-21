@@ -264,7 +264,7 @@ export function ToolSuggestions({ tools, onNavigateToKnowledge, skillsLoading }:
   return (
     <div style={{
       marginTop: 16,
-      background: t.surfaceAlt,
+      background: t.surfaceElevated,
       border: `1px solid ${t.border}`,
       borderRadius: 12,
       overflow: 'hidden',
