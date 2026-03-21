@@ -32,6 +32,7 @@ import { postProcess } from './postProcessor';
 import type { PipelineResult } from './pipeline';
 import type { ToolCallResult } from './toolRunner';
 import { useLessonStore } from '../store/lessonStore';
+import type { Lesson } from '../store/lessonStore';
 
 /** FNV-1a 32-bit hash — fast, deterministic, no async needed */
 function fnv1a(s: string): string {
@@ -210,14 +211,51 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       knowledgeBlock = knowledgeBlock ? `${knowledgeBlock}\n\n${connectorBlock}` : connectorBlock;
     }
 
-    // 3b. Inject approved lessons into context
-    const agentLessons = options.agentId
-      ? useLessonStore.getState().getApprovedLessons(options.agentId)
-      : [];
+    // 3b. Inject active instincts into context (confidence >= 0.5, from server)
+    let agentLessons: Lesson[] = [];
     let lessonsBlock = '';
-    if (agentLessons.length > 0) {
-      const lines = agentLessons.map((l) => `- [${l.category}] ${l.rule}`).join('\n');
-      lessonsBlock = `<lessons>\n${lines}\n</lessons>`;
+    if (options.agentId) {
+      try {
+        const resp = await fetch(`/api/lessons/${encodeURIComponent(options.agentId)}/active`);
+        if (resp.ok) {
+          const data = await resp.json() as { instincts: Array<{ id: string; action: string; domain: string; confidence: number }> };
+          if (data.instincts.length > 0) {
+            // Group by domain and format with confidence levels
+            const byDomain = new Map<string, typeof data.instincts>();
+            for (const inst of data.instincts) {
+              const list = byDomain.get(inst.domain) ?? [];
+              list.push(inst);
+              byDomain.set(inst.domain, list);
+            }
+            const lines: string[] = [];
+            for (const [dom, items] of byDomain) {
+              lines.push(`[${dom}]`);
+              for (const inst of items) {
+                const prefix = inst.confidence >= 0.7 ? 'ALWAYS' : 'Consider';
+                lines.push(`  ${prefix}: ${inst.action}`);
+              }
+            }
+            // Cap at ~500 tokens (≈2000 chars)
+            const raw = lines.join('\n');
+            const capped = raw.length > 2000 ? raw.slice(0, 2000) + '\n  ...' : raw;
+            lessonsBlock = `<instincts>\n${capped}\n</instincts>`;
+          }
+        }
+      } catch {
+        // Fall back to local store on network error
+        agentLessons = useLessonStore.getState().getActiveInstincts(options.agentId);
+      }
+    }
+    // Fallback: use local store if server returned empty
+    if (!lessonsBlock && options.agentId) {
+      agentLessons = useLessonStore.getState().getActiveInstincts(options.agentId);
+      if (agentLessons.length > 0) {
+        const lines = agentLessons.map((l) => {
+          const prefix = l.confidence >= 0.7 ? 'ALWAYS' : 'Consider';
+          return `- [${l.domain}] ${prefix}: ${l.rule}`;
+        });
+        lessonsBlock = `<instincts>\n${lines.join('\n')}\n</instincts>`;
+      }
     }
 
     // 3c. Pre-recall: inject relevant memory facts into context
@@ -261,8 +299,9 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     const hasRepos = channels.some(ch => ch.enabled && ch.repoMeta);
     const currentProvider = useProviderStore.getState().providers.find(p => p.id === providerId);
     const providerType = currentProvider?.type ?? 'openai';
-    if (agentLessons.length > 0) {
-      traceStore.addEvent(traceId, { kind: 'lesson_applied', memoryFactCount: agentLessons.length });
+    const appliedInstinctCount = agentLessons.length + (lessonsBlock ? 1 : 0);
+    if (lessonsBlock) {
+      traceStore.addEvent(traceId, { kind: 'lesson_applied', memoryFactCount: appliedInstinctCount });
     }
     const systemPrompt = assemblePipelineContext({
       frame: systemFrame,
@@ -351,8 +390,9 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     });
 
     // 10. Detect corrections → extract lesson → add to pending
+    // Also bump confidence of applied instincts if user did NOT correct
     const lastAssistant = history.filter(m => m.role === 'assistant').at(-1)?.content ?? '';
-    void detectAndAddLesson(userMessage, lastAssistant, providerId, model, options.agentId, traceId);
+    void detectAndAddLesson(userMessage, lastAssistant, providerId, model, options.agentId, traceId, lessonsBlock, agentLessons);
 
     const totalContextTokens =
       systemTokens +
@@ -409,6 +449,8 @@ async function detectAndAddLesson(
   model: string,
   agentId: string | undefined,
   traceId: string,
+  appliedLessonsBlock: string,
+  appliedLessons: Lesson[],
 ): Promise<void> {
   try {
     const res = await fetch('/api/lessons/extract', {
@@ -416,13 +458,55 @@ async function detectAndAddLesson(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userMessage, previousAssistant, providerId, model, agentId }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      // No correction detected — bump confidence of applied instincts
+      if (appliedLessonsBlock && agentId) {
+        void bumpAppliedInstincts(agentId, appliedLessons);
+      }
+      return;
+    }
     const data = await res.json() as { lesson: import('../store/lessonStore').Lesson | null };
-    if (!data.lesson) return;
-    const { rule, category, agentId: lid, sourceUserMessage, sourcePreviousAssistant } = data.lesson;
-    useLessonStore.getState().addLesson({ rule, category, agentId: lid, sourceUserMessage, sourcePreviousAssistant });
+    if (!data.lesson) {
+      // No correction — bump confidence
+      if (appliedLessonsBlock && agentId) {
+        void bumpAppliedInstincts(agentId, appliedLessons);
+      }
+      return;
+    }
+    const { rule, category, domain, confidence, agentId: lid, sourceUserMessage, sourcePreviousAssistant, evidence, lastSeenAt } = data.lesson;
+    useLessonStore.getState().addLesson({ rule, category, domain, confidence, agentId: lid, sourceUserMessage, sourcePreviousAssistant, evidence, lastSeenAt });
     useTraceStore.getState().addEvent(traceId, { kind: 'lesson_proposed' });
+    // Show AHA toast when a lesson is extracted
+    showInstinctToast(rule);
   } catch {
     // Lesson extraction is best-effort — never surface errors
   }
+}
+
+async function bumpAppliedInstincts(agentId: string, localLessons: Lesson[]): Promise<void> {
+  // Bump local store confidence
+  const store = useLessonStore.getState();
+  for (const l of localLessons) {
+    store.bumpConfidence(l.id, 0.05);
+  }
+  // Also sync to server if we have active instincts from server
+  try {
+    const resp = await fetch(`/api/lessons/${encodeURIComponent(agentId)}/active`);
+    if (!resp.ok) return;
+    const data = await resp.json() as { instincts: Array<{ id: string; confidence: number }> };
+    for (const inst of data.instincts) {
+      const newConf = Math.min(1, inst.confidence + 0.05);
+      void fetch(`/api/lessons/${inst.id}/confidence`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confidence: newConf }),
+      });
+    }
+  } catch { /* best-effort */ }
+}
+
+function showInstinctToast(action: string): void {
+  // Dispatch a custom event that the UI can listen to
+  const event = new CustomEvent('instinct-learned', { detail: { action } });
+  window.dispatchEvent(event);
 }
