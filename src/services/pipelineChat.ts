@@ -758,8 +758,8 @@ async function detectAndAddLesson(
       }
       return;
     }
-    const { rule, category, domain, confidence, agentId: lid, sourceUserMessage, sourcePreviousAssistant, evidence, lastSeenAt } = data.lesson;
-    useLessonStore.getState().addLesson({ rule, category, domain, confidence, agentId: lid, sourceUserMessage, sourcePreviousAssistant, evidence, lastSeenAt });
+    const { rule, category, domain, confidence, agentId: lid, sourceUserMessage, sourcePreviousAssistant } = data.lesson;
+    useLessonStore.getState().addLesson({ rule, category, domain, confidence, agentId: lid, sourceUserMessage, sourcePreviousAssistant });
     useTraceStore.getState().addEvent(traceId, { kind: 'lesson_proposed' });
     // Show AHA toast when a lesson is extracted
     showInstinctToast(rule);

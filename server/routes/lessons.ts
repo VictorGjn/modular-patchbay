@@ -22,7 +22,7 @@ function genId(): string {
 /** GET /api/lessons/:agentId — all instincts for an agent */
 router.get('/:agentId', async (req: Request, res: Response) => {
   try {
-    const instincts = await getInstincts(req.params.agentId);
+    const instincts = await getInstincts(String(req.params['agentId'] ?? ''));
     res.json({ instincts });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to fetch instincts' });
@@ -32,7 +32,7 @@ router.get('/:agentId', async (req: Request, res: Response) => {
 /** GET /api/lessons/:agentId/active — only instincts with confidence >= 0.5 */
 router.get('/:agentId/active', async (req: Request, res: Response) => {
   try {
-    const all = await getInstincts(req.params.agentId);
+    const all = await getInstincts(String(req.params['agentId'] ?? ''));
     const active = all.filter((i) => i.confidence >= 0.5 && i.status === 'approved');
     res.json({ instincts: active });
   } catch (err) {
@@ -48,7 +48,7 @@ router.put('/:id/confidence', async (req: Request, res: Response) => {
     return;
   }
   try {
-    await updateConfidence(req.params.id, confidence);
+    await updateConfidence(String(req.params['id'] ?? ''), confidence);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to update confidence' });
@@ -58,7 +58,7 @@ router.put('/:id/confidence', async (req: Request, res: Response) => {
 /** DELETE /api/lessons/:id — delete an instinct */
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    await deleteInstinct(req.params.id);
+    await deleteInstinct(String(req.params['id'] ?? ''));
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to delete instinct' });
@@ -142,3 +142,4 @@ router.post('/extract', async (req: Request, res: Response) => {
 });
 
 export default router;
+
