@@ -1,3 +1,11 @@
+/**
+ * Model Router — automatically selects the cheapest model tier that matches a request's complexity.
+ *
+ * Uses a heuristic complexity score derived from context size, knowledge diversity,
+ * tool count, planning mode, and message intent. Complexity thresholds were chosen
+ * to balance quality against cost at typical agent scales.
+ */
+
 import { classifyModel, estimateCost } from './costEstimator';
 import type { CostEstimate } from './costEstimator';
 
@@ -9,16 +17,47 @@ export interface RoutingResult {
   tier: 'haiku' | 'sonnet' | 'opus';
 }
 
+export interface ComplexityOverrides {
+  /** Divisor for context token contribution (default 30000). Lower = context contributes more. */
+  tokenWeight?: number;
+  /** Divisor for knowledge-type count contribution (default 5). Lower = diversity contributes more. */
+  typeWeight?: number;
+}
+
+/**
+ * Compute a complexity score [0, 1] used to select the optimal model tier.
+ *
+ * Thresholds are calibrated for typical agent workloads:
+ *   - contextTokens / 30000: 30K tokens ≈ "large" context (fills a Sonnet window ~halfway). Max 0.3.
+ *   - knowledgeTypeCount / 5: 5 distinct knowledge types suggests broad, multi-domain retrieval. Max 0.2.
+ *   - toolCount > 3: more than 3 tools implies non-trivial orchestration. Adds 0.2.
+ *   - hasMultiStep: explicit multi-step workflow plan. Adds 0.2.
+ *   - analytical keywords: signals reasoning-heavy task. Adds 0.1.
+ *
+ * Users who find auto-routing incorrect can pass overrides via the Advanced section
+ * to tune sensitivity without changing defaults for everyone.
+ *
+ * @param contextTokens - Estimated total system + history token count.
+ * @param knowledgeTypeCount - Number of distinct knowledge types in active channels.
+ * @param toolCount - Number of tools or connectors attached.
+ * @param hasMultiStep - Whether the agent uses a multi-step planning mode.
+ * @param message - Optional user message to detect analytical intent.
+ * @param overrides - Optional threshold overrides for user-level tuning.
+ * @returns Complexity score between 0 (simple) and 1 (most complex).
+ */
 export function computeComplexity(
   contextTokens: number,
   knowledgeTypeCount: number,
   toolCount: number,
   hasMultiStep: boolean,
   message?: string,
+  overrides?: ComplexityOverrides,
 ): number {
+  const tokenWeight = overrides?.tokenWeight ?? 30000;
+  const typeWeight = overrides?.typeWeight ?? 5;
   let score = 0;
-  score += Math.min(contextTokens / 30000, 0.3);
-  score += Math.min(knowledgeTypeCount / 5, 0.2);
+  score += Math.min(contextTokens / tokenWeight, 0.3);
+  score += Math.min(knowledgeTypeCount / typeWeight, 0.2);
   score += toolCount > 3 ? 0.2 : 0;
   score += hasMultiStep ? 0.2 : 0;
   if (message && /analyz|reason|compar|evaluat|synthesiz|plan|strateg/i.test(message)) {

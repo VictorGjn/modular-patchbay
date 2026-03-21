@@ -4,6 +4,15 @@
  *
  * MCP + connector matching is synchronous (in-memory).
  * Skills discovery is async best-effort via skills.sh.
+ *
+ * Discovery strategy (in priority order):
+ *   1. Semantic table lookup — 26 curated intent→MCP mappings (score 1.0).
+ *   2. Fuzzy registry scan — ALL MCP_REGISTRY entries matched by name/description/tags.
+ *      New entries added to the registry are discovered automatically here (score 0.5–0.9).
+ *   3. Native connectors — preferred over MCP when the same service has both.
+ *   4. Skills catalog — async fetch from skills.sh, best-effort, 10s timeout.
+ *
+ * Results are capped: 3 MCP + 2 connectors + 3 skills, sorted by relevance.
  */
 
 import { MCP_REGISTRY } from '../../store/mcp-registry';
@@ -129,6 +138,13 @@ function buildMcpTool(entry: McpRegistryEntry, term: string, score: number, labe
 
 // ─── MCP Discovery (synchronous) ──────────────────────────────────────────
 
+/**
+ * Discover MCP servers relevant to the parsed agent input.
+ * Runs semantic table lookup first, then fuzzy-matches all registry entries.
+ * @param parsed - Parsed metaprompt V2 input with tools, domain, and role.
+ * @param enabledMcpIds - Already-enabled MCP server IDs (excluded from suggestions).
+ * @returns Suggested MCP tools sorted by relevance, descending.
+ */
 export function discoverMcpServers(
   parsed: ParsedInput,
   enabledMcpIds: string[],
@@ -162,6 +178,13 @@ export function discoverMcpServers(
 
 // ─── Connector Discovery (synchronous) ────────────────────────────────────
 
+/**
+ * Discover native connectors (Notion, HubSpot, Slack, …) relevant to the parsed input.
+ * Prefers connectors over MCP when both cover the same service.
+ * @param parsed - Parsed metaprompt V2 input.
+ * @param enabledConnectorIds - Already-enabled connector IDs (excluded from suggestions).
+ * @returns Suggested connector tools at relevance 1.0.
+ */
 export function discoverConnectors(
   parsed: ParsedInput,
   enabledConnectorIds: string[],
@@ -321,6 +344,14 @@ export async function discoverSkills(
 
 // ─── Main Entry Point ──────────────────────────────────────────────────────
 
+/**
+ * Discover all relevant tools (MCP + connectors + skills) for the parsed agent input.
+ * MCP and connector discovery is synchronous; skills discovery is async best-effort.
+ * @param parsed - Parsed metaprompt V2 input.
+ * @param installed - IDs of already-installed tools (excluded from suggestions).
+ * @param signal - Optional abort signal for the skills.sh network request.
+ * @returns Up to 8 tool suggestions (3 MCP + 2 connectors + 3 skills), sorted by relevance.
+ */
 export async function discoverTools(
   parsed: ParsedInput,
   installed: { skillIds: string[]; mcpIds: string[]; connectorIds: string[] },

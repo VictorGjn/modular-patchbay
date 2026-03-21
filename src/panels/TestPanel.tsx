@@ -323,7 +323,7 @@ interface CorrectionBarProps {
   agentId: string;
   streaming: boolean;
 }
-function _CorrectionBar({ messageContent, agentId, streaming }: CorrectionBarProps) {
+function CorrectionBar({ messageContent, agentId, streaming }: CorrectionBarProps) {
   const t = useTheme();
   const selectedModel = useConsoleStore(s => s.selectedModel);
   const [expanded, setExpanded] = useState(false);
@@ -446,7 +446,7 @@ function _CorrectionBar({ messageContent, agentId, streaming }: CorrectionBarPro
 }
 
 /* ── Learning Indicator ── */
-function _LearningIndicator({ agentId }: { agentId: string }) {
+function LearningIndicator({ agentId }: { agentId: string }) {
   const t = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [instincts, setInstincts] = useState<Array<{ id: string; action: string; domain: string; confidence: number }>>([]);
@@ -518,6 +518,7 @@ function _LearningIndicator({ agentId }: { agentId: string }) {
 /* ── Chat Section ── */
 function ChatSection() {
   const t = useTheme();
+  const agentId = useVersionStore(s => s.agentId) ?? '';
   const messages = useConversationStore(s => s.messages);
   const inputText = useConversationStore(s => s.inputText);
   const setInputText = useConversationStore(s => s.setInputText);
@@ -611,7 +612,9 @@ function ChatSection() {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="relative flex flex-col flex-1 min-h-0">
+      {/* Learning indicator — floating pill showing active instincts */}
+      <LearningIndicator agentId={agentId} />
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3" aria-live="polite" aria-relevant="additions">
         {messages.length === 0 && (
@@ -735,6 +738,10 @@ function ChatSection() {
             {/* Inline trace view for assistant messages with pipeline stats */}
             {msg.role === 'assistant' && msg.pipelineStats && (
               <InlineTraceView stats={msg.pipelineStats} traceId={msg.traceId} />
+            )}
+            {/* Correction bar — lets user correct response and extract a lesson */}
+            {msg.role === 'assistant' && msg.content && (
+              <CorrectionBar messageContent={msg.content} agentId={agentId} streaming={streaming} />
             )}
           </div>
         ))}

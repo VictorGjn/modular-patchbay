@@ -3,6 +3,14 @@
  *
  * Heuristic-only gap detection with 1-cycle context refinement.
  * No LLM calls for gap detection — uses hedging language patterns.
+ *
+ * Workflow:
+ *   1. Score the first-pass LLM response for hedging language (uncertainty signals).
+ *   2. If the hedging score exceeds the configured threshold, extract candidate queries
+ *      from hedging sentences and retrieve new chunks against the indexed sources.
+ *   3. Replace the lowest-relevance current chunks with higher-relevance new chunks,
+ *      within the token budget.
+ *   4. Return the improved chunk set for a second LLM call with better context.
  */
 
 import { estimateTokens } from './treeIndexer';
@@ -83,9 +91,31 @@ const HEDGING_PATTERNS_FR = [
 
 const FRENCH_INDICATOR_WORDS = ['le', 'la', 'les', 'des', 'est', 'sont', 'une', 'et', 'en', 'du'];
 
-/** Heuristic: detect French if ≥6 occurrences of common French words. */
+/**
+ * Strip code blocks and URLs so French indicator words in code/identifiers/URLs
+ * don't trigger false positives. Returns only natural-language sentences.
+ */
+function extractNaturalLanguage(text: string): string {
+  // Remove fenced code blocks (``` ... ```)
+  let cleaned = text.replace(/```[\s\S]*?```/g, ' ');
+  // Remove inline code (`...`)
+  cleaned = cleaned.replace(/`[^`]*`/g, ' ');
+  // Remove URLs (http/https and bare www.)
+  cleaned = cleaned.replace(/https?:\/\/\S+/g, ' ');
+  cleaned = cleaned.replace(/\bwww\.\S+/g, ' ');
+  return cleaned;
+}
+
+/**
+ * Heuristic: detect French if text has ≥3 natural-language sentences AND
+ * ≥6 occurrences of common French words in the natural-language portion.
+ * Requires ≥3 sentences to avoid false positives from short snippets.
+ */
 function isFrench(text: string): boolean {
-  const words = text.toLowerCase().split(/\s+/);
+  const natural = extractNaturalLanguage(text);
+  // Require at least 3 sentences of natural text before deciding language
+  if (countSentences(natural) < 3) return false;
+  const words = natural.toLowerCase().split(/\s+/);
   let count = 0;
   for (const w of words) {
     if (FRENCH_INDICATOR_WORDS.includes(w)) count++;
@@ -113,6 +143,13 @@ function countSentences(text: string): number {
 /**
  * Compute a hedging score for a response.
  * Returns 0.0 (no hedging) to 1.0 (very uncertain).
+ */
+/**
+ * Compute a hedging score [0, 1] for a model response.
+ * High scores indicate uncertainty — the model may be guessing rather than knowing.
+ * @param response - Full LLM response text.
+ * @param expectedLength - Expected response length in chars; short responses bump the score.
+ * @returns 0 = confident, 1 = very uncertain.
  */
 export function computeHedgingScore(response: string, expectedLength?: number): number {
   if (!response || response.length === 0) return 0;
@@ -178,6 +215,13 @@ function extractNounPhrasesFromHedgingSentences(text: string): string[] {
 /**
  * Extract candidate queries from hedging response + original query.
  */
+/**
+ * Extract refined search queries from a hedging response.
+ * Pulls noun phrases from uncertain sentences and combines them with the original query.
+ * @param response - LLM response containing hedging signals.
+ * @param originalQuery - The original user query used as a fallback anchor.
+ * @returns Up to 4 candidate queries for re-retrieval.
+ */
 export function extractCandidateQueries(response: string, originalQuery: string): string[] {
   const queries: string[] = [];
 
@@ -203,6 +247,15 @@ export function extractCandidateQueries(response: string, originalQuery: string)
 /**
  * Replace worst-scoring current chunks with best candidate chunks.
  * Deduplicates by nodeId, respects token budget.
+ */
+/**
+ * Replace the worst-scoring current chunks with better-scoring candidates.
+ * Deduplicates by nodeId and respects the token budget.
+ * @param current - Currently selected knowledge chunks.
+ * @param candidates - New candidate chunks retrieved for refined queries.
+ * @param minRelevance - Minimum relevance score a candidate must have to be considered.
+ * @param tokenBudget - Maximum total tokens allowed in the result set.
+ * @returns Updated chunk list with added/dropped accounting.
  */
 export function replaceChunks(
   current: ChunkMetadata[],
@@ -262,6 +315,17 @@ export interface IndexedSource {
   knowledgeType: KnowledgeType;
 }
 
+/**
+ * Main adaptive retrieval runner — detects knowledge gaps and refines context.
+ * @param initialResponse - Buffered first-pass LLM response to score.
+ * @param currentChunks - Chunks used in the first pass.
+ * @param indexes - Indexed knowledge sources to retrieve from.
+ * @param originalQuery - Original user query.
+ * @param config - Adaptive retrieval configuration.
+ * @param tokenBudget - Maximum tokens for the replacement chunk set.
+ * @param signal - AbortSignal for cancellation / timeout.
+ * @returns Adaptive result with improved chunks and cycle metadata.
+ */
 export async function runAdaptiveRetrieval(
   initialResponse: string,
   currentChunks: ChunkMetadata[],

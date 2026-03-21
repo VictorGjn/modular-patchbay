@@ -65,6 +65,39 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** POST /api/lessons/sync-batch — migrate lessons from localStorage to SQLite (dedup by id) */
+router.post('/sync-batch', async (req: Request, res: Response) => {
+  interface LocalLesson {
+    id: string; agentId: string; rule: string; category: string; domain: string;
+    confidence: number; evidence: unknown; status: string; createdAt: number;
+    lastSeenAt: string; sourceUserMessage?: string;
+  }
+  const { lessons } = req.body as { lessons?: LocalLesson[] };
+  if (!Array.isArray(lessons)) { res.status(400).json({ error: 'lessons must be an array' }); return; }
+  let saved = 0;
+  for (const l of lessons) {
+    if (!l.id || !l.agentId) continue;
+    try {
+      const now = new Date().toISOString();
+      await saveInstinct({
+        id: l.id,
+        agentId: l.agentId,
+        trigger: (l.sourceUserMessage ?? '').slice(0, 500),
+        action: l.rule ?? '',
+        confidence: typeof l.confidence === 'number' ? l.confidence : 0.30,
+        domain: l.domain ?? 'general',
+        scope: 'agent',
+        evidence: Array.isArray(l.evidence) ? JSON.stringify(l.evidence) : '[]',
+        status: l.status ?? 'pending',
+        createdAt: l.createdAt ? new Date(l.createdAt).toISOString() : now,
+        lastSeenAt: l.lastSeenAt ?? now,
+      });
+      saved++;
+    } catch { /* skip individual failures */ }
+  }
+  res.json({ ok: true, saved });
+});
+
 /** POST /api/lessons/extract — extract lesson from correction, save to SQLite */
 router.post('/extract', async (req: Request, res: Response) => {
   const { userMessage, previousAssistant, providerId, model, agentId } =
