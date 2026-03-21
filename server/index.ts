@@ -33,6 +33,7 @@ import metapromptV2Routes from './routes/metaprompt-v2.js';
 import graphRoutes from './routes/graph.js';
 import connectorSubRoutes from './routes/connectors/index.js';
 import costRoutes from './routes/cost.js';
+import toolAnalyticsRoutes from './routes/tool-analytics.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -108,6 +109,7 @@ export function createApp() {
   app.use('/api/graph', graphRoutes);
   app.use('/api/connectors/v2', connectorSubRoutes);
   app.use('/api/cost', costRoutes);
+  app.use('/api/tool-analytics', toolAnalyticsRoutes);
 
   // API 404 catch-all — log unmatched API routes for debugging
   app.use('/api', (_req: express.Request, res: express.Response) => {

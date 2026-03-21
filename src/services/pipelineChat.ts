@@ -370,6 +370,22 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       });
     }
 
+    // 5b. F8: Check budget BEFORE running LLM — block if over limit
+    try {
+      const budgetRes = await fetch(`/api/cost/${encodeURIComponent(effectiveAgentId)}/budget`);
+      if (budgetRes.ok) {
+        const budgetData = await budgetRes.json() as { data?: { budgetLimit: number; totalSpent: number } };
+        const bd = budgetData.data;
+        if (bd && bd.budgetLimit > 0 && bd.totalSpent >= bd.budgetLimit) {
+          onError(new Error('Budget exceeded. Increase your budget in the Review tab.'));
+          traceStore.endTrace(traceId);
+          return;
+        }
+      }
+    } catch {
+      // Budget check is best-effort — proceed if endpoint unavailable
+    }
+
     // 6. Execute: tool loop / text streaming / agent SDK
     // Smart Retrieval: if adaptive is enabled and agent has 5+ enabled channels, buffer first response
     const { adaptiveConfig } = useConsoleStore.getState();
@@ -381,17 +397,47 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
 
     if (useAdaptive) {
       // Buffer first LLM call — don't stream to UI yet
+      // F6: wrap in try/catch; fall through to normal streaming on failure
       let buffered = '';
-      const { fullResponse: bufferedResponse } = await executeChat({
-        providerId,
-        model,
-        messages: msgs,
-        userMessage,
-        systemPrompt,
-        traceId,
-        onChunk: (chunk) => { buffered += chunk; },
-      });
-      buffered = bufferedResponse || buffered;
+      try {
+        const { fullResponse: bufferedResponse } = await executeChat({
+          providerId,
+          model,
+          messages: msgs,
+          userMessage,
+          systemPrompt,
+          traceId,
+          onChunk: (chunk) => { buffered += chunk; },
+        });
+        buffered = bufferedResponse || buffered;
+      } catch (bufErr) {
+        traceStore.addEvent(traceId, {
+          kind: 'error',
+          errorMessage: `Adaptive buffer failed, falling back to streaming: ${bufErr instanceof Error ? bufErr.message : String(bufErr)}`,
+        });
+        // Fall back to normal streaming — skip adaptive refinement
+        const { fullResponse: fbResponse, toolCallResults: fbToolCalls, toolTurns: fbTurns } = await executeChat({
+          providerId, model, messages: finalMsgs, userMessage, systemPrompt: finalSystemPrompt, traceId, onChunk,
+        });
+        if (responseCache.enabled && fbResponse) {
+          void storeResponseCache(userMessage, fbResponse, effectiveAgentId, model, systemPromptHash, responseCache.ttlSeconds);
+        }
+        const { heatmap: fbHeatmap, memoryStats: fbMemStats } = await postProcess({
+          fullResponse: fbResponse, userMessage, agentId: options.agentId, sandboxRunId: options.sandboxRunId, traceId, activeChannels, memoryStats,
+        });
+        void detectAndAddLesson(userMessage, history.filter(m => m.role === 'assistant').at(-1)?.content ?? '', providerId, model, options.agentId, traceId, lessonsBlock, agentLessons);
+        const fbCtx = systemTokens + history.reduce((s, m) => s + estimateTokens(m.content), 0) + estimateTokens(userMessage);
+        const fbOut = estimateTokens(fbResponse);
+        const fbCost = computeActualCost(model, fbCtx, fbOut);
+        void fetch(`/api/cost/${encodeURIComponent(effectiveAgentId)}/record`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model, inputTokens: fbCtx, outputTokens: fbOut, costUsd: fbCost, cachedTokens: 0 }),
+        }).catch(() => {});
+        onDone({ traceId, pipeline: pipelineResult, systemTokens, totalContextTokens: fbCtx, heatmap: fbHeatmap, frameworkSummary,
+          toolCalls: fbToolCalls.length > 0 ? fbToolCalls : undefined,
+          toolTurns: fbTurns > 0 ? fbTurns : undefined, memory: fbMemStats, costUsd: fbCost, model, inputTokens: fbCtx, outputTokens: fbOut, cachedTokens: 0 });
+        return;
+      }
 
       // Rebuild indexed sources from active channels + treeIndexStore for adaptive retrieval
       const treeStore = useTreeIndexStore.getState();

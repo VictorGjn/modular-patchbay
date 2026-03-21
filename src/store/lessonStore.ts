@@ -19,8 +19,8 @@ export interface Lesson {
   domain: InstinctDomain;      // maps from category
   evidence: EvidenceEntry[];   // audit trail
   lastSeenAt: string;          // ISO string
-  /** pending = proposed; approved = active; rejected = dismissed */
-  status: 'pending' | 'approved' | 'rejected';
+  /** pending = proposed; approved = active; rejected = dismissed; archived = promoted to Knowledge */
+  status: 'pending' | 'approved' | 'rejected' | 'archived';
   createdAt: number;
   appliedCount: number;
   sourceUserMessage: string;
@@ -37,6 +37,7 @@ export interface LessonState {
   incrementApplied: (id: string) => void;
   bumpConfidence: (id: string, delta?: number) => void;
   decayConfidence: (id: string, delta?: number) => void;
+  archiveLessons: (ids: string[]) => void;
   getPendingLessons: (agentId: string) => Lesson[];
   getApprovedLessons: (agentId: string) => Lesson[];
   getActiveInstincts: (agentId: string) => Lesson[];
@@ -65,13 +66,15 @@ function load(): Lesson[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Lesson[];
-    // Back-fill new fields for existing lessons
+    // Back-fill new fields for existing lessons.
+    // F7: use ?? after spread so null/undefined from old lessons get safe defaults
+    //     while explicitly-set values from new lessons are preserved.
     return parsed.map((l) => ({
       confidence: 0.30,
-      domain: categoryToDomain(l.category),
-      evidence: [],
-      lastSeenAt: new Date(l.createdAt).toISOString(),
       ...l,
+      domain: l.domain ?? categoryToDomain(l.category),
+      evidence: l.evidence ?? [],
+      lastSeenAt: l.lastSeenAt ?? new Date(l.createdAt).toISOString(),
     }));
   } catch {
     return [];
@@ -171,6 +174,13 @@ export const useLessonStore = create<LessonState>((set, get) => ({
     const lessons = s.lessons.map((l) =>
       l.id === id ? { ...l, confidence: Math.max(0, l.confidence - delta) } : l,
     );
+    persist(lessons);
+    return { lessons };
+  }),
+
+  archiveLessons: (ids) => set((s) => {
+    const idSet = new Set(ids);
+    const lessons = s.lessons.map((l) => idSet.has(l.id) ? { ...l, status: 'archived' as const } : l);
     persist(lessons);
     return { lessons };
   }),

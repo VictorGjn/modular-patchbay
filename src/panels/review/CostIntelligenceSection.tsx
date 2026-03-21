@@ -204,6 +204,25 @@ export function CostIntelligenceSection() {
             </div>
           )}
 
+          {/* F8: Budget exceeded banner */}
+          {budget.budgetLimit > 0 && budget.totalSpent >= budget.budgetLimit && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px]"
+              style={{ background: '#e74c3c18', border: '1px solid #e74c3c40', color: '#e74c3c' }}>
+              <span>🚫 Budget exceeded — test runs paused</span>
+              <button
+                type="button"
+                className="ml-auto text-[11px] font-semibold border-none bg-transparent cursor-pointer"
+                style={{ color: '#e74c3c' }}
+                onClick={() => {
+                  const next = (budget.budgetLimit * 2).toFixed(2);
+                  setBudgetInput(next);
+                }}
+              >
+                Increase to ${(budget.budgetLimit * 2).toFixed(2)} →
+              </button>
+            </div>
+          )}
+
           {/* Budget bar */}
           <BudgetBar spent={budget.totalSpent} limit={budget.budgetLimit} />
 

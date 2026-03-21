@@ -50,7 +50,7 @@ export interface AdaptiveResult {
 
 // ── Hedging Patterns ──
 
-const HEDGING_PATTERNS = [
+const HEDGING_PATTERNS_EN = [
   /\bI think\b/gi,
   /\bprobably\b/gi,
   /\bapproximately\b/gi,
@@ -70,6 +70,40 @@ const HEDGING_PATTERNS = [
   /\bappear(s)? to\b/gi,
 ];
 
+// F11: French hedging patterns
+const HEDGING_PATTERNS_FR = [
+  /\bje pense que\b/gi,
+  /\bprobablement\b/gi,
+  /\benviron\b/gi,
+  /\bil semble\b/gi,
+  /\bpeut-être\b/gi,
+  /\bje ne suis pas sûr\b/gi,
+  /\bje n.ai pas d.information\b/gi,
+];
+
+const FRENCH_INDICATOR_WORDS = ['le', 'la', 'les', 'des', 'est', 'sont', 'une', 'et', 'en', 'du'];
+
+/** Heuristic: detect French if ≥6 occurrences of common French words. */
+function isFrench(text: string): boolean {
+  const words = text.toLowerCase().split(/\s+/);
+  let count = 0;
+  for (const w of words) {
+    if (FRENCH_INDICATOR_WORDS.includes(w)) count++;
+    if (count >= 6) return true;
+  }
+  return false;
+}
+
+/** Returns the active hedging pattern set based on detected language. */
+function getHedgingPatterns(text: string): RegExp[] {
+  return isFrench(text)
+    ? [...HEDGING_PATTERNS_EN, ...HEDGING_PATTERNS_FR]
+    : HEDGING_PATTERNS_EN;
+}
+
+// Keep backward-compat alias used by other modules
+const HEDGING_PATTERNS = HEDGING_PATTERNS_EN;
+
 /**
  * Count sentences in text (rough estimate).
  */
@@ -85,8 +119,9 @@ function countSentences(text: string): number {
 export function computeHedgingScore(response: string, expectedLength?: number): number {
   if (!response || response.length === 0) return 0;
 
+  const patterns = getHedgingPatterns(response);
   let matchCount = 0;
-  for (const pattern of HEDGING_PATTERNS) {
+  for (const pattern of patterns) {
     const matches = response.match(pattern);
     if (matches) matchCount += matches.length;
   }
@@ -109,9 +144,10 @@ export function computeHedgingScore(response: string, expectedLength?: number): 
 function extractNounPhrasesFromHedgingSentences(text: string): string[] {
   const sentences = text.split(/(?<=[.!?])\s+/);
   const hedgingSentences: string[] = [];
+  const patterns = getHedgingPatterns(text);
 
   for (const sentence of sentences) {
-    for (const pattern of HEDGING_PATTERNS) {
+    for (const pattern of patterns) {
       if (pattern.test(sentence)) {
         hedgingSentences.push(sentence);
         break;
@@ -262,6 +298,16 @@ export async function runAdaptiveRetrieval(
   let workingChunks = currentChunks;
   const maxCycles = Math.min(config.maxCycles, 1); // Phase 4a: max 1 cycle
 
+  // F3: Cache original-query scores ONCE before the cycle loop.
+  // This avoids a full re-retrieval per cycle (re-embeds everything).
+  let originalQueryScoreMap = new Map<string, number>();
+  try {
+    const originalScoring = await treeAwareRetrieve(originalQuery, indexes, tokenBudget);
+    originalQueryScoreMap = new Map(originalScoring.chunks.map((c) => [c.nodeId, c.relevanceScore ?? 0]));
+  } catch {
+    // If pre-scoring fails, fall back to per-cycle scoring
+  }
+
   for (let i = 0; i < maxCycles; i++) {
     const cycleStart = Date.now();
 
@@ -307,22 +353,12 @@ export async function runAdaptiveRetrieval(
       }
     }
 
-    // Re-score candidates against original query (use a deduplicated retrieval)
-    // We achieve original-query scoring by doing one final treeAwareRetrieve with the originalQuery
-    // and mapping scores to our candidates by nodeId
-    let scoredCandidates = allCandidates;
-    if (allCandidates.length > 0) {
-      try {
-        const originalScoring = await treeAwareRetrieve(originalQuery, indexes, tokenBudget);
-        const scoreMap = new Map(originalScoring.chunks.map(c => [c.nodeId, c.relevanceScore ?? 0]));
-        scoredCandidates = allCandidates.map(c => ({
-          ...c,
-          relevanceScore: scoreMap.get(c.nodeId) ?? (c.relevanceScore ?? 0),
-        }));
-      } catch {
-        // Use scores from retrieval as-is
-      }
-    }
+    // F3: Re-score candidates using the cached original-query score map (computed once above).
+    // Falls back to per-chunk relevance if the node isn't in the cached map.
+    const scoredCandidates = allCandidates.map((c) => ({
+      ...c,
+      relevanceScore: originalQueryScoreMap.get(c.nodeId) ?? (c.relevanceScore ?? 0),
+    }));
 
     // Compute before stats
     const avgRelevanceBefore = workingChunks.length > 0
