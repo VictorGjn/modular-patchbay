@@ -70,8 +70,8 @@ function load(): Lesson[] {
     // F7: use ?? after spread so null/undefined from old lessons get safe defaults
     //     while explicitly-set values from new lessons are preserved.
     return parsed.map((l) => ({
-      confidence: 0.30,
       ...l,
+      confidence: l.confidence ?? 0.30,
       domain: l.domain ?? categoryToDomain(l.category),
       evidence: l.evidence ?? [],
       lastSeenAt: l.lastSeenAt ?? new Date(l.createdAt).toISOString(),
@@ -98,6 +98,7 @@ export const useLessonStore = create<LessonState>((set, get) => ({
     const now = Date.now();
     const domain = data.domain ?? categoryToDomain(data.category);
     const lesson: Lesson = {
+      ...data,
       id: genId(),
       status: 'pending',
       createdAt: now,
@@ -106,7 +107,6 @@ export const useLessonStore = create<LessonState>((set, get) => ({
       domain,
       evidence: [{ type: 'correction', timestamp: new Date(now).toISOString(), description: 'Extracted from user correction' }],
       lastSeenAt: new Date(now).toISOString(),
-      ...data,
     };
     set((s) => {
       const lessons = [...s.lessons, lesson];

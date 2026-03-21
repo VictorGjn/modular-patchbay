@@ -3,7 +3,7 @@
  * research-augmented agent generation pipeline.
  */
 import { useState, useCallback } from 'react';
-import { useThemeStore } from '../store/themeStore';
+import { useTheme } from '../theme';
 import {
   streamV2Generation,
   PHASE_LABELS,
@@ -34,11 +34,11 @@ export default function V2PipelineProgress({
   onError,
   tokenBudget,
 }: V2PipelineProgressProps) {
-  const t = useThemeStore((s) => s.resolved);
+  const t = useTheme();
   const [phases, setPhases] = useState<PhaseState[]>(
     PHASE_ORDER.map((p) => ({ phase: p, status: 'pending' }))
   );
-  const [currentPhase, setCurrentPhase] = useState<string>('start');
+  const [_currentPhase, setCurrentPhase] = useState<string>('start');
   const [result, setResult] = useState<V2GenerationResult | null>(null);
   const [running, setRunning] = useState(false);
   const [totalElapsed, setTotalElapsed] = useState(0);

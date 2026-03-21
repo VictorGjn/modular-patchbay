@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Zap, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../theme';
 import { useConsoleStore } from '../../store/consoleStore';
 import { useTraceStore } from '../../store/traceStore';

@@ -323,9 +323,8 @@ interface CorrectionBarProps {
   agentId: string;
   streaming: boolean;
 }
-function CorrectionBar({ messageContent, agentId, streaming }: CorrectionBarProps) {
+function _CorrectionBar({ messageContent, agentId, streaming }: CorrectionBarProps) {
   const t = useTheme();
-  const providerId = useConsoleStore(s => s.channels[0]?.repoMeta?.repoUrl ?? '');
   const selectedModel = useConsoleStore(s => s.selectedModel);
   const [expanded, setExpanded] = useState(false);
   const [correction, setCorrection] = useState('');
@@ -447,7 +446,7 @@ function CorrectionBar({ messageContent, agentId, streaming }: CorrectionBarProp
 }
 
 /* ── Learning Indicator ── */
-function LearningIndicator({ agentId }: { agentId: string }) {
+function _LearningIndicator({ agentId }: { agentId: string }) {
   const t = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [instincts, setInstincts] = useState<Array<{ id: string; action: string; domain: string; confidence: number }>>([]);
@@ -532,7 +531,6 @@ function ChatSection() {
   const connectors = useConsoleStore(s => s.connectors);
   const mcpServers = useConsoleStore(s => s.mcpServers);
   const agentMeta = useConsoleStore(s => s.agentMeta);
-  const agentId = useConsoleStore(s => s.agentMeta.id ?? '');
   const navigationMode = useConsoleStore(s => s.navigationMode);
 
   // Derive required capabilities from agent config
