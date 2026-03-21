@@ -17,6 +17,7 @@ import { OutputConfigSection } from '../panels/review/OutputConfigSection';
 import { ExportActions } from '../panels/review/ExportActions';
 import { FactInsightsSection } from '../panels/review/FactInsightsSection';
 import { LessonsSection } from '../panels/review/LessonsSection';
+import { CostIntelligenceSection } from '../panels/review/CostIntelligenceSection';
 import { PromptPreviewModal } from '../panels/review/PromptPreviewModal';
 
 export function ReviewTab() {
@@ -275,6 +276,9 @@ export function ReviewTab() {
 
       {/* Lessons — auto-extracted rules from user corrections */}
       <LessonsSection />
+
+      {/* Cost Intelligence — model routing, estimation, budget tracking */}
+      <CostIntelligenceSection />
 
       {/* Version indicator */}
       <div className="mt-4">

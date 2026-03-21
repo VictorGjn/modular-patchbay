@@ -33,6 +33,7 @@ import type { PipelineResult } from './pipeline';
 import type { ToolCallResult } from './toolRunner';
 import { useLessonStore } from '../store/lessonStore';
 import type { Lesson } from '../store/lessonStore';
+import { computeActualCost } from './costEstimator';
 
 /** FNV-1a 32-bit hash — fast, deterministic, no async needed */
 function fnv1a(s: string): string {
@@ -104,6 +105,11 @@ export interface PipelineChatStats {
   toolCalls?: ToolCallResult[];
   toolTurns?: number;
   memory?: import('./postProcessor').MemoryStats;
+  costUsd?: number;
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  cachedTokens?: number;
   retrieval?: {
     queryType: string;
     diversityScore: number;
@@ -399,6 +405,16 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       history.reduce((s, m) => s + estimateTokens(m.content), 0) +
       estimateTokens(userMessage);
 
+    // Cost tracking: estimate actual cost and record it
+    const outputTokens = estimateTokens(fullResponse);
+    const costUsd = computeActualCost(model, totalContextTokens, outputTokens);
+    const effectiveAgentIdForCost = options.agentId ?? 'default';
+    void fetch(`/api/cost/${encodeURIComponent(effectiveAgentIdForCost)}/record`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, inputTokens: totalContextTokens, outputTokens, costUsd, cachedTokens: 0 }),
+    }).catch(() => {});
+
     const retrievalStats = retrievalResult ? {
       queryType: retrievalResult.queryType,
       diversityScore: retrievalResult.diversityScore,
@@ -430,6 +446,11 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
       toolTurns: toolTurns > 0 ? toolTurns : undefined,
       memory: updatedMemoryStats,
       retrieval: retrievalStats,
+      costUsd,
+      model,
+      inputTokens: totalContextTokens,
+      outputTokens,
+      cachedTokens: 0,
     });
 
   } catch (err) {

@@ -32,6 +32,53 @@ import { routeSources } from '../services/sourceRouter';
 import { compressKnowledge } from '../services/knowledgePipeline';
 import { buildOrientationBlock, assemblePipelineContext } from '../services/contextAssembler';
 import { preRecall } from '../services/memoryPipeline';
+import { estimateCost, classifyModel } from '../services/costEstimator';
+
+/* ── Inline Cost Badge ── */
+function CostBadge() {
+  const t = useTheme();
+  const stats = useConversationStore(s => s.lastPipelineStats);
+  const channels = useConsoleStore(s => s.channels);
+  const providers = useProviderStore(s => s.providers);
+  const selectedProviderId = useProviderStore(s => s.selectedProviderId);
+
+  const activeProvider = providers.find(p => p.id === selectedProviderId);
+  const firstModel = activeProvider?.models?.[0]?.id ?? 'claude-3-5-sonnet-20241022';
+  const model = stats?.model ?? firstModel;
+  const contextTokens = stats?.totalContextTokens ?? channels.filter(c => c.enabled).reduce((s, c) => s + (c.baseTokens ?? 0), 0) + 4000;
+  const tier = classifyModel(model);
+  const TIER_LABEL: Record<string, string> = { haiku: 'Haiku', sonnet: 'Sonnet', opus: 'Opus' };
+  const TIER_COLOR: Record<string, string> = { haiku: '#2ecc71', sonnet: '#3498db', opus: '#9b59b6' };
+
+  if (stats?.costUsd != null) {
+    // Post-run: show actual cost
+    const cacheHitPct = stats.inputTokens ? Math.round(((stats.cachedTokens ?? 0) / stats.inputTokens) * 100) : 0;
+    return (
+      <div className="flex items-center gap-2 px-3 py-1 text-[11px]"
+        style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+        <span>Actual</span>
+        <span style={{ color: t.textPrimary }}>${stats.costUsd.toFixed(5)}</span>
+        <span className="px-1 rounded" style={{ background: (TIER_COLOR[tier] ?? '#888') + '18', color: TIER_COLOR[tier] ?? '#888' }}>
+          {TIER_LABEL[tier] ?? tier}
+        </span>
+        {cacheHitPct > 0 && <span style={{ color: '#2ecc71' }}>{cacheHitPct}% cached</span>}
+      </div>
+    );
+  }
+
+  // Pre-run estimate
+  const estimate = estimateCost(model, contextTokens);
+  return (
+    <div className="flex items-center gap-2 px-3 py-1 text-[11px]"
+      style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+      <span>Est.</span>
+      <span style={{ color: t.textPrimary }}>${estimate.netCost.toFixed(5)}</span>
+      <span className="px-1 rounded" style={{ background: (TIER_COLOR[tier] ?? '#888') + '18', color: TIER_COLOR[tier] ?? '#888' }}>
+        {TIER_LABEL[tier] ?? tier}
+      </span>
+    </div>
+  );
+}
 
 /* ── Pipeline Stats Bar ── */
 function PipelineStatsBar() {
@@ -673,6 +720,9 @@ function ChatSection() {
 
       {/* Pipeline Stats */}
       <PipelineStatsBar />
+
+      {/* Cost Badge */}
+      <CostBadge />
 
       {/* Input */}
       <div className="px-4 py-3 flex gap-2" style={{ borderTop: `1px solid ${t.border}` }}>
