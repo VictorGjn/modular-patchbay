@@ -6,10 +6,12 @@
 import type { CorrectionSignal } from './correctionDetector.js';
 
 export type LessonCategory = 'style' | 'format' | 'factual' | 'behavioral' | 'domain';
+export type InstinctDomain = 'accuracy' | 'output-style' | 'safety' | 'workflow' | 'general';
 
 export interface ExtractedLesson {
   rule: string;
   category: LessonCategory;
+  domain: InstinctDomain;
   confidence: number;
 }
 
@@ -20,6 +22,7 @@ export interface LlmProviderConfig {
 }
 
 const VALID_CATEGORIES: LessonCategory[] = ['style', 'format', 'factual', 'behavioral', 'domain'];
+const VALID_DOMAINS: InstinctDomain[] = ['accuracy', 'output-style', 'safety', 'workflow', 'general'];
 
 const EXTRACTION_PROMPT = (correction: CorrectionSignal): string =>
   `Given this user correction, extract a behavioral rule in the format: "When X, do Y instead of Z".
@@ -31,7 +34,9 @@ Previous assistant response (first 300 chars): ${correction.previousAssistant.sl
 Return a JSON object with:
 - rule: the behavioral rule string (max 120 chars, "When X, do Y instead of Z")
 - category: one of "style" | "format" | "factual" | "behavioral" | "domain"
-- confidence: number 0-1
+- domain: one of "accuracy" | "output-style" | "safety" | "workflow" | "general"
+  (accuracy=factual correctness, output-style=formatting/tone, safety=harm avoidance, workflow=process/steps, general=other)
+- confidence: number 0-1 reflecting how clear the correction signal is
 
 Return only valid JSON, no other text.`;
 
@@ -44,9 +49,11 @@ function parseLesson(text: string): ExtractedLesson | null {
     const obj = raw as Record<string, unknown>;
     const rule = typeof obj.rule === 'string' ? obj.rule.trim() : '';
     const cat = typeof obj.category === 'string' ? obj.category : '';
+    const dom = typeof obj.domain === 'string' ? obj.domain : '';
     const confidence = typeof obj.confidence === 'number' ? obj.confidence : 0.5;
     if (!rule || !VALID_CATEGORIES.includes(cat as LessonCategory)) return null;
-    return { rule, category: cat as LessonCategory, confidence };
+    const domain: InstinctDomain = VALID_DOMAINS.includes(dom as InstinctDomain) ? (dom as InstinctDomain) : 'general';
+    return { rule, category: cat as LessonCategory, domain, confidence };
   } catch {
     return null;
   }
