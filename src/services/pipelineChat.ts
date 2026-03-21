@@ -34,8 +34,20 @@ import type { ToolCallResult } from './toolRunner';
 import { useLessonStore } from '../store/lessonStore';
 import type { Lesson } from '../store/lessonStore';
 import { computeActualCost } from './costEstimator';
-import { runAdaptiveRetrieval } from './adaptiveRetrieval';
-import type { AdaptiveRetrievalData } from '../types/pipelineStageTypes';
+import { runAdaptiveMiddleware } from './adaptiveMiddleware';
+
+/**
+ * Fire-and-forget cost record with one retry on failure.
+ * Uses console.warn so failures are filterable in the console.
+ */
+function recordCost(agentId: string, body: object): void {
+  const url = `/api/cost/${encodeURIComponent(agentId)}/record`;
+  const init: RequestInit = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  fetch(url, init).catch((err) => {
+    console.warn('[pipelineChat] Cost record failed, retrying:', err);
+    setTimeout(() => fetch(url, init).catch((e) => console.warn('[pipelineChat] Cost record retry failed:', e)), 1000);
+  });
+}
 
 /** FNV-1a 32-bit hash — fast, deterministic, no async needed */
 function fnv1a(s: string): string {
@@ -372,7 +384,10 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
 
     // 5b. F8: Check budget BEFORE running LLM — block if over limit
     try {
-      const budgetRes = await fetch(`/api/cost/${encodeURIComponent(effectiveAgentId)}/budget`);
+      const budgetAbort = new AbortController();
+      const budgetTimeout = setTimeout(() => budgetAbort.abort(), 3000);
+      const budgetRes = await fetch(`/api/cost/${encodeURIComponent(effectiveAgentId)}/budget`, { signal: budgetAbort.signal })
+        .finally(() => clearTimeout(budgetTimeout));
       if (budgetRes.ok) {
         const budgetData = await budgetRes.json() as { data?: { budgetLimit: number; totalSpent: number } };
         const bd = budgetData.data;
@@ -383,7 +398,8 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         }
       }
     } catch {
-      // Budget check is best-effort — proceed if endpoint unavailable
+      // Budget check is best-effort — proceed if endpoint unavailable or timed out (3s)
+      console.warn('[pipelineChat] Budget check timed out or failed — proceeding with run');
     }
 
     // 6. Execute: tool loop / text streaming / agent SDK
@@ -429,119 +445,45 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         const fbCtx = systemTokens + history.reduce((s, m) => s + estimateTokens(m.content), 0) + estimateTokens(userMessage);
         const fbOut = estimateTokens(fbResponse);
         const fbCost = computeActualCost(model, fbCtx, fbOut);
-        void fetch(`/api/cost/${encodeURIComponent(effectiveAgentId)}/record`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model, inputTokens: fbCtx, outputTokens: fbOut, costUsd: fbCost, cachedTokens: 0 }),
-        }).catch(() => {});
+        recordCost(effectiveAgentId, { model, inputTokens: fbCtx, outputTokens: fbOut, costUsd: fbCost, cachedTokens: 0 });
         onDone({ traceId, pipeline: pipelineResult, systemTokens, totalContextTokens: fbCtx, heatmap: fbHeatmap, frameworkSummary,
           toolCalls: fbToolCalls.length > 0 ? fbToolCalls : undefined,
           toolTurns: fbTurns > 0 ? fbTurns : undefined, memory: fbMemStats, costUsd: fbCost, model, inputTokens: fbCtx, outputTokens: fbOut, cachedTokens: 0 });
         return;
       }
 
-      // Rebuild indexed sources from active channels + treeIndexStore for adaptive retrieval
-      const treeStore = useTreeIndexStore.getState();
-      const adaptiveIndexedSources: import('./adaptiveRetrieval').IndexedSource[] = [];
-      for (const ch of activeChannels) {
-        if (ch.content) {
-          const { indexMarkdown } = await import('./treeIndexer');
-          const virtualPath = `content://${ch.sourceId}`;
-          adaptiveIndexedSources.push({ treeIndex: indexMarkdown(virtualPath, ch.content), knowledgeType: ch.knowledgeType });
-        } else if (ch.path) {
-          const treeIndex = treeStore.getIndex(ch.path);
-          if (treeIndex) adaptiveIndexedSources.push({ treeIndex, knowledgeType: ch.knowledgeType });
-        }
-      }
-
-      // Run adaptive retrieval
-      const adaptiveStart = Date.now();
+      // Delegate gap detection, chunk replacement, improved knowledge block, and system prompt
+      // rebuild to the adaptive middleware. Returns null if no improvement was found.
       const adaptiveAbort = new AbortController();
-      const adaptiveResult = await runAdaptiveRetrieval(
-        buffered,
-        retrievalResult!.chunks,
-        adaptiveIndexedSources,
+      const middlewareResult = await runAdaptiveMiddleware({
+        bufferedResponse: buffered,
+        retrievalChunks: retrievalResult!.chunks,
+        activeChannels,
+        treeGetIndex: useTreeIndexStore.getState().getIndex,
         userMessage,
         adaptiveConfig,
-        estimateTokens(knowledgeBlock),
-        adaptiveAbort.signal,
-      );
-      const adaptiveDurationMs = Date.now() - adaptiveStart;
-
-      // Emit adaptive_retrieval pipeline stage
-      const lastCycle = adaptiveResult.cycles[0];
-      const adaptiveStageData: AdaptiveRetrievalData = {
-        enabled: true,
-        hedgingScore: adaptiveResult.hedgingScore,
-        threshold: adaptiveConfig.gapThreshold,
-        cycleCount: adaptiveResult.cycles.length,
-        droppedChunks: lastCycle?.droppedChunks ?? [],
-        addedChunks: lastCycle?.addedChunks ?? [],
-        avgRelevanceBefore: lastCycle?.avgRelevanceBefore ?? 0,
-        avgRelevanceAfter: lastCycle?.avgRelevanceAfter ?? 0,
-        tokenBudget: estimateTokens(knowledgeBlock),
-        durationMs: adaptiveDurationMs,
-        aborted: adaptiveResult.aborted,
-        abortReason: adaptiveResult.abortReason,
-      };
-      traceStore.addEvent(traceId, {
-        kind: 'pipeline_stage',
-        durationMs: adaptiveDurationMs,
-        provenanceStages: [{
-          stage: 'adaptive_retrieval',
-          timestamp: Date.now(),
-          durationMs: adaptiveDurationMs,
-          data: adaptiveStageData,
-        }],
+        knowledgeBlock,
+        traceId,
+        signal: adaptiveAbort.signal,
+        systemFrame,
+        orientationBlock,
+        channels,
+        frameworkBlock,
+        lessonsBlock: lessonsBlock || undefined,
+        memoryBlock,
+        providerType,
+        history,
       });
 
-      if (adaptiveResult.improved && lastCycle && lastCycle.addedChunks.length > 0) {
-        // Rebuild knowledgeBlock from improved chunks
-        const improvedChunks = adaptiveResult.chunks;
-        const formattedImproved = improvedChunks.map(chunk =>
-          `<chunk source="${chunk.source}" section="${chunk.section}" type="${chunk.knowledgeType}" depth="${chunk.depth}" method="adaptive">\n${chunk.content}\n</chunk>`
-        );
-        const sourceAnnotations = improvedChunks
-          .map(c => c.source)
-          .filter((v, i, a) => a.indexOf(v) === i)
-          .join(', ');
-        const improvedKnowledgeBlock = `<knowledge sources="${sourceAnnotations}" method="adaptive-tree-aware" metadata="Adaptive retrieval: ${lastCycle.addedChunks.length} chunks replaced">\n${formattedImproved.join('\n\n')}\n</knowledge>`;
-
-        // Rebuild system prompt with improved knowledge block
-        finalSystemPrompt = assemblePipelineContext({
-          frame: systemFrame,
-          orientationBlock,
-          hasRepos: channels.some(ch => ch.enabled && ch.repoMeta),
-          knowledgeFormatGuide: buildKnowledgeFormatGuide(),
-          frameworkBlock,
-          lessonsBlock: lessonsBlock || undefined,
-          memoryBlock,
-          knowledgeBlock: improvedKnowledgeBlock,
-          providerType,
-        });
-        finalMsgs = [
-          { role: 'system' as const, content: finalSystemPrompt },
-          ...history.filter(m => m.content.trim() !== '').map(m => ({ role: m.role, content: m.content })),
-          { role: 'user' as const, content: userMessage },
-        ];
-
-        // Dispatch AHA toast
-        window.dispatchEvent(new CustomEvent('smart-retrieval-refined', {
-          detail: {
-            found: lastCycle.addedChunks.map(c => c.source).join(', '),
-            replaced: lastCycle.droppedChunks.length.toString(),
-            relevance: lastCycle.avgRelevanceAfter.toFixed(2),
-          },
-        }));
+      if (middlewareResult) {
+        finalSystemPrompt = middlewareResult.finalSystemPrompt;
+        finalMsgs = middlewareResult.finalMsgs;
 
         // Record first buffered call cost
         const bufferedOutputTokens = estimateTokens(buffered);
         const bufferedInputTokens = systemTokens + history.reduce((s, m) => s + estimateTokens(m.content), 0) + estimateTokens(userMessage);
         const bufferedCost = computeActualCost(model, bufferedInputTokens, bufferedOutputTokens);
-        void fetch(`/api/cost/${encodeURIComponent(effectiveAgentId)}/record`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model, inputTokens: bufferedInputTokens, outputTokens: bufferedOutputTokens, costUsd: bufferedCost, cachedTokens: 0 }),
-        }).catch(() => {});
+        recordCost(effectiveAgentId, { model, inputTokens: bufferedInputTokens, outputTokens: bufferedOutputTokens, costUsd: bufferedCost, cachedTokens: 0 });
 
         // Second LLM call — stream to user with improved context
         const { fullResponse, toolCallResults, toolTurns } = await executeChat({
@@ -567,10 +509,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         const totalCtxTokens2 = estimateTokens(finalSystemPrompt) + history.reduce((s, m) => s + estimateTokens(m.content), 0) + estimateTokens(userMessage);
         const outTokens2 = estimateTokens(fullResponse);
         const cost2 = computeActualCost(model, totalCtxTokens2, outTokens2);
-        void fetch(`/api/cost/${encodeURIComponent(effectiveAgentId)}/record`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model, inputTokens: totalCtxTokens2, outputTokens: outTokens2, costUsd: cost2, cachedTokens: 0 }),
-        }).catch(() => {});
+        recordCost(effectiveAgentId, { model, inputTokens: totalCtxTokens2, outputTokens: outTokens2, costUsd: cost2, cachedTokens: 0 });
 
         onDone({
           traceId, pipeline: pipelineResult, systemTokens: estimateTokens(finalSystemPrompt),
@@ -610,10 +549,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
         const totalCtxTokens = systemTokens + history.reduce((s, m) => s + estimateTokens(m.content), 0) + estimateTokens(userMessage);
         const outTokens = estimateTokens(buffered);
         const costUsd = computeActualCost(model, totalCtxTokens, outTokens);
-        void fetch(`/api/cost/${encodeURIComponent(effectiveAgentId)}/record`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model, inputTokens: totalCtxTokens, outputTokens: outTokens, costUsd, cachedTokens: 0 }),
-        }).catch(() => {});
+        recordCost(effectiveAgentId, { model, inputTokens: totalCtxTokens, outputTokens: outTokens, costUsd, cachedTokens: 0 });
 
         const retrievalStats = retrievalResult ? {
           queryType: retrievalResult.queryType, diversityScore: retrievalResult.diversityScore,
@@ -673,11 +609,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     const outputTokens = estimateTokens(fullResponse);
     const costUsd = computeActualCost(model, totalContextTokens, outputTokens);
     const effectiveAgentIdForCost = options.agentId ?? 'default';
-    void fetch(`/api/cost/${encodeURIComponent(effectiveAgentIdForCost)}/record`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, inputTokens: totalContextTokens, outputTokens, costUsd, cachedTokens: 0 }),
-    }).catch(() => {});
+    recordCost(effectiveAgentIdForCost, { model, inputTokens: totalContextTokens, outputTokens, costUsd, cachedTokens: 0 });
 
     const retrievalStats = retrievalResult ? {
       queryType: retrievalResult.queryType,

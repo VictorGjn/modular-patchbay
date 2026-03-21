@@ -60,6 +60,7 @@ function categoryToDomain(category: LessonCategory): InstinctDomain {
 }
 
 const STORAGE_KEY = 'modular-lessons-v2';
+const SYNC_FLAG_KEY = 'modular-lessons-v2-synced';
 
 function load(): Lesson[] {
   try {
@@ -91,8 +92,25 @@ function genId(): string {
   return `lesson-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+/** One-time migration: push localStorage lessons to SQLite on first load. */
+async function syncToServer(lessons: Lesson[]): Promise<void> {
+  try {
+    if (localStorage.getItem(SYNC_FLAG_KEY) === '1') return;
+    if (lessons.length === 0) { localStorage.setItem(SYNC_FLAG_KEY, '1'); return; }
+    const res = await fetch('/api/lessons/sync-batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lessons }),
+    });
+    if (res.ok) localStorage.setItem(SYNC_FLAG_KEY, '1');
+  } catch { /* best-effort — will retry next load */ }
+}
+
+const _initialLessons = load();
+void syncToServer(_initialLessons);
+
 export const useLessonStore = create<LessonState>((set, get) => ({
-  lessons: load(),
+  lessons: _initialLessons,
 
   addLesson: (data) => {
     const now = Date.now();
