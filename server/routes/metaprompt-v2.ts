@@ -38,7 +38,7 @@ router.post("/generate", async (req: Request, res: Response) => {
       "../../src/metaprompt/v2/index"
     );
 
-    sendEvent({ phase: "start", status: "running", totalPhases: 6 });
+    sendEvent({ phase: "start", status: "running", totalPhases: 7 });
 
     const result = await runV2Pipeline(prompt, {
       // Use Agent SDK provider — it has WebSearch built in
@@ -53,7 +53,19 @@ router.post("/generate", async (req: Request, res: Response) => {
           elapsed,
           phaseNumber: getPhaseNumber(phase),
         });
+        // After parse, signal that tool discovery is running in parallel
+        if (phase === "parse") {
+          sendEvent({ phase: "tool_discovery", status: "running" });
+        }
       },
+    });
+
+    // Emit tool_discovery complete now that we have the full result
+    sendEvent({
+      phase: "tool_discovery",
+      status: "complete",
+      phaseNumber: getPhaseNumber("tool_discovery"),
+      tools: result.discoveredTools ?? [],
     });
 
     // Send final result
@@ -79,6 +91,7 @@ router.post("/generate", async (req: Request, res: Response) => {
           notes: result.research.research_notes,
         },
         evaluation: result.evaluation.criteria_results,
+        discoveredTools: result.discoveredTools ?? [],
       },
     });
 
@@ -94,11 +107,12 @@ router.post("/generate", async (req: Request, res: Response) => {
 function getPhaseNumber(phase: string): number {
   const map: Record<string, number> = {
     parse: 1,
-    research: 2,
-    pattern: 3,
-    context: 4,
-    assemble: 5,
-    evaluate: 6,
+    tool_discovery: 2,
+    research: 3,
+    pattern: 4,
+    context: 5,
+    assemble: 6,
+    evaluate: 7,
   };
   return map[phase] ?? 0;
 }

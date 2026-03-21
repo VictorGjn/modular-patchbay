@@ -7,6 +7,7 @@ import { TextArea } from '../components/ds/TextArea';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
 import { getGhostSuggestions, type GhostSuggestion } from '../utils/ghostSuggestions';
 import V2PipelineProgress from '../components/V2PipelineProgress';
+import { ToolSuggestions } from '../components/ToolSuggestions';
 import type { V2GenerationResult } from '../services/metapromptV2Client';
 import { Lightbulb, Sparkles, Loader2, Check, X, Settings, Zap, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
 
@@ -449,6 +450,14 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
                     setV2Running(false);
                   }}
                 />
+
+                {/* Tool Suggestions — shown after pipeline completes */}
+                {v2Result?.discoveredTools && v2Result.discoveredTools.length > 0 && (
+                  <ToolSuggestions
+                    tools={v2Result.discoveredTools}
+                    onNavigateToKnowledge={onNavigateToKnowledge}
+                  />
+                )}
               </div>
             )}
           </div>

@@ -11,6 +11,7 @@ import { runPatternSelector } from './pattern-selector';
 import { runContextStrategist } from './context-strategist';
 import { runAssembler } from './assembler';
 import { runEvaluator } from './evaluator';
+import { discoverTools } from './tool-discovery';
 import type { V2PipelineConfig, V2PipelineResult, LLMCallConfig } from './types';
 
 export type { V2PipelineConfig, V2PipelineResult };
@@ -26,6 +27,8 @@ export interface PipelineOptions {
   tokenBudget?: number;
   /** Progress callback — called after each phase completes */
   onPhaseComplete?: (phase: string, elapsed: number) => void;
+  /** Already-installed IDs to exclude from suggestions */
+  installed?: { skillIds: string[]; mcpIds: string[]; connectorIds: string[] };
 }
 
 function sonnetConfig(opts: PipelineOptions): LLMCallConfig {
@@ -60,6 +63,12 @@ export async function runV2Pipeline(
   timing.parse = Date.now() - t;
   notify('parse', timing.parse);
 
+  // Start tool discovery in parallel (best-effort, won't block pipeline)
+  const toolPromise = discoverTools(
+    parsed,
+    options.installed ?? { skillIds: [], mcpIds: [], connectorIds: [] },
+  ).catch(() => []);
+
   // Phase 2: Research
   t = Date.now();
   const research = await runResearcher(parsed, sonnetConfig(options));
@@ -92,6 +101,10 @@ export async function runV2Pipeline(
 
   timing.total = Object.values(timing).reduce((a, b) => a + b, 0) - (timing.total ?? 0);
 
+  // Await tool discovery (started after Phase 1, should be done by now)
+  const discoveredTools = await toolPromise;
+  notify('tool_discovery', 0);
+
   return {
     parsed,
     research,
@@ -100,6 +113,7 @@ export async function runV2Pipeline(
     assembled,
     evaluation,
     timing,
+    discoveredTools,
   };
 }
 

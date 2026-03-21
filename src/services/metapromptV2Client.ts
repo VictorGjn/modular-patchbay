@@ -3,6 +3,9 @@
  * Streams phase progress events via SSE for real-time UI updates.
  */
 
+import type { DiscoveredTool } from '../metaprompt/v2/tool-discovery';
+export type { DiscoveredTool };
+
 const API_BASE = '/api/metaprompt/v2';
 
 export interface V2PhaseEvent {
@@ -13,6 +16,7 @@ export interface V2PhaseEvent {
   totalPhases?: number;
   error?: string;
   result?: V2GenerationResult;
+  tools?: DiscoveredTool[];
 }
 
 export interface V2GenerationResult {
@@ -38,11 +42,13 @@ export interface V2GenerationResult {
     notes: string[];
   };
   evaluation: Record<string, { passed: boolean; issue?: string; fix_applied?: string }>;
+  discoveredTools?: DiscoveredTool[];
 }
 
 export const PHASE_LABELS: Record<string, { label: string; description: string; icon: string }> = {
   start: { label: 'Starting', description: 'Initializing pipeline...', icon: '🚀' },
   parse: { label: 'Parsing', description: 'Extracting role, experts, and methodologies from your description', icon: '🔍' },
+  tool_discovery: { label: 'Tool Discovery', description: 'Finding relevant MCP servers, connectors, and skills', icon: '🔌' },
   research: { label: 'Researching', description: 'Decomposing frameworks into executable steps via web search', icon: '📚' },
   pattern: { label: 'Pattern Selection', description: 'Choosing the optimal workflow architecture', icon: '🏗️' },
   context: { label: 'Context Strategy', description: 'Classifying documents and managing token budget', icon: '📋' },
