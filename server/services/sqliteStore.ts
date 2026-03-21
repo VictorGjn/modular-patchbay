@@ -71,6 +71,23 @@ export async function getDb(): Promise<Database> {
     last_seen_at TEXT NOT NULL
   )`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_instincts_agent_id ON instincts (agent_id)`);
+  db.run(`CREATE TABLE IF NOT EXISTS cost_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    model TEXT NOT NULL,
+    input_tokens INTEGER NOT NULL,
+    output_tokens INTEGER NOT NULL,
+    cost_usd REAL NOT NULL,
+    cached_tokens INTEGER DEFAULT 0
+  )`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_cost_agent_id ON cost_records (agent_id)`);
+  db.run(`CREATE TABLE IF NOT EXISTS budget_config (
+    agent_id TEXT PRIMARY KEY,
+    budget_limit REAL DEFAULT 1.00,
+    preferred_model TEXT,
+    max_model TEXT
+  )`);
   return db;
 }
 
@@ -252,4 +269,86 @@ export async function getInstinctHistory(agentId: string, limit = 100): Promise<
     createdAt: row[9] as string,
     lastSeenAt: row[10] as string,
   }));
+}
+
+// ── Cost tracking operations ────────────────────────────────────────────────
+
+export interface CostRecord {
+  id?: number;
+  agentId: string;
+  timestamp: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  cachedTokens: number;
+}
+
+export interface BudgetConfig {
+  agentId: string;
+  budgetLimit: number;
+  preferredModel?: string;
+  maxModel?: string;
+}
+
+export async function saveCostRecord(record: CostRecord): Promise<void> {
+  const d = await getDb();
+  d.run(
+    `INSERT INTO cost_records (agent_id, timestamp, model, input_tokens, output_tokens, cost_usd, cached_tokens) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [record.agentId, record.timestamp, record.model, record.inputTokens, record.outputTokens, record.costUsd, record.cachedTokens],
+  );
+  saveDb();
+}
+
+export async function getCostHistory(agentId: string, limit = 50): Promise<CostRecord[]> {
+  const d = await getDb();
+  const result = d.exec(
+    `SELECT id, agent_id, timestamp, model, input_tokens, output_tokens, cost_usd, cached_tokens FROM cost_records WHERE agent_id = ? ORDER BY timestamp DESC LIMIT ?`,
+    [agentId, limit],
+  );
+  if (result.length === 0) return [];
+  return result[0].values.map((row) => ({
+    id: row[0] as number,
+    agentId: row[1] as string,
+    timestamp: row[2] as string,
+    model: row[3] as string,
+    inputTokens: row[4] as number,
+    outputTokens: row[5] as number,
+    costUsd: row[6] as number,
+    cachedTokens: row[7] as number,
+  }));
+}
+
+export async function getTotalSpent(agentId: string): Promise<number> {
+  const d = await getDb();
+  const result = d.exec(`SELECT COALESCE(SUM(cost_usd), 0) FROM cost_records WHERE agent_id = ?`, [agentId]);
+  return (result[0]?.values[0]?.[0] as number) ?? 0;
+}
+
+export async function getBudgetConfig(agentId: string): Promise<BudgetConfig> {
+  const d = await getDb();
+  const result = d.exec(`SELECT agent_id, budget_limit, preferred_model, max_model FROM budget_config WHERE agent_id = ?`, [agentId]);
+  if (result.length === 0 || result[0].values.length === 0) {
+    return { agentId, budgetLimit: 1.00 };
+  }
+  const row = result[0].values[0];
+  return {
+    agentId: row[0] as string,
+    budgetLimit: row[1] as number,
+    preferredModel: (row[2] as string | null) ?? undefined,
+    maxModel: (row[3] as string | null) ?? undefined,
+  };
+}
+
+export async function setBudgetConfig(agentId: string, config: Partial<BudgetConfig>): Promise<void> {
+  const d = await getDb();
+  d.run(
+    `INSERT INTO budget_config (agent_id, budget_limit, preferred_model, max_model) VALUES (?, ?, ?, ?)
+     ON CONFLICT(agent_id) DO UPDATE SET
+       budget_limit = excluded.budget_limit,
+       preferred_model = excluded.preferred_model,
+       max_model = excluded.max_model`,
+    [agentId, config.budgetLimit ?? 1.00, config.preferredModel ?? null, config.maxModel ?? null],
+  );
+  saveDb();
 }
