@@ -172,4 +172,5 @@ export interface V2PipelineResult {
   assembled: AssembledAgent;
   evaluation: EvaluationResult;
   timing: Record<string, number>;
+  discoveredTools?: import('./tool-discovery').DiscoveredTool[];
 }

@@ -23,9 +23,10 @@ interface PhaseState {
   phase: string;
   status: 'pending' | 'running' | 'complete' | 'failed';
   elapsed?: number;
+  toolCount?: number;
 }
 
-const PHASE_ORDER = ['parse', 'research', 'pattern', 'context', 'assemble', 'evaluate'];
+const PHASE_ORDER = ['parse', 'tool_discovery', 'research', 'pattern', 'context', 'assemble', 'evaluate'];
 
 export default function V2PipelineProgress({
   prompt,
@@ -63,12 +64,26 @@ export default function V2PipelineProgress({
             return;
           }
 
+          if (event.status === 'running' && PHASE_ORDER.includes(event.phase)) {
+            setPhases((prev) => {
+              const idx = PHASE_ORDER.indexOf(event.phase);
+              return prev.map((p, i) => {
+                if (i === idx && p.status === 'pending') return { ...p, status: 'running' };
+                return p;
+              });
+            });
+          }
+
           if (event.status === 'complete' && event.phase !== 'done') {
             setPhases((prev) => {
               const idx = PHASE_ORDER.indexOf(event.phase);
               return prev.map((p, i) => {
-                if (i === idx) return { ...p, status: 'complete', elapsed: event.elapsed };
-                if (i === idx + 1) return { ...p, status: 'running' };
+                if (i === idx) {
+                  const toolCount = event.phase === 'tool_discovery' ? (event.tools?.length ?? 0) : undefined;
+                  return { ...p, status: 'complete', elapsed: event.elapsed, toolCount };
+                }
+                // Only advance pending phases — don't overwrite already-complete ones
+                if (i === idx + 1 && p.status === 'pending') return { ...p, status: 'running' };
                 return p;
               });
             });
@@ -107,7 +122,7 @@ export default function V2PipelineProgress({
             Research-Augmented Generation
           </h3>
           <p style={{ margin: '4px 0 0', color: t.textSecondary, fontSize: 13 }}>
-            6-phase pipeline: parse → research → pattern → context → assemble → evaluate
+            7-phase pipeline: parse → tools → research → pattern → context → assemble → evaluate
           </p>
         </div>
         {!running && !result && (
@@ -188,8 +203,23 @@ export default function V2PipelineProgress({
                   </div>
                 </div>
 
+                {/* Tool count badge for tool_discovery */}
+                {p.phase === 'tool_discovery' && p.status === 'complete' && p.toolCount != null && (
+                  <span style={{
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 10,
+                    background: p.toolCount > 0 ? '#FE500020' : t.surfaceAlt,
+                    color: p.toolCount > 0 ? '#FE5000' : t.textSecondary,
+                    fontWeight: 600,
+                    border: `1px solid ${p.toolCount > 0 ? '#FE500040' : t.border}`,
+                  }}>
+                    {p.toolCount > 0 ? `💡 ${p.toolCount} tool${p.toolCount !== 1 ? 's' : ''}` : 'No matches'}
+                  </span>
+                )}
+
                 {/* Timing */}
-                {p.elapsed != null && (
+                {p.elapsed != null && p.phase !== 'tool_discovery' && (
                   <span style={{ fontSize: 12, color: t.textSecondary, fontFamily: 'monospace' }}>
                     {(p.elapsed / 1000).toFixed(1)}s
                   </span>
