@@ -544,11 +544,11 @@ export const useConsoleStore = create<ConsoleState>()(
         set({ running: false });
         // Clear stored controller
         _runAbortController = undefined;
-        // Inject mock feedback data only in dev mode
-        if (import.meta.env.DEV && get().pendingKnowledge.length === 0) {
+        // Inject mock feedback data only when ECC_DEV_MOCKS is explicitly enabled
+        if (import.meta.env.VITE_ECC_DEV_MOCKS === 'true' && get().pendingKnowledge.length === 0) {
           get().addPendingKnowledge({ id: `pk-${Date.now()}`, name: 'run-summary.md', type: 'evidence', content: 'Auto-generated run summary', fromRun: 'latest' });
         }
-        if (import.meta.env.DEV && get().suggestedSkills.length === 0) {
+        if (import.meta.env.VITE_ECC_DEV_MOCKS === 'true' && get().suggestedSkills.length === 0) {
           get().addSuggestedSkill({ id: `ss-${Date.now()}`, name: 'web-search', description: 'Search the web', installCmd: 'npx modular-skills install web-search' });
         }
       },

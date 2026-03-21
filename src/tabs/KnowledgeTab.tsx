@@ -75,6 +75,7 @@ function MissingSources({ gaps }: { gaps: Array<{ name: string; type: string; de
 export function KnowledgeTab() {
   const t = useTheme();
   const channels = useConsoleStore(s => s.channels);
+  const connectors = useConsoleStore(s => s.connectors);
   const knowledgeGaps = useConsoleStore(s => s.knowledgeGaps);
   const treeIndexes = useTreeIndexStore(s => s.indexes);
   
@@ -115,8 +116,8 @@ export function KnowledgeTab() {
   const tabs = useMemo(() => [
     { id: 'local-files' as TabType, label: 'Local Files', icon: Files, count: channels.filter(c => c.path && !c.path.includes('.git') && !c.contentSourceId).length },
     { id: 'git-repos' as TabType, label: 'Git Repos', icon: FolderGit2, count: channels.filter(c => c.path?.includes('.git') || c.contentSourceId).length },
-    { id: 'connectors' as TabType, label: 'Connectors', icon: Database, count: 0 }, // TODO: Get connector count from store
-  ], [channels]);
+    { id: 'connectors' as TabType, label: 'Connectors', icon: Database, count: connectors.filter(c => c.status === 'connected').length },
+  ], [channels, connectors]);
 
   // Memoize knowledge type distributions to avoid filtering/reducing on every render
   const knowledgeTypeStats = useMemo(() => {
