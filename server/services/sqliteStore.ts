@@ -88,6 +88,16 @@ export async function getDb(): Promise<Database> {
     preferred_model TEXT,
     max_model TEXT
   )`);
+  // F9: tool suggestion conversion tracking
+  db.run(`CREATE TABLE IF NOT EXISTS tool_suggestions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id TEXT,
+    tool_id TEXT NOT NULL,
+    source TEXT NOT NULL,
+    suggested_at TEXT NOT NULL,
+    accepted_at TEXT
+  )`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_tool_suggestions_agent ON tool_suggestions (agent_id)`);
   return db;
 }
 
@@ -352,3 +362,20 @@ export async function setBudgetConfig(agentId: string, config: Partial<BudgetCon
   );
   saveDb();
 }
+// F9: Tool suggestion conversion tracking
+export async function logToolSuggested(agentId: string | null, toolId: string, source: string): Promise<void> {
+  const d = await getDb();
+  d.run(`INSERT INTO tool_suggestions (agent_id, tool_id, source, suggested_at) VALUES (?, ?, ?, ?)`,
+    [agentId, toolId, source, new Date().toISOString()]);
+  saveDb();
+}
+
+export async function logToolAccepted(agentId: string | null, toolId: string): Promise<void> {
+  const d = await getDb();
+  d.run(
+    `UPDATE tool_suggestions SET accepted_at = ? WHERE agent_id IS ? AND tool_id = ? AND accepted_at IS NULL ORDER BY id DESC LIMIT 1`,
+    [new Date().toISOString(), agentId, toolId],
+  );
+  saveDb();
+}
+

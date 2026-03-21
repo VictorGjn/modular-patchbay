@@ -277,37 +277,43 @@ export async function discoverSkills(
     return [];
   }
 
-  for (let i = 0; i < terms.length; i++) {
+  // F10: process terms in parallel batches of 3, 200ms between batches
+  const BATCH_SIZE = 3;
+  for (let batchStart = 0; batchStart < terms.length; batchStart += BATCH_SIZE) {
     if (signal?.aborted || deadline.aborted) break;
-    if (i > 0) await new Promise((r) => setTimeout(r, 200));
+    if (batchStart > 0) await new Promise((r) => setTimeout(r, 200));
 
-    const term = terms[i].toLowerCase();
-
-    for (const entry of catalog) {
-      if (installedSet.has(entry.id) || results.has(entry.id)) continue;
-      const nameLower = entry.name.toLowerCase().replace(/-/g, ' ');
-      const termWords = term.split(' ').filter(Boolean);
-      const matches =
-        nameLower === term ||
-        nameLower.includes(term) ||
-        termWords.some((w) => w.length > 3 && nameLower.includes(w));
-      if (!matches) continue;
-
-      results.set(entry.id, {
-        id: entry.id,
-        name: entry.name,
-        description: `${entry.name} skill from ${entry.repo}`,
-        source: 'skill',
-        matchReason: `Matched: ${term} (skill)`,
-        matchTerm: term,
-        relevanceScore: nameLower === term ? 0.9 : nameLower.includes(term) ? 0.75 : 0.6,
-        owner: entry.repo.split('/')[0],
-        repo: entry.repo,
-        url: entry.url,
-        installCmd: `npx skills add ${entry.id} -g`,
-        installs: entry.installs,
-      });
-    }
+    const batch = terms.slice(batchStart, batchStart + BATCH_SIZE);
+    await Promise.allSettled(
+      batch.map(async (rawTerm) => {
+        if (signal?.aborted || deadline.aborted) return;
+        const term = rawTerm.toLowerCase();
+        for (const entry of catalog) {
+          if (installedSet.has(entry.id) || results.has(entry.id)) continue;
+          const nameLower = entry.name.toLowerCase().replace(/-/g, ' ');
+          const termWords = term.split(' ').filter(Boolean);
+          const matches =
+            nameLower === term ||
+            nameLower.includes(term) ||
+            termWords.some((w) => w.length > 3 && nameLower.includes(w));
+          if (!matches) continue;
+          results.set(entry.id, {
+            id: entry.id,
+            name: entry.name,
+            description: `${entry.name} skill from ${entry.repo}`,
+            source: 'skill',
+            matchReason: `Matched: ${term} (skill)`,
+            matchTerm: term,
+            relevanceScore: nameLower === term ? 0.9 : nameLower.includes(term) ? 0.75 : 0.6,
+            owner: entry.repo.split('/')[0],
+            repo: entry.repo,
+            url: entry.url,
+            installCmd: `npx skills add ${entry.id} -g`,
+            installs: entry.installs,
+          });
+        }
+      }),
+    );
   }
 
   return Array.from(results.values()).sort((a, b) => b.relevanceScore - a.relevanceScore);

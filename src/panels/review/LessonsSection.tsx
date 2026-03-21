@@ -4,6 +4,7 @@ import { useTheme } from '../../theme';
 import { useLessonStore } from '../../store/lessonStore';
 import type { Lesson, InstinctDomain } from '../../store/lessonStore';
 import { useVersionStore } from '../../store/versionStore';
+import { useConsoleStore } from '../../store/consoleStore';
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -129,8 +130,11 @@ export function LessonsSection() {
   const rejectLesson = useLessonStore((s) => s.rejectLesson);
   const removeLesson = useLessonStore((s) => s.removeLesson);
   const updateLesson = useLessonStore((s) => s.updateLesson);
+  const archiveLessons = useLessonStore((s) => s.archiveLessons);
+  const addChannel = useConsoleStore((s) => s.addChannel);
 
   const [collapsed, setCollapsed] = useState(false);
+  const [promoteToast, setPromoteToast] = useState<string | null>(null);
 
   const pending = lessons.filter((l) => l.agentId === agentId && l.status === 'pending');
   const active = lessons.filter((l) => l.agentId === agentId && l.status === 'approved' && l.confidence >= 0.5);
@@ -152,10 +156,35 @@ export function LessonsSection() {
       .map(([domain]) => domain),
   );
 
+  // F12: Promote high-confidence instincts in a domain to a Knowledge guideline item
+  const handlePromoteToKnowledge = (domain: string, domainLessons: Lesson[]) => {
+    const content = domainLessons.map((l) => `- ${l.rule}`).join('\n');
+    const sourceId = `instinct-${domain}-${Date.now()}`;
+    addChannel({
+      sourceId,
+      name: `Guideline: ${DOMAIN_LABELS[domain as InstinctDomain] ?? domain}`,
+      path: '',
+      category: 'knowledge',
+      knowledgeType: 'guideline',
+      depth: 80,
+      baseTokens: Math.ceil(content.length / 4),
+      content,
+    });
+    archiveLessons(domainLessons.map((l) => l.id));
+    setPromoteToast(`Promoted ${domainLessons.length} instinct${domainLessons.length !== 1 ? 's' : ''} to Knowledge`);
+    setTimeout(() => setPromoteToast(null), 3000);
+  };
+
   if (pending.length === 0 && active.length === 0 && tentative.length === 0) return null;
 
   return (
     <div className="mt-6 space-y-4">
+      {/* F12: Promote success toast */}
+      {promoteToast && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, background: '#2ecc71', color: '#fff', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontFamily: "'Geist Sans', sans-serif", boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+          ✓ {promoteToast}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BookOpen size={16} style={{ color: '#FE5000' }} />
@@ -238,7 +267,7 @@ export function LessonsSection() {
                         type="button"
                         className="ml-auto text-[11px] font-medium border-none bg-transparent cursor-pointer"
                         style={{ color: '#FE5000' }}
-                        onClick={() => console.log('[Modular] Promote to Knowledge:', domain, domainLessons)}
+                        onClick={() => handlePromoteToKnowledge(domain, domainLessons)}
                       >
                         Promote to Knowledge →
                       </button>
