@@ -326,6 +326,7 @@ interface CorrectionBarProps {
 function CorrectionBar({ messageContent, agentId, streaming }: CorrectionBarProps) {
   const t = useTheme();
   const selectedModel = useConsoleStore(s => s.selectedModel);
+  const selectedProviderId = useProviderStore(s => s.selectedProviderId);
   const [expanded, setExpanded] = useState(false);
   const [correction, setCorrection] = useState('');
   const [extracting, setExtracting] = useState(false);
@@ -338,7 +339,9 @@ function CorrectionBar({ messageContent, agentId, streaming }: CorrectionBarProp
     if (!correction.trim()) return;
     setExtracting(true);
     try {
-      const [pid, model] = selectedModel.includes('::') ? selectedModel.split('::') : ['', selectedModel];
+      const colonIdx = selectedModel.indexOf('::');
+      const pid = colonIdx > 0 ? selectedModel.slice(0, colonIdx) : selectedProviderId;
+      const model = colonIdx > 0 ? selectedModel.slice(colonIdx + 2) : selectedModel;
       const res = await fetch('/api/lessons/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

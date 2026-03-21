@@ -379,3 +379,45 @@ export async function logToolAccepted(agentId: string | null, toolId: string): P
   saveDb();
 }
 
+export interface ToolStats {
+  totalSuggested: number;
+  totalAccepted: number;
+  acceptRate: number;
+  topTools: Array<{ toolId: string; source: string; suggestedCount: number; acceptedCount: number }>;
+}
+
+export async function getToolStats(agentId: string): Promise<ToolStats> {
+  const d = await getDb();
+  const totalsRes = d.exec(
+    `SELECT COUNT(*) AS suggested, SUM(CASE WHEN accepted_at IS NOT NULL THEN 1 ELSE 0 END) AS accepted
+     FROM tool_suggestions WHERE agent_id = ?`,
+    [agentId],
+  );
+  const row = totalsRes[0]?.values[0];
+  const totalSuggested = Number(row?.[0] ?? 0);
+  const totalAccepted = Number(row?.[1] ?? 0);
+
+  const topRes = d.exec(
+    `SELECT tool_id, source,
+            COUNT(*) AS suggested_count,
+            SUM(CASE WHEN accepted_at IS NOT NULL THEN 1 ELSE 0 END) AS accepted_count
+     FROM tool_suggestions WHERE agent_id = ?
+     GROUP BY tool_id, source
+     ORDER BY suggested_count DESC LIMIT 20`,
+    [agentId],
+  );
+  const topTools = (topRes[0]?.values ?? []).map((r) => ({
+    toolId: String(r[0]),
+    source: String(r[1]),
+    suggestedCount: Number(r[2]),
+    acceptedCount: Number(r[3]),
+  }));
+
+  return {
+    totalSuggested,
+    totalAccepted,
+    acceptRate: totalSuggested > 0 ? totalAccepted / totalSuggested : 0,
+    topTools,
+  };
+}
+

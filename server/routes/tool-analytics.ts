@@ -3,7 +3,7 @@
  * F9: tracks which suggestions are shown vs accepted.
  */
 import { Router } from 'express';
-import { logToolSuggested, logToolAccepted } from '../services/sqliteStore.js';
+import { logToolSuggested, logToolAccepted, getToolStats } from '../services/sqliteStore.js';
 
 const router = Router();
 
@@ -30,6 +30,17 @@ router.post('/accepted', async (req, res) => {
   try {
     await logToolAccepted(agentId ?? null, toolId);
     res.json({ status: 'ok' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: String(err) });
+  }
+});
+
+// GET /api/tool-analytics/:agentId/stats
+router.get('/:agentId/stats', async (req, res) => {
+  const { agentId } = req.params;
+  try {
+    const stats = await getToolStats(agentId);
+    res.json({ status: 'ok', data: stats });
   } catch (err) {
     res.status(500).json({ status: 'error', error: String(err) });
   }

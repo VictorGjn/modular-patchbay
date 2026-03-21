@@ -30,6 +30,7 @@ function AgentHealthBar() {
   useEffect(() => {
     if (!agentId) return;
     setLoading(true);
+    try {
     Promise.allSettled([
       fetch(`/api/qualification/${agentId}/history`).then((r) => r.json()),
       fetch(`/api/cost/${agentId}/summary`).then((r) => r.json()),
@@ -61,6 +62,7 @@ function AgentHealthBar() {
         lessonsThisWeek: recentCount,
       });
     }).finally(() => setLoading(false));
+    } catch { setLoading(false); }
   }, [agentId]);
 
   const hasData = metrics !== null && (
@@ -391,7 +393,7 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
             <div
               className="flex items-center gap-3 p-4 rounded-lg cursor-pointer"
               style={{
-                background: useV2 ? '#FE500010' : t.surfaceAlt,
+                background: useV2 ? '#FE500010' : t.surfaceElevated,
                 border: `1px solid ${useV2 ? '#FE500040' : t.border}`,
               }}
               onClick={() => { if (!v2Running && !generating) setUseV2(!useV2); }}
@@ -464,7 +466,7 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
         )}
 
         {/* Generate Explanation */}
-        {!useV2 && (
+        {(!useV2 || !hasAgentSdk) && (
         <div className="mt-6 mb-4 text-center">
           <p 
             className="text-sm px-4"
@@ -487,7 +489,7 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
         )}
 
         {/* Generate Agent Button (V1 — shown when V2 is off) */}
-        {!useV2 && (
+        {(!useV2 || !hasAgentSdk) && (
         <div className="mt-4 flex justify-center">
           <button
             type="button"
