@@ -32,6 +32,53 @@ import { routeSources } from '../services/sourceRouter';
 import { compressKnowledge } from '../services/knowledgePipeline';
 import { buildOrientationBlock, assemblePipelineContext } from '../services/contextAssembler';
 import { preRecall } from '../services/memoryPipeline';
+import { estimateCost, classifyModel } from '../services/costEstimator';
+
+/* ── Inline Cost Badge ── */
+function CostBadge() {
+  const t = useTheme();
+  const stats = useConversationStore(s => s.lastPipelineStats);
+  const channels = useConsoleStore(s => s.channels);
+  const providers = useProviderStore(s => s.providers);
+  const selectedProviderId = useProviderStore(s => s.selectedProviderId);
+
+  const activeProvider = providers.find(p => p.id === selectedProviderId);
+  const firstModel = activeProvider?.models?.[0]?.id ?? 'claude-3-5-sonnet-20241022';
+  const model = stats?.model ?? firstModel;
+  const contextTokens = stats?.totalContextTokens ?? channels.filter(c => c.enabled).reduce((s, c) => s + (c.baseTokens ?? 0), 0) + 4000;
+  const tier = classifyModel(model);
+  const TIER_LABEL: Record<string, string> = { haiku: 'Haiku', sonnet: 'Sonnet', opus: 'Opus' };
+  const TIER_COLOR: Record<string, string> = { haiku: '#2ecc71', sonnet: '#3498db', opus: '#9b59b6' };
+
+  if (stats?.costUsd != null) {
+    // Post-run: show actual cost
+    const cacheHitPct = stats.inputTokens ? Math.round(((stats.cachedTokens ?? 0) / stats.inputTokens) * 100) : 0;
+    return (
+      <div className="flex items-center gap-2 px-3 py-1 text-[11px]"
+        style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+        <span>Actual</span>
+        <span style={{ color: t.textPrimary }}>${stats.costUsd.toFixed(5)}</span>
+        <span className="px-1 rounded" style={{ background: (TIER_COLOR[tier] ?? '#888') + '18', color: TIER_COLOR[tier] ?? '#888' }}>
+          {TIER_LABEL[tier] ?? tier}
+        </span>
+        {cacheHitPct > 0 && <span style={{ color: '#2ecc71' }}>{cacheHitPct}% cached</span>}
+      </div>
+    );
+  }
+
+  // Pre-run estimate
+  const estimate = estimateCost(model, contextTokens);
+  return (
+    <div className="flex items-center gap-2 px-3 py-1 text-[11px]"
+      style={{ fontFamily: "'Geist Mono', monospace", color: t.textDim }}>
+      <span>Est.</span>
+      <span style={{ color: t.textPrimary }}>${estimate.netCost.toFixed(5)}</span>
+      <span className="px-1 rounded" style={{ background: (TIER_COLOR[tier] ?? '#888') + '18', color: TIER_COLOR[tier] ?? '#888' }}>
+        {TIER_LABEL[tier] ?? tier}
+      </span>
+    </div>
+  );
+}
 
 /* ── Pipeline Stats Bar ── */
 function PipelineStatsBar() {
@@ -211,9 +258,270 @@ function PipelineStatsBar() {
   );
 }
 
+/* ── AHA Toast ── */
+function AhaToast() {
+  const t = useTheme();
+  const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ action: string }>).detail;
+      setMessage(detail.action);
+      const timer = setTimeout(() => setMessage(null), 4000);
+      return () => clearTimeout(timer);
+    };
+    window.addEventListener('instinct-learned', handler);
+    return () => window.removeEventListener('instinct-learned', handler);
+  }, []);
+  if (!message) return null;
+  return (
+    <div
+      className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-[13px] max-w-xs"
+      style={{ background: t.isDark ? '#1c1c20' : '#fff', border: `1px solid #FE500040`, color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}
+    >
+      <span style={{ marginRight: 6 }}>🧠</span>
+      <span style={{ color: t.textDim, marginRight: 4 }}>Lesson captured:</span>
+      <span style={{ fontStyle: 'italic', color: t.textSecondary }}>{message.length > 80 ? message.slice(0, 80) + '...' : message}</span>
+    </div>
+  );
+}
+
+/* ── Smart Retrieval Toast ── */
+function SmartRetrievalToast() {
+  const t = useTheme();
+  const [detail, setDetail] = useState<{ found: string; replaced: string; relevance: string } | null>(null);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent<{ found: string; replaced: string; relevance: string }>).detail;
+      setDetail(d);
+      const timer = setTimeout(() => setDetail(null), 5000);
+      return () => clearTimeout(timer);
+    };
+    window.addEventListener('smart-retrieval-refined', handler);
+    return () => window.removeEventListener('smart-retrieval-refined', handler);
+  }, []);
+  if (!detail) return null;
+  return (
+    <div
+      className="fixed bottom-16 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-[13px] max-w-sm"
+      style={{ background: t.isDark ? '#1c1c20' : '#fff', border: `1px solid #FE500040`, color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}
+    >
+      <span style={{ marginRight: 6 }}>🔄</span>
+      <span style={{ color: t.textDim, marginRight: 4 }}>Smart Retrieval found</span>
+      <span style={{ fontStyle: 'italic', color: t.textSecondary }}>{detail.found.length > 40 ? detail.found.slice(0, 40) + '...' : detail.found}</span>
+      <span style={{ color: t.textDim }}>{' — replaced '}</span>
+      <span style={{ color: t.textSecondary }}>{detail.replaced}</span>
+      <span style={{ color: t.textDim }}>{' (relevance: '}</span>
+      <span style={{ fontFamily: "'Geist Mono', monospace", color: '#10b981' }}>{detail.relevance}</span>
+      <span style={{ color: t.textDim }}>{')'}</span>
+    </div>
+  );
+}
+
+/* ── Correction Bar (shown after each assistant message) ── */
+interface CorrectionBarProps {
+  messageContent: string;
+  agentId: string;
+  streaming: boolean;
+}
+function CorrectionBar({ messageContent, agentId, streaming }: CorrectionBarProps) {
+  const t = useTheme();
+  const selectedModel = useConsoleStore(s => s.selectedModel);
+  const selectedProviderId = useProviderStore(s => s.selectedProviderId);
+  const [expanded, setExpanded] = useState(false);
+  const [correction, setCorrection] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [extracted, setExtracted] = useState<{ rule: string; domain: string; confidence: number; id: string } | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  if (streaming || !messageContent.trim()) return null;
+
+  const handleExtract = async () => {
+    if (!correction.trim()) return;
+    setExtracting(true);
+    try {
+      const colonIdx = selectedModel.indexOf('::');
+      const pid = colonIdx > 0 ? selectedModel.slice(0, colonIdx) : selectedProviderId;
+      const model = colonIdx > 0 ? selectedModel.slice(colonIdx + 2) : selectedModel;
+      const res = await fetch('/api/lessons/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userMessage: correction, previousAssistant: messageContent, providerId: pid, model, agentId }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { lesson: { id: string; rule: string; domain: string; confidence: number } | null };
+        if (data.lesson) setExtracted({ rule: data.lesson.rule, domain: data.lesson.domain, confidence: data.lesson.confidence, id: data.lesson.id });
+      }
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!extracted) return;
+    // Approve: bump status to approved via confidence update and store
+    try {
+      await fetch(`/api/lessons/${extracted.id}/confidence`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confidence: Math.min(1, extracted.confidence + 0.2) }),
+      });
+    } catch { /* best-effort */ }
+    setSaved(true);
+    setTimeout(() => { setExpanded(false); setExtracted(null); setSaved(false); setCorrection(''); }, 1500);
+  };
+
+  const confidencePct = extracted ? Math.round(extracted.confidence * 100) : 0;
+  const confColor = confidencePct >= 70 ? '#2ecc71' : confidencePct >= 50 ? '#f1c40f' : '#e74c3c';
+
+  return (
+    <div className="mt-1" style={{ fontFamily: "'Geist Mono', monospace" }}>
+      {!expanded ? (
+        <div className="flex gap-2 items-center px-1 py-0.5">
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="text-[11px] px-2 py-1 rounded cursor-pointer border-none"
+            style={{ background: t.isDark ? '#ffffff08' : '#00000005', color: t.textFaint }}
+            title="Correct this response"
+          >
+            ✏️ Correct
+          </button>
+        </div>
+      ) : (
+        <div className="mt-2 rounded-lg p-3 flex flex-col gap-2" style={{ background: t.isDark ? '#ffffff06' : '#00000005', border: `1px solid ${t.border}` }}>
+          <div className="text-[11px]" style={{ color: t.textDim }}>What should the agent have done differently?</div>
+          <textarea
+            value={correction}
+            onChange={e => setCorrection(e.target.value)}
+            placeholder="Describe the correction..."
+            rows={2}
+            className="w-full px-2 py-1.5 rounded text-[12px] outline-none resize-none"
+            style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}
+          />
+          {!extracted ? (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleExtract}
+                disabled={extracting || !correction.trim()}
+                className="text-[11px] px-3 py-1.5 rounded cursor-pointer border-none"
+                style={{ background: '#FE5000', color: '#fff', opacity: extracting || !correction.trim() ? 0.5 : 1 }}
+              >
+                {extracting ? 'Extracting...' : 'Extract lesson'}
+              </button>
+              <button type="button" onClick={() => { setExpanded(false); setCorrection(''); }} className="text-[11px] px-2 py-1 rounded cursor-pointer border-none" style={{ background: 'transparent', color: t.textFaint }}>
+                Cancel
+              </button>
+            </div>
+          ) : saved ? (
+            <div className="text-[11px]" style={{ color: '#2ecc71' }}>✓ Lesson saved</div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="rounded p-2 text-[12px]" style={{ background: t.isDark ? '#ffffff08' : '#00000006', border: `1px solid ${t.border}` }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: '#FE500015', color: '#FE5000' }}>{extracted.domain}</span>
+                  <div className="flex items-center gap-1">
+                    <div style={{ width: 48, height: 4, borderRadius: 2, background: '#333' }}>
+                      <div style={{ width: `${confidencePct}%`, height: '100%', borderRadius: 2, background: confColor }} />
+                    </div>
+                    <span className="text-[10px]" style={{ color: confColor }}>{confidencePct}%</span>
+                  </div>
+                </div>
+                <div style={{ color: t.textSecondary }}>{extracted.rule}</div>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={handleSave} className="text-[11px] px-3 py-1.5 rounded cursor-pointer border-none" style={{ background: '#2ecc71', color: '#fff' }}>
+                  Save
+                </button>
+                <button type="button" onClick={() => setExtracted(null)} className="text-[11px] px-2 py-1 rounded cursor-pointer border-none" style={{ background: 'transparent', color: t.textFaint }}>
+                  Edit
+                </button>
+                <button type="button" onClick={() => { setExpanded(false); setExtracted(null); setCorrection(''); }} className="text-[11px] px-2 py-1 rounded cursor-pointer border-none" style={{ background: 'transparent', color: t.textFaint }}>
+                  Discard
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Learning Indicator ── */
+function LearningIndicator({ agentId }: { agentId: string }) {
+  const t = useTheme();
+  const [expanded, setExpanded] = useState(false);
+  const [instincts, setInstincts] = useState<Array<{ id: string; action: string; domain: string; confidence: number }>>([]);
+
+  useEffect(() => {
+    if (!agentId) return;
+    const load = () => {
+      fetch(`/api/lessons/${encodeURIComponent(agentId)}/active`)
+        .then(r => r.ok ? r.json() : { instincts: [] })
+        .then((d: { instincts: Array<{ id: string; action: string; domain: string; confidence: number }> }) => setInstincts(d.instincts))
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
+  }, [agentId]);
+
+  const count = instincts.length;
+  const avgConf = count > 0 ? Math.round(instincts.reduce((s, i) => s + i.confidence, 0) / count * 100) : 0;
+
+  const DOMAIN_COLORS: Record<string, string> = {
+    accuracy: '#3498db',
+    'output-style': '#9b59b6',
+    safety: '#e74c3c',
+    workflow: '#2ecc71',
+    general: '#95a5a6',
+  };
+
+  if (count === 0) return null;
+
+  return (
+    <div className="absolute bottom-20 right-4 z-40" style={{ fontFamily: "'Geist Mono', monospace" }}>
+      {expanded && (
+        <div className="mb-2 rounded-xl p-3 max-h-64 overflow-y-auto text-[12px]"
+          style={{ background: t.isDark ? '#1c1c20' : '#fff', border: `1px solid ${t.border}`, width: 280, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+          <div className="text-[11px] font-semibold mb-2" style={{ color: t.textPrimary }}>Active Instincts</div>
+          {instincts.map(inst => {
+            const pct = Math.round(inst.confidence * 100);
+            const dc = DOMAIN_COLORS[inst.domain] ?? '#95a5a6';
+            return (
+              <div key={inst.id} className="mb-2 pb-2" style={{ borderBottom: `1px solid ${t.border}30` }}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="px-1 py-0.5 rounded text-[9px]" style={{ background: dc + '18', color: dc }}>{inst.domain}</span>
+                  <div style={{ flex: 1, height: 3, background: '#33333320', borderRadius: 2 }}>
+                    <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: dc }} />
+                  </div>
+                  <span className="text-[10px]" style={{ color: dc }}>{pct}%</span>
+                </div>
+                <div style={{ color: t.textSecondary, lineHeight: 1.4 }}>{inst.action.length > 80 ? inst.action.slice(0, 80) + '...' : inst.action}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] cursor-pointer border-none shadow-md"
+        style={{ background: t.isDark ? '#1c1c20' : '#fff', color: t.textSecondary, border: `1px solid ${t.border}` }}
+        title="Active instincts"
+      >
+        🧠 <span>{count} lesson{count !== 1 ? 's' : ''}</span>
+        {count > 0 && <span style={{ color: '#FE5000' }}>· avg {avgConf}%</span>}
+      </button>
+    </div>
+  );
+}
+
 /* ── Chat Section ── */
 function ChatSection() {
   const t = useTheme();
+  const agentId = useVersionStore(s => s.agentId) ?? '';
   const messages = useConversationStore(s => s.messages);
   const inputText = useConversationStore(s => s.inputText);
   const setInputText = useConversationStore(s => s.setInputText);
@@ -307,7 +615,9 @@ function ChatSection() {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="relative flex flex-col flex-1 min-h-0">
+      {/* Learning indicator — floating pill showing active instincts */}
+      <LearningIndicator agentId={agentId} />
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3" aria-live="polite" aria-relevant="additions">
         {messages.length === 0 && (
@@ -432,6 +742,10 @@ function ChatSection() {
             {msg.role === 'assistant' && msg.pipelineStats && (
               <InlineTraceView stats={msg.pipelineStats} traceId={msg.traceId} />
             )}
+            {/* Correction bar — lets user correct response and extract a lesson */}
+            {msg.role === 'assistant' && msg.content && (
+              <CorrectionBar messageContent={msg.content} agentId={agentId} streaming={streaming} />
+            )}
           </div>
         ))}
         <div ref={messagesEndRef} />
@@ -446,6 +760,9 @@ function ChatSection() {
 
       {/* Pipeline Stats */}
       <PipelineStatsBar />
+
+      {/* Cost Badge */}
+      <CostBadge />
 
       {/* Input */}
       <div className="px-4 py-3 flex gap-2" style={{ borderTop: `1px solid ${t.border}` }}>
@@ -1216,6 +1533,8 @@ export function TestPanel({
         </div>
       )}
 
+      <AhaToast />
+      <SmartRetrievalToast />
     </div>
   );
 }

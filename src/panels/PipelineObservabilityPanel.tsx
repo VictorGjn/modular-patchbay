@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../theme';
 import { useTraceStore, type TraceEvent } from '../store/traceStore';
 import { ChevronDown, ChevronRight, FileText, Scale, Search, AlertTriangle, GitBranch, Code, Zap } from 'lucide-react';
+import { formatDisplayPath } from '../utils/formatPath';
 import type {
   PipelineStageData,
   SourceAssemblyData,
@@ -9,6 +10,7 @@ import type {
   RetrievalData,
   ContradictionData,
   ProvenanceData,
+  AdaptiveRetrievalData,
 } from '../types/pipelineStageTypes';
 
 export type { PipelineStageData };
@@ -34,6 +36,10 @@ function isContradictionData(d: unknown): d is ContradictionData {
 function isProvenanceData(d: unknown): d is ProvenanceData {
   const rec = d as Record<string, unknown>;
   return typeof d === 'object' && d !== null && Array.isArray(rec.sources) && Array.isArray(rec.derivationChain);
+}
+
+function isAdaptiveRetrievalData(d: unknown): d is AdaptiveRetrievalData {
+  return typeof d === 'object' && d !== null && 'hedgingScore' in (d as object) && 'cycleCount' in (d as object);
 }
 
 /* ── Raw JSON Preview ── */
@@ -80,14 +86,16 @@ function StageNoData({ name, data }: { name: string; data: unknown }) {
 
 /* ── Stage Components ── */
 
-function SourceAssemblyStage({ data, expanded, onToggle }: {
+function SourceAssemblyStage({ data, expanded, onToggle, pending }: {
   data: unknown;
   expanded: boolean;
   onToggle: () => void;
+  pending?: boolean;
 }) {
   const t = useTheme();
   const typed = isSourceAssemblyData(data) ? data : null;
   const includedCount = typed ? typed.sources.filter(s => s.included).length : 0;
+  if (pending) return <PendingStage icon={<FileText size={14} />} label="Source Assembly" description="Waiting for sources..." />;
 
   return (
     <div className="border-b" style={{ borderColor: t.border }}>
@@ -149,12 +157,14 @@ function SourceAssemblyStage({ data, expanded, onToggle }: {
   );
 }
 
-function BudgetAllocationStage({ data, expanded, onToggle }: {
+function BudgetAllocationStage({ data, expanded, onToggle, pending }: {
   data: unknown;
   expanded: boolean;
   onToggle: () => void;
+  pending?: boolean;
 }) {
   const t = useTheme();
+  if (pending) return <PendingStage icon={<Scale size={14} />} label="Budget Allocation" description="Waiting for budget computation..." />;
   const typed = isBudgetAllocationData(data) ? data : null;
   const totalAllocated = typed ? typed.allocations.reduce((sum, a) => sum + a.allocatedTokens, 0) : 0;
   const totalUsed = typed ? typed.allocations.reduce((sum, a) => sum + a.usedTokens, 0) : 0;
@@ -224,12 +234,14 @@ function BudgetAllocationStage({ data, expanded, onToggle }: {
   );
 }
 
-function RetrievalStage({ data, expanded, onToggle }: {
+function RetrievalStage({ data, expanded, onToggle, pending }: {
   data: unknown;
   expanded: boolean;
   onToggle: () => void;
+  pending?: boolean;
 }) {
   const t = useTheme();
+  if (pending) return <PendingStage icon={<Search size={14} />} label="Retrieval" description="Waiting for context retrieval..." />;
   const typed = isRetrievalData(data) ? data : null;
   const diversityColor = typed
     ? typed.diversityScore > 0.5 ? '#10b981' : typed.diversityScore > 0.3 ? '#f59e0b' : '#ef4444'
@@ -307,12 +319,14 @@ function RetrievalStage({ data, expanded, onToggle }: {
   );
 }
 
-function ContradictionStage({ data, expanded, onToggle }: {
+function ContradictionStage({ data, expanded, onToggle, pending }: {
   data: unknown;
   expanded: boolean;
   onToggle: () => void;
+  pending?: boolean;
 }) {
   const t = useTheme();
+  if (pending) return <PendingStage icon={<AlertTriangle size={14} />} label="Conflict Check" description="Waiting for contradiction analysis..." />;
   const typed = isContradictionData(data) ? data : null;
   const hasContradictions = typed ? typed.contradictionsFound > 0 : false;
 
@@ -385,12 +399,14 @@ function ContradictionStage({ data, expanded, onToggle }: {
   );
 }
 
-function ProvenanceStage({ data, expanded, onToggle }: {
+function ProvenanceStage({ data, expanded, onToggle, pending }: {
   data: unknown;
   expanded: boolean;
   onToggle: () => void;
+  pending?: boolean;
 }) {
   const t = useTheme();
+  if (pending) return <PendingStage icon={<GitBranch size={14} />} label="Provenance" description="Waiting for source attribution..." />;
   const typed = isProvenanceData(data) ? data : null;
   const totalTransformations = typed ? typed.sources.reduce((sum, s) => sum + s.transformations.length, 0) : 0;
 
@@ -442,7 +458,7 @@ function ProvenanceStage({ data, expanded, onToggle }: {
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {typed.sources.map((source, idx) => (
                       <div key={idx} className="p-2 rounded" style={{ background: t.surface }}>
-                        <div className="text-sm font-medium mb-1" style={{ color: t.textPrimary }}>{source.path}</div>
+                        <div className="text-sm font-medium mb-1" style={{ color: t.textPrimary }} title={source.path}>{formatDisplayPath(source.path)}</div>
                         <div className="text-xs" style={{ color: t.textDim }}>{source.type}</div>
                         {source.transformations.length > 0 && (
                           <div className="mt-2 space-y-1">
@@ -461,6 +477,140 @@ function ProvenanceStage({ data, expanded, onToggle }: {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+          <RawJsonPreview data={data} />
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Adaptive Retrieval Stage ── */
+
+function AdaptiveRetrievalStage({ data, expanded, onToggle, pending }: {
+  data: unknown;
+  expanded: boolean;
+  onToggle: () => void;
+  pending?: boolean;
+}) {
+  const t = useTheme();
+  if (pending) return <PendingStage icon={<Zap size={14} />} label="Smart Retrieval" description="Waiting for adaptive refinement..." />;
+  const typed = isAdaptiveRetrievalData(data) ? data : null;
+
+  const improved = typed && typed.addedChunks.length > 0;
+  const relevanceImproved = typed ? typed.avgRelevanceAfter - typed.avgRelevanceBefore : 0;
+  const accentColor = typed?.aborted ? '#f59e0b' : improved ? '#FE5000' : '#10b981';
+
+  return (
+    <div className="border-b" style={{ borderColor: t.border }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex items-center gap-3 w-full px-4 py-3 text-left border-none cursor-pointer"
+        style={{ background: 'transparent', color: t.textPrimary }}
+      >
+        <Zap size={16} style={{ color: accentColor }} />
+        <span className="flex-1 font-medium">Smart Retrieval</span>
+        {typed && (
+          <span className="text-sm" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+            {typed.aborted
+              ? `aborted · ${typed.abortReason}`
+              : improved
+                ? `+${typed.addedChunks.length} chunks · ${relevanceImproved >= 0 ? '+' : ''}${(relevanceImproved * 100).toFixed(1)}% rel`
+                : `score ${(typed.hedgingScore * 100).toFixed(0)}% · no change`}
+          </span>
+        )}
+        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+      </button>
+
+      {expanded && (
+        <>
+          {!typed ? (
+            <StageNoData name="Smart Retrieval" data={data} />
+          ) : (
+            <div className="px-4 pb-4 space-y-3">
+              {/* Hedging Score */}
+              <div className="flex items-center gap-3 p-2 rounded" style={{ background: t.surface }}>
+                <div className="text-sm font-medium" style={{ color: t.textPrimary }}>Hedging Score</div>
+                <div className="flex-1 h-2 rounded overflow-hidden" style={{ background: t.surfaceElevated }}>
+                  <div
+                    className="h-full rounded"
+                    style={{
+                      width: `${(typed.hedgingScore * 100).toFixed(0)}%`,
+                      background: typed.hedgingScore >= typed.threshold ? '#FE5000' : '#10b981',
+                    }}
+                  />
+                </div>
+                <span className="text-xs" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                  {(typed.hedgingScore * 100).toFixed(0)}% / threshold {(typed.threshold * 100).toFixed(0)}%
+                </span>
+              </div>
+
+              {/* Cycle Stats */}
+              {typed.cycleCount > 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium" style={{ color: t.textDim }}>Cycle Results</div>
+                  <div className="flex items-center gap-4 p-2 rounded text-sm" style={{ background: t.surface }}>
+                    <div>
+                      <span style={{ color: t.textDim }}>Before: </span>
+                      <span style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>{(typed.avgRelevanceBefore * 100).toFixed(1)}%</span>
+                    </div>
+                    <div style={{ color: t.textFaint }}>→</div>
+                    <div>
+                      <span style={{ color: t.textDim }}>After: </span>
+                      <span style={{ fontFamily: "'Geist Mono', monospace", color: improved ? '#10b981' : t.textPrimary }}>
+                        {(typed.avgRelevanceAfter * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="ml-auto text-xs" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                      {typed.durationMs}ms
+                    </div>
+                  </div>
+
+                  {/* Added chunks */}
+                  {typed.addedChunks.length > 0 && (
+                    <div>
+                      <div className="text-xs font-medium mb-1" style={{ color: '#10b981' }}>Added ({typed.addedChunks.length})</div>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {typed.addedChunks.map((c, i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs px-2 py-1 rounded" style={{ background: '#10b98115' }}>
+                            <span className="truncate flex-1" style={{ color: t.textSecondary }}>{c.source}</span>
+                            <span style={{ color: '#10b981', fontFamily: "'Geist Mono', monospace" }}>{(c.relevance * 100).toFixed(0)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dropped chunks */}
+                  {typed.droppedChunks.length > 0 && (
+                    <div>
+                      <div className="text-xs font-medium mb-1" style={{ color: t.textDim }}>Replaced ({typed.droppedChunks.length})</div>
+                      <div className="space-y-1 max-h-24 overflow-y-auto">
+                        {typed.droppedChunks.map((c, i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs px-2 py-1 rounded" style={{ background: t.surfaceElevated }}>
+                            <span className="truncate flex-1 font-mono" style={{ color: t.textFaint }}>{c.nodeId}</span>
+                            <span style={{ color: t.textFaint, fontFamily: "'Geist Mono', monospace" }}>{(c.relevance * 100).toFixed(0)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {typed.aborted && (
+                <div className="text-xs px-2 py-1 rounded" style={{ background: '#f59e0b15', color: '#f59e0b' }}>
+                  Aborted: {typed.abortReason}
+                </div>
+              )}
+
+              {typed.cycleCount === 0 && !typed.aborted && (
+                <div className="text-sm text-center py-2" style={{ color: t.textDim }}>
+                  Hedging score below threshold — no refinement needed
                 </div>
               )}
             </div>
@@ -557,10 +707,25 @@ function EventTimeline({ events }: { events: TraceEvent[] }) {
   );
 }
 
+/* ── Pending Stage Placeholder ── */
+
+function PendingStage({ icon, label, description }: { icon: React.ReactNode; label: string; description: string }) {
+  const t = useTheme();
+  return (
+    <div className="px-4 py-3 border-b flex items-center gap-3 opacity-40" style={{ borderColor: t.border }}>
+      <div style={{ color: t.textDim }}>{icon}</div>
+      <div>
+        <div className="text-sm font-medium" style={{ color: t.textDim }}>{label}</div>
+        <div className="text-xs" style={{ color: t.textFaint }}>{description}</div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Pipeline Stepper ── */
 
 const PIPELINE_STAGE_ORDER = [
-  'source_assembly', 'budget_allocation', 'retrieval', 'contradiction_check', 'provenance',
+  'source_assembly', 'budget_allocation', 'retrieval', 'contradiction_check', 'provenance', 'adaptive_retrieval',
 ] as const;
 
 type PipelineStageName = typeof PIPELINE_STAGE_ORDER[number];
@@ -571,6 +736,7 @@ const STAGE_LABELS: Record<PipelineStageName, string> = {
   retrieval: 'Retrieval',
   contradiction_check: 'Conflicts',
   provenance: 'Provenance',
+  adaptive_retrieval: 'Smart',
 };
 
 function StageCircle({ status }: { status: 'pending' | 'active' | 'done' | 'error' }) {
@@ -731,40 +897,42 @@ export function PipelineObservabilityPanel() {
           </div>
         )}
 
-        {/* Structured stages */}
-        {stages.has('source_assembly') && (
-          <SourceAssemblyStage
-            data={stages.get('source_assembly')!.data}
-            expanded={expandedStages.has('source_assembly')}
-            onToggle={() => toggleStage('source_assembly')}
-          />
-        )}
-        {stages.has('budget_allocation') && (
-          <BudgetAllocationStage
-            data={stages.get('budget_allocation')!.data}
-            expanded={expandedStages.has('budget_allocation')}
-            onToggle={() => toggleStage('budget_allocation')}
-          />
-        )}
-        {stages.has('retrieval') && (
-          <RetrievalStage
-            data={stages.get('retrieval')!.data}
-            expanded={expandedStages.has('retrieval')}
-            onToggle={() => toggleStage('retrieval')}
-          />
-        )}
-        {stages.has('contradiction_check') && (
-          <ContradictionStage
-            data={stages.get('contradiction_check')!.data}
-            expanded={expandedStages.has('contradiction_check')}
-            onToggle={() => toggleStage('contradiction_check')}
-          />
-        )}
-        {stages.has('provenance') && (
-          <ProvenanceStage
-            data={stages.get('provenance')!.data}
-            expanded={expandedStages.has('provenance')}
-            onToggle={() => toggleStage('provenance')}
+        {/* Structured stages — always show all 5, with "pending" state if not yet reached */}
+        <SourceAssemblyStage
+          data={stages.get('source_assembly')?.data}
+          expanded={expandedStages.has('source_assembly')}
+          onToggle={() => toggleStage('source_assembly')}
+          pending={!stages.has('source_assembly')}
+        />
+        <BudgetAllocationStage
+          data={stages.get('budget_allocation')?.data}
+          expanded={expandedStages.has('budget_allocation')}
+          onToggle={() => toggleStage('budget_allocation')}
+          pending={!stages.has('budget_allocation')}
+        />
+        <RetrievalStage
+          data={stages.get('retrieval')?.data}
+          expanded={expandedStages.has('retrieval')}
+          onToggle={() => toggleStage('retrieval')}
+          pending={!stages.has('retrieval')}
+        />
+        <ContradictionStage
+          data={stages.get('contradiction_check')?.data}
+          expanded={expandedStages.has('contradiction_check')}
+          onToggle={() => toggleStage('contradiction_check')}
+          pending={!stages.has('contradiction_check')}
+        />
+        <ProvenanceStage
+          data={stages.get('provenance')?.data}
+          expanded={expandedStages.has('provenance')}
+          onToggle={() => toggleStage('provenance')}
+          pending={!stages.has('provenance')}
+        />
+        {stages.has('adaptive_retrieval') && (
+          <AdaptiveRetrievalStage
+            data={stages.get('adaptive_retrieval')?.data}
+            expanded={expandedStages.has('adaptive_retrieval')}
+            onToggle={() => toggleStage('adaptive_retrieval')}
           />
         )}
 

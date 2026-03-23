@@ -33,12 +33,19 @@ const mockConsoleState = {
 };
 
 vi.mock('../../../src/store/consoleStore', () => ({
-  useConsoleStore: (selector: any) => {
-    if (typeof selector === 'function') {
-      return selector(mockConsoleState);
-    }
-    return mockConsoleState;
-  },
+  useConsoleStore: Object.assign(
+    (selector: any) => {
+      if (typeof selector === 'function') {
+        return selector(mockConsoleState);
+      }
+      return mockConsoleState;
+    },
+    {
+      getState: () => mockConsoleState,
+      setState: vi.fn(),
+      subscribe: vi.fn(() => () => {}),
+    },
+  ),
 }));
 
 const mockMemoryState = {

@@ -30,6 +30,17 @@ export interface ExportConfig {
   pipelineSnapshot?: { context: string; tokens: number; utilization: number; sources: Array<{ name: string; type: string; totalTokens: number }>; compression: { originalTokens: number; compressedTokens: number; ratio: number }; timing: { totalMs: number } };
   facts?: Array<{ id: string; text: string; domain: string }>;
   portable?: boolean;
+  performanceSummary?: {
+    knowledgeSources: number;
+    knowledgeTokens: number;
+    lessonsCount: number;
+    avgConfidence: number;
+    avgCostPerRun: number;
+    topModel: string;
+    cacheHitPct: number;
+    qualityScore: number | null;
+    testCasesCount: number;
+  };
 }
 
 interface AgentData {
@@ -336,6 +347,18 @@ function buildMarkdownBody(data: AgentData, config: ExportConfig): string {
     body.push('');
   }
 
+  if (config.performanceSummary) {
+    const ps = config.performanceSummary;
+    body.push('## Agent Performance Summary');
+    body.push(`- Knowledge: ${ps.knowledgeSources} source${ps.knowledgeSources !== 1 ? 's' : ''}, ${ps.knowledgeTokens.toLocaleString()} tokens optimized context`);
+    body.push(`- Lessons: ${ps.lessonsCount} learned behavior${ps.lessonsCount !== 1 ? 's' : ''} (avg confidence ${Math.round(ps.avgConfidence * 100)}%)`);
+    if (ps.avgCostPerRun > 0) {
+      body.push(`- Cost: Est. $${ps.avgCostPerRun.toFixed(4)}/query (${ps.topModel}, ${Math.round(ps.cacheHitPct * 100)}% cached)`);
+    }
+    body.push(`- Quality: ${ps.qualityScore !== null ? `${ps.qualityScore}/100` : 'N/A'} (qualified on ${ps.testCasesCount} test case${ps.testCasesCount !== 1 ? 's' : ''})`);
+    body.push('');
+  }
+
   return body.join('\n');
 }
 
@@ -507,6 +530,10 @@ export function exportGenericJSON(config: ExportConfig): string {
 
   if (config.facts && config.facts.length > 0) {
     obj.facts = config.facts;
+  }
+
+  if (config.performanceSummary) {
+    obj.performanceSummary = config.performanceSummary;
   }
 
   return JSON.stringify(obj, null, 2);
