@@ -441,8 +441,8 @@ export async function getToolStats(agentId: string): Promise<ToolStats> {
 
 // -- Usage Analytics -----------------------------------------------------
 
-export function trackUsageEvent(event: string, agentId?: string, metadata?: Record<string, unknown>): void {
-  const d = getDb();
+export async function trackUsageEvent(event: string, agentId?: string, metadata?: Record<string, unknown>): Promise<void> {
+  const d = await getDb();
   d.run('INSERT INTO usage_events (event, agent_id, metadata) VALUES (?, ?, ?)', [
     event,
     agentId ?? null,
@@ -451,19 +451,19 @@ export function trackUsageEvent(event: string, agentId?: string, metadata?: Reco
   saveDb();
 }
 
-export function getUsageStats(): {
+export async function getUsageStats(): Promise<{
   totalAgentsCreated: number;
   totalGenerations: number;
   totalExports: number;
   recentEvents: Array<{ event: string; agentId: string | null; timestamp: string }>;
-} {
-  const d = getDb();
+}> {
+  const d = await getDb();
   const count = (evt: string) => {
     const r = d.exec('SELECT COUNT(*) FROM usage_events WHERE event = ?', [evt]);
     return Number(r[0]?.values[0]?.[0] ?? 0);
   };
   const recentRes = d.exec('SELECT event, agent_id, timestamp FROM usage_events ORDER BY id DESC LIMIT 20');
-  const recentEvents = (recentRes[0]?.values ?? []).map((r) => ({
+  const recentEvents = (recentRes[0]?.values ?? []).map((r: any) => ({
     event: String(r[0]),
     agentId: r[1] ? String(r[1]) : null,
     timestamp: String(r[2]),
