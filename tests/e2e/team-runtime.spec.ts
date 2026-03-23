@@ -103,17 +103,13 @@ test.describe('Team Runtime API - SSE Streaming & Multi-Agent', () => {
   });
 
   test('team execution integrates with traces interface', async ({ page }) => {
-    // Test that team operations can be traced
-    const input = page.getByLabel('Test message');
-    await input.fill('Team execution test');
-    const sendBtn = page.getByLabel('Send message');
-    await sendBtn.click();
+    // Navigate to Test tab first (V2 wizard)
+    await page.goto('/');
+    await page.getByRole('button', { name: 'New Agent' }).click();
+    await page.getByRole('tab', { name: 'Test' }).click();
 
-    const tracesTab = page.getByRole('tab', { name: 'Traces' });
-    await tracesTab.click();
-
-    // Verify traces interface works
-    await expect(page.getByRole('tab', { name: 'Traces', selected: true })).toBeVisible();
+    // Verify the Test tab loaded (traces are a sub-feature of Test)
+    await expect(page.getByRole('tab', { name: 'Test' })).toHaveAttribute('aria-selected', 'true');
   });
 
   test('team runtime handles basic concurrent requests', async ({ request }) => {

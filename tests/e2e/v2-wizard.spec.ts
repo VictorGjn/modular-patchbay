@@ -71,8 +71,9 @@ test.describe('V2 Wizard — Describe Tab', () => {
     await expect(btn).toBeDisabled();
   });
 
-  test('provider setup prompt is shown when no provider is configured', async ({ page }) => {
-    await expect(page.getByText('Set up an AI provider first')).toBeVisible();
+  test('provider onboarding banner is shown when no provider is configured', async ({ page }) => {
+    // Global ProviderOnboarding banner replaces the old inline warning
+    await expect(page.getByText('Set up an AI provider to get started')).toBeVisible();
   });
 });
 

@@ -1,0 +1,139 @@
+﻿node.exe : [1A[2K[2m[WebServer] [22mdtype not specified for "model". Using the default dtype (fp32) for this 
+device (cpu).
+Au caractère Ligne:1 : 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([1A[2K[2m[We...s device (cpu).:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+
+Running 43 tests using 4 workers
+
+[1A[2K[1/43] [chromium] ÔÇ║ tests\e2e\smoke-flow.spec.ts:11:3 ÔÇ║ Smoke Flow ÔÇö Template to Export ÔÇ║ load template, navigate tabs, preview agent, export
+[1A[2K[2/43] [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:6:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team runtime endpoints exist and respond appropriately
+[1A[2K[2m[WebServer] [22m[API 404] POST /api/runtime/team
+
+[1A[2K[3/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:12:3 ÔÇ║ V2 Wizard ÔÇö Tab Navigation ÔÇ║ 7 tabs render in correct order
+[1A[2K[4/43] [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:24:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team runtime validation handles missing fields appropriately
+[1A[2K[5/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:6:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ GET /api/mcp returns server list
+[1A[2K[2m[WebServer] [22m[API 404] POST /api/runtime/team
+
+[1A[2K[6/43] [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:47:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team status endpoint handles unknown teams gracefully
+[1A[2K[2m[WebServer] [22m­ƒÜÇ Starting CSV MCP Server...
+
+[1A[2K[2m[WebServer] [22m­ƒÆí Ready to process CSV files - specify paths naturally in your requests
+
+
+[1A[2K[2m[WebServer] [22mÔ£¿ CSV MCP Server is running!
+[2m[WebServer] [22m­ƒÆí Available tools: read_csv, write_csv, query_csv, transform_csv, analyze_csv, and more
+[1A[2K[2m[WebServer] [22m[API 404] GET /api/runtime/team/nonexistent-team-id/status
+
+[1A[2K[2m[WebServer] [22m­ƒôï Listing available CSV tools...
+
+[1A[2K[2m[WebServer] [22mÔ£à Found 18 CSV tools
+
+[1A[2K[7/43] [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:61:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team stop endpoint handles unknown teams gracefully
+[1A[2K[2m[WebServer] [22m[API 404] POST /api/runtime/team/nonexistent-team-id/stop
+
+[1A[2K[8/43] [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:75:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team runtime API structure is consistent
+[1A[2K[2m[WebServer] [22m[API 404] GET /api/runtime/team/test-id/status
+
+[1A[2K[9/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:18:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ POST /api/mcp rejects incomplete config
+[1A[2K[2m[WebServer] [22m[API 404] GET /api/runtime/team/test-id/stop
+
+[1A[2K[10/43] [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:92:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team UI integration points exist
+[1A[2K[11/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:31:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ POST /api/mcp accepts valid server config
+[1A[2K[12/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:54:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ POST /api/mcp/:id/connect handles missing server
+[1A[2K[13/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:65:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ DELETE /api/mcp/:id returns 404 for unknown
+[1A[2K[14/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:76:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ GET /api/mcp/:id/health returns health info
+[1A[2K[15/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:96:3 ÔÇ║ Backend API ÔÇö Providers ÔÇ║ GET /api/providers returns provider list
+[1A[2K[16/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:108:3 ÔÇ║ Backend API ÔÇö Providers ÔÇ║ CRUD lifecycle for provider
+[1A[2K[17/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:143:3 ÔÇ║ Backend API ÔÇö Providers ÔÇ║ PUT /api/providers/:id upserts if not found
+[1A[2K[18/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:157:3 ÔÇ║ Backend API ÔÇö Providers ÔÇ║ maxTokens is capped server-side
+[1A[2K[19/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:176:3 ÔÇ║ Backend API ÔÇö LLM Chat ÔÇ║ POST /api/llm/chat rejects missing fields
+[1A[2K[20/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:189:3 ÔÇ║ Backend API ÔÇö LLM Chat ÔÇ║ POST /api/llm/chat returns 404 for unknown provider
+[1A[2K[21/43] [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:206:3 ÔÇ║ Backend API ÔÇö Skills Search ÔÇ║ GET /api/skills/search returns results or error
+[1A[2K[22/43] [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:105:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team execution integrates with traces interface
+[1A[2K[23/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:20:3 ÔÇ║ V2 Wizard ÔÇö Tab Navigation ÔÇ║ clicking each tab marks it selected
+[1A[2K[24/43] [chromium] ÔÇ║ tests\e2e\smoke-flow.spec.ts:62:3 ÔÇ║ Smoke Flow ÔÇö Template to Export ÔÇ║ provider onboarding banner shows when no provider configured
+[1A[2K[25/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:28:3 ÔÇ║ V2 Wizard ÔÇö Tab Navigation ÔÇ║ ArrowRight moves to the next tab
+[1A[2K[26/43] [chromium] ÔÇ║ tests\e2e\smoke-flow.spec.ts:75:3 ÔÇ║ Smoke Flow ÔÇö Template to Export ÔÇ║ error boundary catches tab crash gracefully
+[1A[2K[27/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:35:3 ÔÇ║ V2 Wizard ÔÇö Tab Navigation ÔÇ║ ArrowLeft moves to the previous tab
+[1A[2K[28/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:43:3 ÔÇ║ V2 Wizard ÔÇö Tab Navigation ÔÇ║ ArrowRight wraps from last tab to first
+[1A[2K[29/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:59:3 ÔÇ║ V2 Wizard ÔÇö Describe Tab ÔÇ║ description textarea renders and accepts text
+[1A[2K[30/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:66:3 ÔÇ║ V2 Wizard ÔÇö Describe Tab ÔÇ║ Generate Agent button is disabled when no provider is configured
+[1A[2K[31/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:74:3 ÔÇ║ V2 Wizard ÔÇö Describe Tab ÔÇ║ provider setup prompt is shown when no provider is configured
+[1A[2K  1) [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:74:3 ÔÇ║ V2 Wizard ÔÇö Describe Tab ÔÇ║ provider setup prompt is shown when no provider is configured 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Set up an AI provider first')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByText('Set up an AI provider first')[22m
+
+
+      73 |
+      74 |   test('provider setup prompt is shown when no provider is configured', async ({ page }) => {
+    > 75 |     await expect(page.getByText('Set up an AI provider first')).toBeVisible();
+         |                                                                 ^
+      76 |   });
+      77 | });
+      78 |
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\v2-wizard.spec.ts:75:65
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\v2-wizard-V2-Wizard-ÔÇö-Desc-55987-n-no-provider-is-configured-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\v2-wizard-V2-Wizard-ÔÇö-Desc-55987-n-no-provider-is-configured-chromium\error-context.md
+
+
+[1A[2K[32/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:88:3 ÔÇ║ V2 Wizard ÔÇö Knowledge Tab ÔÇ║ three sub-tabs render
+[1A[2K[33/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:94:3 ÔÇ║ V2 Wizard ÔÇö Knowledge Tab ÔÇ║ can switch between sub-tabs
+[1A[2K[34/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:110:3 ÔÇ║ V2 Wizard ÔÇö Tools Tab ÔÇ║ 4 section headings are visible
+[1A[2K[35/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:117:3 ÔÇ║ V2 Wizard ÔÇö Tools Tab ÔÇ║ Marketplace button opens the marketplace panel
+[1A[2K[36/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:132:3 ÔÇ║ V2 Wizard ÔÇö Review Tab ÔÇ║ all configuration sections render
+[1A[2K[37/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:146:3 ÔÇ║ Agent Library ÔÇ║ landing page shows the library
+[1A[2K[38/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:151:3 ÔÇ║ Agent Library ÔÇ║ New Agent button navigates to the wizard
+[1A[2K[39/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:157:3 ÔÇ║ Agent Library ÔÇ║ template cards are visible
+[1A[2K[40/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:163:3 ÔÇ║ Agent Library ÔÇ║ search input filters results
+[1A[2K[41/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:175:3 ÔÇ║ Theme Toggle ÔÇ║ clicking toggle switches dark/light mode
+[1A[2K[42/43] [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:188:3 ÔÇ║ Version Dropdown ÔÇ║ opens on click and shows version info
+[1A[2K  2) [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:105:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team execution integrates with traces interface 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByLabel('Test message')[22m
+
+
+      106 |     // Test that team operations can be traced
+      107 |     const input = page.getByLabel('Test message');
+    > 108 |     await input.fill('Team execution test');
+          |                 ^
+      109 |     const sendBtn = page.getByLabel('Send message');
+      110 |     await sendBtn.click();
+      111 |
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\team-runtime.spec.ts:108:17
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\team-runtime-Team-Runtime--7f350-rates-with-traces-interface-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+
+[1A[2K[43/43] [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:119:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team runtime handles basic concurrent requests
+
+[1A[2K[2m[WebServer] [22m[API 404] POST /api/runtime/team
+
+[1A[2K[2m[WebServer] [22m[API 404] POST /api/runtime/team
+[1A[2K  2 failed
+    [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:105:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team execution integrates with traces interface 
+    [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:74:3 ÔÇ║ V2 Wizard ÔÇö Describe Tab ÔÇ║ provider setup prompt is shown when no provider is configured 
+  41 passed (46.2s)
