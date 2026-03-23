@@ -164,7 +164,7 @@ export function LessonsSection({ collapsed, onToggle }: LessonsSectionProps) {
   // F12: Promote high-confidence instincts in a domain to a Knowledge guideline item
   const handlePromoteToKnowledge = (domain: string, domainLessons: Lesson[]) => {
     const content = domainLessons.map((l) => `- ${l.rule}`).join('\n');
-    const sourceId = `instinct-${domain}-${Date.now()}`;
+    const sourceId = `instinct-${domain}-${crypto.randomUUID().slice(0, 8)}`;
     addChannel({
       sourceId,
       name: `Guideline: ${DOMAIN_LABELS[domain as InstinctDomain] ?? domain}`,

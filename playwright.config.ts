@@ -17,6 +17,10 @@ export default defineConfig({
       name: 'chromium',
       use: { browserName: 'chromium' },
     },
+    {
+      name: 'firefox',
+      use: { browserName: 'firefox' },
+    },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : [
     {

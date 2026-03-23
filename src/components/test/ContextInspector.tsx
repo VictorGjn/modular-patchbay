@@ -8,7 +8,7 @@ interface ContextInspectorProps {
   conversationId?: string;
 }
 
-export function ContextInspector({}: ContextInspectorProps) {
+export function ContextInspector(_props: ContextInspectorProps) {
   const t = useTheme();
   const lastPipelineStats = useConversationStore(s => s.lastPipelineStats);
   const [showDiff, setShowDiff] = useState(false);

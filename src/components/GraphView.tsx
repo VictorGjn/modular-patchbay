@@ -268,25 +268,25 @@ export default function GraphView({ nodes, relations, onScan, scanning, highligh
               width={dimensions.width}
               height={dimensions.height}
               nodeVal="val"
-              nodeColor={(node: any) => {
+              nodeColor={(node) => {
                 const n = node as GraphNode;
                 if (highlightIds?.has(n.id)) return '#FE5000';
                 if (n.id === selectedNode) return '#FE5000';
                 if (n.id === hoverNode) return '#FFaa40';
                 return n.color;
               }}
-              nodeLabel={(node: any) => {
+              nodeLabel={(node) => {
                 const n = node as GraphNode;
                 return `${n.path}\n${n.tokens} tokens · ${n.symbolCount} symbols`;
               }}
-              linkColor={(link: any) => (link as GraphLink).color}
-              linkWidth={(link: any) => Math.max(0.5, (link as GraphLink).weight * 2)}
+              linkColor={(link) => (link as GraphLink).color}
+              linkWidth={(link) => Math.max(0.5, (link as GraphLink).weight * 2)}
               linkDirectionalArrowLength={4}
               linkDirectionalArrowRelPos={0.9}
-              onNodeClick={handleNodeClick as any}
-              onNodeHover={handleNodeHover as any}
+              onNodeClick={handleNodeClick as unknown as Parameters<typeof ForceGraph2D>[0]['onNodeClick']}
+              onNodeHover={handleNodeHover as unknown as Parameters<typeof ForceGraph2D>[0]['onNodeHover']}
               backgroundColor={t.surface}
-              nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+              nodeCanvasObject={(node, ctx: CanvasRenderingContext2D, globalScale: number) => {
                 const n = node as GraphNode & { x: number; y: number };
                 const label = n.path.split('/').pop() ?? '';
                 const fontSize = Math.max(10, 12 / globalScale);

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Topbar } from './components/Topbar';
+import { useVersionStore } from './store/versionStore';
 import { TokenBudget } from './components/TokenBudget';
 import { FilePicker } from './components/FilePicker';
 import { SkillPicker } from './components/SkillPicker';
@@ -35,6 +36,7 @@ export default function App() {
   const setShowSettings = useConsoleStore((s) => s.setShowSettings);
   const loadServers = useMcpStore((s) => s.loadServers);
   const loadAgent = useConsoleStore((s) => s.loadAgent);
+  const saveStatus = useVersionStore((s) => s.saveStatus);
   const importInputRef = useRef<HTMLInputElement>(null);
   const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -83,6 +85,10 @@ export default function App() {
   };
 
   const handleBackToLibrary = () => {
+    if (saveStatus === 'unsaved') {
+      const confirmed = window.confirm('You have unsaved changes. Leave anyway?');
+      if (!confirmed) return;
+    }
     setView('library');
   };
 
@@ -106,6 +112,7 @@ export default function App() {
           <Topbar
             onSettingsClick={() => setShowSettings(true, 'providers')}
             onBack={handleBackToLibrary}
+            onImport={() => importInputRef.current?.click()}
           />
           <WizardLayout />
         </>

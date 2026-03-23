@@ -53,6 +53,25 @@ export function createApp() {
 
   app.use(express.json({ limit: '10mb' }));
 
+  // Request logging middleware — correlation IDs + structured logs
+  app.use((req, res, next) => {
+    const requestId = crypto.randomUUID();
+    res.locals['requestId'] = requestId;
+    res.setHeader('X-Request-Id', requestId);
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      console.log(JSON.stringify({
+        requestId,
+        method: req.method,
+        path: req.path,
+        status: res.statusCode,
+        durationMs: duration,
+      }));
+    });
+    next();
+  });
+
   // Basic security headers (lightweight helmet-like)
   app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -209,8 +228,9 @@ process.on('unhandledRejection', (err) => {
 const selfUrl = import.meta.url || '';
 const isMainModule = (selfUrl.includes('server/index') || selfUrl.includes('server%5Cindex') || selfUrl.includes('server\\index'))
   && !process.argv.some(a => a.includes('modular-studio'));
-if (isMainModule && !(globalThis as any).__modularStudioStarted) {
-  (globalThis as any).__modularStudioStarted = true;
+declare const __modularStudioStarted: boolean | undefined;
+if (isMainModule && !(globalThis as typeof globalThis & { __modularStudioStarted?: boolean }).__modularStudioStarted) {
+  (globalThis as typeof globalThis & { __modularStudioStarted?: boolean }).__modularStudioStarted = true;
   const server = startServer();
   // Prevent Node from exiting — keep-alive interval + signal handlers
   const keepAlive = setInterval(() => {}, 1 << 30); // ~12 days

@@ -160,29 +160,32 @@ export function WizardLayout() {
 
   const handleTabKeyDown = (e: React.KeyboardEvent, index: number) => {
     switch (e.key) {
-      case 'ArrowLeft':
+      case 'ArrowLeft': {
         e.preventDefault();
         const prevIndex = index === 0 ? TABS.length - 1 : index - 1;
         tabRefs.current[prevIndex]?.focus();
         setActiveTab(TABS[prevIndex].id);
         break;
-      case 'ArrowRight':
+      }
+      case 'ArrowRight': {
         e.preventDefault();
         const nextIndex = index === TABS.length - 1 ? 0 : index + 1;
         tabRefs.current[nextIndex]?.focus();
         setActiveTab(TABS[nextIndex].id);
         break;
+      }
       case 'Home':
         e.preventDefault();
         tabRefs.current[0]?.focus();
         setActiveTab(TABS[0].id);
         break;
-      case 'End':
+      case 'End': {
         e.preventDefault();
         const lastIndex = TABS.length - 1;
         tabRefs.current[lastIndex]?.focus();
         setActiveTab(TABS[lastIndex].id);
         break;
+      }
       case 'Tab':
         // Allow natural tab navigation to content
         break;
@@ -206,9 +209,10 @@ export function WizardLayout() {
       case 'tools':
         return mcpServersLength > 0 || skillsLength > 0;
       case 'memory':
-        return memoryStrategy !== 'summarize_and_recent' || 
-               factsLength > 0 || 
-               !longTermEnabled ||
+        // Require explicit user action: changed strategy, added facts, enabled long-term, or added working context
+        return memoryStrategy !== 'summarize_and_recent' ||
+               factsLength > 0 ||
+               longTermEnabled ||
                workingContent.length > 0;
       case 'review':
         return agentName !== '' && agentName.length > 0;

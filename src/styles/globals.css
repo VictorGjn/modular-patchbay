@@ -57,14 +57,20 @@ html, body, #root {
   color: var(--color-text-primary);
 }
 
-/* Scrollbar — dark */
+/* Scrollbar — base sizing (applies to both themes) */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #111114; }
-::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3a3a40; }
-/* Scrollbar — light */
+
+/* Scrollbar — dark theme (default) */
+.dark ::-webkit-scrollbar-track,
+[data-theme="dark"] ::-webkit-scrollbar-track { background: #111114; }
+.dark ::-webkit-scrollbar-thumb,
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 3px; }
+.dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #3a3a40; }
+
+/* Scrollbar — light theme */
 [data-theme="light"] ::-webkit-scrollbar-track { background: #f0f1f3; }
-[data-theme="light"] ::-webkit-scrollbar-thumb { background: #ccccd4; }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #ccccd4; border-radius: 3px; }
 [data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #aaaaB0; }
 
 /* Remove default ReactFlow node background/border/shadow */
@@ -185,5 +191,26 @@ html, body, #root {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Mobile responsiveness (< 768px) ── */
+@media (max-width: 767px) {
+  /* Wizard content: full-width, remove side padding */
+  .wizard-content-inner {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    max-width: 100% !important;
+  }
+
+  /* Hide prev/next edge navigation arrows on mobile (use tabs instead) */
+  .wizard-edge-nav {
+    display: none !important;
+  }
+
+  /* FAB moves closer to edge on mobile */
+  .floating-run-btn {
+    right: 12px !important;
+    bottom: 72px !important;
   }
 }

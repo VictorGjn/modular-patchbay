@@ -15,6 +15,7 @@ export interface ModalProps {
 export function Modal({ open, onClose, title, children, footer, width = 520 }: ModalProps) {
   const t = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = title ? `modal-title-${title.toLowerCase().replace(/\s+/g, '-')}` : undefined;
 
   useEffect(() => {
     if (!open) return;
@@ -34,6 +35,9 @@ export function Modal({ open, onClose, title, children, footer, width = 520 }: M
       <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} />
       <div
         ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="relative flex flex-col rounded-xl overflow-hidden outline-none"
@@ -46,9 +50,9 @@ export function Modal({ open, onClose, title, children, footer, width = 520 }: M
       >
         {title && (
           <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: `1px solid ${t.borderSubtle}` }}>
-            <span className="text-[17px] font-bold" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>{title}</span>
-            <button type="button" onClick={onClose} className="flex items-center justify-center w-7 h-7 rounded-md cursor-pointer border-none bg-transparent" style={{ color: t.textDim }}>
-              <X size={14} />
+            <span id={titleId} className="text-[17px] font-bold" style={{ fontFamily: "'Geist Mono', monospace", color: t.textPrimary }}>{title}</span>
+            <button type="button" onClick={onClose} aria-label="Close dialog" className="flex items-center justify-center w-7 h-7 rounded-md cursor-pointer border-none bg-transparent" style={{ color: t.textDim }}>
+              <X size={14} aria-hidden="true" />
             </button>
           </div>
         )}

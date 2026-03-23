@@ -2,6 +2,7 @@ import initSqlJs, { Database } from 'sql.js';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { runMigrations } from '../migrations/index.js';
 
 const DB_DIR = join(homedir(), '.modular-studio');
 const DB_PATH = join(DB_DIR, 'cache.db');
@@ -114,6 +115,18 @@ export async function getDb(): Promise<Database> {
     const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     db.run(`DELETE FROM cost_records WHERE timestamp < ?`, [cutoff]);
   } catch { /* table might not exist yet on first run */ }
+
+  // Response cache cleanup — remove entries older than 7 days
+  try {
+    db.run(`DELETE FROM response_cache WHERE created_at < strftime('%s', 'now', '-7 days')`);
+  } catch { /* table might not exist yet on first run */ }
+
+  // Run pending schema migrations
+  try {
+    runMigrations(db);
+  } catch (err) {
+    console.error('[DB] Migration error:', err instanceof Error ? err.message : err);
+  }
 
   return db;
 }
