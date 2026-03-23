@@ -74,11 +74,16 @@ export async function streamV2Generation(
   prompt: string,
   onPhase: (event: V2PhaseEvent) => void,
   tokenBudget?: number,
+  providerOverride?: { providerId: string; model: string },
 ): Promise<V2GenerationResult> {
   const res = await fetch(`${API_BASE}/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, tokenBudget }),
+    body: JSON.stringify({
+      prompt,
+      tokenBudget,
+      ...(providerOverride ? { providerId: providerOverride.providerId, model: providerOverride.model } : {}),
+    }),
   });
 
   if (!res.ok) {
