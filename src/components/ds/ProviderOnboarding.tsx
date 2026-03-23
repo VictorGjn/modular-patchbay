@@ -21,7 +21,7 @@ export function ProviderOnboarding() {
   return (
     <div
       style={{
-        margin: '0 16px 0',
+        margin: '0 0 16px',
         padding: '14px 20px',
         borderRadius: 10,
         background: 'linear-gradient(135deg, #FE500015 0%, #FE500008 100%)',

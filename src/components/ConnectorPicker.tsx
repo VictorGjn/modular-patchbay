@@ -290,7 +290,7 @@ export function ConnectorPicker() {
 
     return (
       <div
-        key={ac.service}
+        key={`${ac.service}-${ac.mcpServerId}`}
         className="flex items-center gap-3 px-4 py-1.5 hover-row cursor-default"
       >
         <div

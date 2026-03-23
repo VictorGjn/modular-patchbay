@@ -191,8 +191,9 @@ export function getApiKey(service: string, body: Record<string, unknown>, sessio
   if (session) return session;
   // Fallback: persistent credential store (survives restarts)
   try {
-    const { getCredential } = require('../services/credentialStore') as typeof import('../../server/services/credentialStore');
-    return getCredential(service);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('../services/credentialStore.js') as { getCredential: (s: string) => string | null };
+    return mod.getCredential(service);
   } catch { return null; }
 }
 
@@ -201,8 +202,9 @@ export function getApiKey(service: string, body: Record<string, unknown>, sessio
  */
 export function persistApiKey(service: string, apiKey: string): void {
   try {
-    const { setCredential } = require('../services/credentialStore') as typeof import('../../server/services/credentialStore');
-    setCredential(service, apiKey);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('../services/credentialStore.js') as { setCredential: (s: string, v: string) => void };
+    mod.setCredential(service, apiKey);
   } catch { /* credential store not available */ }
 }
 

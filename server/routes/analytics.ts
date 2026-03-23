@@ -5,7 +5,7 @@ import { trackUsageEvent, getUsageStats } from '../services/sqliteStore.js';
 const router = Router();
 
 /** POST /api/analytics/track — record a usage event */
-router.post('/track', (req: Request, res: Response) => {
+router.post('/track', async (req: Request, res: Response) => {
   const { event, agentId, metadata } = req.body as {
     event: string;
     agentId?: string;
@@ -15,14 +15,14 @@ router.post('/track', (req: Request, res: Response) => {
     res.status(400).json({ status: 'error', error: 'event is required' });
     return;
   }
-  trackUsageEvent(event, agentId, metadata);
+  await trackUsageEvent(event, agentId, metadata);
   res.json({ status: 'ok' });
 });
 
 /** GET /api/analytics/stats — get usage summary */
-router.get('/stats', (_req: Request, res: Response) => {
+router.get('/stats', async (_req: Request, res: Response) => {
   try {
-    const stats = getUsageStats();
+    const stats = await getUsageStats();
     res.json({ status: 'ok', data: stats });
   } catch (err) {
     res.status(500).json({ status: 'error', error: err instanceof Error ? err.message : String(err) });

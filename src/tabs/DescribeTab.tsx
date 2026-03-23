@@ -9,7 +9,7 @@ import { getGhostSuggestions, type GhostSuggestion } from '../utils/ghostSuggest
 import V2PipelineProgress from '../components/V2PipelineProgress';
 import { ToolSuggestions } from '../components/ToolSuggestions';
 import type { V2GenerationResult } from '../services/metapromptV2Client';
-import { Lightbulb, Sparkles, Loader2, Check, X, Settings, Zap, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
+import { Lightbulb, Sparkles, Loader2, Check, X, Zap, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
 
 interface HealthMetrics {
   qualityScore: number | null;
@@ -452,7 +452,7 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
                           description: `${result.parsed.domain} agent`,
                           avatar: 'bot',
                           tags: [result.parsed.domain, result.pattern.pattern.replace(/_/g, ' ')].filter(Boolean),
-                          category: result.parsed.domain,
+                          // category stored via tags
                         },
                         instructionState: {
                           persona: `You are a ${result.parsed.role} specializing in ${result.parsed.domain}.`,
@@ -484,6 +484,8 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
                         skillIds: [],
                         knowledgeSelections: [],
                         knowledgeGaps: [],
+                        memoryConfig: { maxMessages: 20, summarizeAfter: 10, summarizeEnabled: true, suggestedFacts: [] },
+                        outputSuggestions: [],
                       };
                       hydrateFromGenerated(config);
                     } catch (e) {
@@ -523,17 +525,6 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
             Generate will use AI to create a complete agent configuration from your description — including persona, constraints, objectives, workflow, and tool selection.
           </p>
         </div>
-        )}
-
-        {/* Provider setup prompt */}
-        {!hasProvider && (
-          <div className="mt-4 flex items-center gap-3 p-4 rounded-lg" style={{ background: '#FE500015', border: '1px solid #FE500030' }}>
-            <Settings size={18} style={{ color: '#FE5000' }} />
-            <div className="flex-1">
-              <div className="text-sm font-medium" style={{ color: t.textPrimary }}>Set up an AI provider first</div>
-              <div className="text-xs mt-1" style={{ color: t.textDim }}>Configure an API key (OpenAI, Anthropic, etc.) in Settings to generate agents.</div>
-            </div>
-          </div>
         )}
 
         {/* Generate Agent Button (V1 — shown when V2 is off) */}
