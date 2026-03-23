@@ -5,24 +5,33 @@ export default defineConfig({
   testMatch: '**/*.spec.ts',
   timeout: 30_000,
   retries: 0,
-  globalSetup: undefined,
-  globalTeardown: undefined,
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5174',
     headless: true,
     screenshot: 'only-on-failure',
+    trace: 'on-first-retry',
   },
   projects: [
-    { 
-      name: 'chromium', 
+    {
+      name: 'chromium',
       use: { browserName: 'chromium' },
-      testDir: './tests/e2e'
     },
   ],
-  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
-    command: 'npx vite --port 5174',
-    port: 5174,
-    reuseExistingServer: true,
-    timeout: 30_000,
-  },
+  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : [
+    {
+      // Backend server (API on port 4800)
+      command: 'npx tsx server/index.ts',
+      port: 4800,
+      reuseExistingServer: true,
+      timeout: 15_000,
+      env: { NODE_ENV: 'development' },
+    },
+    {
+      // Frontend dev server (proxies /api to 4800)
+      command: 'npx vite --port 5174',
+      port: 5174,
+      reuseExistingServer: true,
+      timeout: 15_000,
+    },
+  ],
 });
