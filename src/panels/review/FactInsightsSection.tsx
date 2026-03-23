@@ -95,12 +95,12 @@ export function FactInsightsSection({ collapsed, onToggle }: FactInsightsSection
     <Section
       icon={Lightbulb}
       label="Fact Insights"
-      color="#FE5000"
+      color="#f39c12"
       badge={badge}
       collapsed={collapsed}
       onToggle={onToggle}
     >
-      <div className="space-y-3 pt-3">
+      <div className="space-y-3">
         {!result && facts.length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="text-[12px] leading-relaxed" style={{ color: t.textDim }}>

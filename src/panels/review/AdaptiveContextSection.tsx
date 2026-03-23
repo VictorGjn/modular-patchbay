@@ -57,12 +57,12 @@ export function AdaptiveContextSection({ collapsed, onToggle }: AdaptiveContextS
     <Section
       icon={RefreshCw}
       label="Smart Retrieval"
-      color="#FE5000"
+      color="#3498db"
       badge={config.enabled ? 'on' : 'off'}
       collapsed={collapsed}
       onToggle={onToggle}
     >
-      <div className="space-y-4 pt-3">
+      <div className="space-y-4">
         {/* Description + Toggle */}
         <div className="flex items-center gap-3">
           <div className="flex-1">

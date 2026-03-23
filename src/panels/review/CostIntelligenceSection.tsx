@@ -150,12 +150,12 @@ export function CostIntelligenceSection({ collapsed, onToggle }: CostIntelligenc
     <Section
       icon={DollarSign}
       label="Cost Intelligence"
-      color="#FE5000"
+      color="#2ecc71"
       badge={badge}
       collapsed={collapsed}
       onToggle={onToggle}
     >
-      <div className="space-y-3 pt-3">
+      <div className="space-y-3">
         {/* Metrics row */}
         <div className="flex gap-2">
           <MetricBox

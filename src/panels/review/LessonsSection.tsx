@@ -199,12 +199,12 @@ export function LessonsSection({ collapsed, onToggle }: LessonsSectionProps) {
       <Section
         icon={BookOpen}
         label="Learned Behaviors"
-        color="#FE5000"
+        color="#8e44ad"
         badge={badge}
         collapsed={collapsed}
         onToggle={onToggle}
       >
-        <div className="space-y-4 pt-3">
+        <div className="space-y-4">
           {/* Pending Review */}
           {pending.length > 0 && (
             <div className="space-y-2">
