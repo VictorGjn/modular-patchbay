@@ -187,7 +187,23 @@ export function connectorError(res: any, service: string, error: unknown): void 
 
 export function getApiKey(service: string, body: Record<string, unknown>, sessionKeys: Map<string, string>): string | null {
   if (typeof body.apiKey === 'string' && body.apiKey) return body.apiKey;
-  return sessionKeys.get(service) ?? null;
+  const session = sessionKeys.get(service);
+  if (session) return session;
+  // Fallback: persistent credential store (survives restarts)
+  try {
+    const { getCredential } = require('../services/credentialStore') as typeof import('../../server/services/credentialStore');
+    return getCredential(service);
+  } catch { return null; }
+}
+
+/**
+ * Persist an API key after successful test — survives server restarts.
+ */
+export function persistApiKey(service: string, apiKey: string): void {
+  try {
+    const { setCredential } = require('../services/credentialStore') as typeof import('../../server/services/credentialStore');
+    setCredential(service, apiKey);
+  } catch { /* credential store not available */ }
 }
 
 // ── Timestamp Formatting ──────────────────────────────────────────────────────

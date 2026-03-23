@@ -98,6 +98,13 @@ export async function getDb(): Promise<Database> {
     accepted_at TEXT
   )`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_tool_suggestions_agent ON tool_suggestions (agent_id)`);
+
+  // Cost record rotation — purge records older than 90 days
+  try {
+    const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    db.run(`DELETE FROM cost_records WHERE timestamp < ?`, [cutoff]);
+  } catch { /* table might not exist yet on first run */ }
+
   return db;
 }
 

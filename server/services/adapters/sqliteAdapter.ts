@@ -20,10 +20,20 @@ export class SqliteAdapter implements StorageAdapter {
       mkdirSync(DB_DIR, { recursive: true, mode: 0o755 });
     }
     
-    if (existsSync(MEMORY_DB_PATH)) {
-      const buffer = readFileSync(MEMORY_DB_PATH);
-      this.db = new SQL.Database(buffer);
-    } else {
+    try {
+      if (existsSync(MEMORY_DB_PATH)) {
+        const buffer = readFileSync(MEMORY_DB_PATH);
+        this.db = new SQL.Database(buffer);
+      } else {
+        this.db = new SQL.Database();
+      }
+    } catch (err) {
+      console.warn('[SqliteAdapter] Database file corrupted, creating fresh:', err);
+      // Rename corrupt file for debugging, start fresh
+      if (existsSync(MEMORY_DB_PATH)) {
+        const backup = MEMORY_DB_PATH + '.corrupt.' + Date.now();
+        try { require('node:fs').renameSync(MEMORY_DB_PATH, backup); } catch { /* best effort */ }
+      }
       this.db = new SQL.Database();
     }
 
