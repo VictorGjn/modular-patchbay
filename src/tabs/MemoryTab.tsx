@@ -70,12 +70,13 @@ const STRATEGY_OPTIONS = [
 ];
 
 const STORE_OPTIONS = [
-  { value: 'local_sqlite', label: 'SQLite (local)' },
-  { value: 'postgres', label: 'PostgreSQL' },
-  { value: 'redis', label: 'Redis' },
-  { value: 'chromadb', label: 'ChromaDB' },
-  { value: 'pinecone', label: 'Pinecone' },
-  { value: 'custom', label: 'Custom' },
+  { value: 'local_sqlite', label: 'SQLite (local)', disabled: false },
+  { value: 'postgres', label: 'PostgreSQL', disabled: false },
+  { value: 'hindsight', label: 'Hindsight', disabled: false },
+  { value: 'redis', label: 'Redis (coming soon)', disabled: true },
+  { value: 'chromadb', label: 'ChromaDB (coming soon)', disabled: true },
+  { value: 'pinecone', label: 'Pinecone (coming soon)', disabled: true },
+  { value: 'custom', label: 'Custom (coming soon)', disabled: true },
 ];
 
 const EMBEDDING_OPTIONS = [
