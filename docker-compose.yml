@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  modular-studio:
+    build: .
+    ports:
+      - "4800:4800"
+    volumes:
+      - modular-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=4800
+    restart: unless-stopped
+
+volumes:
+  modular-data:

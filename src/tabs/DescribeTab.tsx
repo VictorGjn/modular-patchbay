@@ -442,6 +442,54 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
                   onComplete={(result) => {
                     setV2Result(result);
                     setV2Running(false);
+
+                    // Hydrate stores from V2 result (same as V1 path)
+                    try {
+                      const steps = result.pattern.suggested_steps || [];
+                      const config: GeneratedAgentConfig = {
+                        agentMeta: {
+                          name: result.parsed.role || 'Generated Agent',
+                          description: `${result.parsed.domain} agent`,
+                          avatar: 'bot',
+                          tags: [result.parsed.domain, result.pattern.pattern.replace(/_/g, ' ')].filter(Boolean),
+                          category: result.parsed.domain,
+                        },
+                        instructionState: {
+                          persona: `You are a ${result.parsed.role} specializing in ${result.parsed.domain}.`,
+                          tone: 'neutral' as const,
+                          expertise: 4,
+                          constraints: {
+                            neverMakeUp: true,
+                            askBeforeActions: true,
+                            stayInScope: true,
+                            useOnlyTools: false,
+                            limitWords: false,
+                            wordLimit: 0,
+                            customConstraints: [],
+                            scopeDefinition: '',
+                          },
+                          objectives: {
+                            primary: prompt,
+                            successCriteria: [],
+                            failureModes: [],
+                          },
+                        },
+                        workflowSteps: steps.map((s: string, i: number) => ({
+                          label: s,
+                          action: `step_${i + 1}`,
+                          condition: false,
+                          loop: false,
+                        })),
+                        mcpServerIds: [],
+                        skillIds: [],
+                        knowledgeSelections: [],
+                        knowledgeGaps: [],
+                      };
+                      hydrateFromGenerated(config);
+                    } catch (e) {
+                      console.warn('[V2] Failed to hydrate stores:', e);
+                    }
+
                     // Auto-advance after viewing results
                     setTimeout(() => {
                       onNavigateToNext?.();
