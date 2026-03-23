@@ -326,11 +326,16 @@ export interface AgentDef {
 }
 
 // Connector types
-export type ConnectorService = 'notion' | 'hubspot' | 'slack' | 'granola' | 'github' | 'google-drive' | 'custom';
+export type ConnectorService = 'notion' | 'hubspot' | 'slack' | 'granola' | 'github' | 'google-drive' | 'custom'
+  | 'jira' | 'airtable' | 'confluence' | 'linear' | 'google-docs' | 'google-sheets' | 'gmail' | 'plane'
+  | 'discord' | 'teams' | 'asana' | 'gitlab' | 'salesforce' | 'pipedrive' | 'intercom';
 export type ConnectorDirection = 'read' | 'write' | 'both';
 export type ConnectorStatus = 'connected' | 'configured' | 'available';
 
 export type ConnectorAuthMethod = 'oauth' | 'api-key' | 'none';
+
+/** Surfaces where a connector can be used */
+export type ConnectorSurface = 'knowledge' | 'tool' | 'output';
 
 export interface Connector {
   id: string;
@@ -344,6 +349,8 @@ export interface Connector {
   authMethod: ConnectorAuthMethod;
   url?: string;
   hint?: string;
+  /** Which surfaces this connector is used on. Defaults to ['knowledge'] for backward compat. */
+  surfaces?: ConnectorSurface[];
 }
 
 export const PRESETS: Preset[] = [
