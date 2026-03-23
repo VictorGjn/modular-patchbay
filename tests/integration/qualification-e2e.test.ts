@@ -27,9 +27,13 @@ vi.mock('../../server/config', () => ({
 }));
 
 /* ── Mock sqliteStore so sql.js is not needed in test env ── */
+const savedRuns: any[] = [];
 vi.mock('../../server/services/sqliteStore', () => ({
-  saveQualificationRun: vi.fn().mockResolvedValue(undefined),
-  getQualificationHistory: vi.fn().mockResolvedValue([]),
+  saveQualificationRun: vi.fn().mockImplementation((_agentId: string, run: any) => {
+    savedRuns.push(run);
+    return Promise.resolve();
+  }),
+  getQualificationHistory: vi.fn().mockImplementation(() => Promise.resolve(savedRuns)),
   getDb: vi.fn(),
   saveDb: vi.fn(),
 }));
@@ -97,12 +101,35 @@ async function post<T>(path: string, body: unknown): Promise<{ status: number; j
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  return { status: res.status, json: (await res.json()) as T };
+  return { status: res.status, json: await parseResponse<T>(res) };
 }
 
 async function get<T>(path: string): Promise<{ status: number; json: T }> {
   const res = await realFetch(`http://localhost:${port}/api/qualification${path}`);
-  return { status: res.status, json: (await res.json()) as T };
+  return { status: res.status, json: await parseResponse<T>(res) };
+}
+
+/** Parse response — handles both JSON and SSE (extracts last data event, wraps in status/data) */
+async function parseResponse<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  // If it starts with '{' or '[', it's plain JSON
+  if (text.trimStart().startsWith('{') || text.trimStart().startsWith('[')) {
+    return JSON.parse(text) as T;
+  }
+  // SSE: extract the 'done' event or last non-[DONE] data line
+  const lines = text.split('\n').filter(l => l.startsWith('data: ') && !l.includes('[DONE]'));
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const parsed = JSON.parse(lines[i].slice(6));
+    if (parsed.type === 'done') {
+      // Wrap SSE done event into the expected { status, data } shape
+      const { type: _, ...data } = parsed;
+      return { status: 'ok', data } as T;
+    }
+  }
+  if (lines.length > 0) {
+    return JSON.parse(lines[lines.length - 1].slice(6)) as T;
+  }
+  throw new Error(`Cannot parse response: ${text.slice(0, 100)}`);
 }
 
 describe('Qualification end-to-end', () => {
