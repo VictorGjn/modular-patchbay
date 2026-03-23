@@ -50,7 +50,15 @@ export function ReviewTab() {
   const [objectivesCollapsed, setObjectivesCollapsed] = useState(false);
   const [workflowCollapsed, setWorkflowCollapsed] = useState(false);
   const [outputCollapsed, setOutputCollapsed] = useState(false);
+  const [factInsightsCollapsed, setFactInsightsCollapsed] = useState(false);
+  const [lessonsCollapsed, setLessonsCollapsed] = useState(false);
+  const [costCollapsed, setCostCollapsed] = useState(false);
+  const [adaptiveCollapsed, setAdaptiveCollapsed] = useState(false);
   const [showPromptModal, setShowPromptModal] = useState(false);
+  const [factInsightsCollapsed, setFactInsightsCollapsed] = useState(true);
+  const [lessonsCollapsed, setLessonsCollapsed] = useState(true);
+  const [costCollapsed, setCostCollapsed] = useState(false);
+  const [adaptiveCollapsed, setAdaptiveCollapsed] = useState(true);
 
   // Collect state for export
   const collectFullState = useCallback(() => {
@@ -319,19 +327,27 @@ export function ReviewTab() {
           collapsed={outputCollapsed}
           onToggle={() => setOutputCollapsed(!outputCollapsed)}
         />
+
+        <FactInsightsSection
+          collapsed={factInsightsCollapsed}
+          onToggle={() => setFactInsightsCollapsed(!factInsightsCollapsed)}
+        />
+
+        <LessonsSection
+          collapsed={lessonsCollapsed}
+          onToggle={() => setLessonsCollapsed(!lessonsCollapsed)}
+        />
+
+        <CostIntelligenceSection
+          collapsed={costCollapsed}
+          onToggle={() => setCostCollapsed(!costCollapsed)}
+        />
+
+        <AdaptiveContextSection
+          collapsed={adaptiveCollapsed}
+          onToggle={() => setAdaptiveCollapsed(!adaptiveCollapsed)}
+        />
       </div>
-
-      {/* Fact Insights — analyze accumulated facts and promote to agent design */}
-      <FactInsightsSection />
-
-      {/* Lessons — auto-extracted rules from user corrections */}
-      <LessonsSection />
-
-      {/* Cost Intelligence — model routing, estimation, budget tracking */}
-      <CostIntelligenceSection />
-
-      {/* Smart Retrieval — adaptive context refinement */}
-      <AdaptiveContextSection />
 
       {/* Version indicator */}
       <div className="mt-4">

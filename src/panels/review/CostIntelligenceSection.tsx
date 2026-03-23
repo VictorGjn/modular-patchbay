@@ -8,6 +8,7 @@ import { useProviderStore } from '../../store/providerStore';
 import { estimateCost, classifyModel } from '../../services/costEstimator';
 import { computeComplexity, routeModel, getDowngradeHint } from '../../services/modelRouter';
 import { API_BASE } from '../../config';
+import { Section } from '../../components/ds/Section';
 
 interface Summary {
   totalSpent: number;
@@ -54,7 +55,12 @@ function BudgetBar({ spent, limit }: { spent: number; limit: number }) {
   );
 }
 
-export function CostIntelligenceSection() {
+interface CostIntelligenceSectionProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+export function CostIntelligenceSection({ collapsed, onToggle }: CostIntelligenceSectionProps) {
   const t = useTheme();
   const agentId = useVersionStore((s) => s.agentId) ?? 'default';
   const channels = useConsoleStore((s) => s.channels);
@@ -69,7 +75,6 @@ export function CostIntelligenceSection() {
   const [budget, setBudget] = useState<BudgetData>({ budgetLimit: 1.00, totalSpent: 0 });
   const [modelOverride, setModelOverride] = useState<string>('auto');
   const [budgetInput, setBudgetInput] = useState('1.00');
-  const [collapsed, setCollapsed] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<Array<{ timestamp: string; model: string; costUsd: number; inputTokens: number; outputTokens: number }>>([]);
 
@@ -137,186 +142,172 @@ export function CostIntelligenceSection() {
     ...availableModels.map(m => ({ value: m, label: m })),
   ];
 
+  const badge = summary && summary.runCount > 0
+    ? `${summary.runCount} run${summary.runCount !== 1 ? 's' : ''}`
+    : undefined;
+
   return (
-    <div className="mt-6 space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <DollarSign size={16} style={{ color: '#FE5000' }} />
-          <h4 className="text-sm font-semibold m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
-            Cost Intelligence
-          </h4>
-          {summary && summary.runCount > 0 && (
-            <span className="text-xs px-2 py-1 rounded" style={{ background: t.isDark ? '#1c1c20' : '#f3f4f6', color: t.textDim }}>
-              {summary.runCount} run{summary.runCount !== 1 ? 's' : ''}
-            </span>
-          )}
+    <Section
+      icon={DollarSign}
+      label="Cost Intelligence"
+      color="#FE5000"
+      badge={badge}
+      collapsed={collapsed}
+      onToggle={onToggle}
+    >
+      <div className="space-y-3 pt-3">
+        {/* Metrics row */}
+        <div className="flex gap-2">
+          <MetricBox
+            label="Est. $/run"
+            value={`$${estimate.netCost.toFixed(4)}`}
+            sub="with cache discount"
+          />
+          <MetricBox
+            label="Auto-model"
+            value={routingResult.tier.charAt(0).toUpperCase() + routingResult.tier.slice(1)}
+            sub={routingResult.model.split('-').slice(0, 3).join('-')}
+          />
+          <MetricBox
+            label="Cache hit"
+            value={`${(cacheHitPct * 100).toFixed(0)}%`}
+            sub={lastStats ? `last run` : summary ? `avg` : 'no data'}
+          />
         </div>
-        <button
-          type="button"
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-xs border-none bg-transparent cursor-pointer"
-          style={{ color: t.textDim }}
-        >
-          {collapsed ? 'Show' : 'Hide'}
-        </button>
-      </div>
 
-      {!collapsed && (
-        <div className="space-y-3">
-          {/* Metrics row */}
-          <div className="flex gap-2">
-            <MetricBox
-              label="Est. $/run"
-              value={`$${estimate.netCost.toFixed(4)}`}
-              sub="with cache discount"
-            />
-            <MetricBox
-              label="Auto-model"
-              value={routingResult.tier.charAt(0).toUpperCase() + routingResult.tier.slice(1)}
-              sub={routingResult.model.split('-').slice(0, 3).join('-')}
-            />
-            <MetricBox
-              label="Cache hit"
-              value={`${(cacheHitPct * 100).toFixed(0)}%`}
-              sub={lastStats ? `last run` : summary ? `avg` : 'no data'}
-            />
+        {/* Why this model */}
+        <div className="flex items-start gap-2 px-3 py-2 rounded-lg text-[12px]"
+          style={{ background: t.isDark ? '#1c1c20' : '#f3f4f6', color: t.textSecondary }}>
+          <Zap size={12} style={{ color: '#FE5000', flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <span style={{ color: t.textDim }}>Why {TIER_LABEL[routingResult.tier]}? </span>
+            <span>{routingResult.reason}</span>
+            <span style={{ color: t.textFaint }}>{' '}(complexity: {(complexity * 100).toFixed(0)}%)</span>
           </div>
+        </div>
 
-          {/* Why this model */}
+        {/* Downgrade hint */}
+        {downgradeHint && (
           <div className="flex items-start gap-2 px-3 py-2 rounded-lg text-[12px]"
-            style={{ background: t.isDark ? '#1c1c20' : '#f3f4f6', color: t.textSecondary }}>
-            <Zap size={12} style={{ color: '#FE5000', flexShrink: 0, marginTop: 2 }} />
-            <div>
-              <span style={{ color: t.textDim }}>Why {TIER_LABEL[routingResult.tier]}? </span>
-              <span>{routingResult.reason}</span>
-              <span style={{ color: t.textFaint }}>{' '}(complexity: {(complexity * 100).toFixed(0)}%)</span>
-            </div>
+            style={{ background: '#FE500008', border: '1px solid #FE500020', color: t.textSecondary }}>
+            <TrendingDown size={12} style={{ color: '#FE5000', flexShrink: 0, marginTop: 2 }} />
+            <span>{downgradeHint}</span>
           </div>
+        )}
 
-          {/* Downgrade hint */}
-          {downgradeHint && (
-            <div className="flex items-start gap-2 px-3 py-2 rounded-lg text-[12px]"
-              style={{ background: '#FE500008', border: '1px solid #FE500020', color: t.textSecondary }}>
-              <TrendingDown size={12} style={{ color: '#FE5000', flexShrink: 0, marginTop: 2 }} />
-              <span>{downgradeHint}</span>
-            </div>
-          )}
-
-          {/* F8: Budget exceeded banner */}
-          {budget.budgetLimit > 0 && budget.totalSpent >= budget.budgetLimit && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px]"
-              style={{ background: '#e74c3c18', border: '1px solid #e74c3c40', color: '#e74c3c' }}>
-              <span>🚫 Budget exceeded — test runs paused</span>
-              <button
-                type="button"
-                className="ml-auto text-[11px] font-semibold border-none bg-transparent cursor-pointer"
-                style={{ color: '#e74c3c' }}
-                onClick={() => {
-                  const next = (budget.budgetLimit * 2).toFixed(2);
-                  setBudgetInput(next);
-                }}
-              >
-                Increase to ${(budget.budgetLimit * 2).toFixed(2)} →
-              </button>
-            </div>
-          )}
-
-          {/* Budget bar */}
-          <BudgetBar spent={budget.totalSpent} limit={budget.budgetLimit} />
-
-          {/* Model breakdown */}
-          {summary && Object.keys(summary.modelBreakdown).length > 0 && (
-            <div className="flex gap-2 flex-wrap">
-              {Object.entries(summary.modelBreakdown).map(([tier, data]) => (
-                <span key={tier} className="text-[10px] px-2 py-1 rounded"
-                  style={{ background: (TIER_COLOR[tier] ?? '#888') + '18', color: TIER_COLOR[tier] ?? '#888', fontFamily: "'Geist Mono', monospace" }}>
-                  {TIER_LABEL[tier] ?? tier} × {data.count} (${data.cost.toFixed(3)})
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Controls */}
-          <div className="flex gap-2 flex-wrap items-end">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-wide" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>Model</label>
-              <select
-                value={modelOverride}
-                onChange={e => setModelOverride(e.target.value)}
-                className="text-[12px] px-2 py-1 rounded border outline-none"
-                style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
-              >
-                {modelOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-wide" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>Budget ($)</label>
-              <input
-                type="number"
-                step="0.25"
-                min="0.01"
-                value={budgetInput}
-                onChange={e => setBudgetInput(e.target.value)}
-                className="text-[12px] px-2 py-1 rounded border outline-none w-20"
-                style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
-              />
-            </div>
+        {/* F8: Budget exceeded banner */}
+        {budget.budgetLimit > 0 && budget.totalSpent >= budget.budgetLimit && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px]"
+            style={{ background: '#e74c3c18', border: '1px solid #e74c3c40', color: '#e74c3c' }}>
+            <span>🚫 Budget exceeded — test runs paused</span>
             <button
               type="button"
-              onClick={handleSaveBudget}
-              className="text-[11px] px-3 py-1 rounded border-none cursor-pointer font-semibold"
-              style={{ background: '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace" }}
+              className="ml-auto text-[11px] font-semibold border-none bg-transparent cursor-pointer"
+              style={{ color: '#e74c3c' }}
+              onClick={() => {
+                const next = (budget.budgetLimit * 2).toFixed(2);
+                setBudgetInput(next);
+              }}
             >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowHistory(!showHistory)}
-              className="text-[11px] px-3 py-1 rounded cursor-pointer"
-              style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}
-            >
-              {showHistory ? 'Hide history' : 'History'}
+              Increase to ${(budget.budgetLimit * 2).toFixed(2)} →
             </button>
           </div>
+        )}
 
-          {/* History table */}
-          {showHistory && history.length > 0 && (
-            <div className="overflow-x-auto rounded-lg" style={{ border: `1px solid ${t.border}` }}>
-              <table className="w-full text-[11px]" style={{ fontFamily: "'Geist Mono', monospace", borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: t.isDark ? '#1c1c20' : '#f3f4f6' }}>
-                    {['Time', 'Model', 'In', 'Out', 'Cost'].map(h => (
-                      <th key={h} className="px-3 py-1.5 text-left font-medium" style={{ color: t.textDim, borderBottom: `1px solid ${t.border}` }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((r, i) => {
-                    const tier = classifyModel(r.model);
-                    return (
-                      <tr key={i} style={{ borderBottom: `1px solid ${t.border}20` }}>
-                        <td className="px-3 py-1" style={{ color: t.textFaint }}>{new Date(r.timestamp).toLocaleTimeString()}</td>
-                        <td className="px-3 py-1">
-                          <span className="px-1 rounded" style={{ background: (TIER_COLOR[tier] ?? '#888') + '18', color: TIER_COLOR[tier] ?? '#888' }}>
-                            {TIER_LABEL[tier] ?? tier}
-                          </span>
-                        </td>
-                        <td className="px-3 py-1" style={{ color: t.textSecondary }}>{(r.inputTokens / 1000).toFixed(1)}K</td>
-                        <td className="px-3 py-1" style={{ color: t.textSecondary }}>{r.outputTokens}</td>
-                        <td className="px-3 py-1" style={{ color: t.textPrimary }}>${r.costUsd.toFixed(5)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {showHistory && history.length === 0 && (
-            <p className="text-[12px]" style={{ color: t.textFaint }}>No cost records yet. Run the agent to track costs.</p>
-          )}
+        {/* Budget bar */}
+        <BudgetBar spent={budget.totalSpent} limit={budget.budgetLimit} />
+
+        {/* Model breakdown */}
+        {summary && Object.keys(summary.modelBreakdown).length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {Object.entries(summary.modelBreakdown).map(([tier, data]) => (
+              <span key={tier} className="text-[10px] px-2 py-1 rounded"
+                style={{ background: (TIER_COLOR[tier] ?? '#888') + '18', color: TIER_COLOR[tier] ?? '#888', fontFamily: "'Geist Mono', monospace" }}>
+                {TIER_LABEL[tier] ?? tier} × {data.count} (${data.cost.toFixed(3)})
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Controls */}
+        <div className="flex gap-2 flex-wrap items-end">
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] uppercase tracking-wide" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>Model</label>
+            <select
+              value={modelOverride}
+              onChange={e => setModelOverride(e.target.value)}
+              className="text-[12px] px-2 py-1 rounded border outline-none"
+              style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
+            >
+              {modelOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] uppercase tracking-wide" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>Budget ($)</label>
+            <input
+              type="number"
+              step="0.25"
+              min="0.01"
+              value={budgetInput}
+              onChange={e => setBudgetInput(e.target.value)}
+              className="text-[12px] px-2 py-1 rounded border outline-none w-20"
+              style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleSaveBudget}
+            className="text-[11px] px-3 py-1 rounded border-none cursor-pointer font-semibold"
+            style={{ background: '#FE5000', color: '#fff', fontFamily: "'Geist Mono', monospace" }}
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowHistory(!showHistory)}
+            className="text-[11px] px-3 py-1 rounded cursor-pointer"
+            style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}
+          >
+            {showHistory ? 'Hide history' : 'History'}
+          </button>
         </div>
-      )}
-    </div>
+
+        {/* History table */}
+        {showHistory && history.length > 0 && (
+          <div className="overflow-x-auto rounded-lg" style={{ border: `1px solid ${t.border}` }}>
+            <table className="w-full text-[11px]" style={{ fontFamily: "'Geist Mono', monospace", borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: t.isDark ? '#1c1c20' : '#f3f4f6' }}>
+                  {['Time', 'Model', 'In', 'Out', 'Cost'].map(h => (
+                    <th key={h} className="px-3 py-1.5 text-left font-medium" style={{ color: t.textDim, borderBottom: `1px solid ${t.border}` }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((r, i) => {
+                  const tier = classifyModel(r.model);
+                  return (
+                    <tr key={i} style={{ borderBottom: `1px solid ${t.border}20` }}>
+                      <td className="px-3 py-1" style={{ color: t.textFaint }}>{new Date(r.timestamp).toLocaleTimeString()}</td>
+                      <td className="px-3 py-1">
+                        <span className="px-1 rounded" style={{ background: (TIER_COLOR[tier] ?? '#888') + '18', color: TIER_COLOR[tier] ?? '#888' }}>
+                          {TIER_LABEL[tier] ?? tier}
+                        </span>
+                      </td>
+                      <td className="px-3 py-1" style={{ color: t.textSecondary }}>{(r.inputTokens / 1000).toFixed(1)}K</td>
+                      <td className="px-3 py-1" style={{ color: t.textSecondary }}>{r.outputTokens}</td>
+                      <td className="px-3 py-1" style={{ color: t.textPrimary }}>${r.costUsd.toFixed(5)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {showHistory && history.length === 0 && (
+          <p className="text-[12px]" style={{ color: t.textFaint }}>No cost records yet. Run the agent to track costs.</p>
+        )}
+      </div>
+    </Section>
   );
 }
