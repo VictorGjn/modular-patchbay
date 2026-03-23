@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
+import { z } from 'zod';
 import { readConfig } from '../config.js';
 import { detectCorrection } from '../services/correctionDetector.js';
 import { extractLesson } from '../services/lessonExtractor.js';
@@ -98,15 +99,23 @@ router.post('/sync-batch', async (req: Request, res: Response) => {
   res.json({ ok: true, saved });
 });
 
+const extractSchema = z.object({
+  userMessage: z.string().min(1),
+  previousAssistant: z.string().optional(),
+  providerId: z.string().min(1),
+  model: z.string().min(1),
+  agentId: z.string().optional(),
+});
+
 /** POST /api/lessons/extract — extract lesson from correction, save to SQLite */
 router.post('/extract', async (req: Request, res: Response) => {
-  const { userMessage, previousAssistant, providerId, model, agentId } =
-    req.body as ExtractRequest;
-
-  if (!userMessage || !providerId || !model) {
-    res.status(400).json({ error: 'Missing required fields' });
+  const parsed = extractSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues.map(i => i.message).join(', ') });
     return;
   }
+  const { userMessage, previousAssistant, providerId, model, agentId } =
+    parsed.data as ExtractRequest;
 
   const correction = detectCorrection(userMessage, previousAssistant ?? '');
   if (!correction) {

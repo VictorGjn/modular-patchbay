@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
+import { z } from 'zod';
 import { saveCostRecord, getCostHistory, getTotalSpent, getBudgetConfig, setBudgetConfig } from '../services/sqliteStore.js';
 
 function classifyModel(modelName: string): 'haiku' | 'sonnet' | 'opus' {
@@ -76,20 +77,30 @@ router.put('/:agentId/budget', async (req: Request, res: Response) => {
   }
 });
 
+const recordSchema = z.object({
+  model: z.string().min(1),
+  inputTokens: z.number().int().nonnegative(),
+  outputTokens: z.number().int().nonnegative(),
+  costUsd: z.number().nonnegative(),
+  cachedTokens: z.number().int().nonnegative().optional(),
+});
+
+const agentIdSchema = z.string().min(1);
+
 /* ── POST /:agentId/record ── */
 router.post('/:agentId/record', async (req: Request, res: Response) => {
-  const agentId = String(req.params['agentId'] ?? '');
-  const { model, inputTokens, outputTokens, costUsd, cachedTokens } = req.body as {
-    model: string;
-    inputTokens: number;
-    outputTokens: number;
-    costUsd: number;
-    cachedTokens?: number;
-  };
-  if (!model || inputTokens == null || outputTokens == null || costUsd == null) {
-    res.status(400).json({ status: 'error', error: 'model, inputTokens, outputTokens, and costUsd are required' });
+  const agentIdParsed = agentIdSchema.safeParse(req.params['agentId']);
+  if (!agentIdParsed.success) {
+    res.status(400).json({ status: 'error', error: 'agentId is required' });
     return;
   }
+  const agentId = agentIdParsed.data;
+  const bodyParsed = recordSchema.safeParse(req.body);
+  if (!bodyParsed.success) {
+    res.status(400).json({ status: 'error', error: bodyParsed.error.issues.map(i => i.message).join(', ') });
+    return;
+  }
+  const { model, inputTokens, outputTokens, costUsd, cachedTokens } = bodyParsed.data;
   try {
     await saveCostRecord({
       agentId,

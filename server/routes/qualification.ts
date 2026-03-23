@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
 import { readConfig } from '../config.js';
 import { loadAgent, saveAgent, createAgentVersion } from '../services/agentStore.js';
 import { saveQualificationRun, getQualificationHistory } from '../services/sqliteStore.js';
@@ -284,13 +285,45 @@ async function generateLlmPatches(resolved: ResolvedLlm, model: string, suite: R
   }
 }
 
+/* ── Validation schemas ── */
+const generateSuiteSchema = z.object({
+  agentId: z.string().min(1),
+  missionBrief: z.string().min(1),
+  persona: z.string().optional(),
+  constraints: z.string().optional(),
+  objectives: z.string().optional(),
+  providerId: z.string().optional(),
+  model: z.string().optional(),
+});
+
+const testCaseSchema = z.object({
+  id: z.string(),
+  type: z.enum(['nominal', 'edge', 'anti']),
+  label: z.string(),
+  input: z.string(),
+  expectedBehavior: z.string(),
+});
+
+const runSchema = z.object({
+  agentId: z.string().min(1),
+  providerId: z.string().min(1),
+  model: z.string().min(1),
+  suite: z.object({
+    missionBrief: z.string().min(1),
+    testCases: z.array(testCaseSchema),
+    scoringDimensions: z.array(z.object({ id: z.string(), name: z.string(), weight: z.number() })),
+    passThreshold: z.number(),
+  }),
+});
+
 /* ── POST /generate-suite ── */
 router.post('/generate-suite', async (req: Request, res: Response) => {
-  const body = req.body as GenerateSuiteRequest;
-  if (!body.agentId || !body.missionBrief) {
-    res.status(400).json({ status: 'error', error: 'agentId and missionBrief are required' });
+  const parsed = generateSuiteSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ status: 'error', error: parsed.error.issues.map(i => i.message).join(', ') });
     return;
   }
+  const body = parsed.data as GenerateSuiteRequest;
   try {
     const config = readConfig();
     const configProvider = body.providerId
@@ -334,11 +367,12 @@ router.post('/generate-suite', async (req: Request, res: Response) => {
 
 /* ── POST /run (SSE) ── */
 router.post('/run', async (req: Request, res: Response) => {
-  const body = req.body as RunRequest;
-  if (!body.agentId || !body.providerId || !body.model || !body.suite) {
-    res.status(400).json({ status: 'error', error: 'agentId, providerId, model, and suite are required' });
+  const parsed = runSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ status: 'error', error: parsed.error.issues.map(i => i.message).join(', ') });
     return;
   }
+  const body = parsed.data as RunRequest;
 
   const config = readConfig();
   const provider = config.providers.find(p => p.id === body.providerId);

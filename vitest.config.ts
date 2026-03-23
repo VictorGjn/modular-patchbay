@@ -11,6 +11,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/unit/setup.ts'],
     testTimeout: 30000,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+    },
   },
   resolve: {
     alias: {

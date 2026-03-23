@@ -460,6 +460,7 @@ export const useVersionStore = create<VersionState>((set, get) => ({
 
 let _prevSnapshot: AgentSnapshot | null = null;
 let _debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let _autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 useConsoleStore.subscribe((state) => {
   const next: AgentSnapshot = {
@@ -487,4 +488,13 @@ useConsoleStore.subscribe((state) => {
     versionStore._detectAndVersion(prev, next);
     _prevSnapshot = next;
   }, 1500);
+
+  // Auto-save debounce: 5s after last change, only if agent is loaded and dirty
+  if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => {
+    const versionStore = useVersionStore.getState();
+    if (versionStore.agentId && versionStore.dirty) {
+      versionStore.saveToServer();
+    }
+  }, 5000);
 });

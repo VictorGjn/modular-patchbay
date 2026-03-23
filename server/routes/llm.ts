@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { readConfig } from '../config.js';
 import type { ApiResponse } from '../types.js';
 import type { Request, Response } from 'express';
@@ -187,6 +188,14 @@ function buildRequest(
 
 // ── POST /chat — streaming SSE ──
 
+const chatSchema = z.object({
+  provider: z.string().min(1),
+  model: z.string().min(1),
+  messages: z.array(z.object({ role: z.string(), content: z.unknown() })),
+  temperature: z.number().optional(),
+  maxTokens: z.number().int().positive().optional(),
+});
+
 interface ChatRequest {
   provider: string;
   model: string;
@@ -196,25 +205,22 @@ interface ChatRequest {
 }
 
 router.post('/chat', async (req: Request, res: Response) => {
+  const parsed = chatSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const resp: ApiResponse = { status: 'error', error: parsed.error.issues.map(i => i.message).join(', ') };
+    res.status(400).json(resp);
+    return;
+  }
   const {
     provider: providerId,
     model,
     messages,
     temperature,
     maxTokens: rawMaxTokens,
-  } = req.body as ChatRequest;
+  } = parsed.data as ChatRequest;
   const maxTokens = rawMaxTokens
     ? Math.min(rawMaxTokens, MAX_TOKENS_LIMIT)
     : undefined;
-
-  if (!providerId || !model || !messages) {
-    const resp: ApiResponse = {
-      status: 'error',
-      error: 'Missing required fields: provider, model, messages',
-    };
-    res.status(400).json(resp);
-    return;
-  }
 
   const resolved = resolveProvider(providerId, res);
   if (!resolved) return;
@@ -274,6 +280,15 @@ router.post('/chat', async (req: Request, res: Response) => {
 
 // ── POST /chat-tools — non-streaming JSON (tool loop) ──
 
+const chatToolsSchema = z.object({
+  provider: z.string().min(1),
+  model: z.string().min(1),
+  messages: z.array(z.unknown()),
+  tools: z.array(z.unknown()).optional(),
+  temperature: z.number().optional(),
+  maxTokens: z.number().int().positive().optional(),
+});
+
 interface ChatToolsRequest {
   provider: string;
   model: string;
@@ -284,6 +299,12 @@ interface ChatToolsRequest {
 }
 
 router.post('/chat-tools', async (req: Request, res: Response) => {
+  const parsed = chatToolsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const resp: ApiResponse = { status: 'error', error: parsed.error.issues.map(i => i.message).join(', ') };
+    res.status(400).json(resp);
+    return;
+  }
   const {
     provider: providerId,
     model,
@@ -291,19 +312,10 @@ router.post('/chat-tools', async (req: Request, res: Response) => {
     tools,
     temperature,
     maxTokens: rawMaxTokens,
-  } = req.body as ChatToolsRequest;
+  } = parsed.data as ChatToolsRequest;
   const maxTokens = rawMaxTokens
     ? Math.min(rawMaxTokens, MAX_TOKENS_LIMIT)
     : undefined;
-
-  if (!providerId || !model || !messages) {
-    const resp: ApiResponse = {
-      status: 'error',
-      error: 'Missing required fields: provider, model, messages',
-    };
-    res.status(400).json(resp);
-    return;
-  }
 
   const resolved = resolveProvider(providerId, res);
   if (!resolved) return;

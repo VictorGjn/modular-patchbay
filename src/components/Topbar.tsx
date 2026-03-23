@@ -19,6 +19,7 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
   const restoreVersion = useVersionStore(s => s.restoreVersion);
   const agentId = useVersionStore(s => s.agentId);
   const loadVersions = useVersionStore(s => s.loadVersions);
+  const saveStatus = useVersionStore(s => s.saveStatus);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const [showVersionDropdown, setShowVersionDropdown] = useState(false);
   const [compareVersion, setCompareVersion] = useState<AgentVersion | null>(null);
@@ -209,6 +210,34 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Save status indicator */}
+      {agentId && (
+        <div
+          className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded"
+          style={{
+            color: saveStatus === 'saved' ? '#16a34a'
+              : saveStatus === 'saving' ? '#ca8a04'
+              : saveStatus === 'error' ? '#dc2626'
+              : t.textMuted,
+          }}
+          title={saveStatus === 'saved' ? 'All changes saved'
+            : saveStatus === 'saving' ? 'Saving…'
+            : saveStatus === 'error' ? 'Save failed'
+            : 'Unsaved changes'}
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{
+              background: saveStatus === 'saved' ? '#16a34a'
+                : saveStatus === 'saving' ? '#ca8a04'
+                : saveStatus === 'error' ? '#dc2626'
+                : '#6b7280',
+            }}
+          />
+          {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving…' : saveStatus === 'error' ? 'Save failed' : 'Unsaved'}
         </div>
       )}
 

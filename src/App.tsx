@@ -17,6 +17,7 @@ import { useTheme } from './theme';
 import { importAgent } from './utils/agentImport';
 
 import { WizardLayout } from './layouts/WizardLayout';
+import { ToastContainer } from './components/ds/Toast';
 
 export default function App() {
   const t = useTheme();
@@ -134,6 +135,7 @@ export default function App() {
       <Marketplace />
       <SettingsPage open={showSettings} onClose={() => setShowSettings(false)} />
       <SaveAgentModal />
+      <ToastContainer />
     </div>
   );
 }
