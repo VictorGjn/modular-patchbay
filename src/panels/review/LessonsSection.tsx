@@ -5,6 +5,7 @@ import { useLessonStore } from '../../store/lessonStore';
 import type { Lesson, InstinctDomain } from '../../store/lessonStore';
 import { useVersionStore } from '../../store/versionStore';
 import { useConsoleStore } from '../../store/consoleStore';
+import { Section } from '../../components/ds/Section';
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -122,7 +123,12 @@ function LessonRow({ lesson, onApprove, onReject, onRemove, onEdit, showMeta = f
   );
 }
 
-export function LessonsSection() {
+interface LessonsSectionProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+export function LessonsSection({ collapsed, onToggle }: LessonsSectionProps) {
   const t = useTheme();
   const agentId = useVersionStore((s) => s.agentId) ?? '';
   const lessons = useLessonStore((s) => s.lessons);
@@ -133,7 +139,6 @@ export function LessonsSection() {
   const archiveLessons = useLessonStore((s) => s.archiveLessons);
   const addChannel = useConsoleStore((s) => s.addChannel);
 
-  const [collapsed, setCollapsed] = useState(false);
   const [promoteToast, setPromoteToast] = useState<string | null>(null);
 
   const pending = lessons.filter((l) => l.agentId === agentId && l.status === 'pending');
@@ -177,43 +182,29 @@ export function LessonsSection() {
 
   if (pending.length === 0 && active.length === 0 && tentative.length === 0) return null;
 
+  const badge = pending.length > 0
+    ? `${pending.length} pending`
+    : active.length > 0
+      ? `${active.length} active`
+      : undefined;
+
   return (
-    <div className="mt-6 space-y-4">
+    <>
       {/* F12: Promote success toast */}
       {promoteToast && (
         <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, background: '#2ecc71', color: '#fff', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontFamily: "'Geist Sans', sans-serif", boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
           ✓ {promoteToast}
         </div>
       )}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <BookOpen size={16} style={{ color: '#FE5000' }} />
-          <h4 className="text-sm font-semibold m-0" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
-            Learned Behaviors
-          </h4>
-          {pending.length > 0 && (
-            <span className="text-xs px-2 py-1 rounded" style={{ background: '#FE500015', color: '#FE5000' }}>
-              {pending.length} pending
-            </span>
-          )}
-          {active.length > 0 && (
-            <span className="text-xs px-2 py-1 rounded" style={{ background: t.isDark ? '#1c1c20' : '#f3f4f6', color: t.textDim }}>
-              {active.length} active, applied {totalApplied} time{totalApplied !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-xs border-none bg-transparent cursor-pointer"
-          style={{ color: t.textDim }}
-        >
-          {collapsed ? 'Show' : 'Hide'}
-        </button>
-      </div>
-
-      {!collapsed && (
-        <div className="space-y-4">
+      <Section
+        icon={BookOpen}
+        label="Learned Behaviors"
+        color="#FE5000"
+        badge={badge}
+        collapsed={collapsed}
+        onToggle={onToggle}
+      >
+        <div className="space-y-4 pt-3">
           {/* Pending Review */}
           {pending.length > 0 && (
             <div className="space-y-2">
@@ -240,7 +231,6 @@ export function LessonsSection() {
               </p>
               {(Object.entries(byDomain) as [InstinctDomain, Lesson[]][]).map(([domain, domainLessons]) => (
                 <div key={domain} className="space-y-2">
-                  {/* Domain header */}
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
                       {DOMAIN_LABELS[domain] ?? domain}
@@ -256,7 +246,6 @@ export function LessonsSection() {
                       showMeta
                     />
                   ))}
-                  {/* PROMOTE suggestion */}
                   {promoteDomains.has(domain) && (
                     <div
                       className="flex items-center gap-2 px-3 py-2 rounded text-[11px]"
@@ -303,7 +292,7 @@ export function LessonsSection() {
             </div>
           )}
         </div>
-      )}
-    </div>
+      </Section>
+    </>
   );
 }
