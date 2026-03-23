@@ -586,9 +586,25 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
 
         {/* Generation Status */}
         {generationError && (
-          <div className="mt-3 p-3 rounded" style={{ background: '#fee2e2', border: '1px solid #fecaca' }}>
-            <div className="text-sm text-red-700">
-              {generationError}
+          <div className="mt-3 p-4 rounded-lg" style={{ background: '#fee2e210', border: '1px solid #ef444430' }}>
+            <div className="flex items-start gap-3">
+              <div style={{ flex: 1 }}>
+                <div className="text-sm font-semibold" style={{ color: '#ef4444', marginBottom: 4 }}>
+                  {generationError.includes('401') ? '🔑 Authentication failed' :
+                   generationError.includes('429') ? '⏳ Rate limit hit' :
+                   generationError.includes('No provider') ? '⚙️ No provider configured' :
+                   '❌ Generation failed'}
+                </div>
+                <div className="text-xs" style={{ color: '#888' }}>{generationError}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setGenerationError(null); handleGenerate(); }}
+                className="text-xs px-3 py-1.5 rounded border-none cursor-pointer"
+                style={{ background: '#ef4444', color: '#fff', fontWeight: 600, flexShrink: 0 }}
+              >
+                Retry
+              </button>
             </div>
           </div>
         )}

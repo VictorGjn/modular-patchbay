@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { ErrorBoundary } from '../components/ds/ErrorBoundary';
+import { ProviderOnboarding } from '../components/ds/ProviderOnboarding';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useMemoryStore } from '../store/memoryStore';
@@ -381,6 +382,7 @@ export function WizardLayout() {
         data-skip-target
       >
         <div className={activeTab === 'test' ? 'h-full' : 'w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-16'}>
+          <ProviderOnboarding />
           <ErrorBoundary label={activeTab} key={activeTab}>
             <Suspense fallback={<LoadingFallback />}>
               {activeTab === 'describe' ? (
