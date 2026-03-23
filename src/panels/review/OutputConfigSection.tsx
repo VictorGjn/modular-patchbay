@@ -38,7 +38,7 @@ export function OutputConfigSection({
 
   return (
     <Section
-      icon={Settings} label="Output Configuration" color="#f1c40f"
+      icon={Settings} label="Output Configuration" color="#b28a00"
       collapsed={collapsed} onToggle={onToggle}
     >
       <div className="space-y-4">

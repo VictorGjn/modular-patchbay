@@ -95,7 +95,7 @@ export function FactInsightsSection({ collapsed, onToggle }: FactInsightsSection
     <Section
       icon={Lightbulb}
       label="Fact Insights"
-      color="#f39c12"
+      color="#00ae9b"
       badge={badge}
       collapsed={collapsed}
       onToggle={onToggle}

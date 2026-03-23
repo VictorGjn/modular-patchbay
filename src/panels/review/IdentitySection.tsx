@@ -76,7 +76,7 @@ export function IdentitySection({ agentMeta, setAgentMeta, collapsed, onToggle }
 
   return (
     <Section
-      icon={User} label="Identity" color="#3498db"
+      icon={User} label="Identity" color="#2393f1"
       collapsed={collapsed} onToggle={onToggle}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
