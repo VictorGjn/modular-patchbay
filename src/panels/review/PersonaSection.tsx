@@ -36,7 +36,7 @@ export function PersonaSection({
 
   return (
     <Section
-      icon={Bot} label="Persona" color="#9b59b6"
+      icon={Bot} label="Persona" color="#897bf0"
       collapsed={collapsed} onToggle={onToggle}
     >
       <div className="space-y-4">

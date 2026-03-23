@@ -83,7 +83,7 @@ export function ObjectivesSection({
 
   return (
     <Section
-      icon={Target} label="Objectives & Success Criteria" color="#27ae60"
+      icon={Target} label="Objectives & Success Criteria" color="#2caa4e"
       collapsed={collapsed} onToggle={onToggle}
     >
       <div className="space-y-6">

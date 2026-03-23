@@ -15,7 +15,7 @@ export function WorkflowSection({ workflowSteps, collapsed, onToggle }: Workflow
 
   return (
     <Section
-      icon={Workflow} label="Workflow Steps" color="#e67e22"
+      icon={Workflow} label="Workflow Steps" color="#d96e00"
       collapsed={collapsed} onToggle={onToggle}
     >
       {workflowSteps.length === 0 ? (
@@ -27,7 +27,7 @@ export function WorkflowSection({ workflowSteps, collapsed, onToggle }: Workflow
           {workflowSteps.map((step, index) => (
             <div key={index} className="flex items-center gap-3 p-3 rounded" style={{ background: t.surfaceElevated }}>
               <span className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
-                style={{ background: '#e67e22', color: 'white' }}>
+                style={{ background: '#d96e00', color: 'white' }}>
                 {index + 1}
               </span>
               <span className="flex-1 text-sm" style={{ color: t.textPrimary }}>

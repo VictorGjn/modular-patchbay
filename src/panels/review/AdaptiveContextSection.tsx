@@ -57,7 +57,7 @@ export function AdaptiveContextSection({ collapsed, onToggle }: AdaptiveContextS
     <Section
       icon={RefreshCw}
       label="Smart Retrieval"
-      color="#3498db"
+      color="#00a6ce"
       badge={config.enabled ? 'on' : 'off'}
       collapsed={collapsed}
       onToggle={onToggle}

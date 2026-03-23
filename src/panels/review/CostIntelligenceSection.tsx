@@ -150,7 +150,7 @@ export function CostIntelligenceSection({ collapsed, onToggle }: CostIntelligenc
     <Section
       icon={DollarSign}
       label="Cost Intelligence"
-      color="#2ecc71"
+      color="#6ba211"
       badge={badge}
       collapsed={collapsed}
       onToggle={onToggle}

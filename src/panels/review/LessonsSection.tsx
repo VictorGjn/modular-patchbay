@@ -199,7 +199,7 @@ export function LessonsSection({ collapsed, onToggle }: LessonsSectionProps) {
       <Section
         icon={BookOpen}
         label="Learned Behaviors"
-        color="#8e44ad"
+        color="#be67cc"
         badge={badge}
         collapsed={collapsed}
         onToggle={onToggle}

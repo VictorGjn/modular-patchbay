@@ -82,7 +82,7 @@ export function ConstraintsSection({
 
   return (
     <Section
-      icon={Shield} label="Constraints & Safety" color="#e74c3c"
+      icon={Shield} label="Constraints & Safety" color="#e45c5e"
       collapsed={collapsed} onToggle={onToggle}
     >
       <div className="space-y-4">
