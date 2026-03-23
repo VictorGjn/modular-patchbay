@@ -1,0 +1,616 @@
+﻿node.exe : [2m[WebServer] [22mdtype not specified for "model". Using the default dtype (fp32) for this device (cpu).
+Au caractère Ligne:1 : 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([2m[WebServer]...s device (cpu).:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+Running 59 tests using 4 workers
+
+[2m[WebServer] [22m­ƒÜÇ Starting CSV MCP Server...
+[2m[WebServer] [22m­ƒÆí Ready to process CSV files - specify paths naturally in your requests
+[2m[WebServer] [22mÔ£¿ CSV MCP Server is running!
+[2m[WebServer] [22m­ƒÆí Available tools: read_csv, write_csv, query_csv, transform_csv, analyze_csv, and more
+[2m[WebServer] [22m­ƒôï Listing available CSV tools...
+[2m[WebServer] [22mÔ£à Found 18 CSV tools
+  ok  3 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:6:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ GET /api/mcp returns server list (186ms)
+  ok  5 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:18:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ POST /api/mcp rejects incomplete config (93ms)
+  ok  6 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:31:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ POST /api/mcp accepts valid server config (45ms)
+  ok  7 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:54:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ POST /api/mcp/:id/connect handles missing server (119ms)
+  ok  8 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:65:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ DELETE /api/mcp/:id returns 404 for unknown (101ms)
+  ok  9 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:76:3 ÔÇ║ Backend API ÔÇö MCP ÔÇ║ GET /api/mcp/:id/health returns health info (29ms)
+  ok 10 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:96:3 ÔÇ║ Backend API ÔÇö Providers ÔÇ║ GET /api/providers returns provider list (49ms)
+  ok 11 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:108:3 ÔÇ║ Backend API ÔÇö Providers ÔÇ║ CRUD lifecycle for provider (124ms)
+  ok 12 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:143:3 ÔÇ║ Backend API ÔÇö Providers ÔÇ║ PUT /api/providers/:id upserts if not found (34ms)
+  ok 13 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:157:3 ÔÇ║ Backend API ÔÇö Providers ÔÇ║ maxTokens is capped server-side (36ms)
+  ok 14 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:176:3 ÔÇ║ Backend API ÔÇö LLM Chat ÔÇ║ POST /api/llm/chat rejects missing fields (38ms)
+  ok 15 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:189:3 ÔÇ║ Backend API ÔÇö LLM Chat ÔÇ║ POST /api/llm/chat returns 404 for unknown provider (34ms)
+  ok  2 [chromium] ÔÇ║ tests\e2e\smoke-flow.spec.ts:11:3 ÔÇ║ Smoke Flow ÔÇö Template to Export ÔÇ║ load template, navigate tabs, preview agent, export (3.0s)
+  ok 17 [chromium] ÔÇ║ tests\e2e\smoke-flow.spec.ts:62:3 ÔÇ║ Smoke Flow ÔÇö Template to Export ÔÇ║ provider onboarding banner shows when no provider configured (1.2s)
+  ok 18 [chromium] ÔÇ║ tests\e2e\smoke-flow.spec.ts:75:3 ÔÇ║ Smoke Flow ÔÇö Template to Export ÔÇ║ error boundary catches tab crash gracefully (1.1s)
+[2m[WebServer] [22m[API 404] POST /api/runtime/team
+  ok 19 [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:6:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team runtime endpoints exist and respond appropriately (51ms)
+[2m[WebServer] [22m[API 404] POST /api/runtime/team
+  ok 20 [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:24:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team runtime validation handles missing fields appropriately (9ms)
+[2m[WebServer] [22m[API 404] GET /api/runtime/team/nonexistent-team-id/status
+  ok 21 [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:47:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team status endpoint handles unknown teams gracefully (14ms)
+[2m[WebServer] [22m[API 404] POST /api/runtime/team/nonexistent-team-id/stop
+  ok 22 [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:61:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team stop endpoint handles unknown teams gracefully (12ms)
+[2m[WebServer] [22m[API 404] GET /api/runtime/team/test-id/status
+[2m[WebServer] [22m[API 404] GET /api/runtime/team/test-id/stop
+  ok 23 [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:75:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team runtime API structure is consistent (18ms)
+  ok 24 [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:92:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team UI integration points exist (666ms)
+  ok 16 [chromium] ÔÇ║ tests\e2e\backend-api.spec.ts:206:3 ÔÇ║ Backend API ÔÇö Skills Search ÔÇ║ GET /api/skills/search returns results or error (6.5s)
+  ok 26 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:12:3 ÔÇ║ V2 Wizard ÔÇö Tab Navigation ÔÇ║ 7 tabs render in correct order (610ms)
+  ok 27 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:20:3 ÔÇ║ V2 Wizard ÔÇö Tab Navigation ÔÇ║ clicking each tab marks it selected (823ms)
+  ok 28 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:28:3 ÔÇ║ V2 Wizard ÔÇö Tab Navigation ÔÇ║ ArrowRight moves to the next tab (550ms)
+  ok 29 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:35:3 ÔÇ║ V2 Wizard ÔÇö Tab Navigation ÔÇ║ ArrowLeft moves to the previous tab (568ms)
+  ok 30 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:43:3 ÔÇ║ V2 Wizard ÔÇö Tab Navigation ÔÇ║ ArrowRight wraps from last tab to first (593ms)
+  ok 31 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:59:3 ÔÇ║ V2 Wizard ÔÇö Describe Tab ÔÇ║ description textarea renders and accepts text (576ms)
+  ok 32 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:66:3 ÔÇ║ V2 Wizard ÔÇö Describe Tab ÔÇ║ Generate Agent button is disabled when no provider is configured (550ms)
+  x   1 [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:9:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace opens and closes successfully (16.4s)
+  x   4 [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:9:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ complete marketplace workflow with skill installation (17.0s)
+  x  33 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:74:3 ÔÇ║ V2 Wizard ÔÇö Describe Tab ÔÇ║ provider setup prompt is shown when no provider is configured (5.9s)
+  ok 36 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:88:3 ÔÇ║ V2 Wizard ÔÇö Knowledge Tab ÔÇ║ three sub-tabs render (1.1s)
+  ok 37 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:94:3 ÔÇ║ V2 Wizard ÔÇö Knowledge Tab ÔÇ║ can switch between sub-tabs (1.2s)
+  ok 38 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:110:3 ÔÇ║ V2 Wizard ÔÇö Tools Tab ÔÇ║ 4 section headings are visible (1.4s)
+  ok 39 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:117:3 ÔÇ║ V2 Wizard ÔÇö Tools Tab ÔÇ║ Marketplace button opens the marketplace panel (1.4s)
+  ok 40 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:132:3 ÔÇ║ V2 Wizard ÔÇö Review Tab ÔÇ║ all configuration sections render (1.2s)
+  ok 41 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:146:3 ÔÇ║ Agent Library ÔÇ║ landing page shows the library (597ms)
+  ok 42 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:151:3 ÔÇ║ Agent Library ÔÇ║ New Agent button navigates to the wizard (842ms)
+  ok 43 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:157:3 ÔÇ║ Agent Library ÔÇ║ template cards are visible (642ms)
+  ok 44 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:163:3 ÔÇ║ Agent Library ÔÇ║ search input filters results (1.1s)
+  ok 45 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:175:3 ÔÇ║ Theme Toggle ÔÇ║ clicking toggle switches dark/light mode (760ms)
+  ok 46 [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:188:3 ÔÇ║ Version Dropdown ÔÇ║ opens on click and shows version info (908ms)
+  x  35 [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:177:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace handles different content types correctly (15.6s)
+  x  34 [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:32:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ UI layout adapts to different screen sizes (17.0s)
+  x  25 [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:105:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team execution integrates with traces interface (30.2s)
+[2m[WebServer] [22m[API 404] POST /api/runtime/team
+[2m[WebServer] [22m[API 404] POST /api/runtime/team
+  ok 49 [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:119:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team runtime handles basic concurrent requests (162ms)
+  x  48 [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:51:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace contains navigation elements (16.9s)
+  x  47 [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:229:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace error handling works correctly (17.4s)
+  x  50 [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:72:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace displays content when available (15.9s)
+  x  51 [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:274:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace preserves state between sessions (16.1s)
+  x  52 [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:93:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace search functionality exists (16.0s)
+  x  53 [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:306:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace responsive layout works on different screen sizes (15.7s)
+  x  54 [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:116:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace interface is functional (15.8s)
+  x  55 [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:347:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace keyboard navigation works (15.6s)
+  x  56 [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:137:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace handles different provider types (15.5s)
+  x  57 [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:378:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace batch operations work correctly (15.5s)
+  x  58 [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:159:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace category filtering works if present (16.8s)
+  x  59 [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:184:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace keyboard navigation works (15.5s)
+
+
+  1) [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:9:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ complete marketplace workflow with skill installation 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('complete marketplace workflow with skill installation', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-complete-flow.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-complete-flow--2924e-low-with-skill-installation-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+  2) [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:177:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace handles different content types correctly 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('complete marketplace workflow with skill installation', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-complete-flow.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-complete-flow--7289a-ent-content-types-correctly-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-complete-flow--7289a-ent-content-types-correctly-chromium\error-context.md
+
+  3) [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:229:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace error handling works correctly 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('complete marketplace workflow with skill installation', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-complete-flow.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-complete-flow--0b76d-or-handling-works-correctly-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+  4) [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:274:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace preserves state between sessions 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('complete marketplace workflow with skill installation', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-complete-flow.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-complete-flow--9c738-rves-state-between-sessions-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-complete-flow--9c738-rves-state-between-sessions-chromium\error-context.md
+
+  5) [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:306:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace responsive layout works on different screen sizes 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('complete marketplace workflow with skill installation', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-complete-flow.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-complete-flow--8f951-s-on-different-screen-sizes-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-complete-flow--8f951-s-on-different-screen-sizes-chromium\error-context.md
+
+  6) [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:347:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace keyboard navigation works 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('complete marketplace workflow with skill installation', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-complete-flow.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-complete-flow--12815-e-keyboard-navigation-works-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-complete-flow--12815-e-keyboard-navigation-works-chromium\error-context.md
+
+  7) [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:378:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace batch operations work correctly 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('complete marketplace workflow with skill installation', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-complete-flow.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-complete-flow--b0ce0-h-operations-work-correctly-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-complete-flow--b0ce0-h-operations-work-correctly-chromium\error-context.md
+
+  8) [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:9:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace opens and closes successfully 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('marketplace opens and closes successfully', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-grid.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-grid-Marketpla-e7485-ens-and-closes-successfully-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-grid-Marketpla-e7485-ens-and-closes-successfully-chromium\error-context.md
+
+  9) [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:32:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ UI layout adapts to different screen sizes 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('marketplace opens and closes successfully', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-grid.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-grid-Marketpla-7395f-s-to-different-screen-sizes-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-grid-Marketpla-7395f-s-to-different-screen-sizes-chromium\error-context.md
+
+  10) [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:51:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace contains navigation elements 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('marketplace opens and closes successfully', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-grid.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-grid-Marketpla-545c6-ontains-navigation-elements-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-grid-Marketpla-545c6-ontains-navigation-elements-chromium\error-context.md
+
+  11) [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:72:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace displays content when available 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('marketplace opens and closes successfully', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-grid.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-grid-Marketpla-ca7a2-lays-content-when-available-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-grid-Marketpla-ca7a2-lays-content-when-available-chromium\error-context.md
+
+  12) [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:93:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace search functionality exists 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('marketplace opens and closes successfully', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-grid.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-grid-Marketpla-3b800-search-functionality-exists-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-grid-Marketpla-3b800-search-functionality-exists-chromium\error-context.md
+
+  13) [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:116:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace interface is functional 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('marketplace opens and closes successfully', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-grid.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-grid-Marketpla-609dd-ace-interface-is-functional-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-grid-Marketpla-609dd-ace-interface-is-functional-chromium\error-context.md
+
+  14) [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:137:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace handles different provider types 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('marketplace opens and closes successfully', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-grid.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-grid-Marketpla-965d7-es-different-provider-types-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-grid-Marketpla-965d7-es-different-provider-types-chromium\error-context.md
+
+  15) [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:159:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace category filtering works if present 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('marketplace opens and closes successfully', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-grid.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-grid-Marketpla-ab4e1--filtering-works-if-present-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\marketplace-grid-Marketpla-ab4e1--filtering-works-if-present-chromium\error-context.md
+
+  16) [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:184:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace keyboard navigation works 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Generate Agent')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('Generate Agent')[22m
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/');
+    > 6 |     await expect(page.getByText('Generate Agent')).toBeVisible({ timeout: 15_000 });
+        |                                                    ^
+      7 |   });
+      8 |
+      9 |   test('marketplace opens and closes successfully', async ({ page }) => {
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\marketplace-grid.spec.ts:6:52
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\marketplace-grid-Marketpla-65a19-e-keyboard-navigation-works-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+  17) [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:105:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team execution integrates with traces interface 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByLabel('Test message')[22m
+
+
+      106 |     // Test that team operations can be traced
+      107 |     const input = page.getByLabel('Test message');
+    > 108 |     await input.fill('Team execution test');
+          |                 ^
+      109 |     const sendBtn = page.getByLabel('Send message');
+      110 |     await sendBtn.click();
+      111 |
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\team-runtime.spec.ts:108:17
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\team-runtime-Team-Runtime--7f350-rates-with-traces-interface-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+  18) [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:74:3 ÔÇ║ V2 Wizard ÔÇö Describe Tab ÔÇ║ provider setup prompt is shown when no provider is configured 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Set up an AI provider first')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByText('Set up an AI provider first')[22m
+    [2m    - waiting for" http://localhost:5174/" navigation to finish...[22m
+    [2m    - navigated to "http://localhost:5174/"[22m
+
+
+      73 |
+      74 |   test('provider setup prompt is shown when no provider is configured', async ({ page }) => {
+    > 75 |     await expect(page.getByText('Set up an AI provider first')).toBeVisible();
+         |                                                                 ^
+      76 |   });
+      77 | });
+      78 |
+        at C:\Users\victo\AppData\Local\Temp\modular-patchbay\tests\e2e\v2-wizard.spec.ts:75:65
+
+    attachment #1: screenshot (image/png) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    test-results\v2-wizard-V2-Wizard-ÔÇö-Desc-55987-n-no-provider-is-configured-chromium\test-failed-1.png
+    ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+
+    Error Context: test-results\v2-wizard-V2-Wizard-ÔÇö-Desc-55987-n-no-provider-is-configured-chromium\error-context.md
+
+  18 failed
+    [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:9:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ complete marketplace workflow with skill installation 
+    [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:177:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace handles different content types correctly 
+    [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:229:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace error handling works correctly 
+    [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:274:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace preserves state between sessions 
+    [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:306:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace responsive layout works on different screen sizes 
+    [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:347:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace keyboard navigation works 
+    [chromium] ÔÇ║ tests\e2e\marketplace-complete-flow.spec.ts:378:3 ÔÇ║ Marketplace - Complete Integration Flow ÔÇ║ marketplace batch operations work correctly 
+    [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:9:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace opens and closes successfully 
+    [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:32:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ UI layout adapts to different screen sizes 
+    [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:51:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace contains navigation elements 
+    [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:72:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace displays content when available 
+    [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:93:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace search functionality exists 
+    [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:116:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace interface is functional 
+    [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:137:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace handles different provider types 
+    [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:159:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace category filtering works if present 
+    [chromium] ÔÇ║ tests\e2e\marketplace-grid.spec.ts:184:3 ÔÇ║ Marketplace Card Grid - Layout & Installation ÔÇ║ marketplace keyboard navigation works 
+    [chromium] ÔÇ║ tests\e2e\team-runtime.spec.ts:105:3 ÔÇ║ Team Runtime API - SSE Streaming & Multi-Agent ÔÇ║ team execution integrates with traces interface 
+    [chromium] ÔÇ║ tests\e2e\v2-wizard.spec.ts:74:3 ÔÇ║ V2 Wizard ÔÇö Describe Tab ÔÇ║ provider setup prompt is shown when no provider is configured 
+  41 passed (3.0m)
