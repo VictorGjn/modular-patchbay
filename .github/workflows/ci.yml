@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [master]
 
+env:
+  HUSKY: '0'
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
