@@ -230,10 +230,89 @@ export const COMPETITOR_SCRAPER_PRESET: DemoPresetData = {
   ],
 };
 
+// ─── Quick Templates ─────────────────────────────────────────────────
+
+function quickTemplate(meta: Partial<DemoPresetData['agentMeta']>, persona: string, objective: string, steps: string[], scope: string): DemoPresetData {
+  return {
+    agentMeta: { name: meta.name ?? '', description: meta.description ?? '', icon: 'bot', category: meta.category ?? 'general', tags: meta.tags ?? [], avatar: meta.avatar ?? 'bot' },
+    instructionState: {
+      persona, tone: 'neutral' as const, expertise: 4,
+      constraints: { neverMakeUp: true, askBeforeActions: true, stayInScope: true, useOnlyTools: false, limitWords: false, wordLimit: 0, customConstraints: '', scopeDefinition: scope },
+      objectives: { primary: objective, successCriteria: [], failureModes: [] },
+      rawPrompt: '', autoSync: true,
+    },
+    workflowSteps: steps.map((s, i) => ({ id: `step-${i}`, label: s, action: s, tool: '', condition: 'always' as const, conditionValue: '' })),
+    channels: [], skills: [], mcpServers: [],
+  };
+}
+
+const CODE_REVIEWER = quickTemplate(
+  { name: 'Code Reviewer', description: 'Reviews PRs for quality, security, and best practices', category: 'engineering', tags: ['code-review', 'security', 'best-practices'], avatar: 'bug' },
+  'You are a senior software engineer with expertise in code review, security analysis, and performance optimization.',
+  'Provide thorough, actionable code reviews that catch bugs, security issues, and performance problems.',
+  ['Read the diff and understand scope', 'Check for bugs and logic errors', 'Review security implications', 'Assess performance impact', 'Write categorized review (critical/major/minor)'],
+  'Code review for any language with focus on correctness, security, and maintainability',
+);
+
+const CONTENT_WRITER = quickTemplate(
+  { name: 'Content Writer', description: 'Creates SEO-optimized content from briefs and research', category: 'marketing', tags: ['content', 'SEO', 'copywriting'], avatar: 'palette' },
+  'You are a content strategist and writer skilled at creating engaging, SEO-optimized articles from research materials.',
+  'Create well-structured, engaging content that ranks well and drives conversions.',
+  ['Analyze brief and target audience', 'Research topic and extract key angles', 'Create outline with SEO headings', 'Write draft with clear structure', 'Polish and add CTAs'],
+  'Blog posts, landing pages, and marketing content for B2B and B2C',
+);
+
+const SALES_PREP = quickTemplate(
+  { name: 'Sales Prep Agent', description: 'Researches prospects and prepares meeting briefs', category: 'sales', tags: ['sales', 'research', 'CRM'], avatar: 'target' },
+  'You are a sales intelligence analyst who prepares comprehensive prospect research and meeting briefs.',
+  'Deliver actionable prospect intelligence that helps close deals.',
+  ['Gather company info (size, funding, industry)', 'Identify key stakeholders and decision-makers', 'Find recent news and triggers', 'Map pain points to our solution', 'Create one-page meeting brief'],
+  'Prospect research, meeting preparation, and competitive positioning',
+);
+
+const LEGAL_ANALYST = quickTemplate(
+  { name: 'Contract Analyst', description: 'Reviews contracts for risks and compliance issues', category: 'legal', tags: ['legal', 'contracts', 'compliance', 'risk'], avatar: 'shield' },
+  'You are a legal analyst specializing in contract review. You apply IRAC methodology and flag risk clauses systematically.',
+  'Identify all material risks and compliance issues in contracts before signing.',
+  ['Read contract and identify type/parties', 'Flag risk clauses (liability, termination, IP)', 'Check compliance requirements', 'Compare against standard terms', 'Produce risk summary with recommendations'],
+  'Contract review and risk analysis. NOT legal advice — analysis only.',
+);
+
+const DATA_ANALYST = quickTemplate(
+  { name: 'Data Analyst', description: 'Analyzes datasets and generates insights reports', category: 'analytics', tags: ['data', 'analytics', 'visualization', 'SQL'], avatar: 'chart' },
+  'You are a data analyst skilled at finding patterns, anomalies, and actionable insights in structured data.',
+  'Transform raw data into clear insights with supporting visualizations.',
+  ['Understand the question and data schema', 'Clean and validate the dataset', 'Run exploratory analysis', 'Identify key patterns and anomalies', 'Create summary with charts and recommendations'],
+  'Data analysis, reporting, and insight generation for business stakeholders',
+);
+
+const RESEARCH_ASSISTANT = quickTemplate(
+  { name: 'Research Assistant', description: 'Conducts deep research and produces synthesis reports', category: 'research', tags: ['research', 'synthesis', 'analysis'], avatar: 'microscope' },
+  'You are a research analyst who conducts thorough investigation and produces well-sourced synthesis reports.',
+  'Deliver comprehensive, well-cited research that enables informed decisions.',
+  ['Clarify research question and scope', 'Search and gather sources', 'Cross-reference and fact-check', 'Synthesize findings into themes', 'Produce report with executive summary and sources'],
+  'Market research, competitive analysis, technology evaluation, and literature review',
+);
+
+const ONBOARDING_AGENT = quickTemplate(
+  { name: 'Onboarding Guide', description: 'Guides new team members through onboarding tasks and documentation', category: 'operations', tags: ['onboarding', 'HR', 'documentation'], avatar: 'rocket' },
+  'You are an onboarding specialist who helps new team members get productive quickly by guiding them through setup, documentation, and team processes.',
+  'Reduce time-to-productivity for new hires through structured guidance.',
+  ['Assess role and team context', 'Create personalized onboarding checklist', 'Guide through tool setup', 'Introduce key documentation and processes', 'Check understanding and answer questions'],
+  'Employee onboarding, team process documentation, and tool setup guidance',
+);
+
 // ─── Export map for loadDemoPreset ────────────────────────────────────
 
 export const DEMO_PRESETS: Record<string, DemoPresetData> = {
   'senior-pm': SENIOR_PM_PRESET,
   'feedback-manager': FEEDBACK_MANAGER_PRESET,
   'competitor-scraper': COMPETITOR_SCRAPER_PRESET,
+  'code-reviewer': CODE_REVIEWER,
+  'content-writer': CONTENT_WRITER,
+  'sales-prep': SALES_PREP,
+  'legal-analyst': LEGAL_ANALYST,
+  'data-analyst': DATA_ANALYST,
+  'research-assistant': RESEARCH_ASSISTANT,
+  'onboarding-guide': ONBOARDING_AGENT,
 };

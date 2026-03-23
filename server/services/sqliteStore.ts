@@ -99,6 +99,16 @@ export async function getDb(): Promise<Database> {
   )`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_tool_suggestions_agent ON tool_suggestions (agent_id)`);
 
+  // Usage analytics table
+  db.run(`CREATE TABLE IF NOT EXISTS usage_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event TEXT NOT NULL,
+    agent_id TEXT,
+    metadata TEXT,
+    timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_usage_event ON usage_events (event)`);
+
   // Cost record rotation — purge records older than 90 days
   try {
     const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
@@ -428,3 +438,40 @@ export async function getToolStats(agentId: string): Promise<ToolStats> {
   };
 }
 
+
+// -- Usage Analytics -----------------------------------------------------
+
+export function trackUsageEvent(event: string, agentId?: string, metadata?: Record<string, unknown>): void {
+  const d = getDb();
+  d.run('INSERT INTO usage_events (event, agent_id, metadata) VALUES (?, ?, ?)', [
+    event,
+    agentId ?? null,
+    metadata ? JSON.stringify(metadata) : null,
+  ]);
+  saveDb();
+}
+
+export function getUsageStats(): {
+  totalAgentsCreated: number;
+  totalGenerations: number;
+  totalExports: number;
+  recentEvents: Array<{ event: string; agentId: string | null; timestamp: string }>;
+} {
+  const d = getDb();
+  const count = (evt: string) => {
+    const r = d.exec('SELECT COUNT(*) FROM usage_events WHERE event = ?', [evt]);
+    return Number(r[0]?.values[0]?.[0] ?? 0);
+  };
+  const recentRes = d.exec('SELECT event, agent_id, timestamp FROM usage_events ORDER BY id DESC LIMIT 20');
+  const recentEvents = (recentRes[0]?.values ?? []).map((r) => ({
+    event: String(r[0]),
+    agentId: r[1] ? String(r[1]) : null,
+    timestamp: String(r[2]),
+  }));
+  return {
+    totalAgentsCreated: count('agent_created'),
+    totalGenerations: count('generation_completed'),
+    totalExports: count('export_completed'),
+    recentEvents,
+  };
+}
