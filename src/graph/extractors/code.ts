@@ -5,7 +5,7 @@
  * Regex-based (no Tree-sitter) — matches existing codeIndexer philosophy.
  */
 
-import type { FileNode, Relation, RelationKind, SymbolDef } from '../types';
+import type { FileNode, Relation, RelationKind, SymbolDef } from '../types.js';
 
 // ── Import Patterns ───────────────────────────────────────────────────────────
 
@@ -200,7 +200,7 @@ export function extractCodeRelations(
     const targets = exportedSymbols.get(name);
     if (!targets) continue;
 
-    for (const { file: targetFile, symbol: targetSym } of targets) {
+    for (const { file: targetFile } of targets) {
       const key = `${file.id}→${targetFile.id}:${name}`;
       if (seenCalls.has(key)) continue;
       seenCalls.add(key);

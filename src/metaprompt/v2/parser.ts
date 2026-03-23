@@ -1,5 +1,5 @@
-import { fetchCompletion } from '../../services/llmService';
-import type { LLMCallConfig, ParsedInput } from './types';
+import { fetchCompletion } from '../../services/llmService.js';
+import type { LLMCallConfig, ParsedInput } from './types.js';
 
 const FEW_SHOT_EXAMPLES = `
 ## Example 1: PM Agent (Teresa Torres / RICE)

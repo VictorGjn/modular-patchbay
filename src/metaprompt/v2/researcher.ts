@@ -1,5 +1,5 @@
-import { fetchCompletion } from '../../services/llmService';
-import type { LLMCallConfig, ParsedInput, ResearchResult, ExpertFramework, MethodologyFramework, ConflictResolution } from './types';
+import { fetchCompletion } from '../../services/llmService.js';
+import type { LLMCallConfig, ParsedInput, ResearchResult, ExpertFramework, MethodologyFramework, ConflictResolution } from './types.js';
 
 function parseJSON(text: string): unknown {
   try { return JSON.parse(text); } catch { /* continue */ }
@@ -16,7 +16,7 @@ function parseJSON(text: string): unknown {
  */
 async function searchWeb(query: string): Promise<string | null> {
   try {
-    const { fetchAgentSdkCompletion } = await import('../../services/llmService');
+    const { fetchAgentSdkCompletion } = await import('../../services/llmService.js');
     const result = await fetchAgentSdkCompletion({
       prompt: `Search the web for: "${query}". Return ONLY the key findings as a concise summary (max 500 words). Focus on framework steps, methodology mechanics, scoring criteria.`,
       maxTurns: 3,

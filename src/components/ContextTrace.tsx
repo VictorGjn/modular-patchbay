@@ -7,7 +7,7 @@
  * Issue #87
  */
 
-import { useThemeStore } from '../store/themeStore';
+import { useTheme } from '../theme';
 import type { EntryPoint, PackedItem, TraversalFile } from '../graph/types';
 
 interface ContextTraceProps {
@@ -37,12 +37,12 @@ export default function ContextTrace({
   taskType,
   queryTimeMs,
 }: ContextTraceProps) {
-  const t = useThemeStore(s => s.resolved);
+  const t = useTheme();
   const utilization = totalTokens / tokenBudget;
 
   return (
     <div style={{
-      background: t.surfaceAlt, borderRadius: 8, border: `1px solid ${t.border}`,
+      background: t.surfaceElevated, borderRadius: 8, border: `1px solid ${t.border}`,
       overflow: 'hidden',
     }}>
       {/* Header */}

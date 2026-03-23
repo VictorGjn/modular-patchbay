@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { rateLimitedFetch, fetchPaginated, htmlToMarkdown, connectorError, getApiKey } from './shared.js';
+import { rateLimitedFetch, fetchPaginated, htmlToMarkdown, connectorError } from './shared.js';
 
 const router = Router();
 const sessionKeys = new Map<string, string>();

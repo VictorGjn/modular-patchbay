@@ -4,14 +4,14 @@
  * Unified interface: scan → query → pack.
  */
 
-export { GraphDB } from './db';
-export { fullScan, updateFiles, buildFileNode, shouldIndex, fileId, hashContent } from './scanner';
-export { resolveEntryPoints } from './resolver';
-export { traverseGraph, traverseForTask } from './traverser';
-export { packContext } from './packer';
-export { extractCodeRelations } from './extractors/code';
-export { extractMarkdownRelations, extractMarkdownSymbols, collectDefinedTerms } from './extractors/markdown';
-export { detectTaskType, TRAVERSAL_PRESETS } from './types';
+export { GraphDB } from './db.js';
+export { fullScan, updateFiles, buildFileNode, shouldIndex, fileId, hashContent } from './scanner.js';
+export { resolveEntryPoints } from './resolver.js';
+export { traverseGraph, traverseForTask } from './traverser.js';
+export { packContext } from './packer.js';
+export { extractCodeRelations } from './extractors/code.js';
+export { extractMarkdownRelations, extractMarkdownSymbols, collectDefinedTerms } from './extractors/markdown.js';
+export { detectTaskType, TRAVERSAL_PRESETS } from './types.js';
 export type {
   FileNode, FileLanguage, SymbolDef, SymbolKind,
   Relation, RelationKind,
@@ -21,14 +21,14 @@ export type {
   PackedContext, PackedItem,
   UpdateResult, ScanResult,
   TaskType,
-} from './types';
+} from './types.js';
 
-import { GraphDB } from './db';
-import { fullScan, updateFiles } from './scanner';
-import { resolveEntryPoints } from './resolver';
-import { traverseForTask } from './traverser';
-import { packContext } from './packer';
-import type { PackedContext, ScanResult, UpdateResult, TaskType } from './types';
+import { GraphDB } from './db.js';
+import { fullScan, updateFiles } from './scanner.js';
+import { resolveEntryPoints } from './resolver.js';
+import { traverseForTask } from './traverser.js';
+import { packContext } from './packer.js';
+import type { PackedContext, ScanResult, UpdateResult, TaskType } from './types.js';
 
 /**
  * High-level: scan files → build graph → query → get packed context.

@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { rateLimitedFetch, connectorError, getApiKey, formatTimestamp } from './shared.js';
+import { rateLimitedFetch, connectorError, getApiKey } from './shared.js';
 
 const router = Router();
 const sessionKeys = new Map<string, string>();

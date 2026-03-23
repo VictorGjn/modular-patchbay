@@ -15,11 +15,11 @@ import { join, relative } from 'node:path';
 const router = Router();
 
 // Lazy-init engine (avoid circular imports at module load)
-let engine: import('../../src/graph/index').ContextGraphEngine | null = null;
+let engine: import('../../src/graph/index.js').ContextGraphEngine | null = null;
 
 async function getEngine() {
   if (!engine) {
-    const { ContextGraphEngine } = await import('../../src/graph/index');
+    const { ContextGraphEngine } = await import('../../src/graph/index.js');
     engine = new ContextGraphEngine();
   }
   return engine;
@@ -106,23 +106,23 @@ router.post('/query', async (req: Request, res: Response) => {
     const graph = eng.getGraph();
 
     // Find entry points for the response
-    const { resolveEntryPoints } = await import('../../src/graph/resolver');
+    const { resolveEntryPoints } = await import('../../src/graph/resolver.js');
     const entryPoints = resolveEntryPoints(query, graph);
 
     res.json({
       status: 'ok',
       data: {
-        items: packed.items.map(it => ({
+        items: packed.items.map((it: any) => ({
           path: it.file.path,
           language: it.file.language,
           depth: it.depth,
           tokens: it.tokens,
           relevance: it.relevance,
-          symbols: it.file.symbols.map(s => ({ name: s.name, kind: s.kind, exported: s.isExported })),
+          symbols: it.file.symbols.map((s: any) => ({ name: s.name, kind: s.kind, exported: s.isExported })),
         })),
         totalTokens: packed.totalTokens,
         budgetUtilization: packed.budgetUtilization,
-        entryPoints: entryPoints.slice(0, 10).map(ep => ({
+        entryPoints: entryPoints.slice(0, 10).map((ep: any) => ({
           fileId: ep.fileId,
           symbol: ep.symbolName,
           confidence: ep.confidence,
@@ -153,7 +153,7 @@ router.get('/file/:id', async (req: Request, res: Response) => {
   try {
     const eng = await getEngine();
     const db = eng.getDB();
-    const node = db.getNode(req.params.id);
+    const node = db.getNode(req.params.id as string);
     if (!node) {
       res.status(404).json({ status: 'error', error: 'File not found' });
       return;
@@ -170,14 +170,14 @@ router.get('/file/:id', async (req: Request, res: Response) => {
         language: node.language,
         tokens: node.tokens,
         symbols: node.symbols,
-        outgoing: outgoing.map(r => ({
+        outgoing: outgoing.map((r: any) => ({
           targetFile: r.targetFile,
           targetPath: db.getNode(r.targetFile)?.path,
           kind: r.kind,
           weight: r.weight,
           targetSymbol: r.targetSymbol,
         })),
-        incoming: incoming.map(r => ({
+        incoming: incoming.map((r: any) => ({
           sourceFile: r.sourceFile,
           sourcePath: db.getNode(r.sourceFile)?.path,
           kind: r.kind,

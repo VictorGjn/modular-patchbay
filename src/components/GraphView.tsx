@@ -10,7 +10,7 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { useThemeStore } from '../store/themeStore';
+import { useTheme } from '../theme';
 import GraphDetails from './GraphDetails';
 import type { FileNode, Relation, RelationKind } from '../graph/types';
 
@@ -93,7 +93,7 @@ interface GraphViewProps {
 }
 
 export default function GraphView({ nodes, relations, onScan, scanning, highlightIds }: GraphViewProps) {
-  const t = useThemeStore(s => s.resolved);
+  const t = useTheme();
   const fgRef = useRef<any>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [hoverNode, setHoverNode] = useState<string | null>(null);
@@ -233,9 +233,9 @@ export default function GraphView({ nodes, relations, onScan, scanning, highligh
               onClick={() => toggleGroup(group)}
               style={{
                 fontSize: 11, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
-                background: enabledGroups.has(group) ? `${t.accent}20` : 'transparent',
-                color: enabledGroups.has(group) ? t.accent : t.textSecondary,
-                border: `1px solid ${enabledGroups.has(group) ? `${t.accent}40` : t.border}`,
+                background: enabledGroups.has(group) ? `${'#FE5000'}20` : 'transparent',
+                color: enabledGroups.has(group) ? '#FE5000' : t.textSecondary,
+                border: `1px solid ${enabledGroups.has(group) ? `${'#FE5000'}40` : t.border}`,
               }}
             >
               {group}

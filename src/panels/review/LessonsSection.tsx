@@ -144,7 +144,7 @@ export function LessonsSection({ collapsed, onToggle }: LessonsSectionProps) {
   const pending = lessons.filter((l) => l.agentId === agentId && l.status === 'pending');
   const active = lessons.filter((l) => l.agentId === agentId && l.status === 'approved' && l.confidence >= 0.5);
   const tentative = lessons.filter((l) => l.agentId === agentId && l.status === 'approved' && l.confidence < 0.5);
-  const totalApplied = active.reduce((sum, l) => sum + l.appliedCount, 0);
+  // totalApplied available for future use: active.reduce((sum, l) => sum + l.appliedCount, 0)
 
   // Group active lessons by domain
   const byDomain = active.reduce<Record<string, Lesson[]>>((acc, l) => {

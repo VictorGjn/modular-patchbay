@@ -15,9 +15,9 @@
  * Results are capped: 3 MCP + 2 connectors + 3 skills, sorted by relevance.
  */
 
-import { MCP_REGISTRY } from '../../store/mcp-registry';
-import type { McpRegistryEntry } from '../../store/mcp-registry';
-import type { ParsedInput } from './types';
+import { MCP_REGISTRY } from '../../store/mcp-registry.js';
+import type { McpRegistryEntry } from '../../store/mcp-registry.js';
+import type { ParsedInput } from './types.js';
 
 export type ToolSource = 'skill' | 'mcp' | 'connector';
 

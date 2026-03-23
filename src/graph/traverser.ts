@@ -8,8 +8,8 @@
 import type {
   ContextGraph, EntryPoint, TraversalConfig, TraversalResult,
   TraversalFile, Relation, RelationKind,
-} from './types';
-import { TRAVERSAL_PRESETS, detectTaskType, type TaskType } from './types';
+} from './types.js';
+import { TRAVERSAL_PRESETS, detectTaskType, type TaskType } from './types.js';
 
 const DECAY_FACTOR = 0.7;
 

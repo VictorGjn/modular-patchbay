@@ -1,4 +1,4 @@
-import { fetchCompletion } from '../../services/llmService';
+import { fetchCompletion } from '../../services/llmService.js';
 import type {
   LLMCallConfig,
   ParsedInput,
@@ -7,7 +7,7 @@ import type {
   ContextStrategy,
   EvaluationResult,
   CriterionResult,
-} from './types';
+} from './types.js';
 
 function parseJSON(text: string): unknown {
   try { return JSON.parse(text); } catch { /* continue */ }
@@ -23,7 +23,7 @@ function parseJSON(text: string): unknown {
  * an operationalized workflow step (not just in persona text).
  */
 function checkFrameworkCoverage(
-  parsed: ParsedInput,
+  _parsed: ParsedInput,
   research: ResearchResult,
   assembled: AssembledAgent,
 ): CriterionResult {
