@@ -99,6 +99,11 @@ export function PipelineTraceView({ retrieval }: PipelineTraceViewProps) {
         </span>
         <span style={{ fontSize: 10, color: t.textDim }}>
           {totalSelected} chunks selected → {totalTokensUsed.toLocaleString()} tokens sent to LLM
+          {retrieval.originalTokens && retrieval.originalTokens > totalTokensUsed && (
+            <span style={{ color: '#2ecc71', marginLeft: 4 }}>
+              (compressed from {retrieval.originalTokens.toLocaleString()})
+            </span>
+          )}
         </span>
         <span style={{ fontSize: 10, color: t.textDim, marginLeft: 'auto' }}>
           Budget: {retrieval.budgetUsed.toLocaleString()} / {retrieval.budgetTotal.toLocaleString()} tokens
