@@ -12,6 +12,7 @@ const MEMORY_DB_PATH = join(DB_DIR, 'memory.db');
 export class SqliteAdapter implements StorageAdapter {
   private db: Database | null = null;
   private lastWrite: number = 0;
+  private hasFts5: boolean = false;
 
   async initialize(): Promise<void> {
     const SQL = await initSqlJs();
@@ -44,26 +45,34 @@ export class SqliteAdapter implements StorageAdapter {
       owner_agent_id TEXT
     )`);
 
-    // Create FTS5 table for full-text search
-    this.db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS facts_fts USING fts5(
-      content,
-      content='facts',
-      content_rowid='rowid'
-    )`);
+    // Try FTS5 — sql.js WASM may not include it
+    try {
+      this.db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS facts_fts USING fts5(
+        content,
+        content='facts',
+        content_rowid='rowid'
+      )`);
 
-    // Triggers to keep FTS in sync
-    this.db.run(`CREATE TRIGGER IF NOT EXISTS facts_ai AFTER INSERT ON facts BEGIN
-      INSERT INTO facts_fts(rowid, content) VALUES (new.rowid, new.content);
-    END`);
+      // Triggers to keep FTS in sync
+      this.db.run(`CREATE TRIGGER IF NOT EXISTS facts_ai AFTER INSERT ON facts BEGIN
+        INSERT INTO facts_fts(rowid, content) VALUES (new.rowid, new.content);
+      END`);
 
-    this.db.run(`CREATE TRIGGER IF NOT EXISTS facts_ad AFTER DELETE ON facts BEGIN
-      INSERT INTO facts_fts(facts_fts, rowid, content) VALUES('delete', old.rowid, old.content);
-    END`);
+      this.db.run(`CREATE TRIGGER IF NOT EXISTS facts_ad AFTER DELETE ON facts BEGIN
+        INSERT INTO facts_fts(facts_fts, rowid, content) VALUES('delete', old.rowid, old.content);
+      END`);
 
-    this.db.run(`CREATE TRIGGER IF NOT EXISTS facts_au AFTER UPDATE ON facts BEGIN
-      INSERT INTO facts_fts(facts_fts, rowid, content) VALUES('delete', old.rowid, old.content);
-      INSERT INTO facts_fts(rowid, content) VALUES (new.rowid, new.content);
-    END`);
+      this.db.run(`CREATE TRIGGER IF NOT EXISTS facts_au AFTER UPDATE ON facts BEGIN
+        INSERT INTO facts_fts(facts_fts, rowid, content) VALUES('delete', old.rowid, old.content);
+        INSERT INTO facts_fts(rowid, content) VALUES (new.rowid, new.content);
+      END`);
+
+      this.hasFts5 = true;
+    } catch {
+      // FTS5 not available — fall back to LIKE-based search
+      console.warn('[SqliteAdapter] FTS5 not available, using LIKE fallback for text search');
+      this.hasFts5 = false;
+    }
 
     this.saveDb();
   }
@@ -145,23 +154,29 @@ export class SqliteAdapter implements StorageAdapter {
     if (!this.db) await this.initialize();
     if (!this.db) return [];
 
-    // First try FTS5 full-text search
-    const ftsResult = this.db.exec(`
-      SELECT facts.*, rank FROM facts_fts 
-      JOIN facts ON facts.rowid = facts_fts.rowid 
-      WHERE facts_fts MATCH ? 
-      ORDER BY rank 
-      LIMIT ?
-    `, [query, k]);
+    // Try FTS5 full-text search if available
+    if (this.hasFts5) {
+      try {
+        const ftsResult = this.db.exec(`
+          SELECT facts.*, rank FROM facts_fts 
+          JOIN facts ON facts.rowid = facts_fts.rowid 
+          WHERE facts_fts MATCH ? 
+          ORDER BY rank 
+          LIMIT ?
+        `, [query, k]);
 
-    if (ftsResult.length > 0) {
-      return ftsResult[0].values.map(row => ({
-        ...this.rowToFact(row),
-        score: 1.0 - (row[9] as number) * 0.1 // Convert rank to score
-      }));
+        if (ftsResult.length > 0) {
+          return ftsResult[0].values.map(row => ({
+            ...this.rowToFact(row),
+            score: 1.0 - (row[9] as number) * 0.1 // Convert rank to score
+          }));
+        }
+      } catch {
+        // FTS query failed (e.g. bad syntax) — fall through to similarity
+      }
     }
 
-    // Fallback to similarity search
+    // Fallback: LIKE + text similarity scoring
     const allFacts = await this.getFacts();
     const scored = allFacts
       .map(fact => ({
