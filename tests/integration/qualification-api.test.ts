@@ -194,25 +194,23 @@ describe('Qualification API', () => {
       vi.unstubAllGlobals();
 
       expect(res.status).toBe(200);
-      const json = await res.json() as {
-        status: string;
-        data: {
-          runId: string;
-          globalScore: number;
-          dimensionScores: Record<string, number>;
-          testResults: Array<{ testCaseId: string; score: number; passed: boolean; feedback: string }>;
-          patches: unknown[];
-        };
-      };
-      expect(json.status).toBe('ok');
-      expect(json.data.runId).toBeTruthy();
-      expect(typeof json.data.globalScore).toBe('number');
-      expect(json.data.testResults).toHaveLength(2);
-      expect(json.data.testResults[0].testCaseId).toBe('tc-1');
-      expect(typeof json.data.testResults[0].score).toBe('number');
-      expect(typeof json.data.testResults[0].passed).toBe('boolean');
-      expect(json.data.dimensionScores['dim-1']).toBeDefined();
-      expect(json.data.dimensionScores['dim-2']).toBeDefined();
+      // /run returns SSE — find the 'done' event
+      const rawText = await res.text();
+      const sseLines = rawText.split('\n').filter((l: string) => l.startsWith('data: ') && !l.includes('[DONE]'));
+      let doneEvent: any = null;
+      for (const line of sseLines) {
+        const parsed = JSON.parse(line.slice(6));
+        if (parsed.type === 'done') { doneEvent = parsed; break; }
+      }
+      expect(doneEvent).not.toBeNull();
+      expect(doneEvent.runId).toBeTruthy();
+      expect(typeof doneEvent.globalScore).toBe('number');
+      expect(doneEvent.testResults).toHaveLength(2);
+      expect(doneEvent.testResults[0].testCaseId).toBe('tc-1');
+      expect(typeof doneEvent.testResults[0].score).toBe('number');
+      expect(typeof doneEvent.testResults[0].passed).toBe('boolean');
+      expect(doneEvent.dimensionScores['dim-1']).toBeDefined();
+      expect(doneEvent.dimensionScores['dim-2']).toBeDefined();
     });
   });
 
