@@ -22,4 +22,9 @@ EXPOSE 4800
 VOLUME /app/data
 ENV MODULAR_DATA_DIR=/app/data
 
+# Run as non-root user to limit container escape blast radius
+RUN addgroup --system appuser && adduser --system --ingroup appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
 CMD ["node", "dist-server/server/index.js"]

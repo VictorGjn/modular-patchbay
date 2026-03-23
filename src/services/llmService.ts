@@ -1,5 +1,43 @@
 import { API_BASE } from '../config.js';
 
+// ── Retry helpers ─────────────────────────────────────────────────────────────
+
+const LLM_MAX_RETRIES = 3;
+const LLM_BASE_DELAY_MS = 1000;
+
+function llmBackoffMs(attempt: number): number {
+  const exp = LLM_BASE_DELAY_MS * Math.pow(2, attempt);
+  const jitter = exp * 0.25 * (Math.random() * 2 - 1);
+  return Math.min(Math.round(exp + jitter), 30_000);
+}
+
+function sleepMs(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * fetch() wrapper with exponential backoff + jitter for 429 responses.
+ * After LLM_MAX_RETRIES exhausted on 429, throws a clear user-facing error.
+ */
+async function fetchWithBackoff(input: string, init?: RequestInit): Promise<Response> {
+  for (let attempt = 0; attempt <= LLM_MAX_RETRIES; attempt++) {
+    const resp = await fetch(input, init);
+    if (resp.status !== 429) return resp;
+
+    if (attempt === LLM_MAX_RETRIES) {
+      throw new Error(
+        `Rate limit (429) exceeded after ${LLM_MAX_RETRIES + 1} attempts. ` +
+        `Wait before retrying or check your API quota.`,
+      );
+    }
+    const retryAfter = resp.headers.get('Retry-After');
+    const delayMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : llmBackoffMs(attempt);
+    await sleepMs(delayMs);
+  }
+  // Unreachable, but satisfies TypeScript
+  throw new Error('Fetch failed after retries');
+}
+
 /**
  * Unified LLM service — all calls go through the backend proxy.
  * 
@@ -160,7 +198,7 @@ export async function fetchCompletion(params: {
     });
   }
 
-  const res = await fetch(`${API_BASE}/llm/chat`, {
+  const res = await fetchWithBackoff(`${API_BASE}/llm/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ provider: providerId, model, messages, temperature, maxTokens }),
@@ -197,7 +235,7 @@ export async function fetchAgentSdkCompletion(params: {
   systemPrompt?: string;
   maxTurns?: number;
 }): Promise<string> {
-  const res = await fetch(`${API_BASE}/agent-sdk/chat`, {
+  const res = await fetchWithBackoff(`${API_BASE}/agent-sdk/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),

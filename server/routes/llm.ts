@@ -6,6 +6,46 @@ import type { Request, Response } from 'express';
 const router = Router();
 const MAX_TOKENS_LIMIT = 32768; // Server-side cap to prevent cost attacks
 
+// ── SSRF protection ──────────────────────────────────────────────────────────
+
+function isPrivateHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  // Loopback and well-known local hostnames
+  if (h === 'localhost' || h === '0.0.0.0') return true;
+  // IPv6 loopback / unique-local (fc00::/7) / link-local (fe80::/10)
+  if (h === '::1' || h === '::' || h.startsWith('fc') || h.startsWith('fd') || h.startsWith('fe8') || h.startsWith('fe9') || h.startsWith('fea') || h.startsWith('feb')) return true;
+  // IPv4 private/reserved ranges
+  const parts = h.split('.');
+  if (parts.length === 4) {
+    const [a, b] = parts.map(Number);
+    if (isNaN(a) || isNaN(b)) return false;
+    if (a === 127) return true;                       // 127.0.0.0/8 loopback
+    if (a === 10) return true;                        // 10.0.0.0/8 private
+    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12 private
+    if (a === 192 && b === 168) return true;           // 192.168.0.0/16 private
+    if (a === 169 && b === 254) return true;           // 169.254.0.0/16 link-local
+    if (a === 0) return true;                          // 0.0.0.0/8 reserved
+  }
+  return false;
+}
+
+/** Returns an error string if the URL is invalid/blocked, null if allowed. */
+function validateBaseUrl(url: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return `Invalid URL format: "${url}"`;
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    return `Blocked URL scheme "${parsed.protocol}" — only http/https allowed`;
+  }
+  if (isPrivateHost(parsed.hostname)) {
+    return `Blocked: provider baseUrl "${parsed.hostname}" resolves to a private/reserved address (SSRF prevention)`;
+  }
+  return null;
+}
+
 function normalizeBaseUrl(providerId: string, baseUrl: string): string {
   const trimmed = (baseUrl || '').trim().replace(/\/+$/, '');
   if (!trimmed) return trimmed;
@@ -47,6 +87,13 @@ function resolveProvider(
       status: 'error',
       error: `Provider "${providerId}" has no baseUrl configured`,
     };
+    res.status(400).json(resp);
+    return null;
+  }
+
+  const ssrfError = validateBaseUrl(baseUrl);
+  if (ssrfError) {
+    const resp: ApiResponse = { status: 'error', error: ssrfError };
     res.status(400).json(resp);
     return null;
   }
