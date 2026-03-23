@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-server
+.git
+*.md
+!README.md
+scripts
+tests
+.github
