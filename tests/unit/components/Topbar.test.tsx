@@ -160,6 +160,11 @@ describe('Topbar', () => {
     const restoreButtons = screen.getAllByRole('button', { name: /restore/i });
     await user.click(restoreButtons[0]);
 
+    // Confirm the restore in the confirmation modal (P0-5 added confirmation)
+    const confirmBtns = screen.queryAllByRole('button', { name: /^restore$/i });
+    const confirmBtn = confirmBtns.find(b => b.textContent?.trim() === 'Restore' && b !== restoreButtons[0]);
+    if (confirmBtn) await user.click(confirmBtn);
+
     // Verify restore was called
     expect(mockVersionStore.restoreVersion).toHaveBeenCalled();
   });
