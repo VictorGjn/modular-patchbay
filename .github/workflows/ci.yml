@@ -19,10 +19,16 @@ jobs:
           cache: 'npm'
       
       - run: npm ci
-      
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Security audit
+        run: npm audit --audit-level=high || true
+
       - name: TypeScript check
         run: npx tsc --noEmit
-      
+
       - name: Build
         run: npm run build
       

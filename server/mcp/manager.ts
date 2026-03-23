@@ -227,8 +227,27 @@ export class McpManager {
       throw new Error(`MCP server "${id}" is not connected`);
     }
 
-    const result = await conn.client.callTool({ name: toolName, arguments: args });
-    return result;
+    const TIMEOUT_MS = 30_000;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`MCP tool "${toolName}" on server "${id}" timed out after 30s`)),
+        TIMEOUT_MS,
+      ),
+    );
+
+    try {
+      const result = await Promise.race([
+        conn.client.callTool({ name: toolName, arguments: args }),
+        timeoutPromise,
+      ]);
+      return result;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('timed out')) {
+        console.warn(`[McpManager] ${msg}`);
+      }
+      throw err;
+    }
   }
 
   async disconnect(id: string): Promise<void> {

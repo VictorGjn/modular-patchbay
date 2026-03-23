@@ -22,6 +22,7 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const [showVersionDropdown, setShowVersionDropdown] = useState(false);
   const [compareVersion, setCompareVersion] = useState<AgentVersion | null>(null);
+  const [restoreConfirm, setRestoreConfirm] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useTheme();
 
@@ -183,7 +184,7 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
                             <button
                               type="button"
                               onClick={() => {
-                                restoreVersion(version.version);
+                                setRestoreConfirm(version.version);
                                 setShowVersionDropdown(false);
                               }}
                               title={`Restore version ${version.version}`}
@@ -256,6 +257,57 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
         {running ? 'Stop' : 'Run'}
         <span className="text-[13px] opacity-60 tracking-normal font-normal ml-1">{running ? 'click to cancel' : 'Ctrl+Enter'}</span>
       </button>
+
+      {/* Restore-version confirmation dialog */}
+      {restoreConfirm && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setRestoreConfirm(null)}
+        >
+          <div
+            className="flex flex-col gap-4 rounded-xl p-6"
+            style={{
+              background: t.surface,
+              border: `1px solid ${t.border}`,
+              boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
+              minWidth: 320,
+              maxWidth: 400,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col gap-1">
+              <span className="text-[15px] font-bold" style={{ color: t.textPrimary }}>
+                Restore v{restoreConfirm}?
+              </span>
+              <span className="text-[13px]" style={{ color: t.textMuted }}>
+                This will replace your current agent config. This action cannot be undone.
+              </span>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setRestoreConfirm(null)}
+                className="px-4 py-2 rounded-lg text-[13px] font-semibold cursor-pointer border-none"
+                style={{ background: t.surfaceElevated, color: t.textSecondary, border: `1px solid ${t.border}` }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  restoreVersion(restoreConfirm);
+                  setRestoreConfirm(null);
+                }}
+                className="px-4 py-2 rounded-lg text-[13px] font-semibold cursor-pointer border-none"
+                style={{ background: '#FE5000', color: 'white' }}
+              >
+                Restore
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Version diff modal */}
       {compareVersion && (() => {

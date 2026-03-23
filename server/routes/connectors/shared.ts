@@ -9,40 +9,63 @@
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/** Compute exponential backoff with ±25% jitter to avoid thundering herd. */
+function backoffMs(attempt: number, baseMs: number): number {
+  const exp = baseMs * Math.pow(2, attempt);
+  const jitter = exp * 0.25 * (Math.random() * 2 - 1); // ±25%
+  return Math.min(Math.round(exp + jitter), 30_000);
+}
+
 export async function rateLimitedFetch(
   url: string,
   options: RequestInit = {},
   maxRetries = MAX_RETRIES,
 ): Promise<globalThis.Response> {
   let lastError: Error | null = null;
+  let rateLimitHits = 0;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const resp = await fetch(url, options);
 
       if (resp.status === 429) {
+        rateLimitHits++;
+        if (attempt === maxRetries) {
+          throw new Error(
+            `Rate limit (429) exceeded after ${maxRetries + 1} attempts. ` +
+            `Wait before retrying or check your API quota.`,
+          );
+        }
         const retryAfter = resp.headers.get('Retry-After');
         const delayMs = retryAfter
           ? parseInt(retryAfter, 10) * 1000
-          : BASE_DELAY_MS * Math.pow(2, attempt);
-        await sleep(Math.min(delayMs, 30000));
+          : backoffMs(attempt, BASE_DELAY_MS);
+        await sleep(Math.min(delayMs, 30_000));
         continue;
       }
 
       return resp as any;
     } catch (err) {
+      // Re-throw rate-limit errors immediately — no more retries
+      if (err instanceof Error && err.message.startsWith('Rate limit (429)')) throw err;
       lastError = err instanceof Error ? err : new Error(String(err));
       if (attempt < maxRetries) {
-        await sleep(BASE_DELAY_MS * Math.pow(2, attempt));
+        await sleep(backoffMs(attempt, BASE_DELAY_MS));
       }
     }
   }
 
+  if (rateLimitHits > 0) {
+    throw new Error(
+      `Rate limit (429) exceeded after ${maxRetries + 1} attempts. ` +
+      `Wait before retrying or check your API quota.`,
+    );
+  }
   throw lastError ?? new Error('Fetch failed after retries');
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ── Paginated Fetch ───────────────────────────────────────────────────────────

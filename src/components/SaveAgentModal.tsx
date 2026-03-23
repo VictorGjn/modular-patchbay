@@ -79,6 +79,7 @@ export function SaveAgentModal() {
   const [copied, setCopied] = useState(false);
   const [visible, setVisible] = useState(false);
   const [previewFade, setPreviewFade] = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const t = useTheme();
@@ -160,13 +161,18 @@ export function SaveAgentModal() {
 
     // Persist full state to backend
     const fullState = collectFullState();
+    setSaveError(null);
     fetch(`${API_BASE}/agents/${encodeURIComponent(safeName)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(fullState),
-    }).catch(() => {
-      // silent — download still works as fallback
-    });
+    })
+      .then((res) => {
+        if (!res.ok) setSaveError(`Failed to save agent to library (${res.status}). File downloaded as fallback.`);
+      })
+      .catch(() => {
+        setSaveError('Failed to save agent to library — server unreachable. File downloaded as fallback.');
+      });
 
     // Download file
     const meta = TARGET_META[exportTarget];
@@ -410,6 +416,17 @@ export function SaveAgentModal() {
                 </select>
               </div>
             </div>
+
+            {/* Save error banner */}
+            {saveError && (
+              <div
+                className="mx-5 mt-3 px-3 py-2 rounded-lg text-[12px]"
+                role="alert"
+                style={{ background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.4)', color: '#f87171' }}
+              >
+                {saveError}
+              </div>
+            )}
 
             {/* Action buttons */}
             <div className="flex flex-col gap-2 px-5 py-4" style={{ borderTop: `1px solid ${t.borderSubtle}` }}>
