@@ -136,7 +136,7 @@ export function resolveContradictions(sources: SourceBlock[]): ContradictionResu
 
   // Add any sources that don't contain any entities
   for (const source of sources) {
-    const hasEntities = sourceEntities.find(se => se.source === source)?.entities.size! > 0;
+    const hasEntities = (sourceEntities.find(se => se.source === source)?.entities.size ?? 0) > 0;
     if (!hasEntities) {
       keptSources.add(source);
     }

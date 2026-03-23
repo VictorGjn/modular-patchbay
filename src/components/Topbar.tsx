@@ -4,13 +4,13 @@ import { useVersionStore } from '../store/versionStore';
 import type { AgentVersion } from '../store/versionStore';
 import { useThemeStore } from '../store/themeStore';
 import { useTheme } from '../theme';
-import { Play, Square, Sun, Moon, Settings, ChevronDown, RotateCcw, ArrowLeft, GitCompare } from 'lucide-react';
+import { Play, Square, Sun, Moon, Settings, ChevronDown, RotateCcw, ArrowLeft, GitCompare, Upload } from 'lucide-react';
 import { VersionDiffView } from './VersionDiffView';
 
 
 
 
-export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => void; onBack?: () => void }) {
+export function Topbar({ onSettingsClick, onBack, onImport }: { onSettingsClick?: () => void; onBack?: () => void; onImport?: () => void }) {
   const running = useConsoleStore((s) => s.running);
   const run = useConsoleStore((s) => s.run);
   const agentMeta = useConsoleStore((s) => s.agentMeta);
@@ -130,7 +130,7 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
               >
                 <div className="p-2 max-h-80 overflow-y-auto">
                   {versions
-                    .slice(-5)
+                    .slice()
                     .reverse()
                     .map((version) => (
                       <div
@@ -176,10 +176,11 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
                                 }
                               }}
                               title={`Compare v${version.version} with current`}
+                              aria-label={`Compare version ${version.version} with current`}
                               className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border-none cursor-pointer"
                               style={{ background: t.surfaceElevated, color: t.textSecondary, border: `1px solid ${t.border}` }}
                             >
-                              <GitCompare size={10} />
+                              <GitCompare size={10} aria-hidden="true" />
                               Compare
                             </button>
                             <button
@@ -242,6 +243,23 @@ export function Topbar({ onSettingsClick, onBack }: { onSettingsClick?: () => vo
       )}
 
       <div className="flex-1" />
+
+      {/* Import agent */}
+      {onImport && (
+        <button
+          type="button"
+          onClick={onImport}
+          className="flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-medium cursor-pointer border-none"
+          style={{ background: 'transparent', color: t.textSecondary, border: `1px solid ${t.border}` }}
+          aria-label="Import agent from file"
+          title="Import agent"
+          onMouseEnter={e => { e.currentTarget.style.color = t.textPrimary; e.currentTarget.style.borderColor = t.textDim; }}
+          onMouseLeave={e => { e.currentTarget.style.color = t.textSecondary; e.currentTarget.style.borderColor = t.border; }}
+        >
+          <Upload size={12} aria-hidden="true" />
+          Import
+        </button>
+      )}
 
       {/* Settings */}
       <button

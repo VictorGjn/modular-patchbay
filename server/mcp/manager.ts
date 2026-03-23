@@ -12,7 +12,13 @@ interface McpConnection {
   tools: Array<{ name: string; description?: string; inputSchema?: unknown }>;
   connectedAt: number | null;
   lastError: string | null;
+  retryCount: number;
+  retryTimer: ReturnType<typeof setTimeout> | null;
 }
+
+const MAX_RETRIES = 5;
+const BACKOFF_BASE_MS = 1_000;
+const BACKOFF_MAX_MS = 30_000;
 
 export class McpManager {
   private connections = new Map<string, McpConnection>();
@@ -106,11 +112,40 @@ export class McpManager {
       tools: [],
       connectedAt: null,
       lastError: null,
+      retryCount: 0,
+      retryTimer: null,
     });
   }
 
   removeServer(id: string): void {
+    const conn = this.connections.get(id);
+    if (conn?.retryTimer) clearTimeout(conn.retryTimer);
     this.connections.delete(id);
+  }
+
+  private scheduleReconnect(id: string): void {
+    const conn = this.connections.get(id);
+    if (!conn) return;
+    if (conn.retryCount >= MAX_RETRIES) {
+      console.error(`[McpManager] "${id}" exceeded max retries (${MAX_RETRIES}), giving up`);
+      return;
+    }
+    const delayMs = Math.min(BACKOFF_BASE_MS * Math.pow(2, conn.retryCount), BACKOFF_MAX_MS);
+    conn.retryCount += 1;
+    console.log(`[McpManager] "${id}" will reconnect in ${delayMs}ms (attempt ${conn.retryCount}/${MAX_RETRIES})`);
+    conn.retryTimer = setTimeout(async () => {
+      const c = this.connections.get(id);
+      if (!c || c.status === 'connected') return;
+      try {
+        await this.connect(id);
+        c.retryCount = 0; // reset on success
+        console.log(`[McpManager] "${id}" reconnected successfully`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[McpManager] "${id}" reconnect attempt failed: ${msg}`);
+        this.scheduleReconnect(id);
+      }
+    }, delayMs);
   }
 
   getServer(id: string): McpConnection | undefined {
@@ -189,13 +224,15 @@ export class McpManager {
 
       client = new Client({ name: 'modular-studio', version: '1.0.0' });
 
-      // Handle process exit
+      // Handle process exit — attempt auto-reconnect with exponential backoff
       transport.onclose = () => {
         if (conn.status === 'connected') {
           conn.status = 'error';
           conn.lastError = 'Process exited unexpectedly';
           conn.client = null;
           conn.transport = null;
+          console.warn(`[McpManager] "${id}" process exited unexpectedly — scheduling reconnect`);
+          this.scheduleReconnect(id);
         }
       };
 
@@ -205,6 +242,8 @@ export class McpManager {
       conn.client = client;
       conn.transport = transport;
       conn.status = 'connected';
+      conn.retryCount = 0;
+      if (conn.retryTimer) { clearTimeout(conn.retryTimer); conn.retryTimer = null; }
       conn.tools = tools.map((t) => ({
         name: t.name,
         description: t.description,
@@ -254,6 +293,8 @@ export class McpManager {
     const conn = this.connections.get(id);
     if (!conn) throw new Error(`MCP server "${id}" not found`);
 
+    if (conn.retryTimer) { clearTimeout(conn.retryTimer); conn.retryTimer = null; }
+    conn.retryCount = 0;
     if (conn.client) {
       try { await conn.client.close(); } catch { /* ignore */ }
     }

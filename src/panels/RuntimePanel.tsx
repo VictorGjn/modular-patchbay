@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../theme';
 import { useRuntimeStore, type ExtractedFact, type RuntimeAgentState } from '../store/runtimeStore';
 import { Loader2, CheckCircle, XCircle, Clock, Brain, Maximize2, Minimize2, ChevronDown, ChevronRight, Copy, Check, Zap } from 'lucide-react';
@@ -183,13 +183,21 @@ export function RuntimeResults() {
   const completedAt = useRuntimeStore((s) => s.completedAt);
   const error = useRuntimeStore((s) => s.error);
   const [maximized, setMaximized] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  // Update 'now' every second while running so elapsed time stays live
+  useEffect(() => {
+    if (status !== 'running') return;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [status]);
 
   if (status === 'idle') return null;
 
   const elapsed = completedAt && startedAt
     ? ((completedAt - startedAt) / 1000).toFixed(1)
     : startedAt
-      ? ((Date.now() - startedAt) / 1000).toFixed(0)
+      ? ((now - startedAt) / 1000).toFixed(0)
       : '0';
 
   const content = (

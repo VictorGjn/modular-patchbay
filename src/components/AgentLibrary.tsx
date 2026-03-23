@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Clock, Bot, Search, Trash2, Copy, ArrowUpDown, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Clock, Bot, Search, Trash2, Copy, ArrowUpDown, CheckCircle, XCircle, Rocket } from 'lucide-react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { Button } from './ds/Button';
@@ -271,13 +271,42 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
-        {filteredTemplates.length === 0 && filteredAndSorted.length === 0 ? (
+        {/* First-launch welcome banner — shown when no saved agents and no search query */}
+        {agents.length === 0 && !debouncedQuery && !loading && (
+          <div
+            className="mb-6 flex items-start gap-4 p-5 rounded-xl"
+            style={{
+              background: t.isDark ? 'rgba(254,80,0,0.07)' : 'rgba(254,80,0,0.05)',
+              border: `1px solid ${t.isDark ? 'rgba(254,80,0,0.25)' : 'rgba(254,80,0,0.2)'}`,
+            }}
+          >
+            <Rocket size={28} style={{ color: '#FE5000', flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
+            <div>
+              <div className="text-base font-bold mb-1" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+                Welcome to Modular Studio
+              </div>
+              <div className="text-sm mb-3" style={{ color: t.textSecondary }}>
+                Build knowledge-rich AI agents with full context engineering. Start from a template below or create your own.
+              </div>
+              <button
+                type="button"
+                onClick={handleNewAgentClick}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-none cursor-pointer"
+                style={{ background: '#FE5000', color: '#fff' }}
+              >
+                <Plus size={14} aria-hidden="true" />
+                Get Started
+              </button>
+            </div>
+          </div>
+        )}
+        {filteredTemplates.length === 0 && filteredAndSorted.length === 0 && debouncedQuery ? (
           <EmptyState
             icon={<Search size={32} />}
             title="No results match your search"
             subtitle={`No results for "${debouncedQuery}" — try a different keyword`}
           />
-        ) : (
+        ) : filteredTemplates.length === 0 && filteredAndSorted.length === 0 ? null : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredTemplates.map((tpl) => (
               <TemplateCard key={tpl.id} {...tpl} onUse={handleUseTemplate} />
@@ -342,6 +371,7 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
                       <button
                         type="button"
                         title="Clone agent"
+                        aria-label={`Clone ${agent.name}`}
                         disabled={cloningId === agent.id}
                         onClick={(e) => handleClone(agent, e)}
                         className="flex items-center justify-center w-6 h-6 rounded cursor-pointer border-none bg-transparent transition-colors"
@@ -349,11 +379,12 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
                         onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.color = cloningId === agent.id ? t.textFaint : t.textDim; }}
                       >
-                        {cloningId === agent.id ? <span className="animate-spin text-[10px]">⟳</span> : <Copy size={13} />}
+                        {cloningId === agent.id ? <span className="animate-spin text-[10px]" aria-hidden="true">⟳</span> : <Copy size={13} aria-hidden="true" />}
                       </button>
                       <button
                         type="button"
                         title="Delete agent"
+                        aria-label={`Delete ${agent.name}`}
                         disabled={deletingId === agent.id}
                         onClick={(e) => { e.stopPropagation(); setDeleteTarget(agent); }}
                         className="flex items-center justify-center w-6 h-6 rounded cursor-pointer border-none bg-transparent transition-colors"
@@ -361,7 +392,7 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
                         onMouseEnter={(e) => { e.currentTarget.style.color = '#ff4d4f'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.color = deletingId === agent.id ? t.textFaint : t.textDim; }}
                       >
-                        {deletingId === agent.id ? <span className="animate-spin text-[10px]">⟳</span> : <Trash2 size={13} />}
+                        {deletingId === agent.id ? <span className="animate-spin text-[10px]" aria-hidden="true">⟳</span> : <Trash2 size={13} aria-hidden="true" />}
                       </button>
                     </div>
                   </div>

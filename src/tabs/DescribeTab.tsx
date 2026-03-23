@@ -9,7 +9,7 @@ import { getGhostSuggestions, type GhostSuggestion } from '../utils/ghostSuggest
 import V2PipelineProgress from '../components/V2PipelineProgress';
 import { ToolSuggestions } from '../components/ToolSuggestions';
 import type { V2GenerationResult } from '../services/metapromptV2Client';
-import { Lightbulb, Sparkles, Loader2, Check, X, Zap, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
+import { Lightbulb, Sparkles, Loader2, Check, X, Zap, ChevronDown, ChevronUp, BarChart2, Lock } from 'lucide-react';
 
 interface HealthMetrics {
   qualityScore: number | null;
@@ -388,49 +388,63 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
         )}
 
         {/* V2 Pipeline Toggle */}
-        {hasAgentSdk && prompt.trim().length >= MIN_CHARACTERS && (
+        {prompt.trim().length >= MIN_CHARACTERS && (
           <div className="mt-6">
             <div
-              className="flex items-center gap-3 p-4 rounded-lg cursor-pointer"
+              className="flex items-center gap-3 p-4 rounded-lg"
               style={{
-                background: useV2 ? '#FE500010' : t.surfaceElevated,
-                border: `1px solid ${useV2 ? '#FE500040' : t.border}`,
+                background: !hasAgentSdk ? t.surfaceElevated : (useV2 ? '#FE500010' : t.surfaceElevated),
+                border: `1px solid ${!hasAgentSdk ? t.border : (useV2 ? '#FE500040' : t.border)}`,
+                cursor: hasAgentSdk ? 'pointer' : 'not-allowed',
+                opacity: hasAgentSdk ? 1 : 0.7,
               }}
-              onClick={() => { if (!v2Running && !generating) setUseV2(!useV2); }}
+              onClick={() => { if (hasAgentSdk && !v2Running && !generating) setUseV2(!useV2); }}
+              title={!hasAgentSdk ? 'Requires Claude Code authentication — connect via Settings > Providers' : undefined}
             >
-              <Zap size={18} style={{ color: useV2 ? '#FE5000' : t.textSecondary }} />
+              {hasAgentSdk
+                ? <Zap size={18} style={{ color: useV2 ? '#FE5000' : t.textSecondary }} />
+                : <Lock size={18} style={{ color: t.textDim }} />}
               <div className="flex-1">
-                <div className="text-sm font-semibold" style={{ color: t.textPrimary }}>
+                <div className="text-sm font-semibold" style={{ color: hasAgentSdk ? t.textPrimary : t.textDim }}>
                   Research-Augmented Generation (V2)
+                  {!hasAgentSdk && (
+                    <span className="ml-2 text-[11px] font-normal px-1.5 py-0.5 rounded" style={{ background: t.surfaceElevated, color: t.textDim, border: `1px solid ${t.border}` }}>
+                      Requires Claude Code auth
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs mt-1" style={{ color: t.textSecondary }}>
-                  Names experts and methodologies? V2 will research and decompose them into executable workflow steps — not just mention them.
+                  {hasAgentSdk
+                    ? 'Names experts and methodologies? V2 will research and decompose them into executable workflow steps — not just mention them.'
+                    : 'Connect Claude Code in Settings > Providers to unlock Research-Augmented Generation.'}
                 </div>
               </div>
-              <div
-                style={{
-                  width: 40,
-                  height: 22,
-                  borderRadius: 11,
-                  background: useV2 ? '#FE5000' : t.border,
-                  position: 'relative',
-                  transition: 'background 0.2s',
-                }}
-              >
+              {hasAgentSdk && (
                 <div
                   style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 9,
-                    background: '#fff',
-                    position: 'absolute',
-                    top: 2,
-                    left: useV2 ? 20 : 2,
-                    transition: 'left 0.2s',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    width: 40,
+                    height: 22,
+                    borderRadius: 11,
+                    background: useV2 ? '#FE5000' : t.border,
+                    position: 'relative',
+                    transition: 'background 0.2s',
                   }}
-                />
-              </div>
+                >
+                  <div
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      background: '#fff',
+                      position: 'absolute',
+                      top: 2,
+                      left: useV2 ? 20 : 2,
+                      transition: 'left 0.2s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             {/* V2 Pipeline Progress */}

@@ -27,4 +27,7 @@ RUN addgroup --system appuser && adduser --system --ingroup appuser appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://localhost:4800/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+
 CMD ["node", "dist-server/server/index.js"]

@@ -128,7 +128,7 @@ export function VersionDiffView({ versionA, versionB, onClose }: Props) {
   const toggleSection = (cat: DiffCategory) => {
     setCollapsed(prev => {
       const next = new Set(prev);
-      next.has(cat) ? next.delete(cat) : next.add(cat);
+      if (next.has(cat)) { next.delete(cat); } else { next.add(cat); }
       return next;
     });
   };
