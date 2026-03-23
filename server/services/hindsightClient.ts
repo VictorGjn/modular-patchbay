@@ -1,5 +1,6 @@
 // Hindsight client is optional — install @vectorize-io/hindsight-client to enable
 let HindsightClient: any;
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 try { HindsightClient = require('@vectorize-io/hindsight-client').HindsightClient; } catch { /* not installed */ }
 
 interface RecallResult { id?: string; content: string; type?: string | null }

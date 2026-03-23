@@ -232,7 +232,9 @@ async function fetchSkillsCatalog(signal?: AbortSignal): Promise<SkillCatalogEnt
     return _catalogCache.data;
   }
 
-  const res = await fetch('https://skills.sh/', {
+  // Use backend proxy to avoid CORS issues with skills.sh
+  const proxyUrl = typeof window !== 'undefined' ? '/api/skills/search?q=' : 'https://skills.sh/';
+  const res = await fetch(proxyUrl, {
     headers: { 'User-Agent': 'modular-patchbay/1.0' },
     signal: signal ?? AbortSignal.timeout(8000),
   });

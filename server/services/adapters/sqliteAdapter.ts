@@ -1,5 +1,5 @@
 import initSqlJs, { Database } from 'sql.js';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import type { Fact } from '../../../src/store/memoryStore.js';
@@ -32,7 +32,7 @@ export class SqliteAdapter implements StorageAdapter {
       // Rename corrupt file for debugging, start fresh
       if (existsSync(MEMORY_DB_PATH)) {
         const backup = MEMORY_DB_PATH + '.corrupt.' + Date.now();
-        try { require('node:fs').renameSync(MEMORY_DB_PATH, backup); } catch { /* best effort */ }
+        try { renameSync(MEMORY_DB_PATH, backup); } catch { /* best effort */ }
       }
       this.db = new SQL.Database();
     }

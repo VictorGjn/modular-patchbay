@@ -56,6 +56,7 @@ async function main(): Promise<void> {
       case '-h':
         printUsage();
         process.exit(0);
+        break; // eslint: no-fallthrough
 
       case '--transport':
         if (i + 1 >= args.length) {

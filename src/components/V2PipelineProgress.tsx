@@ -21,9 +21,10 @@ interface V2PipelineProgressProps {
 
 interface PhaseState {
   phase: string;
-  status: 'pending' | 'running' | 'complete' | 'failed';
+  status: 'pending' | 'running' | 'complete' | 'failed' | 'warning';
   elapsed?: number;
   toolCount?: number;
+  warningMessage?: string;
 }
 
 const PHASE_ORDER = ['parse', 'tool_discovery', 'research', 'pattern', 'context', 'assemble', 'evaluate'];
@@ -120,6 +121,15 @@ export default function V2PipelineProgress({
             });
           });
         },
+        onPhaseWarning: (phase: string, message: string) => {
+          setPhases((prev) => {
+            const idx = PHASE_ORDER.indexOf(phase);
+            return prev.map((p, i) => {
+              if (i === idx) return { ...p, status: 'warning', warningMessage: message };
+              return p;
+            });
+          });
+        },
       };
 
       const pipelineResult = await runV2Pipeline(prompt, pipelineOpts);
@@ -210,6 +220,7 @@ export default function V2PipelineProgress({
             const isActive = p.status === 'running';
             const isDone = p.status === 'complete';
             const isFailed = p.status === 'failed';
+            const isWarning = p.status === 'warning';
 
             return (
               <div
@@ -227,7 +238,7 @@ export default function V2PipelineProgress({
                 }}
               >
                 <span style={{ fontSize: 18, minWidth: 24, textAlign: 'center' }}>
-                  {isDone ? '✅' : isFailed ? '❌' : isActive ? '⏳' : meta?.icon ?? '○'}
+                  {isDone ? '✅' : isFailed ? '❌' : isWarning ? '⚠️' : isActive ? '⏳' : meta?.icon ?? '○'}
                 </span>
 
                 <div style={{ flex: 1 }}>
@@ -237,6 +248,11 @@ export default function V2PipelineProgress({
                   <div style={{ fontSize: 12, color: t.textSecondary, marginTop: 2 }}>
                     {meta?.description ?? ''}
                   </div>
+                  {isWarning && p.warningMessage && (
+                    <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
+                      ⚠ {p.warningMessage}
+                    </div>
+                  )}
                 </div>
 
                 {p.phase === 'tool_discovery' && p.status === 'complete' && p.toolCount != null && (
