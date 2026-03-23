@@ -855,10 +855,28 @@ export const useConsoleStore = create<ConsoleState>()(
     set({ suggestedSkills: get().suggestedSkills.filter((s) => s.id !== id) });
   },
 
-  installRegistrySkill: (id: string, target: Runtime | 'all', scope: InstallScope) => {
+  installRegistrySkill: (id: string, _target: Runtime | 'all', scope: InstallScope) => {
     const regSkill = get().registrySkills.find((s) => s.id === id);
+
+    // Actually install via backend (npx skills add or GitHub fallback)
+    fetch(`${API_BASE}/skills/install`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ skillId: regSkill?.installCmd?.replace('npx skills add ', '') || id, scope }),
+    }).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Install failed' }));
+        console.error(`[Skills] Install failed for ${id}:`, body.error);
+        return;
+      }
+      console.log(`[Skills] Installed ${id} (scope: ${scope})`);
+    }).catch((err) => {
+      console.error(`[Skills] Install error for ${id}:`, err);
+    });
+
+    // Optimistic UI update (will be persisted by backend on disk)
     const updatedRegistry = get().registrySkills.map((s) =>
-      s.id === id ? { ...s, installed: true, installedTarget: target, installedScope: scope } : s,
+      s.id === id ? { ...s, installed: true, installedScope: scope } : s,
     );
     const alreadyInSkills = get().skills.some((s) => s.id === id);
     const updatedSkills = alreadyInSkills ? get().skills : regSkill ? [...get().skills, {
