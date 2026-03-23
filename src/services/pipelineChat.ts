@@ -134,6 +134,7 @@ export interface PipelineChatStats {
     budgetTotal: number;
     retrievalMs: number;
     embeddingMs: number;
+    originalTokens?: number;
     chunks: Array<{
       section: string;
       source: string;
@@ -523,6 +524,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
             selectedChunks: retrievalResult.chunks.length, budgetUsed: retrievalResult.budgetUsed,
             budgetTotal: retrievalResult.budgetTotal, retrievalMs: retrievalResult.retrievalMs,
             embeddingMs: retrievalResult.embeddingMs,
+            originalTokens: retrievalResult.chunks.reduce((s, c) => s + (c.originalTokens ?? estimateTokens(c.content)), 0),
             chunks: retrievalResult.chunks.map(chunk => ({
               section: chunk.section, source: chunk.source, relevanceScore: chunk.relevanceScore || 0,
               inclusionReason: chunk.inclusionReason || 'unknown', knowledgeType: chunk.knowledgeType,

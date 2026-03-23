@@ -42,7 +42,7 @@ export interface FactAnalysisResult {
 
 function buildAnalysisPrompt(facts: Fact[]): string {
   const store = useConsoleStore.getState();
-  
+
   const context = [
     store.agentMeta.name && `Agent: ${store.agentMeta.name}`,
     store.agentMeta.description && `Description: ${store.agentMeta.description}`,
@@ -71,7 +71,7 @@ Analyze each fact and determine if it should be PROMOTED from runtime memory int
 
 Promotion targets:
 - "instruction": Fact describes HOW the agent should behave → append to persona or instructions
-- "constraint": Fact is a rule or limitation → add as a constraint  
+- "constraint": Fact is a rule or limitation → add as a constraint
 - "workflow": Fact describes a recurring process → add as a workflow step
 - "knowledge": Fact points to a data source the agent needs → add as knowledge source
 - "mcp": Fact mentions a tool/API the agent should use → suggest MCP server
@@ -114,7 +114,9 @@ Rules:
 
 async function callLLM(prompt: string): Promise<string> {
   const store = useProviderStore.getState();
-  const provider = store.providers.find(p => p.id === store.selectedProviderId);
+  const connectedProviders = store.providers.filter((p: any) => p.models && p.models.length > 0);
+  const provider = store.providers.find(p => p.id === store.selectedProviderId && connectedProviders.includes(p))
+    || connectedProviders[0];
   if (!provider) throw new Error('No provider configured — add one in Settings');
 
   const model = typeof provider.models?.[0] === 'object'

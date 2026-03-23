@@ -24,11 +24,11 @@ Given the user's rough input, produce a JSON response with this exact structure:
 }
 
 Follow these rules:
-1. Be specific — replace vague descriptions with concrete, actionable language
+1. Be specific - replace vague descriptions with concrete, actionable language
 2. Use XML-tag-friendly language (the output will be assembled into a system prompt)
 3. Infer reasonable constraints from the domain (e.g., a medical agent should cite sources)
 4. Generate 2-4 success criteria and 2-3 failure modes based on the domain
-5. Keep the persona concise but distinctive — give it a clear identity
+5. Keep the persona concise but distinctive - give it a clear identity
 6. If the input mentions tools, APIs, or specific capabilities, reference them in constraints
 7. Think step by step about what makes an excellent agent for this use case before writing
 
@@ -36,7 +36,7 @@ Output ONLY the JSON object. No markdown fences, no explanation.`;
 
 const REFINE_FIELD_PROMPTS: Record<string, string> = {
   persona: `You are an expert prompt engineer. Transform this rough persona description into a clear, specific 2-4 sentence persona. Use "You are..." framing. Be concrete about expertise, domain knowledge, and communication style. Output ONLY the refined persona text.`,
-  constraints: `You are an expert prompt engineer. Transform these rough constraint notes into clear, actionable rules — one per line, imperative voice. Remove redundancy, sharpen vague rules, infer reasonable additions from the domain. Output ONLY the constraints, one per line.`,
+  constraints: `You are an expert prompt engineer. Transform these rough constraint notes into clear, actionable rules - one per line, imperative voice. Remove redundancy, sharpen vague rules, infer reasonable additions from the domain. Output ONLY the constraints, one per line.`,
   scope: `You are an expert prompt engineer. Transform this rough scope description into a clear one-sentence definition of what the agent handles and what it does NOT handle. Output ONLY the scope sentence.`,
 };
 
@@ -62,7 +62,9 @@ export async function refineField(
   if (!userInput.trim()) throw new Error('Nothing to refine');
 
   const store = useProviderStore.getState();
-  const provider = store.providers.find(p => p.id === store.selectedProviderId);
+  const connectedProviders = store.providers.filter(p => p.models && p.models.length > 0);
+  const provider = store.providers.find(p => p.id === store.selectedProviderId && connectedProviders.includes(p))
+    || connectedProviders[0];
   if (!provider) throw new Error('No provider configured — add one in Settings');
 
   const model = typeof provider.models?.[0] === 'object'
