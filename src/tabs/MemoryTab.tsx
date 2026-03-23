@@ -768,16 +768,16 @@ export function MemoryTab() {
           {/* Response Cache */}
           <Section
             icon={Zap} label="Response Cache" color="#FE5000"
-            badge={responseCache.enabled ? `enabled · TTL ${responseCache.ttlSeconds}s` : 'disabled'}
+            badge={responseCache?.enabled ? `enabled · TTL ${responseCache.ttlSeconds}s` : 'disabled'}
             collapsed={cacheCollapsed} onToggle={() => setCacheCollapsed(!cacheCollapsed)}
           >
             <div className="space-y-4">
               <Toggle
-                checked={responseCache.enabled}
+                checked={responseCache?.enabled ?? false}
                 onChange={v => setResponseCacheConfig({ enabled: v })}
                 label="Enable semantic response caching"
               />
-              {responseCache.enabled && (
+              {responseCache?.enabled && (
                 <>
                   <SliderRow
                     label="TTL"

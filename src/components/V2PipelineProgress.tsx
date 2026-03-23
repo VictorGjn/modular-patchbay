@@ -1,0 +1,342 @@
+/**
+ * V2 Pipeline Progress — real-time visualization of the 6-phase
+ * research-augmented agent generation pipeline.
+ */
+import { useState, useCallback } from 'react';
+import { useTheme } from '../theme';
+import {
+  streamV2Generation,
+  PHASE_LABELS,
+  PATTERN_DESCRIPTIONS,
+  type V2PhaseEvent,
+  type V2GenerationResult,
+} from '../services/metapromptV2Client';
+
+interface V2PipelineProgressProps {
+  prompt: string;
+  onComplete: (result: V2GenerationResult) => void;
+  onError: (error: string) => void;
+  tokenBudget?: number;
+}
+
+interface PhaseState {
+  phase: string;
+  status: 'pending' | 'running' | 'complete' | 'failed';
+  elapsed?: number;
+  toolCount?: number;
+}
+
+const PHASE_ORDER = ['parse', 'tool_discovery', 'research', 'pattern', 'context', 'assemble', 'evaluate'];
+
+export default function V2PipelineProgress({
+  prompt,
+  onComplete,
+  onError,
+  tokenBudget,
+}: V2PipelineProgressProps) {
+  const t = useTheme();
+  const [phases, setPhases] = useState<PhaseState[]>(
+    PHASE_ORDER.map((p) => ({ phase: p, status: 'pending' }))
+  );
+  const [_currentPhase, setCurrentPhase] = useState<string>('start');
+  const [result, setResult] = useState<V2GenerationResult | null>(null);
+  const [running, setRunning] = useState(false);
+  const [totalElapsed, setTotalElapsed] = useState(0);
+
+  const run = useCallback(async () => {
+    if (running) return;
+    setRunning(true);
+    setResult(null);
+    setPhases(PHASE_ORDER.map((p) => ({ phase: p, status: 'pending' })));
+    setCurrentPhase('start');
+
+    try {
+      const res = await streamV2Generation(
+        prompt,
+        (event: V2PhaseEvent) => {
+          setCurrentPhase(event.phase);
+
+          if (event.phase === 'start') {
+            // Mark first phase as running
+            setPhases((prev) =>
+              prev.map((p, i) => (i === 0 ? { ...p, status: 'running' } : p))
+            );
+            return;
+          }
+
+          if (event.status === 'running' && PHASE_ORDER.includes(event.phase)) {
+            setPhases((prev) => {
+              const idx = PHASE_ORDER.indexOf(event.phase);
+              return prev.map((p, i) => {
+                if (i === idx && p.status === 'pending') return { ...p, status: 'running' };
+                return p;
+              });
+            });
+          }
+
+          if (event.status === 'complete' && event.phase !== 'done') {
+            setPhases((prev) => {
+              const idx = PHASE_ORDER.indexOf(event.phase);
+              return prev.map((p, i) => {
+                if (i === idx) {
+                  const toolCount = event.phase === 'tool_discovery' ? (event.tools?.length ?? 0) : undefined;
+                  return { ...p, status: 'complete', elapsed: event.elapsed, toolCount };
+                }
+                // Only advance pending phases — don't overwrite already-complete ones
+                if (i === idx + 1 && p.status === 'pending') return { ...p, status: 'running' };
+                return p;
+              });
+            });
+          }
+
+          if (event.phase === 'done' && event.result) {
+            setPhases((prev) => prev.map((p) => ({ ...p, status: 'complete' })));
+            setTotalElapsed(event.result.timing.total ?? 0);
+          }
+        },
+        tokenBudget,
+      );
+
+      setResult(res);
+      onComplete(res);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Pipeline failed';
+      onError(msg);
+      setPhases((prev) =>
+        prev.map((p) => (p.status === 'running' ? { ...p, status: 'failed' } : p))
+      );
+    } finally {
+      setRunning(false);
+    }
+  }, [prompt, tokenBudget, onComplete, onError, running]);
+
+  const completedCount = phases.filter((p) => p.status === 'complete').length;
+  const progressPercent = (completedCount / PHASE_ORDER.length) * 100;
+
+  return (
+    <div style={{ background: t.surfaceElevated, borderRadius: 12, padding: 24, border: `1px solid ${t.border}` }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div>
+          <h3 style={{ margin: 0, color: t.textPrimary, fontSize: 16, fontWeight: 600 }}>
+            Research-Augmented Generation
+          </h3>
+          <p style={{ margin: '4px 0 0', color: t.textSecondary, fontSize: 13 }}>
+            7-phase pipeline: parse → tools → research → pattern → context → assemble → evaluate
+          </p>
+        </div>
+        {!running && !result && (
+          <button
+            onClick={run}
+            style={{
+              background: '#FE5000',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '10px 20px',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Generate V2 Agent
+          </button>
+        )}
+        {totalElapsed > 0 && (
+          <span style={{ color: t.textSecondary, fontSize: 12 }}>
+            Total: {(totalElapsed / 1000).toFixed(1)}s
+          </span>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      {(running || result) && (
+        <div style={{ background: t.border, borderRadius: 6, height: 6, marginBottom: 20, overflow: 'hidden' }}>
+          <div
+            style={{
+              background: '#FE5000',
+              height: '100%',
+              width: `${progressPercent}%`,
+              borderRadius: 6,
+              transition: 'width 0.3s ease',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Phase list */}
+      {(running || result) && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {phases.map((p) => {
+            const meta = PHASE_LABELS[p.phase];
+            const isActive = p.status === 'running';
+            const isDone = p.status === 'complete';
+            const isFailed = p.status === 'failed';
+
+            return (
+              <div
+                key={p.phase}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  background: isActive ? '#FE500010' : 'transparent',
+                  border: isActive ? '1px solid #FE500030' : '1px solid transparent',
+                  opacity: p.status === 'pending' ? 0.4 : 1,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {/* Status icon */}
+                <span style={{ fontSize: 18, minWidth: 24, textAlign: 'center' }}>
+                  {isDone ? '✅' : isFailed ? '❌' : isActive ? '⏳' : meta?.icon ?? '○'}
+                </span>
+
+                {/* Label + description */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: t.textPrimary }}>
+                    {meta?.label ?? p.phase}
+                  </div>
+                  <div style={{ fontSize: 12, color: t.textSecondary, marginTop: 2 }}>
+                    {meta?.description ?? ''}
+                  </div>
+                </div>
+
+                {/* Tool count badge for tool_discovery */}
+                {p.phase === 'tool_discovery' && p.status === 'complete' && p.toolCount != null && (
+                  <span style={{
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 10,
+                    background: p.toolCount > 0 ? '#FE500020' : t.surfaceElevated,
+                    color: p.toolCount > 0 ? '#FE5000' : t.textSecondary,
+                    fontWeight: 600,
+                    border: `1px solid ${p.toolCount > 0 ? '#FE500040' : t.border}`,
+                  }}>
+                    {p.toolCount > 0 ? `💡 ${p.toolCount} tool${p.toolCount !== 1 ? 's' : ''}` : 'No matches'}
+                  </span>
+                )}
+
+                {/* Timing */}
+                {p.elapsed != null && p.phase !== 'tool_discovery' && (
+                  <span style={{ fontSize: 12, color: t.textSecondary, fontFamily: 'monospace' }}>
+                    {(p.elapsed / 1000).toFixed(1)}s
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Result summary */}
+      {result && (
+        <div style={{ marginTop: 20, padding: 16, borderRadius: 8, background: t.surface, border: `1px solid ${t.border}` }}>
+          <h4 style={{ margin: '0 0 12px', color: t.textPrimary, fontSize: 15, fontWeight: 600 }}>
+            {result.passed ? '✅ Generation passed all checks' : '⚠️ Generation completed with warnings'}
+          </h4>
+
+          {/* What was found */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <InfoCard
+              label="Role"
+              value={result.parsed.role}
+              color={t.textPrimary}
+              bg={t.surfaceElevated}
+            />
+            <InfoCard
+              label="Domain"
+              value={result.parsed.domain}
+              color={t.textPrimary}
+              bg={t.surfaceElevated}
+            />
+            <InfoCard
+              label="Experts Researched"
+              value={result.parsed.named_experts.join(', ') || 'None'}
+              color={t.textPrimary}
+              bg={t.surfaceElevated}
+            />
+            <InfoCard
+              label="Methodologies"
+              value={result.parsed.named_methodologies.join(', ') || 'None'}
+              color={t.textPrimary}
+              bg={t.surfaceElevated}
+            />
+          </div>
+
+          {/* Workflow pattern */}
+          <div style={{ padding: 12, borderRadius: 8, background: t.surfaceElevated, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, marginBottom: 4 }}>
+              Workflow Pattern: {result.pattern.pattern.replace(/_/g, ' ')}
+            </div>
+            <div style={{ fontSize: 12, color: t.textSecondary }}>
+              {PATTERN_DESCRIPTIONS[result.pattern.pattern] ?? result.pattern.justification}
+            </div>
+          </div>
+
+          {/* Evaluation criteria */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, marginBottom: 8 }}>
+              Quality Checks
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {Object.entries(result.evaluation).map(([key, val]) => (
+                <span
+                  key={key}
+                  style={{
+                    fontSize: 11,
+                    padding: '4px 8px',
+                    borderRadius: 4,
+                    background: val.passed ? '#10b98120' : '#ef444420',
+                    color: val.passed ? '#10b981' : '#ef4444',
+                    fontWeight: 500,
+                  }}
+                >
+                  {val.passed ? '✓' : '✗'} {key.replace(/_/g, ' ')}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Warnings */}
+          {result.warnings.length > 0 && (
+            <div style={{ padding: 12, borderRadius: 8, background: '#fef3c720', border: '1px solid #fbbf2440' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', marginBottom: 6 }}>
+                Warnings ({result.warnings.length})
+              </div>
+              {result.warnings.map((w, i) => (
+                <div key={i} style={{ fontSize: 12, color: t.textSecondary, marginBottom: 4 }}>
+                  • {w}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Research notes */}
+          {result.research.notes.length > 0 && (
+            <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: t.surfaceElevated }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, marginBottom: 6 }}>
+                Research Notes
+              </div>
+              {result.research.notes.map((n, i) => (
+                <div key={i} style={{ fontSize: 12, color: t.textSecondary, marginBottom: 4 }}>
+                  {n}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InfoCard({ label, value, color, bg }: { label: string; value: string; color: string; bg: string }) {
+  return (
+    <div style={{ padding: 10, borderRadius: 6, background: bg }}>
+      <div style={{ fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color }}>{value}</div>
+    </div>
+  );
+}

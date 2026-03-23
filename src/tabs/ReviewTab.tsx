@@ -3,6 +3,8 @@ import { useConsoleStore } from '../store/consoleStore';
 import { useConversationStore } from '../store/conversationStore';
 import { useMemoryStore } from '../store/memoryStore';
 import { useVersionStore } from '../store/versionStore';
+import { useLessonStore } from '../store/lessonStore';
+import { useQualificationStore } from '../store/qualificationStore';
 import { exportAsAgent, downloadAgentFile, exportForTarget, exportGenericJSON, exportAsYAML } from '../utils/agentExport';
 import { type OutputFormat } from '../store/knowledgeBase';
 import { VersionIndicator } from '../components/VersionIndicator';
@@ -17,6 +19,8 @@ import { OutputConfigSection } from '../panels/review/OutputConfigSection';
 import { ExportActions } from '../panels/review/ExportActions';
 import { FactInsightsSection } from '../panels/review/FactInsightsSection';
 import { LessonsSection } from '../panels/review/LessonsSection';
+import { CostIntelligenceSection } from '../panels/review/CostIntelligenceSection';
+import { AdaptiveContextSection } from '../panels/review/AdaptiveContextSection';
 import { PromptPreviewModal } from '../panels/review/PromptPreviewModal';
 
 export function ReviewTab() {
@@ -37,6 +41,7 @@ export function ReviewTab() {
   const skills = useConsoleStore(s => s.skills);
   // saveStatus is read by ExportActions — use a shallow selector to prevent re-render cascades
   const saveStatus = useVersionStore(s => s.saveStatus);
+  const agentId = useVersionStore(s => s.agentId) ?? '';
 
   // Local state for collapsible sections
   const [identityCollapsed, setIdentityCollapsed] = useState(false);
@@ -93,42 +98,88 @@ export function ReviewTab() {
     };
   }, [channels, selectedModel, outputFormat, outputFormats, prompt, tokenBudget, mcpServers, skills, agentMeta, workflowSteps]);
 
+  // Fetch performance summary for export enrichment
+  const fetchPerformanceSummary = useCallback(async () => {
+    const lessons = useLessonStore.getState().lessons;
+    const qualRuns = useQualificationStore.getState().runs;
+    const suite = useQualificationStore.getState().suite;
+
+    const approvedLessons = lessons.filter((l) => l.agentId === agentId && l.status === 'approved');
+    const avgConf = approvedLessons.length > 0
+      ? approvedLessons.reduce((s, l) => s + l.confidence, 0) / approvedLessons.length
+      : 0;
+    const latestScore = qualRuns.length > 0 ? qualRuns[qualRuns.length - 1].globalScore : null;
+
+    const knowledgeSources = channels.filter((ch) => ch.enabled).length;
+    const knowledgeTokens = channels.filter((ch) => ch.enabled).reduce((s, ch) => s + (ch.baseTokens ?? 0), 0);
+
+    let avgCostPerRun = 0;
+    let cacheHitPct = 0;
+    let topModel = selectedModel || '';
+    try {
+      const costRes = await fetch(`/api/cost/${agentId}/summary`).then((r) => r.json());
+      if (costRes?.data) {
+        avgCostPerRun = costRes.data.avgCostPerRun ?? 0;
+        cacheHitPct = costRes.data.cacheHitPct ?? 0;
+        const breakdown: Record<string, { count: number }> = costRes.data.modelBreakdown ?? {};
+        const topEntry = Object.entries(breakdown).sort((a, b) => b[1].count - a[1].count)[0];
+        if (topEntry) topModel = topEntry[0];
+      }
+    } catch { /* ignore */ }
+
+    return {
+      knowledgeSources,
+      knowledgeTokens,
+      lessonsCount: approvedLessons.length,
+      avgConfidence: avgConf,
+      avgCostPerRun,
+      topModel,
+      cacheHitPct,
+      qualityScore: latestScore,
+      testCasesCount: suite.testCases.length,
+    };
+  }, [agentId, channels, selectedModel]);
+
   // Export handlers
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     const config = collectFullState();
-    const content = exportAsAgent(config);
+    const performanceSummary = await fetchPerformanceSummary();
+    const enriched = { ...config, performanceSummary };
+    const content = exportAsAgent(enriched);
     const name = content.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? 'modular-agent';
     downloadAgentFile(content, name);
-  }, [collectFullState]);
+  }, [collectFullState, fetchPerformanceSummary]);
 
-  const handleExportFormat = useCallback((format: string) => {
+  const handleExportFormat = useCallback(async (format: string) => {
     const config = collectFullState();
-    const agentName = config.agentMeta.name || 'modular-agent';
-    
+    const performanceSummary = await fetchPerformanceSummary();
+    const enriched = { ...config, performanceSummary };
+    const agentName = enriched.agentMeta.name || 'modular-agent';
+
     switch (format) {
       case 'JSON': {
-        const content = exportGenericJSON(config);
+        const content = exportGenericJSON(enriched);
         downloadAgentFile(content, agentName, '.json');
         break;
       }
       case 'YAML': {
-        const content = exportAsYAML(config);
+        const content = exportAsYAML(enriched);
         downloadAgentFile(content, agentName, '.yaml');
         break;
       }
       case 'Markdown':
       case 'Claude format': {
-        const content = exportForTarget('claude', config);
+        const content = exportForTarget('claude', enriched);
         downloadAgentFile(content, agentName, '.md');
         break;
       }
       case 'OpenAI format': {
-        const content = exportForTarget('codex', config);
+        const content = exportForTarget('codex', enriched);
         downloadAgentFile(content, agentName, '.json');
         break;
       }
     }
-  }, [collectFullState]);
+  }, [collectFullState, fetchPerformanceSummary]);
 
   // Constraint helpers
   const { constraints } = instructionState;
@@ -275,6 +326,12 @@ export function ReviewTab() {
 
       {/* Lessons — auto-extracted rules from user corrections */}
       <LessonsSection />
+
+      {/* Cost Intelligence — model routing, estimation, budget tracking */}
+      <CostIntelligenceSection />
+
+      {/* Smart Retrieval — adaptive context refinement */}
+      <AdaptiveContextSection />
 
       {/* Version indicator */}
       <div className="mt-4">

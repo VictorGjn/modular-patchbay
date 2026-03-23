@@ -229,8 +229,12 @@ export function LocalFilesPanel() {
         </button>
       </div>
 
-      {/* File list */}
-      <div className="space-y-3">
+      {/* File list — responsive grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+        gap: '12px',
+      }}>
         {channels.map(ch => {
           const depth = ch.depth || 100; // 10-100%
           const knowledgeType = KNOWLEDGE_TYPES[ch.knowledgeType];
@@ -243,7 +247,8 @@ export function LocalFilesPanel() {
             <div key={ch.sourceId} className="p-3 rounded border"
               style={{ 
                 borderColor: ch.enabled ? t.border : t.borderSubtle,
-                background: ch.enabled ? (t.isDark ? '#ffffff05' : '#00000005') : (t.isDark ? '#ffffff02' : '#00000002')
+                background: ch.enabled ? (t.isDark ? '#ffffff05' : '#00000005') : (t.isDark ? '#ffffff02' : '#00000002'),
+                maxWidth: 520,
               }}>
               
               {/* Header: name, type badge, tokens, actions */}

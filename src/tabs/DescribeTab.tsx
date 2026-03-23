@@ -2,10 +2,147 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useProviderStore } from '../store/providerStore';
+import { useVersionStore } from '../store/versionStore';
 import { TextArea } from '../components/ds/TextArea';
 import { generateFullAgent, type GeneratedAgentConfig } from '../utils/generateAgent';
 import { getGhostSuggestions, type GhostSuggestion } from '../utils/ghostSuggestions';
-import { Lightbulb, Sparkles, Loader2, Check, X, Settings } from 'lucide-react';
+import V2PipelineProgress from '../components/V2PipelineProgress';
+import { ToolSuggestions } from '../components/ToolSuggestions';
+import type { V2GenerationResult } from '../services/metapromptV2Client';
+import { Lightbulb, Sparkles, Loader2, Check, X, Settings, Zap, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react';
+
+interface HealthMetrics {
+  qualityScore: number | null;
+  avgCostPerRun: number;
+  cacheHitPct: number;
+  lessonCount: number;
+  avgConfidence: number;
+  lessonsThisWeek: number;
+}
+
+function AgentHealthBar() {
+  const t = useTheme();
+  const agentId = useVersionStore((s) => s.agentId) ?? '';
+  const [metrics, setMetrics] = useState<HealthMetrics | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (!agentId) return;
+    setLoading(true);
+    try {
+    Promise.allSettled([
+      fetch(`/api/qualification/${agentId}/history`).then((r) => r.json()),
+      fetch(`/api/cost/${agentId}/summary`).then((r) => r.json()),
+      fetch(`/api/lessons/${agentId}`).then((r) => r.json()),
+    ]).then(([qualRes, costRes, lessonsRes]) => {
+      const qualData = qualRes.status === 'fulfilled' ? qualRes.value : null;
+      const costData = costRes.status === 'fulfilled' ? costRes.value : null;
+      const lessonsData = lessonsRes.status === 'fulfilled' ? lessonsRes.value : null;
+
+      const runs: Array<{ globalScore: number }> = qualData?.data ?? [];
+      const latestScore = runs.length > 0 ? (runs[runs.length - 1]?.globalScore ?? null) : null;
+
+      const costSummary = costData?.data ?? {};
+
+      const instincts: Array<{ status?: string; confidence?: number; lastSeenAt?: string }> = lessonsData?.instincts ?? [];
+      const approved = instincts.filter((l) => l.status === 'approved');
+      const avgConf = approved.length > 0
+        ? approved.reduce((s, l) => s + (l.confidence ?? 0), 0) / approved.length
+        : 0;
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const recentCount = instincts.filter((l) => new Date(l.lastSeenAt ?? 0).getTime() > weekAgo).length;
+
+      setMetrics({
+        qualityScore: latestScore,
+        avgCostPerRun: costSummary.avgCostPerRun ?? 0,
+        cacheHitPct: costSummary.cacheHitPct ?? 0,
+        lessonCount: approved.length,
+        avgConfidence: avgConf,
+        lessonsThisWeek: recentCount,
+      });
+    }).finally(() => setLoading(false));
+    } catch { setLoading(false); }
+  }, [agentId]);
+
+  const hasData = metrics !== null && (
+    metrics.qualityScore !== null || metrics.avgCostPerRun > 0 || metrics.lessonCount > 0
+  );
+
+  const cardStyle = {
+    background: t.surface,
+    border: `1px solid ${t.border}`,
+    borderRadius: 8,
+    padding: '12px 16px',
+    fontFamily: "'Geist Sans', sans-serif",
+  };
+
+  return (
+    <div style={cardStyle}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <BarChart2 size={14} style={{ color: '#FE5000' }} />
+          <span className="text-sm font-semibold" style={{ color: t.textPrimary }}>📊 Agent Health</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="border-none bg-transparent cursor-pointer p-0.5"
+          style={{ color: t.textDim }}
+        >
+          {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+        </button>
+      </div>
+
+      {!collapsed && (
+        loading ? (
+          <p className="text-xs m-0" style={{ color: t.textDim }}>Loading health metrics…</p>
+        ) : !hasData ? (
+          <p className="text-xs m-0" style={{ color: t.textDim }}>Run tests to see agent health metrics</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-4">
+              <div>
+                <span className="text-xs" style={{ color: t.textDim }}>Quality </span>
+                <span className="text-xs font-semibold" style={{ color: t.textPrimary }}>
+                  {metrics!.qualityScore !== null ? `${metrics!.qualityScore}/100` : 'N/A'}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs" style={{ color: t.textDim }}>Cost </span>
+                <span className="text-xs font-semibold" style={{ color: t.textPrimary }}>
+                  {metrics!.avgCostPerRun > 0 ? `$${metrics!.avgCostPerRun.toFixed(4)}/run` : 'N/A'}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs" style={{ color: t.textDim }}>Learning </span>
+                <span className="text-xs font-semibold" style={{ color: t.textPrimary }}>
+                  {metrics!.lessonCount > 0
+                    ? `${metrics!.lessonCount} lesson${metrics!.lessonCount !== 1 ? 's' : ''} (${Math.round(metrics!.avgConfidence * 100)}% avg)`
+                    : 'No lessons yet'}
+                </span>
+              </div>
+            </div>
+            {(metrics!.lessonsThisWeek > 0 || metrics!.cacheHitPct > 0) && (
+              <div className="flex gap-4 mt-2">
+                {metrics!.lessonsThisWeek > 0 && (
+                  <span className="text-xs" style={{ color: t.textDim }}>
+                    🧠 {metrics!.lessonsThisWeek} lesson{metrics!.lessonsThisWeek !== 1 ? 's' : ''} this week
+                  </span>
+                )}
+                {metrics!.cacheHitPct > 0 && (
+                  <span className="text-xs" style={{ color: t.textDim }}>
+                    💰 {Math.round(metrics!.cacheHitPct * 100)}% saved via caching
+                  </span>
+                )}
+              </div>
+            )}
+          </>
+        )
+      )}
+    </div>
+  );
+}
 
 const CHARACTER_LIMIT = 10000;
 const MIN_CHARACTERS = 20;
@@ -42,6 +179,12 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
   const ghostDebounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const dismissedIds = useRef<Set<string>>(new Set());
   const [ghostSuggestions, setGhostSuggestions] = useState<GhostSuggestion[]>([]);
+  const [useV2, setUseV2] = useState(true);
+  const [v2Running, setV2Running] = useState(false);
+  const [v2Result, setV2Result] = useState<V2GenerationResult | null>(null);
+
+  // Check if Agent SDK is available (needed for V2's WebSearch)
+  const hasAgentSdk = providers.some(p => p.authMethod === 'claude-agent-sdk' && (p.status === 'connected' || p.status === 'configured'));
 
   const headerStyles = {
     color: t.textPrimary,
@@ -158,6 +301,9 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
 
   return (
     <div className="space-y-6">
+      {/* Agent Health Bar */}
+      <AgentHealthBar />
+
       {/* Header */}
       <div>
         <h2 className="text-2xl font-semibold mb-2 m-0" style={headerStyles}>
@@ -241,7 +387,86 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
           </div>
         )}
 
+        {/* V2 Pipeline Toggle */}
+        {hasAgentSdk && prompt.trim().length >= MIN_CHARACTERS && (
+          <div className="mt-6">
+            <div
+              className="flex items-center gap-3 p-4 rounded-lg cursor-pointer"
+              style={{
+                background: useV2 ? '#FE500010' : t.surfaceElevated,
+                border: `1px solid ${useV2 ? '#FE500040' : t.border}`,
+              }}
+              onClick={() => { if (!v2Running && !generating) setUseV2(!useV2); }}
+            >
+              <Zap size={18} style={{ color: useV2 ? '#FE5000' : t.textSecondary }} />
+              <div className="flex-1">
+                <div className="text-sm font-semibold" style={{ color: t.textPrimary }}>
+                  Research-Augmented Generation (V2)
+                </div>
+                <div className="text-xs mt-1" style={{ color: t.textSecondary }}>
+                  Names experts and methodologies? V2 will research and decompose them into executable workflow steps — not just mention them.
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 40,
+                  height: 22,
+                  borderRadius: 11,
+                  background: useV2 ? '#FE5000' : t.border,
+                  position: 'relative',
+                  transition: 'background 0.2s',
+                }}
+              >
+                <div
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    background: '#fff',
+                    position: 'absolute',
+                    top: 2,
+                    left: useV2 ? 20 : 2,
+                    transition: 'left 0.2s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* V2 Pipeline Progress */}
+            {useV2 && (
+              <div className="mt-4">
+                <V2PipelineProgress
+                  prompt={prompt}
+                  tokenBudget={4000}
+                  onComplete={(result) => {
+                    setV2Result(result);
+                    setV2Running(false);
+                    // Auto-advance after viewing results
+                    setTimeout(() => {
+                      onNavigateToNext?.();
+                    }, 3000);
+                  }}
+                  onError={(error) => {
+                    setGenerationError(error);
+                    setV2Running(false);
+                  }}
+                />
+
+                {/* Tool Suggestions — shown after pipeline completes */}
+                {v2Result?.discoveredTools && v2Result.discoveredTools.length > 0 && (
+                  <ToolSuggestions
+                    tools={v2Result.discoveredTools}
+                    onNavigateToKnowledge={onNavigateToKnowledge}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Generate Explanation */}
+        {(!useV2 || !hasAgentSdk) && (
         <div className="mt-6 mb-4 text-center">
           <p 
             className="text-sm px-4"
@@ -250,6 +475,7 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
             Generate will use AI to create a complete agent configuration from your description — including persona, constraints, objectives, workflow, and tool selection.
           </p>
         </div>
+        )}
 
         {/* Provider setup prompt */}
         {!hasProvider && (
@@ -262,7 +488,8 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
           </div>
         )}
 
-        {/* Generate Agent Button */}
+        {/* Generate Agent Button (V1 — shown when V2 is off) */}
+        {(!useV2 || !hasAgentSdk) && (
         <div className="mt-4 flex justify-center">
           <button
             type="button"
@@ -307,6 +534,7 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
             )}
           </button>
         </div>
+        )}
 
         {/* Generation Status */}
         {generationError && (

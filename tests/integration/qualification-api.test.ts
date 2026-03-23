@@ -11,6 +11,21 @@ vi.mock('../../server/config', () => ({
   }),
 }));
 
+/* ── Mock sqliteStore so sql.js is not needed in test env ── */
+vi.mock('../../server/services/sqliteStore', () => ({
+  saveQualificationRun: vi.fn().mockResolvedValue(undefined),
+  getQualificationHistory: vi.fn().mockResolvedValue([]),
+  getDb: vi.fn(),
+  saveDb: vi.fn(),
+}));
+
+/* ── Mock agentStore to avoid file system access ── */
+vi.mock('../../server/services/agentStore', () => ({
+  loadAgent: vi.fn().mockResolvedValue(null),
+  saveAgent: vi.fn().mockResolvedValue(undefined),
+  createAgentVersion: vi.fn().mockResolvedValue(undefined),
+}));
+
 /* ── Mock LLM fetch responses ── */
 const MOCK_SUITE_RESPONSE = {
   content: [{

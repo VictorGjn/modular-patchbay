@@ -279,12 +279,15 @@ describe('mcpStoreSync', () => {
         env: {},
       });
 
-      // Should return null on failure
-      expect(result).toBeNull();
+      // Store adds a local fallback even on API failure (offline-first behavior),
+      // so result is the fallback server object, not null.
+      expect(result).not.toBeNull();
+      expect(result?.id).toBe('failed-server');
 
-      // Store should remain empty
+      // Store should contain the fallback server
       const { servers } = useMcpStore.getState();
-      expect(servers).toHaveLength(0);
+      expect(servers).toHaveLength(1);
+      expect(servers[0].id).toBe('failed-server');
     });
   });
 
@@ -467,7 +470,9 @@ describe('mcpStoreSync', () => {
         env: {},
       });
 
-      expect(result).toBeNull();
+      // Store uses offline-first fallback even on network error
+      expect(result).not.toBeNull();
+      expect(result?.id).toBe('network-error');
     });
   });
 });

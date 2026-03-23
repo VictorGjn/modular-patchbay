@@ -30,14 +30,15 @@ import {
   type NavigationPlan,
   type BranchSelection,
 } from './treeNavigator';
-import { compress } from './compress';
+import { compressWithPriority } from './compress';
 import { estimateTokens } from './treeIndexer';
+import { classifyQuery } from './treeAwareRetriever';
 import { useTraceStore } from '../store/traceStore';
 import type { PipelineStageData, PipelineStageDataMap } from '../types/pipelineStageTypes';
 
 // ── Pipeline Event Emitters ──
 
-type PipelineStage = 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance';
+type PipelineStage = 'source_assembly' | 'budget_allocation' | 'retrieval' | 'contradiction_check' | 'provenance' | 'adaptive_retrieval';
 
 function emitPipelineStage(traceId: string, stage: PipelineStage, data: PipelineStageDataMap[PipelineStage], durationMs?: number) {
   const traceStore = useTraceStore.getState();
@@ -213,23 +214,27 @@ export function completePipeline(
   let compressionStats = { originalTokens: 0, compressedTokens: 0, ratio: 1, removals: { duplicates: 0, filler: 0, codeComments: 0 } };
 
   if (options.compression?.enabled !== false && assembled.content) {
-    // Compress with priority awareness
-    const blocks = assembled.breakdown.map(b => ({
-      content: assembled.content, // TODO: split by nodeId for per-block compression
+    // Compress each block independently based on its priority
+    const contentParts = assembled.content.split('\n\n---\n\n');
+    const blocks = assembled.breakdown.map((b, i) => ({
+      content: contentParts[i] ?? '',
       priority: selections.find(s => s.nodeId === b.nodeId)?.priority ?? 2,
     }));
 
     if (blocks.length > 0) {
-      const compressed = compress(assembled.content, {
-        tokenBudget: options.tokenBudget,
-        aggressiveness: options.compression?.aggressiveness ?? 0.5,
-      });
-      finalContent = compressed.content;
+      const { results } = compressWithPriority(blocks, options.tokenBudget);
+      finalContent = results.map(r => r.content).join('\n\n---\n\n');
+      const origTokens = results.reduce((s, r) => s + r.originalTokens, 0);
+      const compTokens = results.reduce((s, r) => s + r.compressedTokens, 0);
       compressionStats = {
-        originalTokens: compressed.originalTokens,
-        compressedTokens: compressed.compressedTokens,
-        ratio: compressed.ratio,
-        removals: compressed.removals,
+        originalTokens: origTokens,
+        compressedTokens: compTokens,
+        ratio: origTokens > 0 ? compTokens / origTokens : 1,
+        removals: {
+          duplicates: results.reduce((s, r) => s + r.removals.duplicates, 0),
+          filler: results.reduce((s, r) => s + r.removals.filler, 0),
+          codeComments: results.reduce((s, r) => s + r.removals.codeComments, 0),
+        },
       };
     } else {
       finalContent = assembled.content;
@@ -260,19 +265,24 @@ export function completePipeline(
     };
     emitPipelineStage(traceId, 'budget_allocation', budgetAllocationData);
 
-    // Retrieval stage (mock data for now)
+    // Retrieval stage — scores derived from navigator priority (0=critical→high relevance)
+    const priorityToRelevance = (p: number) => Math.max(0.5, 1.0 - p * 0.15);
+    const uniqueRoots = new Set(selections.map(s => s.nodeId.split('/')[0])).size;
+    const diversityScore = selections.length <= 1
+      ? 1.0
+      : Math.min(1.0, uniqueRoots / selections.length + 0.3);
     const retrievalData = {
       query: options.task || 'No query provided',
-      queryType: 'factual' as const,
+      queryType: classifyQuery(options.task || ''),
       chunks: selections.map((sel, i) => ({
-        source: `Source ${i + 1}`,
+        source: indexes[i % Math.max(1, indexes.length)]?.source ?? 'unknown',
         section: sel.nodeId,
-        relevanceScore: 0.8,
+        relevanceScore: priorityToRelevance(sel.priority),
         inclusionReason: 'direct' as const,
       })),
-      diversityScore: 0.7,
-      totalChunks: indexes.length * 3,
-      selectedChunks: selections.length,
+      diversityScore,
+      totalChunks: assembled.breakdown.length,
+      selectedChunks: assembled.breakdown.length,
     };
     emitPipelineStage(traceId, 'retrieval', retrievalData);
 
