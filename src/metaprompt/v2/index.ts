@@ -27,6 +27,8 @@ export interface PipelineOptions {
   tokenBudget?: number;
   /** Progress callback — called after each phase completes */
   onPhaseComplete?: (phase: string, elapsed: number) => void;
+  /** Warning callback — called when a phase fails non-fatally (e.g. tool discovery) */
+  onPhaseWarning?: (phase: string, message: string) => void;
   /** Already-installed IDs to exclude from suggestions */
   installed?: { skillIds: string[]; mcpIds: string[]; connectorIds: string[] };
 }
@@ -56,6 +58,7 @@ export async function runV2Pipeline(
   const tokenBudget = options.tokenBudget ?? 4000;
 
   const notify = options.onPhaseComplete ?? (() => {});
+  const warn = options.onPhaseWarning ?? ((phase: string, msg: string) => console.warn(`[V2:${phase}] ${msg}`));
 
   // Phase 1: Parse
   let t = Date.now();
@@ -67,7 +70,10 @@ export async function runV2Pipeline(
   const toolPromise = discoverTools(
     parsed,
     options.installed ?? { skillIds: [], mcpIds: [], connectorIds: [] },
-  ).catch(() => []);
+  ).catch((err) => {
+    warn('tool_discovery', err instanceof Error ? err.message : String(err));
+    return [];
+  });
 
   // Phase 2: Research
   t = Date.now();
