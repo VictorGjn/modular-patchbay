@@ -266,6 +266,8 @@ interface KnowledgePipelineOptions {
   navigationMode?: 'manual' | 'agent-driven' | 'tree-aware';
   providerId: string;
   model: string;
+  /** Max tokens for assembled knowledge. If set, caps the total context budget. */
+  tokenBudget?: number;
 }
 
 // ── Metadata-only fallback ──
@@ -448,7 +450,8 @@ export async function compressKnowledge(
 
   // 2d. Tree-aware retrieval path (NEW DEFAULT)
   if (navigationMode === 'tree-aware' && regularChannels.length > 0) {
-    const totalBudget = activeChannels.reduce((sum, ch) => sum + ch.baseTokens, 0);
+    const sourceBudget = activeChannels.reduce((sum, ch) => sum + ch.baseTokens, 0);
+    const totalBudget = options.tokenBudget ? Math.min(sourceBudget, options.tokenBudget) : sourceBudget;
     
     // Build tree indexes for tree-aware retrieval
     const indexedSources: { treeIndex: TreeIndex; knowledgeType: KnowledgeType }[] = [];
@@ -598,7 +601,8 @@ export async function compressKnowledge(
 
   // 2d. Run pipeline if we have indexed content (traditional pipeline or fallback)
   if (sourcesWithContent.length > 0 && (navigationMode !== 'tree-aware' || !knowledgeBlock)) {
-    const totalBudget = activeChannels.reduce((sum, ch) => sum + ch.baseTokens, 0);
+    const sourceBudget2 = activeChannels.reduce((sum, ch) => sum + ch.baseTokens, 0);
+    const totalBudget = options.tokenBudget ? Math.min(sourceBudget2, options.tokenBudget) : sourceBudget2;
 
     // Budget allocation - create BudgetSource[] from sourcesWithContent
     const depthByName = new Map<string, number>();
