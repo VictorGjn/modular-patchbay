@@ -5,6 +5,7 @@ import { FilePicker } from './components/FilePicker';
 import { SkillPicker } from './components/SkillPicker';
 import { Marketplace } from './components/Marketplace';
 import { ConnectionPicker } from './components/ConnectionPicker';
+import { ConnectorPicker } from './components/ConnectorPicker';
 // AgentViz moved to canvas node (AgentPreviewNode)
 import { SettingsPage } from './components/SettingsPage';
 import { SaveAgentModal } from './components/SaveAgentModal';
@@ -129,6 +130,7 @@ export default function App() {
       <FilePicker />
       <SkillPicker />
       <ConnectionPicker />
+      <ConnectorPicker />
       <Marketplace />
       <SettingsPage open={showSettings} onClose={() => setShowSettings(false)} />
       <SaveAgentModal />

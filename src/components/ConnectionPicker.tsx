@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useConsoleStore } from '../store/consoleStore';
-import type { ConnectorService } from '../store/knowledgeBase';
+
 import { useMcpStore } from '../store/mcpStore';
 
 import { McpIcon } from './icons/SectionIcons';
@@ -87,7 +87,6 @@ export function ConnectionPicker() {
   const showConnectionPicker = useConsoleStore((s) => s.showConnectionPicker);
   const setShowConnectionPicker = useConsoleStore((s) => s.setShowConnectionPicker);
   const connectors = useConsoleStore((s) => s.connectors);
-  const addConnector = useConsoleStore((s) => s.addConnector);
   const upsertMcpServer = useConsoleStore((s) => s.upsertMcpServer);
   const t = useTheme();
   
@@ -118,22 +117,6 @@ export function ConnectionPicker() {
     oauthEntries.forEach((entry) => {
       getMcpOAuthStatus(entry.url).then((s) => {
         setOauthStatuses((prev) => ({ ...prev, [entry.url]: s.connected }));
-        if (s.connected) {
-          const svc = entry.id as ConnectorService;
-          if (!useConsoleStore.getState().connectors.some((c) => c.service === svc)) {
-            addConnector({
-              id: `conn-${entry.id}-oauth`,
-              service: svc,
-              name: entry.name,
-              mcpServerId: entry.id,
-              direction: 'both',
-              enabled: true,
-              config: {},
-              status: 'connected',
-              authMethod: 'oauth',
-            });
-          }
-        }
       }).catch(() => {});
     });
   }, [showConnectionPicker]);
@@ -170,21 +153,6 @@ export function ConnectionPicker() {
       // Force refresh the MCP store to show the newly connected server
       const mcpStore = useMcpStore.getState();
       await mcpStore.loadServers();
-      
-      const svc = entry.id as ConnectorService;
-      if (!connectors.some((c) => c.service === svc)) {
-        addConnector({
-          id: `conn-${entry.id}-oauth-${Date.now()}`,
-          service: svc,
-          name: entry.name,
-          mcpServerId: entry.id,
-          direction: 'both',
-          enabled: true,
-          config: {},
-          status: 'connected',
-          authMethod: 'oauth',
-        });
-      }
     } catch (err) {
       setOauthErrors((prev) => ({ ...prev, [entry.url]: (err as Error).message }));
     } finally {
