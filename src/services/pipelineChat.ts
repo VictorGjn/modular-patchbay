@@ -102,6 +102,8 @@ export interface PipelineChatOptions {
   providerId: string;
   model: string;
   navigationMode?: 'manual' | 'agent-driven' | 'tree-aware';
+  /** Max tokens for knowledge context. Caps the retrieval budget. */
+  tokenBudget?: number;
   agentId?: string;
   sandboxRunId?: string;
   onChunk: (chunk: string) => void;
@@ -218,7 +220,7 @@ export async function runPipelineChat(options: PipelineChatOptions): Promise<voi
     // 3. Compress knowledge: pipeline + optional agent navigation
     let { knowledgeBlock, pipelineResult, provenance, retrievalResult } =
       activeChannels.length > 0
-        ? await compressKnowledge(channels, regularChannels, residualKnowledgeBlock, { userMessage, navigationMode: options.navigationMode, providerId, model }, traceId)
+        ? await compressKnowledge(channels, regularChannels, residualKnowledgeBlock, { userMessage, navigationMode: options.navigationMode, providerId, model, tokenBudget: options.tokenBudget ?? undefined }, traceId)
         : { knowledgeBlock: '', pipelineResult: null, provenance: null, retrievalResult: undefined };
 
     // 3a. Append connector references (services like Notion, Slack, HubSpot)

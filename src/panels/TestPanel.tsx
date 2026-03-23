@@ -582,6 +582,7 @@ function ChatSection() {
         providerId,
         model,
         navigationMode,
+        tokenBudget: useConsoleStore.getState().tokenBudget ?? undefined,
         onChunk: (chunk: string) => { accum += chunk; updateLastAssistant(accum); },
         onDone: (stats) => { 
           setLastPipelineStats(stats);
