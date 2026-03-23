@@ -4,6 +4,7 @@
  */
 import { useState, useCallback } from 'react';
 import { useTheme } from '../theme';
+import { useProviderStore } from '../store/providerStore';
 import {
   streamV2Generation,
   PHASE_LABELS,
@@ -50,6 +51,17 @@ export default function V2PipelineProgress({
     setPhases(PHASE_ORDER.map((p) => ({ phase: p, status: 'pending' })));
     setCurrentPhase('start');
 
+    // Resolve current provider + model from store
+    const provStore = useProviderStore.getState();
+    const provider = provStore.providers.find(p => p.id === provStore.selectedProviderId);
+    const firstModel = provider?.models?.[0];
+    const model = typeof firstModel === 'object' && firstModel !== null
+      ? (firstModel as { id: string }).id
+      : (typeof firstModel === 'string' ? firstModel : undefined);
+    const providerOverride = provider && model
+      ? { providerId: provider.id, model }
+      : undefined;
+
     try {
       const res = await streamV2Generation(
         prompt,
@@ -95,6 +107,7 @@ export default function V2PipelineProgress({
           }
         },
         tokenBudget,
+        providerOverride,
       );
 
       setResult(res);

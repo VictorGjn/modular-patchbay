@@ -13,9 +13,11 @@ const router = Router();
  * Events: { phase, status, elapsed?, data?, error? }
  */
 router.post("/generate", async (req: Request, res: Response) => {
-  const { prompt, tokenBudget } = req.body as {
+  const { prompt, tokenBudget, providerId, model } = req.body as {
     prompt: string;
     tokenBudget?: number;
+    providerId?: string;
+    model?: string;
   };
 
   if (!prompt?.trim()) {
@@ -40,11 +42,14 @@ router.post("/generate", async (req: Request, res: Response) => {
 
     sendEvent({ phase: "start", status: "running", totalPhases: 7 });
 
+    // Use client-provided provider/model, fall back to Agent SDK
+    const effectiveProvider = providerId || "claude-agent-sdk";
+    const effectiveModel = model || "claude-sonnet-4-20250514";
+
     const result = await runV2Pipeline(prompt, {
-      // Use Agent SDK provider — it has WebSearch built in
-      providerId: "claude-agent-sdk",
-      sonnetModel: "claude-sonnet-4-20250514",
-      opusModel: "claude-opus-4-20250514",
+      providerId: effectiveProvider,
+      sonnetModel: effectiveModel,
+      opusModel: effectiveProvider === "claude-agent-sdk" ? "claude-opus-4-20250514" : effectiveModel,
       tokenBudget: tokenBudget ?? 4000,
       onPhaseComplete: (phase: string, elapsed: number) => {
         sendEvent({
