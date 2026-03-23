@@ -149,6 +149,17 @@ export async function fetchCompletion(params: {
 }): Promise<string> {
   const { providerId, model, messages, temperature = 0.3, maxTokens = 2048 } = params;
 
+  // Route Agent SDK calls to the dedicated endpoint (no baseUrl needed)
+  if (providerId === 'claude-agent-sdk') {
+    const systemMsg = messages.find(m => m.role === 'system');
+    const userMsg = messages.find(m => m.role === 'user');
+    return fetchAgentSdkCompletion({
+      prompt: userMsg?.content ?? messages[messages.length - 1]?.content ?? '',
+      model,
+      systemPrompt: systemMsg?.content,
+    });
+  }
+
   const res = await fetch(`${API_BASE}/llm/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
