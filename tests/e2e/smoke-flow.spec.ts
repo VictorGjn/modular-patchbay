@@ -36,10 +36,10 @@ test.describe('Smoke Flow — Template to Export', () => {
     await page.getByRole('tab', { name: 'Review' }).click();
     await expect(page.getByText('Review & Configure')).toBeVisible();
 
-    // Step 5: Verify collapsible sections exist
-    await expect(page.getByText('Identity')).toBeVisible();
-    await expect(page.getByText('Persona')).toBeVisible();
-    await expect(page.getByText('Constraints & Safety')).toBeVisible();
+    // Step 5: Verify collapsible sections exist (use role buttons to avoid ambiguity)
+    await expect(page.getByRole('button', { name: /Identity/ }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Persona/ }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Constraints/ }).first()).toBeVisible();
 
     // Step 6: Click Preview button
     const previewBtn = page.getByRole('button', { name: /preview/i }).first();
@@ -47,9 +47,9 @@ test.describe('Smoke Flow — Template to Export', () => {
       await previewBtn.click();
       // Agent Preview modal should open
       await expect(page.getByText('Agent Preview')).toBeVisible({ timeout: 5_000 });
-      // Should show summary cards
-      await expect(page.getByText('Identity')).toBeVisible();
-      await expect(page.getByText('Objective')).toBeVisible();
+      // Should show summary cards (use nth to avoid ambiguity)
+      await expect(page.getByText('Workflow').first()).toBeVisible();
+      await expect(page.getByText('Context').first()).toBeVisible();
       // Close modal
       await page.keyboard.press('Escape');
     }

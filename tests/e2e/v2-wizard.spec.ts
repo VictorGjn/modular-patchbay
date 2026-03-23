@@ -82,7 +82,7 @@ test.describe('V2 Wizard — Knowledge Tab', () => {
   test.beforeEach(async ({ page }) => {
     await goToWizard(page);
     await page.getByRole('tab', { name: 'Knowledge' }).click();
-    await expect(page.getByText('Knowledge Sources')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'Knowledge Sources' })).toBeVisible({ timeout: 10_000 });
   });
 
   test('three sub-tabs render', async ({ page }) => {
@@ -130,12 +130,13 @@ test.describe('V2 Wizard — Review Tab', () => {
   });
 
   test('all configuration sections render', async ({ page }) => {
-    await expect(page.getByRole('region', { name: 'Identity' })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Persona' })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Constraints & Safety' })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Objectives & Success Criteria' })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Workflow Steps' })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Output Configuration' })).toBeVisible();
+    // Section DS wraps in nested regions — use .first() for strict mode
+    await expect(page.getByRole('region', { name: 'Identity' }).first()).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Persona' }).first()).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Constraints & Safety' }).first()).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Objectives & Success Criteria' }).first()).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Workflow Steps' }).first()).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Output Configuration' }).first()).toBeVisible();
   });
 });
 
@@ -191,6 +192,6 @@ test.describe('Version Dropdown', () => {
     const versionBtn = page.getByRole('button', { name: /dropdown menu/i });
     await expect(versionBtn).toBeVisible({ timeout: 5_000 });
     await versionBtn.click();
-    await expect(page.getByText(/No versions yet|v\d/i)).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText(/No versions yet|v\d/i).first()).toBeVisible({ timeout: 3_000 });
   });
 });
