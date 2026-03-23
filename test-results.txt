@@ -1,0 +1,52 @@
+﻿node.exe : [2m[WebServer] [22mdtype not specified for "model". Using the default dtype (fp32) for this device (cpu).
+Au caractère Ligne:1 : 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([2m[WebServer]...s device (cpu).:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+Running 175 tests using 4 workers
+
+[2m[WebServer] [22m­ƒÜÇ Starting CSV MCP Server...
+[2m[WebServer] [22m­ƒÆí Ready to process CSV files - specify paths naturally in your requests
+[2m[WebServer] [22mÔ£¿ CSV MCP Server is running!
+[2m[WebServer] [22m­ƒÆí Available tools: read_csv, write_csv, query_csv, transform_csv, analyze_csv, and more
+[2m[WebServer] [22m­ƒôï Listing available CSV tools...
+[2m[WebServer] [22mÔ£à Found 18 CSV tools
+  ok   2 [chromium] ÔÇ║ tests\e2e\_legacy-v1\dashboard.spec.ts:4:3 ÔÇ║ Dashboard Layout ÔÇ║ loads 3-panel layout without console errors (6.0s)
+  x    5 [chromium] ÔÇ║ tests\e2e\_legacy-v1\dashboard.spec.ts:18:3 ÔÇ║ Dashboard Layout ÔÇ║ sources panel is visible with sections (5.4s)
+  x    4 [chromium] ÔÇ║ tests\e2e\_legacy-v1\budget-pipeline.spec.ts:10:3 ÔÇ║ Budget Pipeline - Allocation & Attention Ordering ÔÇ║ budget allocation system is accessible in UI (18.8s)
+  x    3 [chromium] ÔÇ║ tests\e2e\_legacy-v1\conversation-tester.spec.ts:9:3 ÔÇ║ Conversation Tester ÔÇ║ chat tab is active by default (19.1s)
+  x    1 [chromium] ÔÇ║ tests\e2e\_legacy-v1\agent-directory-export.spec.ts:9:3 ÔÇ║ Agent Directory Export - Full Pipeline ÔÇ║ complete agent directory export flow (19.2s)
+  x    6 [chromium] ÔÇ║ tests\e2e\_legacy-v1\dashboard.spec.ts:29:3 ÔÇ║ Dashboard Layout ÔÇ║ agent builder is visible with identity section (6.0s)
+  x   10 [chromium] ÔÇ║ tests\e2e\_legacy-v1\dashboard.spec.ts:35:3 ÔÇ║ Dashboard Layout ÔÇ║ test panel has chat/export tabs (5.6s)
+  ok  11 [chromium] ÔÇ║ tests\e2e\_legacy-v1\dashboard.spec.ts:43:3 ÔÇ║ Dashboard Layout ÔÇ║ theme toggle switches between dark and light (461ms)
+  x    9 [chromium] ÔÇ║ tests\e2e\_legacy-v1\budget-pipeline.spec.ts:27:3 ÔÇ║ Budget Pipeline - Allocation & Attention Ordering ÔÇ║ attention-aware ordering: ground-truth first, hypothesis middle, evidence last (16.1s)
+  x    8 [chromium] ÔÇ║ tests\e2e\_legacy-v1\conversation-tester.spec.ts:14:3 ÔÇ║ Conversation Tester ÔÇ║ chat input and send button exist (17.0s)
+  x    7 [chromium] ÔÇ║ tests\e2e\_legacy-v1\agent-directory-export.spec.ts:86:3 ÔÇ║ Agent Directory Export - Full Pipeline ÔÇ║ agent export preserves all configured data (19.4s)
+  x   13 [chromium] ÔÇ║ tests\e2e\_legacy-v1\budget-pipeline.spec.ts:43:3 ÔÇ║ Budget Pipeline - Allocation & Attention Ordering ÔÇ║ contradiction detection service is accessible (15.7s)
+  x   14 [chromium] ÔÇ║ tests\e2e\_legacy-v1\conversation-tester.spec.ts:19:3 ÔÇ║ Conversation Tester ÔÇ║ chat input accepts text (16.0s)
+  x   15 [chromium] ÔÇ║ tests\e2e\_legacy-v1\agent-directory-export.spec.ts:117:3 ÔÇ║ Agent Directory Export - Full Pipeline ÔÇ║ export handles edge cases gracefully (15.6s)
+  x   12 [chromium] ÔÇ║ tests\e2e\_legacy-v1\dashboard.spec.ts:50:3 ÔÇ║ Dashboard Layout ÔÇ║ agent name can be edited (30.1s)
+  x   19 [chromium] ÔÇ║ tests\e2e\_legacy-v1\dashboard.spec.ts:60:3 ÔÇ║ Dashboard Layout ÔÇ║ persona section has textarea and tone/expertise controls (5.5s)
+  x   16 [chromium] ÔÇ║ tests\e2e\_legacy-v1\budget-pipeline.spec.ts:56:3 ÔÇ║ Budget Pipeline - Allocation & Attention Ordering ÔÇ║ pipeline stats bar displays after processing (15.7s)
+  x   17 [chromium] ÔÇ║ tests\e2e\_legacy-v1\conversation-tester.spec.ts:25:3 ÔÇ║ Conversation Tester ÔÇ║ empty state shows placeholder (16.2s)
+  x   18 [chromium] ÔÇ║ tests\e2e\_legacy-v1\agent-directory-export.spec.ts:137:3 ÔÇ║ Agent Directory Export - Full Pipeline ÔÇ║ export button states update correctly (15.7s)
+  x   21 [chromium] ÔÇ║ tests\e2e\_legacy-v1\budget-pipeline.spec.ts:70:3 ÔÇ║ Budget Pipeline - Allocation & Attention Ordering ÔÇ║ budget allocation system handles basic queries (15.5s)
+  x   22 [chromium] ÔÇ║ tests\e2e\_legacy-v1\conversation-tester.spec.ts:29:3 ÔÇ║ Conversation Tester ÔÇ║ send button is disabled when input is empty (15.5s)
+  x   23 [chromium] ÔÇ║ tests\e2e\_legacy-v1\mcp-flow.spec.ts:9:3 ÔÇ║ MCP Server Management ÔÇ║ MCP section is visible in sources panel (15.9s)
+  x   20 [chromium] ÔÇ║ tests\e2e\_legacy-v1\dashboard.spec.ts:71:3 ÔÇ║ Dashboard Layout ÔÇ║ constraints section toggles open (30.1s)
+  x   24 [chromium] ÔÇ║ tests\e2e\_legacy-v1\budget-pipeline.spec.ts:83:3 ÔÇ║ Budget Pipeline - Allocation & Attention Ordering ÔÇ║ knowledge sources can be added via file interface (15.5s)
+  x   25 [chromium] ÔÇ║ tests\e2e\_legacy-v1\conversation-tester.spec.ts:41:3 ÔÇ║ Marketplace Interaction ÔÇ║ marketplace interaction is functional (15.5s)
+  x   26 [chromium] ÔÇ║ tests\e2e\_legacy-v1\mcp-flow.spec.ts:13:3 ÔÇ║ MCP Server Management ÔÇ║ MCP section shows active count badge (15.9s)
+  x   28 [chromium] ÔÇ║ tests\e2e\_legacy-v1\budget-pipeline.spec.ts:94:3 ÔÇ║ Budget Pipeline - Allocation & Attention Ordering ÔÇ║ context assembly processes messages successfully (15.4s)
+  x   29 [chromium] ÔÇ║ tests\e2e\_legacy-v1\conversation-tester.spec.ts:58:3 ÔÇ║ Marketplace Interaction ÔÇ║ marketplace MCP tab shows registry servers (15.6s)
+  x   30 [chromium] ÔÇ║ tests\e2e\_legacy-v1\mcp-flow.spec.ts:18:3 ÔÇ║ MCP Server Management ÔÇ║ MCP Library button opens picker modal (15.6s)
+  x   27 [chromium] ÔÇ║ tests\e2e\_legacy-v1\dashboard.spec.ts:77:3 ÔÇ║ Dashboard Layout ÔÇ║ workflow section allows adding steps (31.4s)
+  x   34 [chromium] ÔÇ║ tests\e2e\_legacy-v1\dashboard.spec.ts:84:3 ÔÇ║ Dashboard Layout ÔÇ║ context budget shows token breakdown (5.4s)
+  x   31 [chromium] ÔÇ║ tests\e2e\_legacy-v1\budget-pipeline.spec.ts:106:3 ÔÇ║ Budget Pipeline - Allocation & Attention Ordering ÔÇ║ budget allocator integrates with pipeline (15.5s)
+  x   35 [chromium] ÔÇ║ tests\e2e\_legacy-v1\dashboard.spec.ts:91:3 ÔÇ║ Dashboard Layout ÔÇ║ knowledge section shows source actions (800ms)
+  x   32 [chromium] ÔÇ║ tests\e2e\_legacy-v1\conversation-tester.spec.ts:74:3 ÔÇ║ Marketplace Interaction ÔÇ║ marketplace has category filter (15.5s)
+  x   33 [chromium] ÔÇ║ tests\e2e\_legacy-v1\mcp-flow.spec.ts:25:3 ÔÇ║ MCP Server Management ÔÇ║ settings MCP tab shows registry servers (15.6s)
+  x   36 [chromium] ÔÇ║ tests\e2e\_legacy-v1\mcp-server-flow.spec.ts:9:3 ÔÇ║ MCP Server Flow - Complete Integration ÔÇ║ complete MCP server management workflow (15.5s)
