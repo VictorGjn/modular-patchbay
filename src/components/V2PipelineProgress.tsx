@@ -1,17 +1,16 @@
 /**
  * V2 Pipeline Progress — real-time visualization of the 6-phase
  * research-augmented agent generation pipeline.
+ *
+ * Runs entirely client-side using the same LLM service as the chat panel.
  */
 import { useState, useCallback } from 'react';
 import { useTheme } from '../theme';
 import { useProviderStore } from '../store/providerStore';
-import {
-  streamV2Generation,
-  PHASE_LABELS,
-  PATTERN_DESCRIPTIONS,
-  type V2PhaseEvent,
-  type V2GenerationResult,
-} from '../services/metapromptV2Client';
+import { runV2Pipeline, type PipelineOptions } from '../metaprompt/v2/index';
+import type { V2PipelineResult } from '../metaprompt/v2/types';
+import { PHASE_LABELS, PATTERN_DESCRIPTIONS } from '../services/metapromptV2Client';
+import type { V2GenerationResult } from '../services/metapromptV2Client';
 
 interface V2PipelineProgressProps {
   prompt: string;
@@ -28,6 +27,35 @@ interface PhaseState {
 }
 
 const PHASE_ORDER = ['parse', 'tool_discovery', 'research', 'pattern', 'context', 'assemble', 'evaluate'];
+
+/** Map V2PipelineResult to the V2GenerationResult shape expected by DescribeTab */
+function toGenerationResult(r: V2PipelineResult): V2GenerationResult {
+  return {
+    yaml: r.evaluation.final_yaml,
+    passed: r.evaluation.passed,
+    warnings: r.evaluation.warnings,
+    timing: r.timing,
+    parsed: {
+      role: r.parsed.role,
+      domain: r.parsed.domain,
+      named_experts: r.parsed.named_experts,
+      named_methodologies: r.parsed.named_methodologies,
+    },
+    pattern: {
+      pattern: r.pattern.pattern,
+      justification: r.pattern.justification,
+      suggested_steps: r.pattern.suggested_steps,
+    },
+    research: {
+      expert_count: r.research.expert_frameworks.length,
+      methodology_count: r.research.methodology_frameworks.length,
+      conflicts: r.research.conflicts,
+      notes: r.research.research_notes,
+    },
+    evaluation: r.evaluation.criteria_results,
+    discoveredTools: r.discoveredTools ?? [],
+  };
+}
 
 export default function V2PipelineProgress({
   prompt,
@@ -51,67 +79,64 @@ export default function V2PipelineProgress({
     setPhases(PHASE_ORDER.map((p) => ({ phase: p, status: 'pending' })));
     setCurrentPhase('start');
 
-    // Resolve current provider + model from store
+    // Resolve provider + model from store (same as chat panel)
     const provStore = useProviderStore.getState();
-    const provider = provStore.providers.find(p => p.id === provStore.selectedProviderId);
-    const firstModel = provider?.models?.[0];
+    const provider = provStore.providers.find(p => p.id === provStore.selectedProviderId)
+      ?? provStore.providers.find(p => p.models && p.models.length > 0);
+
+    if (!provider) {
+      onError('No provider configured — add one in Settings');
+      setRunning(false);
+      return;
+    }
+
+    const firstModel = provider.models?.[0];
     const model = typeof firstModel === 'object' && firstModel !== null
       ? (firstModel as { id: string }).id
-      : (typeof firstModel === 'string' ? firstModel : undefined);
-    const providerOverride = provider && model
-      ? { providerId: provider.id, model }
-      : undefined;
+      : (typeof firstModel === 'string' ? firstModel : 'claude-sonnet-4-20250514');
+
+    const isAgentSdk = provider.authMethod === 'claude-agent-sdk';
+
+    // Mark first phase as running
+    setPhases((prev) =>
+      prev.map((p, i) => (i === 0 ? { ...p, status: 'running' } : p))
+    );
 
     try {
-      const res = await streamV2Generation(
-        prompt,
-        (event: V2PhaseEvent) => {
-          setCurrentPhase(event.phase);
+      const pipelineOpts: PipelineOptions = {
+        providerId: provider.id,
+        sonnetModel: model,
+        opusModel: isAgentSdk ? 'claude-opus-4-20250514' : model,
+        tokenBudget: tokenBudget ?? 4000,
+        onPhaseComplete: (phase: string, elapsed: number) => {
+          setCurrentPhase(phase);
 
-          if (event.phase === 'start') {
-            // Mark first phase as running
-            setPhases((prev) =>
-              prev.map((p, i) => (i === 0 ? { ...p, status: 'running' } : p))
-            );
-            return;
-          }
-
-          if (event.status === 'running' && PHASE_ORDER.includes(event.phase)) {
-            setPhases((prev) => {
-              const idx = PHASE_ORDER.indexOf(event.phase);
-              return prev.map((p, i) => {
-                if (i === idx && p.status === 'pending') return { ...p, status: 'running' };
-                return p;
-              });
+          setPhases((prev) => {
+            const idx = PHASE_ORDER.indexOf(phase);
+            return prev.map((p, i) => {
+              if (i === idx) return { ...p, status: 'complete', elapsed };
+              if (i === idx + 1 && p.status === 'pending') return { ...p, status: 'running' };
+              return p;
             });
-          }
-
-          if (event.status === 'complete' && event.phase !== 'done') {
-            setPhases((prev) => {
-              const idx = PHASE_ORDER.indexOf(event.phase);
-              return prev.map((p, i) => {
-                if (i === idx) {
-                  const toolCount = event.phase === 'tool_discovery' ? (event.tools?.length ?? 0) : undefined;
-                  return { ...p, status: 'complete', elapsed: event.elapsed, toolCount };
-                }
-                // Only advance pending phases — don't overwrite already-complete ones
-                if (i === idx + 1 && p.status === 'pending') return { ...p, status: 'running' };
-                return p;
-              });
-            });
-          }
-
-          if (event.phase === 'done' && event.result) {
-            setPhases((prev) => prev.map((p) => ({ ...p, status: 'complete' })));
-            setTotalElapsed(event.result.timing.total ?? 0);
-          }
+          });
         },
-        tokenBudget,
-        providerOverride,
-      );
+      };
 
-      setResult(res);
-      onComplete(res);
+      const pipelineResult = await runV2Pipeline(prompt, pipelineOpts);
+
+      // Mark all complete
+      setPhases((prev) => prev.map((p) => ({
+        ...p,
+        status: 'complete',
+        toolCount: p.phase === 'tool_discovery' ? (pipelineResult.discoveredTools?.length ?? 0) : p.toolCount,
+      })));
+
+      const total = Object.values(pipelineResult.timing).reduce((a, b) => a + b, 0);
+      setTotalElapsed(total);
+
+      const genResult = toGenerationResult(pipelineResult);
+      setResult(genResult);
+      onComplete(genResult);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Pipeline failed';
       onError(msg);
@@ -201,12 +226,10 @@ export default function V2PipelineProgress({
                   transition: 'all 0.2s ease',
                 }}
               >
-                {/* Status icon */}
                 <span style={{ fontSize: 18, minWidth: 24, textAlign: 'center' }}>
                   {isDone ? '✅' : isFailed ? '❌' : isActive ? '⏳' : meta?.icon ?? '○'}
                 </span>
 
-                {/* Label + description */}
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: t.textPrimary }}>
                     {meta?.label ?? p.phase}
@@ -216,7 +239,6 @@ export default function V2PipelineProgress({
                   </div>
                 </div>
 
-                {/* Tool count badge for tool_discovery */}
                 {p.phase === 'tool_discovery' && p.status === 'complete' && p.toolCount != null && (
                   <span style={{
                     fontSize: 11,
@@ -231,7 +253,6 @@ export default function V2PipelineProgress({
                   </span>
                 )}
 
-                {/* Timing */}
                 {p.elapsed != null && p.phase !== 'tool_discovery' && (
                   <span style={{ fontSize: 12, color: t.textSecondary, fontFamily: 'monospace' }}>
                     {(p.elapsed / 1000).toFixed(1)}s
@@ -250,35 +271,13 @@ export default function V2PipelineProgress({
             {result.passed ? '✅ Generation passed all checks' : '⚠️ Generation completed with warnings'}
           </h4>
 
-          {/* What was found */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <InfoCard
-              label="Role"
-              value={result.parsed.role}
-              color={t.textPrimary}
-              bg={t.surfaceElevated}
-            />
-            <InfoCard
-              label="Domain"
-              value={result.parsed.domain}
-              color={t.textPrimary}
-              bg={t.surfaceElevated}
-            />
-            <InfoCard
-              label="Experts Researched"
-              value={result.parsed.named_experts.join(', ') || 'None'}
-              color={t.textPrimary}
-              bg={t.surfaceElevated}
-            />
-            <InfoCard
-              label="Methodologies"
-              value={result.parsed.named_methodologies.join(', ') || 'None'}
-              color={t.textPrimary}
-              bg={t.surfaceElevated}
-            />
+            <InfoCard label="Role" value={result.parsed.role} color={t.textPrimary} bg={t.surfaceElevated} />
+            <InfoCard label="Domain" value={result.parsed.domain} color={t.textPrimary} bg={t.surfaceElevated} />
+            <InfoCard label="Experts Researched" value={result.parsed.named_experts.join(', ') || 'None'} color={t.textPrimary} bg={t.surfaceElevated} />
+            <InfoCard label="Methodologies" value={result.parsed.named_methodologies.join(', ') || 'None'} color={t.textPrimary} bg={t.surfaceElevated} />
           </div>
 
-          {/* Workflow pattern */}
           <div style={{ padding: 12, borderRadius: 8, background: t.surfaceElevated, marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, marginBottom: 4 }}>
               Workflow Pattern: {result.pattern.pattern.replace(/_/g, ' ')}
@@ -288,7 +287,6 @@ export default function V2PipelineProgress({
             </div>
           </div>
 
-          {/* Evaluation criteria */}
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, marginBottom: 8 }}>
               Quality Checks
@@ -312,7 +310,6 @@ export default function V2PipelineProgress({
             </div>
           </div>
 
-          {/* Warnings */}
           {result.warnings.length > 0 && (
             <div style={{ padding: 12, borderRadius: 8, background: '#fef3c720', border: '1px solid #fbbf2440' }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', marginBottom: 6 }}>
@@ -326,7 +323,6 @@ export default function V2PipelineProgress({
             </div>
           )}
 
-          {/* Research notes */}
           {result.research.notes.length > 0 && (
             <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: t.surfaceElevated }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, marginBottom: 6 }}>
