@@ -1,4 +1,4 @@
-import { API_BASE } from '../config';
+import { API_BASE } from '../config.js';
 
 /**
  * Unified LLM service — all calls go through the backend proxy.

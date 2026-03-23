@@ -1,7 +1,7 @@
 // Pre-built MCP server configurations - curated MCP servers
 // Each entry includes command, args, env var names, and metadata
 
-import type { ConfigField, MarketplaceCategory, McpTransport, Runtime } from '../types/registry.types';
+import type { ConfigField, MarketplaceCategory, McpTransport, Runtime } from '../types/registry.types.js';
 
 export interface McpRegistryEntry {
   id: string;

@@ -4,7 +4,7 @@
  * Shows: path, language, symbols, outgoing/incoming relations, token count.
  */
 
-import { useThemeStore } from '../store/themeStore';
+import { useTheme } from '../theme';
 import type { FileNode, Relation } from '../graph/types';
 import { X } from 'lucide-react';
 
@@ -17,7 +17,7 @@ interface GraphDetailsProps {
 }
 
 export default function GraphDetails({ node, relations, allNodes, onClose, onNavigate }: GraphDetailsProps) {
-  const t = useThemeStore(s => s.resolved);
+  const t = useTheme();
   const nodeMap = new Map(allNodes.map(n => [n.id, n]));
 
   const outgoing = relations.filter(r => r.sourceFile === node.id);
@@ -63,13 +63,13 @@ export default function GraphDetails({ node, relations, allNodes, onClose, onNav
         </span>
         <span style={{
           fontSize: 11, padding: '2px 8px', borderRadius: 4,
-          background: `${t.accent}10`, color: t.textSecondary,
+          background: `${'#FE5000'}10`, color: t.textSecondary,
         }}>
           {node.tokens.toLocaleString()} tokens
         </span>
         <span style={{
           fontSize: 11, padding: '2px 8px', borderRadius: 4,
-          background: `${t.accent}10`, color: t.textSecondary,
+          background: `${'#FE5000'}10`, color: t.textSecondary,
         }}>
           {node.symbols.length} symbols
         </span>
@@ -154,7 +154,7 @@ export default function GraphDetails({ node, relations, allNodes, onClose, onNav
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  const t = useThemeStore(s => s.resolved);
+  const t = useTheme();
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{

@@ -36,7 +36,7 @@ interface TreeIndexStore {
   indexFile: (filePath: string) => Promise<TreeIndex | null>;
 
   /** Get cached index (returns null if not indexed yet) */
-  getIndex: (filePath: string) => TreeIndex | null;
+  getIndex: (filePath: string) => TreeIndex | undefined;
 
   /** Index multiple files in parallel */
   indexFiles: (paths: string[]) => Promise<void>;
@@ -97,7 +97,7 @@ export const useTreeIndexStore = create<TreeIndexStore>((set, get) => ({
   },
 
   getIndex: (filePath: string) => {
-    return get().indexes[filePath]?.index ?? null;
+    return get().indexes[filePath]?.index ?? undefined;
   },
 
   indexFiles: async (paths: string[]) => {

@@ -37,7 +37,7 @@ router.post("/generate", async (req: Request, res: Response) => {
   try {
     // Dynamic import to avoid bundling issues
     const { runV2Pipeline } = await import(
-      "../../src/metaprompt/v2/index"
+      "../../src/metaprompt/v2/index.js"
     );
 
     sendEvent({ phase: "start", status: "running", totalPhases: 7 });

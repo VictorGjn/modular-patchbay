@@ -5,7 +5,7 @@
  * Uses sql.js (WASM SQLite) for browser compatibility.
  */
 
-import type { FileNode, Relation, SymbolDef, FileLanguage, ContextGraph } from './types';
+import type { FileNode, Relation, SymbolDef, ContextGraph } from './types.js';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 

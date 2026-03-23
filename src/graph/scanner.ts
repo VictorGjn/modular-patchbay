@@ -5,11 +5,11 @@
  * Orchestrates relation extraction across all file types.
  */
 
-import type { FileNode, FileLanguage, SymbolDef, Relation, ScanResult, UpdateResult } from './types';
-import { GraphDB } from './db';
-import { extractCodeRelations } from './extractors/code';
-import { extractMarkdownRelations, extractMarkdownSymbols } from './extractors/markdown';
-import { estimateTokens } from '../services/treeIndexer';
+import type { FileNode, FileLanguage, SymbolDef, Relation, ScanResult, UpdateResult } from './types.js';
+import { GraphDB } from './db.js';
+import { extractCodeRelations } from './extractors/code.js';
+import { extractMarkdownRelations, extractMarkdownSymbols } from './extractors/markdown.js';
+import { estimateTokens } from '../services/treeIndexer.js';
 
 // ── Language Detection ────────────────────────────────────────────────────────
 
@@ -74,7 +74,7 @@ const PY_DEF_SYM = /^(?:class|(?:async\s+)?def)\s+(\w+)/gm;
 
 function extractCodeSymbols(content: string, language: FileLanguage): SymbolDef[] {
   const symbols: SymbolDef[] = [];
-  const lines = content.split('\n');
+  // const _lines = content.split('\n');
 
   if (language === 'typescript') {
     TS_EXPORT_SYM.lastIndex = 0;

@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  GraphDB, fullScan, buildFileNode, fileId, hashContent,
-  resolveEntryPoints, traverseGraph, traverseForTask, packContext,
+  GraphDB, fullScan, buildFileNode, fileId, resolveEntryPoints, traverseGraph, traverseForTask, packContext,
   extractCodeRelations, extractMarkdownRelations, extractMarkdownSymbols,
   detectTaskType, ContextGraphEngine,
-} from '../index';
-import type { FileNode, Relation, ContextGraph } from '../types';
+} from '../index.js';
+import type { ContextGraph } from '../types.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

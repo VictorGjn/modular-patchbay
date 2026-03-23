@@ -5,7 +5,7 @@
  * Three strategies: symbol match, filename match, semantic match (fallback).
  */
 
-import type { ContextGraph, EntryPoint, FileNode } from './types';
+import type { ContextGraph, EntryPoint } from './types.js';
 
 /**
  * Resolve entry points from a query against the graph.

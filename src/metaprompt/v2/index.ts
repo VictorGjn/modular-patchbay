@@ -5,14 +5,14 @@
  * Parse → Research → Pattern Select → Context Strategy → Assemble → Evaluate
  */
 
-import { runParser } from './parser';
-import { runResearcher } from './researcher';
-import { runPatternSelector } from './pattern-selector';
-import { runContextStrategist } from './context-strategist';
-import { runAssembler } from './assembler';
-import { runEvaluator } from './evaluator';
-import { discoverTools } from './tool-discovery';
-import type { V2PipelineConfig, V2PipelineResult, LLMCallConfig } from './types';
+import { runParser } from './parser.js';
+import { runResearcher } from './researcher.js';
+import { runPatternSelector } from './pattern-selector.js';
+import { runContextStrategist } from './context-strategist.js';
+import { runAssembler } from './assembler.js';
+import { runEvaluator } from './evaluator.js';
+import { discoverTools } from './tool-discovery.js';
+import type { V2PipelineConfig, V2PipelineResult, LLMCallConfig } from './types.js';
 
 export type { V2PipelineConfig, V2PipelineResult };
 

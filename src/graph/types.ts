@@ -5,7 +5,7 @@
  * Tracks cross-file relations for query-driven context assembly.
  */
 
-import type { TreeIndex } from '../services/treeIndexer';
+import type { TreeIndex } from '../services/treeIndexer.js';
 
 // ── File Languages ────────────────────────────────────────────────────────────
 
@@ -32,7 +32,7 @@ export interface SymbolDef {
   isExported: boolean;
   treeNodeId?: string;
   docstring?: string;
-  tokens: number;
+  tokens?: number;
 }
 
 // ── File Nodes ────────────────────────────────────────────────────────────────

@@ -6,8 +6,8 @@
  *   0 = Full, 1 = Detail, 2 = Summary, 3 = Headlines, 4 = Mention
  */
 
-import type { TraversalResult, PackedContext, PackedItem, FileNode } from './types';
-import { estimateTokens } from '../services/treeIndexer';
+import type { TraversalResult, PackedContext, PackedItem, FileNode } from './types.js';
+import { estimateTokens as _estimateTokens } from '../services/treeIndexer.js';
 
 // Approximate token costs per depth level (as fraction of full)
 const DEPTH_COST_RATIOS: Record<number, number> = {

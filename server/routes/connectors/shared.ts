@@ -4,8 +4,6 @@
  * Pagination, rate limiting, HTML→markdown, error handling, markdown tables.
  */
 
-import type { Response } from 'express';
-
 // ── Rate-Limited Fetch ────────────────────────────────────────────────────────
 
 const MAX_RETRIES = 3;
@@ -15,7 +13,7 @@ export async function rateLimitedFetch(
   url: string,
   options: RequestInit = {},
   maxRetries = MAX_RETRIES,
-): Promise<Response & { ok: boolean; status: number; json: () => Promise<any>; text: () => Promise<string>; headers: Headers }> {
+): Promise<globalThis.Response> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {

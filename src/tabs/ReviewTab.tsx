@@ -55,10 +55,6 @@ export function ReviewTab() {
   const [costCollapsed, setCostCollapsed] = useState(false);
   const [adaptiveCollapsed, setAdaptiveCollapsed] = useState(false);
   const [showPromptModal, setShowPromptModal] = useState(false);
-  const [factInsightsCollapsed, setFactInsightsCollapsed] = useState(true);
-  const [lessonsCollapsed, setLessonsCollapsed] = useState(true);
-  const [costCollapsed, setCostCollapsed] = useState(false);
-  const [adaptiveCollapsed, setAdaptiveCollapsed] = useState(true);
 
   // Collect state for export
   const collectFullState = useCallback(() => {

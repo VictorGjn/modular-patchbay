@@ -4,7 +4,7 @@
  * Extracts: links_to, references, supersedes, continues, defined_in, depends_on
  */
 
-import type { FileNode, Relation } from '../types';
+import type { FileNode, Relation } from '../types.js';
 
 // ── Link Patterns ─────────────────────────────────────────────────────────────
 
@@ -23,7 +23,6 @@ const DEPENDS_RE = /(?:prerequisites?|depends?\s+on|requires?|see\s+also|before\
 // ── Definition Patterns ───────────────────────────────────────────────────────
 
 const BOLD_DEF_RE = /^\*\*([^*]+)\*\*\s*[:—–-]\s*(.+)$/gm;
-const HEADING_RE = /^(#{1,6})\s+(.+)$/gm;
 
 /**
  * Resolve a relative markdown link to a file path.

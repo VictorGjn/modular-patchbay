@@ -1,5 +1,5 @@
-import { fetchCompletion } from '../../services/llmService';
-import type { LLMCallConfig, ParsedInput, ContextStrategy, ClassifiedDocument, DocumentCategory } from './types';
+import { fetchCompletion } from '../../services/llmService.js';
+import type { LLMCallConfig, ParsedInput, ContextStrategy, ClassifiedDocument, DocumentCategory } from './types.js';
 
 function parseJSON(text: string): unknown {
   try { return JSON.parse(text); } catch { /* continue */ }
