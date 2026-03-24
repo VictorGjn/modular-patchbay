@@ -1,24 +1,23 @@
 /**
  * GraphPanel — Knowledge tab panel for the context graph
  *
- * Wires useGraphStore into GraphView, shows scan stats header,
- * and handles the empty/no-rootPath states.
+ * Scans ALL knowledge sources (local files, git repos, connectors) into the graph.
+ * No longer requires a single rootPath — collects content from all enabled channels.
  */
 
-import { lazy, Suspense, useCallback } from 'react';
+import { lazy, Suspense, useCallback, useState } from 'react';
 import { useTheme } from '../../theme';
 import { useGraphStore } from '../../store/graphStore';
+import { useConsoleStore } from '../../store/consoleStore';
+import { useTreeIndexStore } from '../../store/treeIndexStore';
 import { ReadinessPanel } from '../../components/ReadinessPanel';
+import { API_BASE } from '../../config';
 
 const GraphView = lazy(() => import('../../components/GraphView'));
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtMs(ms: number): string {
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
 }
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export function GraphPanel() {
   const t = useTheme();
@@ -32,34 +31,69 @@ export function GraphPanel() {
   const rootPath = useGraphStore(s => s.rootPath);
   const readiness = useGraphStore(s => s.readiness);
   const scan = useGraphStore(s => s.scan);
+  const scanSources = useGraphStore(s => s.scanSources);
   const error = useGraphStore(s => s.error);
 
-  const handleScan = useCallback(() => {
-    if (rootPath) {
-      scan(rootPath);
+  const channels = useConsoleStore(s => s.channels);
+  const treeIndexes = useTreeIndexStore(s => s.indexes);
+  const [scanMode, setScanMode] = useState<'all' | 'path'>('all');
+  const [customPath, setCustomPath] = useState('');
+
+  const enabledChannels = channels.filter(c => c.enabled);
+
+  const handleScanAll = useCallback(async () => {
+    // Collect content from all enabled channels
+    const sources: Array<{ path: string; content: string }> = [];
+
+    for (const ch of enabledChannels) {
+      // 1. If channel has inline content (e.g., connector-fetched markdown)
+      if (ch.content) {
+        sources.push({ path: ch.path || ch.name, content: ch.content });
+        continue;
+      }
+
+      // 2. For local files — read content via backend
+      if (ch.path && !ch.path.startsWith('http')) {
+        try {
+          const resp = await fetch(`${API_BASE}/knowledge/read?path=${encodeURIComponent(ch.path)}`);
+          if (resp.ok) {
+            const data = await resp.json() as { status: string; data?: { content: string } };
+            if (data.status === 'ok' && data.data?.content) {
+              sources.push({ path: ch.path, content: data.data.content });
+            }
+          }
+        } catch { /* skip unavailable files */ }
+      }
     }
-  }, [rootPath, scan]);
 
-  // ── No rootPath ─────────────────────────────────────────────────────────────
+    if (sources.length > 0) {
+      await scanSources(sources);
+    } else {
+      // Fallback: if no sources collected, try scanning the first local path as rootPath
+      const firstLocalPath = enabledChannels.find(c => c.path && !c.path.startsWith('http'));
+      if (firstLocalPath) {
+        await scan(firstLocalPath.path);
+      }
+    }
+  }, [enabledChannels, treeIndexes, scan, scanSources]);
 
-  if (!rootPath) {
+  const handleScanPath = useCallback(() => {
+    if (customPath.trim()) {
+      scan(customPath.trim());
+    }
+  }, [customPath, scan]);
+
+  // ── Empty state ─────────────────────────────────────────────────────────────
+
+  if (enabledChannels.length === 0) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: 400,
-          gap: 12,
-          color: t.textSecondary,
-        }}
-      >
-        <p style={{ fontSize: 14, margin: 0 }}>
-          No repository selected.
-        </p>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: 400, gap: 12, color: t.textSecondary,
+      }}>
+        <p style={{ fontSize: 14, margin: 0 }}>No knowledge sources added.</p>
         <p style={{ fontSize: 12, color: t.textDim, margin: 0 }}>
-          Add a Git repo in the <strong>Git Repos</strong> tab to enable graph scanning.
+          Add files, repos, or connectors in the other tabs to enable graph scanning.
         </p>
       </div>
     );
@@ -70,32 +104,45 @@ export function GraphPanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 480 }}>
       {/* Header bar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
-          padding: '8px 12px',
-          borderBottom: `1px solid ${t.border}`,
-          background: t.isDark ? '#ffffff06' : '#00000006',
-          flexWrap: 'wrap',
-        }}
-      >
-        {/* Root path */}
-        <span
-          style={{
-            fontSize: 11,
-            color: t.textDim,
-            fontFamily: "'Geist Mono', monospace",
-            maxWidth: 280,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-          title={rootPath}
-        >
-          {rootPath}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+        borderBottom: `1px solid ${t.border}`, background: t.isDark ? '#ffffff06' : '#00000006',
+        flexWrap: 'wrap',
+      }}>
+        {/* Source count */}
+        <span style={{ fontSize: 11, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+          {enabledChannels.length} sources
         </span>
+
+        {/* Scan mode toggle */}
+        <div style={{ display: 'flex', gap: 2, background: t.isDark ? '#ffffff08' : '#00000008', borderRadius: 4, padding: 2 }}>
+          <button onClick={() => setScanMode('all')} style={{
+            fontSize: 10, padding: '2px 8px', borderRadius: 3, cursor: 'pointer', border: 'none',
+            background: scanMode === 'all' ? '#FE500020' : 'transparent',
+            color: scanMode === 'all' ? '#FE5000' : t.textDim,
+          }}>All Sources</button>
+          <button onClick={() => setScanMode('path')} style={{
+            fontSize: 10, padding: '2px 8px', borderRadius: 3, cursor: 'pointer', border: 'none',
+            background: scanMode === 'path' ? '#FE500020' : 'transparent',
+            color: scanMode === 'path' ? '#FE5000' : t.textDim,
+          }}>Directory</button>
+        </div>
+
+        {/* Path input (only in path mode) */}
+        {scanMode === 'path' && (
+          <input
+            type="text"
+            placeholder="Path to scan..."
+            value={customPath}
+            onChange={e => setCustomPath(e.target.value)}
+            style={{
+              padding: '3px 8px', fontSize: 11, borderRadius: 4,
+              border: `1px solid ${t.border}`, background: t.surface,
+              color: t.textPrimary, width: 200, outline: 'none',
+              fontFamily: "'Geist Mono', monospace",
+            }}
+          />
+        )}
 
         {/* Scan stats */}
         {lastScanResult ? (
@@ -105,28 +152,17 @@ export function GraphPanel() {
             <span>{fmtMs(lastScanResult.durationMs)}</span>
           </div>
         ) : (
-          <span style={{ fontSize: 12, color: t.textDim, fontStyle: 'italic' }}>
-            Click Re-index to scan your project
+          <span style={{ fontSize: 11, color: t.textDim, fontStyle: 'italic' }}>
+            Not scanned yet
           </span>
         )}
 
-        {/* Error */}
         {error && (
-          <span style={{ fontSize: 12, color: '#e74c3c', marginLeft: 4 }}>
-            {error}
-          </span>
+          <span style={{ fontSize: 11, color: '#e74c3c' }}>{error}</span>
         )}
 
-        {/* Stats badge */}
         {stats && (
-          <span
-            style={{
-              marginLeft: 'auto',
-              fontSize: 11,
-              color: t.textSecondary,
-              fontFamily: "'Geist Mono', monospace",
-            }}
-          >
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: t.textSecondary, fontFamily: "'Geist Mono', monospace" }}>
             {stats.nodes} nodes · {stats.relations} edges
           </span>
         )}
@@ -134,26 +170,15 @@ export function GraphPanel() {
 
       {/* Graph canvas */}
       <div style={{ flex: 1, minHeight: 0 }}>
-        <Suspense
-          fallback={
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: t.textSecondary,
-                fontSize: 13,
-              }}
-            >
-              Loading graph…
-            </div>
-          }
-        >
+        <Suspense fallback={
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: t.textSecondary, fontSize: 13 }}>
+            Loading graph…
+          </div>
+        }>
           <GraphView
             nodes={nodes}
             relations={relations}
-            onScan={handleScan}
+            onScan={scanMode === 'all' ? handleScanAll : handleScanPath}
             scanning={scanning}
             highlightIds={highlightIds}
           />
@@ -162,12 +187,7 @@ export function GraphPanel() {
 
       {/* Readiness panel */}
       {readiness && (
-        <ReadinessPanel
-          readiness={readiness}
-          rootPath={rootPath}
-          nodes={nodes}
-          relations={relations}
-        />
+        <ReadinessPanel readiness={readiness} rootPath={rootPath} nodes={nodes} relations={relations} />
       )}
     </div>
   );

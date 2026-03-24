@@ -74,6 +74,7 @@ interface GraphStore extends PersistedState {
 
   // Actions
   scan: (rootPath: string) => Promise<void>;
+  scanSources: (sources: Array<{ path: string; content: string }>) => Promise<void>;
   query: (text: string, tokenBudget?: number, taskType?: TaskType) => Promise<void>;
   fetchStatus: () => Promise<void>;
   selectNode: (id: string | null) => void;
@@ -175,6 +176,43 @@ export const useGraphStore = create<GraphStore>()(
           });
 
           // Derive readiness from whatever graph data we have
+          get().computeReadiness();
+        } catch (err) {
+          set({ scanning: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      },
+
+      // ── scanSources — scan from pre-loaded content (any source) ────────────
+
+      scanSources: async (sources: Array<{ path: string; content: string }>) => {
+        set({ scanning: true, error: null });
+        try {
+          const scanResp = await fetch(`${API_BASE}/graph/scan-sources`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sources }),
+          });
+          const scanJson = await scanResp.json() as
+            | { status: 'ok'; data: ScanResult }
+            | { status: 'error'; error: string };
+
+          if (scanJson.status !== 'ok') throw new Error(scanJson.error);
+
+          const { totalFiles, totalSymbols, totalRelations, durationMs } = scanJson.data;
+
+          const statusResp = await fetch(`${API_BASE}/graph/status`);
+          const statusJson = await statusResp.json() as
+            | { status: 'ok'; data: GraphStats }
+            | { status: 'error'; error: string };
+
+          set({
+            lastScanResult: { totalFiles, totalSymbols, totalRelations, durationMs },
+            stats: statusJson.status === 'ok' ? statusJson.data : null,
+            lastScanTime: Date.now(),
+            rootPath: '(all sources)',
+            scanning: false,
+          });
+
           get().computeReadiness();
         } catch (err) {
           set({ scanning: false, error: err instanceof Error ? err.message : String(err) });

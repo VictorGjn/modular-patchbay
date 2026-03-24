@@ -87,6 +87,26 @@ router.post('/scan', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/graph/scan-sources — scan from pre-loaded content (any source)
+router.post('/scan-sources', async (req: Request, res: Response) => {
+  const { sources } = req.body as {
+    sources?: Array<{ path: string; content: string; mtime?: number }>;
+  };
+  if (!sources || !Array.isArray(sources) || sources.length === 0) {
+    res.status(400).json({ status: 'error', error: 'sources array is required' });
+    return;
+  }
+
+  try {
+    const eng = await getEngine();
+    const result = eng.scan('(mixed sources)', sources);
+    res.json({ status: 'ok', data: result });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ status: 'error', error: msg });
+  }
+});
+
 // POST /api/graph/query
 router.post('/query', async (req: Request, res: Response) => {
   const { query, tokenBudget, taskType } = req.body as {
