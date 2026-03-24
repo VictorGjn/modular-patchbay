@@ -9,6 +9,8 @@ import type { FileNode, FileLanguage, SymbolDef, Relation, ScanResult, UpdateRes
 import { GraphDB } from './db.js';
 import { extractCodeRelations } from './extractors/code.js';
 import { extractMarkdownRelations, extractMarkdownSymbols } from './extractors/markdown.js';
+import { extractYamlRelations } from './extractors/yaml.js';
+import { extractCrossTypeRelations } from './extractors/cross-type.js';
 import { estimateTokens } from '../services/treeIndexer.js';
 
 // ── Language Detection ────────────────────────────────────────────────────────
@@ -203,10 +205,13 @@ export function fullScan(
       rels = extractCodeRelations(node, allNodes, content);
     } else if (node.language === 'markdown') {
       rels = extractMarkdownRelations(node, allNodes, content);
+    } else if (node.language === 'yaml' || node.language === 'json') {
+      rels = extractYamlRelations(node, allNodes, content);
     }
 
-    db.addRelations(rels);
-    totalRelations += rels.length;
+    const crossRels = extractCrossTypeRelations(node, allNodes, content);
+    db.addRelations([...rels, ...crossRels]);
+    totalRelations += rels.length + crossRels.length;
   }
 
   const stats = db.getStats();
@@ -262,10 +267,13 @@ export function updateFiles(
       rels = extractCodeRelations(node, allNodes, f.content);
     } else if (node.language === 'markdown') {
       rels = extractMarkdownRelations(node, allNodes, f.content);
+    } else if (node.language === 'yaml' || node.language === 'json') {
+      rels = extractYamlRelations(node, allNodes, f.content);
     }
 
-    db.addRelations(rels);
-    relationsAdded += rels.length;
+    const crossRels = extractCrossTypeRelations(node, allNodes, f.content);
+    db.addRelations([...rels, ...crossRels]);
+    relationsAdded += rels.length + crossRels.length;
   }
 
   return {

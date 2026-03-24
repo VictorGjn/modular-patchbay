@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../../theme';
 import { useConversationStore } from '../../store/conversationStore';
-import { Search, GitCompare } from 'lucide-react';
+import { useGraphStore } from '../../store/graphStore';
+import { Search, GitCompare, ChevronDown, ChevronUp } from 'lucide-react';
 import type { PipelineChatStats } from '../../services/pipelineChat';
+import ContextTrace from '../ContextTrace';
+import type { EntryPoint, PackedItem, FileLanguage, SymbolKind } from '../../graph/types';
 
 interface ContextInspectorProps {
   conversationId?: string;
@@ -11,8 +14,10 @@ interface ContextInspectorProps {
 export function ContextInspector(_props: ContextInspectorProps) {
   const t = useTheme();
   const lastPipelineStats = useConversationStore(s => s.lastPipelineStats);
+  const lastQueryResult = useGraphStore(s => s.lastQueryResult);
   const [showDiff, setShowDiff] = useState(false);
   const [previousStats, setPreviousStats] = useState<PipelineChatStats | null>(null);
+  const [graphTraceCollapsed, setGraphTraceCollapsed] = useState(true);
 
   // Store previous stats when new stats come in
   useEffect(() => {
@@ -200,6 +205,70 @@ export function ContextInspector(_props: ContextInspectorProps) {
           </div>
         )}
       </div>
+
+      {/* Context Graph Trace — only when a query result exists */}
+      {lastQueryResult && (() => {
+        const entryPoints: EntryPoint[] = lastQueryResult.entryPoints.map(ep => ({
+          fileId: ep.fileId,
+          symbolName: ep.symbol,
+          confidence: ep.confidence,
+          reason: ep.reason as EntryPoint['reason'],
+        }));
+
+        const packedItems: PackedItem[] = lastQueryResult.items.map(item => ({
+          file: {
+            id: item.path,
+            path: item.path,
+            language: item.language as FileLanguage,
+            tokens: item.tokens,
+            symbols: item.symbols.map(s => ({
+              name: s.name,
+              kind: s.kind as SymbolKind,
+              lineStart: 0,
+              lineEnd: 0,
+              isExported: s.exported,
+            })),
+            lastModified: 0,
+            contentHash: '',
+          },
+          content: '',
+          depth: item.depth,
+          tokens: item.tokens,
+          relevance: item.relevance,
+        }));
+
+        return (
+          <div
+            className="flex-shrink-0 border-t"
+            style={{ borderColor: t.border, background: t.surface }}
+          >
+            <button
+              onClick={() => setGraphTraceCollapsed(c => !c)}
+              className="w-full px-3 py-2 flex items-center justify-between text-left"
+              style={{ background: t.surfaceElevated, color: t.textPrimary }}
+            >
+              <span className="text-xs font-medium" style={{ fontFamily: "'Geist Sans', sans-serif" }}>
+                Context Graph Trace
+              </span>
+              {graphTraceCollapsed
+                ? <ChevronDown size={14} style={{ color: t.textSecondary }} />
+                : <ChevronUp size={14} style={{ color: t.textSecondary }} />
+              }
+            </button>
+            {!graphTraceCollapsed && (
+              <div className="p-3 overflow-auto" style={{ maxHeight: 400 }}>
+                <ContextTrace
+                  entryPoints={entryPoints}
+                  packedItems={packedItems}
+                  totalTokens={lastQueryResult.totalTokens}
+                  tokenBudget={100000}
+                  taskType="explain"
+                />
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

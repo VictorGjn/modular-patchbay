@@ -11,6 +11,8 @@ export { traverseGraph, traverseForTask } from './traverser.js';
 export { packContext } from './packer.js';
 export { extractCodeRelations } from './extractors/code.js';
 export { extractMarkdownRelations, extractMarkdownSymbols, collectDefinedTerms } from './extractors/markdown.js';
+export { extractYamlRelations } from './extractors/yaml.js';
+export { extractCrossTypeRelations } from './extractors/cross-type.js';
 export { detectTaskType, TRAVERSAL_PRESETS } from './types.js';
 export type {
   FileNode, FileLanguage, SymbolDef, SymbolKind,
