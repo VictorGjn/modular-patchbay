@@ -6,6 +6,7 @@
 
 import { streamCompletion, streamAgentSdk, type MessageContent } from './llmService';
 import { runToolLoop, type ToolCallResult } from './toolRunner';
+import { useActivityStore } from '../store/activityStore';
 import { buildAnthropicCacheBlocks } from './cacheAwareAssembler';
 import { getUnifiedTools, supportsToolCalling } from './toolRegistry';
 import { useProviderStore, type ProviderConfig } from '../store/providerStore';
@@ -66,6 +67,11 @@ export async function executeChat(options: {
       ),
     });
 
+    const activityStore = useActivityStore.getState();
+    activityStore.clear();
+    activityStore.setRunning(true);
+    let currentTurn = 0;
+
     await new Promise<void>((resolve, reject) => {
       runToolLoop({
         providerId,
@@ -74,18 +80,29 @@ export async function executeChat(options: {
         traceId,
         maxTurns: 10,
         callbacks: {
-          onChunk: (text) => { fullResponse += text; onChunk(text); },
-          onToolCallStart: (name, _args) => {
-            onChunk(`\n\n🔧 Calling **${name}**...\n`);
+          onChunk: (text) => {
+            fullResponse += text;
+            onChunk(text);
+            activityStore.pushEvent({ type: 'thinking', result: text });
+          },
+          onToolCallStart: (name, args) => {
+            currentTurn++;
+            activityStore.pushEvent({ type: 'turn_start', turnNumber: currentTurn, maxTurns: 10 });
+            activityStore.pushEvent({ type: 'tool_start', toolName: name, args, turnNumber: currentTurn });
           },
           onToolCallEnd: (result) => {
-            if (result.error) {
-              onChunk(`❌ ${result.name} failed: ${result.error}\n`);
-            } else {
-              onChunk(`✅ ${result.name} (${result.durationMs}ms)\n`);
-            }
+            activityStore.pushEvent({
+              type: result.error ? 'tool_error' : 'tool_result',
+              toolName: result.name,
+              result: result.result,
+              error: result.error,
+              durationMs: result.durationMs,
+              serverName: result.serverId,
+            });
           },
           onDone: (stats) => {
+            activityStore.pushEvent({ type: 'done' });
+            activityStore.setRunning(false);
             toolCallResults = stats.toolCalls;
             toolTurns = stats.turns;
             traceStore.addEvent(traceId, {

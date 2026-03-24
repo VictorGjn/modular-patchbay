@@ -23,6 +23,9 @@ import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
 import { CapabilityGate } from '../components/CapabilityGate';
 import { RuntimeResults } from './RuntimePanel';
 import { PipelineTraceView } from '../components/PipelineTraceView';
+import { useActivityStore } from '../store/activityStore';
+import { ActivityFeed } from '../components/test/ActivityFeed';
+import { TurnProgress } from '../components/test/TurnProgress';
 
 import { API_BASE } from '../config';
 import { runTeam as runTeamService, type RunTeamConfig } from '../services/runtimeService';
@@ -688,6 +691,16 @@ function ChatSection() {
               borderBottomRightRadius: msg.role === 'user' ? 4 : 12,
               borderBottomLeftRadius: msg.role === 'assistant' ? 4 : 12,
             }}>
+            {msg.role === 'assistant' && streaming && useActivityStore.getState().events.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <TurnProgress
+                  current={useActivityStore.getState().currentTurn}
+                  max={useActivityStore.getState().maxTurns}
+                  running={useActivityStore.getState().running}
+                />
+                <ActivityFeed events={useActivityStore.getState().events} />
+              </div>
+            )}
             {msg.role === 'assistant' ? (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
