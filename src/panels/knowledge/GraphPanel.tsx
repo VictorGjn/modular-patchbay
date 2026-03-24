@@ -41,17 +41,30 @@ export function GraphPanel() {
   const enabledChannels = channels.filter(c => c.enabled);
 
   const handleScanAll = useCallback(async () => {
-    // Collect content from all enabled channels
+    // Collect sources from all enabled channels
     const sources: Array<{ path: string; content: string }> = [];
+    const repoPaths = new Set<string>();
 
     for (const ch of enabledChannels) {
-      // 1. If channel has inline content (e.g., connector-fetched markdown)
+      // 1. Git repo channels — extract the repo root path for filesystem scan
+      //    These have .compressed.md paths or contentSourceId or repoMeta
+      if (ch.repoMeta || ch.contentSourceId || /\.compressed\.md$/i.test(ch.path)) {
+        // Derive repo root: strip .modular-knowledge/... suffix or use path dir
+        const repoRoot = ch.path.replace(/[/\\]\.modular-knowledge[/\\].*$/, '')
+          .replace(/[/\\][^/\\]*\.compressed\.md$/, '');
+        if (repoRoot && repoRoot !== ch.path) {
+          repoPaths.add(repoRoot);
+        }
+        continue;
+      }
+
+      // 2. If channel has inline content (e.g., connector-fetched markdown)
       if (ch.content) {
         sources.push({ path: ch.path || ch.name, content: ch.content });
         continue;
       }
 
-      // 2. For local files — read content via backend
+      // 3. For local files — read content via backend
       if (ch.path && !ch.path.startsWith('http')) {
         try {
           const resp = await fetch(`${API_BASE}/knowledge/read?path=${encodeURIComponent(ch.path)}`);
@@ -65,14 +78,19 @@ export function GraphPanel() {
       }
     }
 
-    if (sources.length > 0) {
-      await scanSources(sources);
-    } else {
-      // Fallback: if no sources collected, try scanning the first local path as rootPath
-      const firstLocalPath = enabledChannels.find(c => c.path && !c.path.startsWith('http'));
-      if (firstLocalPath) {
-        await scan(firstLocalPath.path);
+    // If we have repo paths, use the rootPath scan (reads filesystem directly)
+    // This is more complete than reading individual files
+    if (repoPaths.size > 0) {
+      // Scan the first repo path (scan replaces graph, so we pick the primary one)
+      const primaryRepo = Array.from(repoPaths)[0];
+      await scan(primaryRepo);
+
+      // If we also have non-repo sources, scan those too via scanSources
+      if (sources.length > 0) {
+        // TODO: merge scans. For now, repo scan takes precedence.
       }
+    } else if (sources.length > 0) {
+      await scanSources(sources);
     }
   }, [enabledChannels, treeIndexes, scan, scanSources]);
 
