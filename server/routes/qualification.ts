@@ -330,17 +330,33 @@ router.post('/generate-suite', async (req: Request, res: Response) => {
   const body = parsed.data as GenerateSuiteRequest;
   try {
     const config = readConfig();
+    // Find a provider: prefer one with explicit apiKey, then any configured provider
     const configProvider = body.providerId
       ? config.providers.find(p => p.id === body.providerId)
-      : config.providers.find(p => !!p.apiKey);
-    if (!configProvider?.apiKey) {
-      res.status(400).json({ status: 'error', error: 'No connected LLM provider found. Configure one in Settings → Providers.' });
+      : config.providers.find(p => !!p.apiKey) ?? config.providers.find(p => !!p.id);
+    if (!configProvider) {
+      res.status(400).json({ status: 'error', error: 'No LLM provider found. Configure one in Settings → Providers.' });
       return;
+    }
+
+    // Resolve API key: config → env var
+    let apiKey = (configProvider.apiKey || '').trim();
+    if (!apiKey) {
+      apiKey = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || '';
     }
     const baseUrl = normalizeBaseUrl(configProvider.id, configProvider.baseUrl);
     const type = inferType(configProvider.id, baseUrl, configProvider.type);
+    if (!apiKey) {
+      res.status(400).json({
+        status: 'error',
+        error: type === 'anthropic'
+          ? 'No Anthropic API key found. The Claude SDK uses OAuth (not an API key), but Qualification needs a direct API key. Add one in Settings → Providers, or set ANTHROPIC_API_KEY env var.'
+          : 'No API key found. Set one in Settings → Providers or via env var.',
+      });
+      return;
+    }
     const model = body.model ?? (type === 'anthropic' ? 'claude-3-5-haiku-20241022' : 'gpt-4o-mini');
-    const resolved: ResolvedLlm = { baseUrl, type, apiKey: configProvider.apiKey };
+    const resolved: ResolvedLlm = { baseUrl, type, apiKey };
 
     const content = await callLlm(resolved, model, [{ role: 'user', content: buildGenerateSuitePrompt(body) }]);
     const match = content.match(/\{[\s\S]*\}/);
