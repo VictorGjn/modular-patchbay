@@ -5,15 +5,14 @@
  * No longer requires a single rootPath — collects content from all enabled channels.
  */
 
-import { lazy, Suspense, useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTheme } from '../../theme';
 import { useGraphStore } from '../../store/graphStore';
 import { useConsoleStore } from '../../store/consoleStore';
 import { useTreeIndexStore } from '../../store/treeIndexStore';
 import { ReadinessPanel } from '../../components/ReadinessPanel';
+import GraphView from '../../components/GraphView';
 import { API_BASE } from '../../config';
-
-const GraphView = lazy(() => import('../../components/GraphView'));
 
 function fmtMs(ms: number): string {
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
@@ -170,19 +169,13 @@ export function GraphPanel() {
 
       {/* Graph canvas */}
       <div style={{ flex: 1, minHeight: 0 }}>
-        <Suspense fallback={
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: t.textSecondary, fontSize: 13 }}>
-            Loading graph…
-          </div>
-        }>
-          <GraphView
-            nodes={nodes}
-            relations={relations}
-            onScan={scanMode === 'all' ? handleScanAll : handleScanPath}
-            scanning={scanning}
-            highlightIds={highlightIds}
-          />
-        </Suspense>
+        <GraphView
+          nodes={nodes}
+          relations={relations}
+          onScan={scanMode === 'all' ? handleScanAll : handleScanPath}
+          scanning={scanning}
+          highlightIds={highlightIds}
+        />
       </div>
 
       {/* Readiness panel */}
