@@ -234,7 +234,7 @@ async function fetchSkillsCatalog(signal?: AbortSignal): Promise<SkillCatalogEnt
 
   // Fetch skills catalog via backend proxy to avoid CORS with skills.sh
   try {
-    const res = await fetch('/api/skills/search?q=', {
+    const res = await fetch('/api/skills/catalog', {
       signal: signal ?? AbortSignal.timeout(8000),
     });
     if (!res.ok) return [];

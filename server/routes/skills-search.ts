@@ -121,6 +121,16 @@ async function fetchCatalog(): Promise<CatalogEntry[]> {
   return entries;
 }
 
+// GET /api/skills/catalog — full catalog for frontend filtering
+router.get('/catalog', async (_req: Request, res: Response) => {
+  try {
+    const catalog = await fetchCatalog();
+    res.json({ status: 'ok', data: catalog });
+  } catch {
+    res.json({ status: 'ok', data: [] });
+  }
+});
+
 // GET /api/skills/audit/:owner/:repo/:skill
 router.get('/audit/:owner/:repo/:skill', async (req: Request, res: Response) => {
   const { owner, repo, skill } = req.params;
