@@ -414,9 +414,9 @@ export default function GraphView({ nodes, relations, onScan, scanning, highligh
       const radius = maxDist + 20;
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      ctx.fillStyle = t.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+      ctx.strokeStyle = t.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)';
       ctx.lineWidth = 1 / globalScale;
       ctx.stroke();
       if (globalScale < 0.8) {
@@ -424,7 +424,7 @@ export default function GraphView({ nodes, relations, onScan, scanning, highligh
         ctx.font = `${fontSize}px Inter, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fillStyle = t.isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)';
         ctx.fillText(key, cx, cy - radius + fontSize);
       }
     }

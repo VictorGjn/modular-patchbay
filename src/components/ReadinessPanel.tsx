@@ -5,7 +5,7 @@
  * delta tracking vs previous scan, and an expandable details section.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useTheme } from '../theme';
 import type { ReadinessMetrics } from '../store/graphStore';
@@ -113,7 +113,7 @@ export function ReadinessPanel({ readiness, rootPath, nodes, relations }: Readin
   }, [storageKey]);
 
   // Save current score
-  useMemo(() => {
+  useEffect(() => {
     if (storageKey) localStorage.setItem(storageKey, String(readiness.score));
   }, [storageKey, readiness.score]);
 
