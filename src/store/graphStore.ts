@@ -99,19 +99,16 @@ function detectCycles(nodes: FileNode[], relations: Relation[]): number {
   const color = new Map<string, number>();
   for (const n of nodes) color.set(n.id, WHITE);
 
-  function dfs(id: string): boolean {
+  function dfs(id: string): void {
     color.set(id, GRAY);
     for (const neighbor of adj.get(id) ?? []) {
       if (color.get(neighbor) === GRAY) {
         cycles++;
-        return true;
-      }
-      if (color.get(neighbor) === WHITE) {
+      } else if (color.get(neighbor) === WHITE) {
         dfs(neighbor);
       }
     }
     color.set(id, BLACK);
-    return false;
   }
 
   for (const n of nodes) {

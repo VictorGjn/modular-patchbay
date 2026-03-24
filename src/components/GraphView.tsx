@@ -328,12 +328,14 @@ export default function GraphView({ nodes, relations, onScan, scanning, highligh
     setSelectedNode(n.id);
   }, [pathHighlightMode, graphData.links]);
 
-  // F4e: throttled hover (50ms)
+  // F4e: throttled hover (50ms) — trailing: always fires the LATEST value
+  const pendingHoverRef = useRef<string | null>(null);
   const handleNodeHover = useCallback((node: object | null) => {
+    pendingHoverRef.current = (node as GraphNode | null)?.id ?? null;
     if (hoverThrottleRef.current) return;
     hoverThrottleRef.current = setTimeout(() => {
       hoverThrottleRef.current = null;
-      setHoverNode((node as GraphNode | null)?.id ?? null);
+      setHoverNode(pendingHoverRef.current);
     }, 50);
   }, []);
 
@@ -428,7 +430,7 @@ export default function GraphView({ nodes, relations, onScan, scanning, highligh
         ctx.fillText(key, cx, cy - radius + fontSize);
       }
     }
-  }, [graphData.nodes]);
+  }, [graphData.nodes, t]);
 
   // ── Node canvas object ────────────────────────────────────────────────────────
   const nodeCanvasObject = useCallback((node: object, ctx: CanvasRenderingContext2D, globalScale: number) => {
