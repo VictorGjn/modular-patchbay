@@ -8,6 +8,7 @@
 import { lazy, Suspense, useCallback } from 'react';
 import { useTheme } from '../../theme';
 import { useGraphStore } from '../../store/graphStore';
+import { ReadinessPanel } from '../../components/ReadinessPanel';
 
 const GraphView = lazy(() => import('../../components/GraphView'));
 
@@ -30,6 +31,7 @@ export function GraphPanel() {
   const stats = useGraphStore(s => s.stats);
   const lastScanResult = useGraphStore(s => s.lastScanResult);
   const rootPath = useGraphStore(s => s.rootPath);
+  const readiness = useGraphStore(s => s.readiness);
   const scan = useGraphStore(s => s.scan);
   const error = useGraphStore(s => s.error);
 
@@ -158,6 +160,16 @@ export function GraphPanel() {
           />
         </Suspense>
       </div>
+
+      {/* Readiness panel */}
+      {readiness && (
+        <ReadinessPanel
+          readiness={readiness}
+          rootPath={rootPath}
+          nodes={nodes}
+          relations={relations}
+        />
+      )}
     </div>
   );
 }
