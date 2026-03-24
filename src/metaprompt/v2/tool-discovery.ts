@@ -232,52 +232,29 @@ async function fetchSkillsCatalog(signal?: AbortSignal): Promise<SkillCatalogEnt
     return _catalogCache.data;
   }
 
-  // Use backend proxy to avoid CORS issues with skills.sh
-  const proxyUrl = 'https://skills.sh/';
-  const res = await fetch(proxyUrl, {
-    headers: { 'User-Agent': 'modular-patchbay/1.0' },
-    signal: signal ?? AbortSignal.timeout(8000),
-  });
-  if (!res.ok) return [];
-
-  const html = await res.text();
-  const entries: SkillCatalogEntry[] = [];
-  const linkRegex = /href="\/([a-z0-9_.-]+\/[a-z0-9_.-]+\/([a-z0-9_.-]+))"/gi;
-  const links: { path: string; name: string }[] = [];
-  let m: RegExpExecArray | null;
-
-  while ((m = linkRegex.exec(html)) !== null) {
-    const fullPath = m[1];
-    const parts = fullPath.split('/');
-    if (parts.length !== 3) continue;
-    if (['docs', 'security', 'audits', 'trending', 'hot'].includes(parts[0])) continue;
-    if (parts[2] === 'security' || parts[2] === 'audits') continue;
-    if (links.some((l) => l.path === fullPath)) continue;
-    links.push({ path: fullPath, name: parts[2] });
-  }
-
-  // Extract install counts from plain text
-  const plainText = html.replace(/<[^>]+>/g, ' ');
-  const allInstalls: string[] = [];
-  const numRegex = /([\d,.]+)\s*([KkMm])(?:\s|$)/g;
-  while ((m = numRegex.exec(plainText)) !== null) {
-    allInstalls.push(m[1] + m[2]);
-  }
-
-  for (let i = 0; i < links.length; i++) {
-    const link = links[i];
-    const parts = link.path.split('/');
-    entries.push({
-      id: `${parts[0]}/${parts[1]}@${parts[2]}`,
-      name: link.name,
-      repo: `${parts[0]}/${parts[1]}`,
-      installs: i < allInstalls.length ? allInstalls[i] : '0',
-      url: `https://skills.sh/${link.path}`,
+  // Fetch skills catalog via backend proxy to avoid CORS with skills.sh
+  try {
+    const res = await fetch('/api/skills-search/search?q=', {
+      signal: signal ?? AbortSignal.timeout(8000),
     });
-  }
+    if (!res.ok) return [];
 
-  _catalogCache = { data: entries, ts: Date.now() };
-  return entries;
+    const json = await res.json() as { status: string; data?: Array<{ name: string; description?: string; repo?: string; url?: string; installs?: string }> };
+    if (json.status === 'ok' && json.data) {
+      const entries: SkillCatalogEntry[] = json.data.map(s => ({
+        id: s.name,
+        name: s.name,
+        repo: s.repo ?? '',
+        installs: s.installs ?? '0',
+        url: s.url ?? '',
+      }));
+      _catalogCache = { data: entries, ts: Date.now() };
+      return entries;
+    }
+    return [];
+  } catch {
+    return []; // CORS or network error — skills discovery is best-effort
+  }
 }
 
 export async function discoverSkills(

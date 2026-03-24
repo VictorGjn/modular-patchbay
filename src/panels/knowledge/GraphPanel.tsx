@@ -64,8 +64,15 @@ export function GraphPanel() {
         continue;
       }
 
-      // 3. For local files — read content via backend
+      // 3. For local files — skip files that are under a repo we'll scan via filesystem
       if (ch.path && !ch.path.startsWith('http')) {
+        const normalizedPath = ch.path.replace(/\\/g, '/');
+        const isUnderRepo = Array.from(repoPaths).some(rp =>
+          normalizedPath.startsWith(rp.replace(/\\/g, '/') + '/')
+        );
+        if (isUnderRepo) continue; // repo scan will pick this up
+
+        // Standalone local file — read content (small number, no rate limit risk)
         try {
           const resp = await fetch(`${API_BASE}/knowledge/read?path=${encodeURIComponent(ch.path)}`);
           if (resp.ok) {
@@ -74,7 +81,7 @@ export function GraphPanel() {
               sources.push({ path: ch.path, content: data.data.content });
             }
           }
-        } catch { /* skip unavailable files */ }
+        } catch { /* skip */ }
       }
     }
 
