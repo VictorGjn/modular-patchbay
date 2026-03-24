@@ -6,7 +6,7 @@
  */
 
 import type { ChannelConfig, KnowledgeType } from '../store/knowledgeBase';
-import { KNOWLEDGE_TYPES, DEPTH_LEVELS } from '../store/knowledgeBase';
+import { KNOWLEDGE_TYPES, DEPTH_LEVELS, depthPctToFraction } from '../store/knowledgeBase';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { useTraceStore } from '../store/traceStore';
 import { indexMarkdown, estimateTokens, type TreeNode, type TreeIndex } from './treeIndexer';
@@ -289,7 +289,7 @@ function buildKnowledgeFallback(channels: ChannelConfig[]): string {
     if (!group?.length) continue;
     const kt = KNOWLEDGE_TYPES[type as keyof typeof KNOWLEDGE_TYPES];
     const sourceBlocks = group.map(ch => {
-      const depth = DEPTH_LEVELS[ch.depth];
+      const depth = DEPTH_LEVELS[ch.depth] ?? { label: 'Full', pct: depthPctToFraction(ch.depth) };
       return `- ${ch.name} (${depth.label}, ~${Math.round(ch.baseTokens * depth.pct).toLocaleString()} tokens) [${ch.path}]`;
     });
     knowledgeLines.push(`[${kt.label.toUpperCase()}] ${kt.instruction}\n${sourceBlocks.join('\n')}`);
