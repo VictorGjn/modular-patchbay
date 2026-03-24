@@ -146,6 +146,18 @@ export interface PipelineChatStats {
       tokens: number;
     }>;
   };
+  contextBlocks?: Array<{
+    id: string;
+    label: string;
+    category: 'system' | 'knowledge' | 'memory' | 'lessons' | 'history' | 'tools';
+    tokens: number;
+    cached: boolean;
+    depth?: number;
+    compression?: number;
+    preview?: string;
+  }>;
+  contextBudget?: number;
+  cacheBoundaryTokens?: number;
 }
 
 // ── Provider/model resolution (shared by all tester surfaces) ──
