@@ -159,23 +159,25 @@ export const useGraphStore = create<GraphStore>()(
 
           const { totalFiles, totalSymbols, totalRelations, durationMs } = scanJson.data;
 
-          // Fetch full stats from status endpoint
-          const statusResp = await fetch(`${API_BASE}/graph/status`);
-          const statusJson = await statusResp.json() as
-            | { status: 'ok'; data: GraphStats }
+          // Fetch full graph data (nodes + relations) for visualization
+          const dataResp = await fetch(`${API_BASE}/graph/data`);
+          const dataJson = await dataResp.json() as
+            | { status: 'ok'; data: { nodes: FileNode[]; relations: Relation[] } }
             | { status: 'error'; error: string };
 
-          const stats = statusJson.status === 'ok' ? statusJson.data : null;
+          const graphNodes = dataJson.status === 'ok' ? dataJson.data.nodes : [];
+          const graphRelations = dataJson.status === 'ok' ? dataJson.data.relations : [];
 
           set({
+            nodes: graphNodes,
+            relations: graphRelations,
             lastScanResult: { totalFiles, totalSymbols, totalRelations, durationMs },
-            stats,
+            stats: { nodes: graphNodes.length, symbols: 0, relations: graphRelations.length },
             lastScanTime: Date.now(),
             rootPath,
             scanning: false,
           });
 
-          // Derive readiness from whatever graph data we have
           get().computeReadiness();
         } catch (err) {
           set({ scanning: false, error: err instanceof Error ? err.message : String(err) });
@@ -200,14 +202,20 @@ export const useGraphStore = create<GraphStore>()(
 
           const { totalFiles, totalSymbols, totalRelations, durationMs } = scanJson.data;
 
-          const statusResp = await fetch(`${API_BASE}/graph/status`);
-          const statusJson = await statusResp.json() as
-            | { status: 'ok'; data: GraphStats }
+          // Fetch full graph data for visualization
+          const dataResp = await fetch(`${API_BASE}/graph/data`);
+          const dataJson = await dataResp.json() as
+            | { status: 'ok'; data: { nodes: FileNode[]; relations: Relation[] } }
             | { status: 'error'; error: string };
 
+          const graphNodes = dataJson.status === 'ok' ? dataJson.data.nodes : [];
+          const graphRelations = dataJson.status === 'ok' ? dataJson.data.relations : [];
+
           set({
+            nodes: graphNodes,
+            relations: graphRelations,
             lastScanResult: { totalFiles, totalSymbols, totalRelations, durationMs },
-            stats: statusJson.status === 'ok' ? statusJson.data : null,
+            stats: { nodes: graphNodes.length, symbols: 0, relations: graphRelations.length },
             lastScanTime: Date.now(),
             rootPath: '(all sources)',
             scanning: false,
