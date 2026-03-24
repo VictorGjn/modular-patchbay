@@ -71,6 +71,7 @@ export async function executeChat(options: {
     activityStore.clear();
     activityStore.setRunning(true);
     let currentTurn = 0;
+    let turnStartedForBatch = false;
 
     await new Promise<void>((resolve, reject) => {
       runToolLoop({
@@ -83,11 +84,16 @@ export async function executeChat(options: {
           onChunk: (text) => {
             fullResponse += text;
             onChunk(text);
+            // Text between tool batches means a new turn is about to start
+            turnStartedForBatch = false;
             activityStore.pushEvent({ type: 'thinking', result: text });
           },
           onToolCallStart: (name, args) => {
-            currentTurn++;
-            activityStore.pushEvent({ type: 'turn_start', turnNumber: currentTurn, maxTurns: 10 });
+            if (!turnStartedForBatch) {
+              currentTurn++;
+              turnStartedForBatch = true;
+              activityStore.pushEvent({ type: 'turn_start', turnNumber: currentTurn, maxTurns: 10 });
+            }
             activityStore.pushEvent({ type: 'tool_start', toolName: name, args, turnNumber: currentTurn });
           },
           onToolCallEnd: (result) => {
