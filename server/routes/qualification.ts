@@ -12,7 +12,11 @@ const router = Router();
 
 function normalizeBaseUrl(providerId: string, baseUrl: string): string {
   const trimmed = (baseUrl || '').trim().replace(/\/+$/, '');
-  if (!trimmed) return trimmed;
+  if (!trimmed) {
+    // Default base URLs for known providers
+    if (providerId.includes('anthropic')) return 'https://api.anthropic.com/v1';
+    return trimmed;
+  }
   const isOpenAi = providerId.includes('openai') || trimmed.includes('api.openai.com');
   if (isOpenAi && !/\/v1$/i.test(trimmed)) return `${trimmed}/v1`;
   return trimmed;
@@ -328,7 +332,7 @@ router.post('/generate-suite', async (req: Request, res: Response) => {
     const config = readConfig();
     const configProvider = body.providerId
       ? config.providers.find(p => p.id === body.providerId)
-      : config.providers.find(p => !!p.apiKey && !!p.baseUrl);
+      : config.providers.find(p => !!p.apiKey);
     if (!configProvider?.apiKey) {
       res.status(400).json({ status: 'error', error: 'No connected LLM provider found. Configure one in Settings → Providers.' });
       return;
