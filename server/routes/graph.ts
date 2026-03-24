@@ -156,6 +156,23 @@ router.post('/query', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/graph/data — full graph (nodes + relations) for visualization
+router.get('/data', async (_req: Request, res: Response) => {
+  try {
+    const eng = await getEngine();
+    const graph = eng.getGraph();
+    const nodes = Array.from(graph.nodes.values());
+    const relations = graph.relations;
+    res.json({
+      status: 'ok',
+      data: { nodes, relations },
+    });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ status: 'error', error: msg });
+  }
+});
+
 // GET /api/graph/status
 router.get('/status', async (_req: Request, res: Response) => {
   try {
