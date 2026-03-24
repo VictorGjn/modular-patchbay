@@ -47,7 +47,7 @@ router.post('/test', async (req, res) => {
 // ── Search ──
 
 router.post('/search', async (req, res) => {
-  const apiKey = getApiKey(req, sessionKeys, 'notion');
+  const apiKey = getApiKey('notion', req.body as Record<string, unknown>, sessionKeys);
   if (!apiKey) { res.status(401).json({ status: 'error', error: 'No API key. Test connection first.' }); return; }
 
   const { query } = req.body as { query?: string };
@@ -79,7 +79,7 @@ router.post('/search', async (req, res) => {
 // ── Fetch page content ──
 
 router.post('/fetch', async (req, res) => {
-  const apiKey = getApiKey(req, sessionKeys, 'notion');
+  const apiKey = getApiKey('notion', req.body as Record<string, unknown>, sessionKeys);
   if (!apiKey) { res.status(401).json({ status: 'error', error: 'No API key. Test connection first.' }); return; }
 
   const { pageIds, databaseIds } = req.body as { pageIds?: string[]; databaseIds?: string[] };

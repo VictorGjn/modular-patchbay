@@ -684,7 +684,7 @@ function ChatSection() {
             </div>
           </div>
         )}
-        {messages.map(msg => (
+        {messages.map((msg, msgIdx) => (
           <div key={msg.id}
             className="max-w-[85%] px-3.5 py-2.5 rounded-xl text-[14px] leading-relaxed"
             style={{
@@ -695,7 +695,7 @@ function ChatSection() {
               borderBottomRightRadius: msg.role === 'user' ? 4 : 12,
               borderBottomLeftRadius: msg.role === 'assistant' ? 4 : 12,
             }}>
-            {msg.role === 'assistant' && streaming && activityEvents.length > 0 && (
+            {msg.role === 'assistant' && streaming && activityEvents.length > 0 && msgIdx === messages.length - 1 && (
               <div style={{ marginBottom: 8 }}>
                 <TurnProgress current={activityCurrentTurn} max={activityMaxTurns} running={activityRunning} />
                 <ActivityFeed events={activityEvents} currentTurn={activityCurrentTurn} maxTurns={activityMaxTurns} running={activityRunning} />

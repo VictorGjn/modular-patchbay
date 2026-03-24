@@ -40,6 +40,7 @@ export interface ToolCallResult {
 
 export interface ToolRunnerCallbacks {
   onChunk: (text: string) => void;
+  onTurnStart?: (turn: number, maxTurns: number) => void;
   onToolCallStart: (name: string, args: Record<string, unknown>) => void;
   onToolCallEnd: (result: ToolCallResult) => void;
   onDone: (stats: ToolRunnerStats) => void;
@@ -297,6 +298,7 @@ export async function runToolLoop(options: ToolRunnerOptions): Promise<void> {
 
   try {
     for (let turn = 0; turn < maxTurns; turn++) {
+      callbacks.onTurnStart?.(turn + 1, maxTurns);
       const llmStart = Date.now();
       const result = await callLlmWithTools(providerId, model, messages, tools);
       totalIn += result.inputTokens;
