@@ -9,6 +9,19 @@ export default defineConfig({
       '/api': 'http://localhost:4800',
     },
   },
+  optimizeDeps: {
+    include: [
+      'react-force-graph-2d',
+      'force-graph',
+      'd3-quadtree',
+      'd3-array',
+      'd3-scale',
+      'd3-scale-chromatic',
+      'lodash-es',
+      'd3-force-3d',
+      'kapsule',
+    ],
+  },
   build: {
     chunkSizeWarningLimit: 500,
     rollupOptions: {
