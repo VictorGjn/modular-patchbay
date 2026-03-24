@@ -67,14 +67,24 @@ export function LocalFilesPanel() {
     e.target.value = '';
     if (!files || files.length === 0) return;
     const first = files[0] as File & { path?: string };
-    if (!first.path) return;
-    const sep = first.path.includes('\\') ? '\\' : '/';
-    const parts = first.path.split(sep);
-    parts.pop();
-    const dirPath = parts.join(sep);
-    setDirInput(dirPath);
-    setShowDirInput(true);
-    await scanDirectory(dirPath);
+
+    // Electron gives file.path (absolute), browser doesn't
+    if (first.path) {
+      const sep = first.path.includes('\\') ? '\\' : '/';
+      const parts = first.path.split(sep);
+      parts.pop();
+      const dirPath = parts.join(sep);
+      setDirInput(dirPath);
+      setShowDirInput(true);
+      await scanDirectory(dirPath);
+    } else {
+      // Browser mode: extract folder name from webkitRelativePath and show manual input
+      const relPath = first.webkitRelativePath || '';
+      const folderName = relPath.split('/')[0] || '';
+      setDirInput(folderName ? folderName : '');
+      setShowDirInput(true);
+      // Can't get absolute path in browser — prompt user to enter it
+    }
   }, [scanDirectory]);
 
   const handleScanDirectory = useCallback(async () => {
