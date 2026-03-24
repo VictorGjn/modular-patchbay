@@ -1,14 +1,19 @@
-import { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, Suspense } from 'react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { useTreeIndexStore } from '../store/treeIndexStore';
 import { KNOWLEDGE_TYPES } from '../store/knowledgeBase';
+import { useGraphStore } from '../store/graphStore';
 import { LocalFilesPanel } from '../panels/knowledge/LocalFilesPanel';
 import { GitRepoPanel } from '../panels/knowledge/GitRepoPanel';
 import { ConnectorPanel } from '../panels/knowledge/ConnectorPanel';
-import { Files, FolderGit2, Database } from 'lucide-react';
+import { Files, FolderGit2, Database, Network } from 'lucide-react';
 
-type TabType = 'local-files' | 'git-repos' | 'connectors';
+const GraphPanel = React.lazy(() =>
+  import('../panels/knowledge/GraphPanel').then(m => ({ default: m.GraphPanel }))
+);
+
+type TabType = 'local-files' | 'git-repos' | 'connectors' | 'graph';
 
 // Missing Sources Component
 function MissingSources({ gaps }: { gaps: Array<{ name: string; type: string; description: string }> }) {
@@ -78,6 +83,7 @@ export function KnowledgeTab() {
   const connectors = useConsoleStore(s => s.connectors);
   const knowledgeGaps = useConsoleStore(s => s.knowledgeGaps);
   const treeIndexes = useTreeIndexStore(s => s.indexes);
+  const graphStats = useGraphStore(s => s.stats);
   
   const [activeTab, setActiveTab] = useState<TabType>('local-files');
 
@@ -117,7 +123,8 @@ export function KnowledgeTab() {
     { id: 'local-files' as TabType, label: 'Local Files', icon: Files, count: channels.filter(c => c.path && !c.path.includes('.git') && !c.contentSourceId).length },
     { id: 'git-repos' as TabType, label: 'Git Repos', icon: FolderGit2, count: channels.filter(c => c.path?.includes('.git') || c.contentSourceId).length },
     { id: 'connectors' as TabType, label: 'Connectors', icon: Database, count: connectors.filter(c => c.status === 'connected').length },
-  ], [channels, connectors]);
+    { id: 'graph' as TabType, label: 'Graph', icon: Network, count: graphStats?.nodes ?? 0 },
+  ], [channels, connectors, graphStats]);
 
   // Memoize knowledge type distributions to avoid filtering/reducing on every render
   const knowledgeTypeStats = useMemo(() => {
@@ -200,6 +207,11 @@ export function KnowledgeTab() {
             {activeTab === 'local-files' && <LocalFilesPanel />}
             {activeTab === 'git-repos' && <GitRepoPanel />}
             {activeTab === 'connectors' && <ConnectorPanel />}
+            {activeTab === 'graph' && (
+              <Suspense fallback={<div style={{ padding: 24, color: t.textDim, fontSize: 13 }}>Loading graph...</div>}>
+                <GraphPanel />
+              </Suspense>
+            )}
           </div>
         </div>
 
