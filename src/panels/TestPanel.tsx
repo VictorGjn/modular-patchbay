@@ -23,6 +23,9 @@ import { getCapabilityMatrix, type CapabilityKey } from '../capabilities';
 import { CapabilityGate } from '../components/CapabilityGate';
 import { RuntimeResults } from './RuntimePanel';
 import { PipelineTraceView } from '../components/PipelineTraceView';
+import { useActivityStore } from '../store/activityStore';
+import { ActivityFeed } from '../components/test/ActivityFeed';
+import { TurnProgress } from '../components/test/TurnProgress';
 
 import { API_BASE } from '../config';
 import { runTeam as runTeamService, type RunTeamConfig } from '../services/runtimeService';
@@ -536,6 +539,10 @@ function ChatSection() {
   const mcpServers = useConsoleStore(s => s.mcpServers);
   const agentMeta = useConsoleStore(s => s.agentMeta);
   const navigationMode = useConsoleStore(s => s.navigationMode);
+  const activityEvents = useActivityStore(s => s.events);
+  const activityCurrentTurn = useActivityStore(s => s.currentTurn);
+  const activityMaxTurns = useActivityStore(s => s.maxTurns);
+  const activityRunning = useActivityStore(s => s.running);
 
   // Derive required capabilities from agent config
   const requiredCapabilities: CapabilityKey[] = (() => {
@@ -688,6 +695,12 @@ function ChatSection() {
               borderBottomRightRadius: msg.role === 'user' ? 4 : 12,
               borderBottomLeftRadius: msg.role === 'assistant' ? 4 : 12,
             }}>
+            {msg.role === 'assistant' && streaming && activityEvents.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <TurnProgress current={activityCurrentTurn} max={activityMaxTurns} running={activityRunning} />
+                <ActivityFeed events={activityEvents} currentTurn={activityCurrentTurn} maxTurns={activityMaxTurns} running={activityRunning} />
+              </div>
+            )}
             {msg.role === 'assistant' ? (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}

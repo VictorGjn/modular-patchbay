@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../../theme';
 import { useConversationStore } from '../../store/conversationStore';
-import { useGraphStore } from '../../store/graphStore';
-import { Search, GitCompare, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, GitCompare } from 'lucide-react';
 import type { PipelineChatStats } from '../../services/pipelineChat';
-import ContextTrace from '../ContextTrace';
-import type { EntryPoint, PackedItem, FileLanguage, SymbolKind } from '../../graph/types';
+import { TokenBudgetBar, type TokenBudgetBarSegment } from './TokenBudgetBar';
+import { BlockExplorer } from './BlockExplorer';
 
 interface ContextInspectorProps {
   conversationId?: string;
@@ -14,10 +13,8 @@ interface ContextInspectorProps {
 export function ContextInspector(_props: ContextInspectorProps) {
   const t = useTheme();
   const lastPipelineStats = useConversationStore(s => s.lastPipelineStats);
-  const lastQueryResult = useGraphStore(s => s.lastQueryResult);
   const [showDiff, setShowDiff] = useState(false);
   const [previousStats, setPreviousStats] = useState<PipelineChatStats | null>(null);
-  const [graphTraceCollapsed, setGraphTraceCollapsed] = useState(true);
 
   // Store previous stats when new stats come in
   useEffect(() => {
@@ -79,6 +76,56 @@ export function ContextInspector(_props: ContextInspectorProps) {
           )}
         </div>
       </div>
+
+      {/* Token Budget Bar */}
+      {lastPipelineStats && (() => {
+        const segments: TokenBudgetBarSegment[] = [];
+        const s = lastPipelineStats;
+        if (s.systemTokens) segments.push({ label: 'System', tokens: s.systemTokens, color: '#6366f1' });
+        if (s.contextBlocks) {
+          const knowledgeTokens = s.contextBlocks.filter(b => b.category === 'knowledge').reduce((sum, b) => sum + b.tokens, 0);
+          const memoryTokens = s.contextBlocks.filter(b => b.category === 'memory').reduce((sum, b) => sum + b.tokens, 0);
+          const lessonTokens = s.contextBlocks.filter(b => b.category === 'lessons').reduce((sum, b) => sum + b.tokens, 0);
+          const historyTokens = s.contextBlocks.filter(b => b.category === 'history').reduce((sum, b) => sum + b.tokens, 0);
+          const toolTokens = s.contextBlocks.filter(b => b.category === 'tools').reduce((sum, b) => sum + b.tokens, 0);
+          if (knowledgeTokens) segments.push({ label: 'Knowledge', tokens: knowledgeTokens, color: '#f59e0b' });
+          if (memoryTokens) segments.push({ label: 'Memory', tokens: memoryTokens, color: '#8b5cf6' });
+          if (lessonTokens) segments.push({ label: 'Lessons', tokens: lessonTokens, color: '#14b8a6' });
+          if (historyTokens) segments.push({ label: 'History', tokens: historyTokens, color: '#64748b' });
+          if (toolTokens) segments.push({ label: 'Tools', tokens: toolTokens, color: '#ef4444' });
+        } else {
+          // Fallback: derive from total - system
+          const rest = (s.totalContextTokens ?? 0) - (s.systemTokens ?? 0);
+          if (rest > 0) segments.push({ label: 'Knowledge + History', tokens: rest, color: '#f59e0b' });
+        }
+        return (
+          <div className="px-3 py-2 border-b" style={{ borderColor: t.border }}>
+            <TokenBudgetBar
+              segments={segments}
+              budget={s.contextBudget ?? 200000}
+              cacheBoundary={s.cacheBoundaryTokens}
+            />
+          </div>
+        );
+      })()}
+
+      {/* Block Explorer */}
+      {lastPipelineStats?.contextBlocks && lastPipelineStats.contextBlocks.length > 0 && (
+        <div className="px-3 py-2 border-b" style={{ borderColor: t.border }}>
+          <BlockExplorer
+            blocks={lastPipelineStats.contextBlocks.map(b => ({
+              id: b.id,
+              label: b.label,
+              category: b.category,
+              tokens: b.tokens,
+              cached: b.cached,
+              depth: b.depth,
+              compression: b.compression,
+              content: b.preview,
+            }))}
+          />
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-3" style={{ background: t.surface }}>
@@ -205,70 +252,6 @@ export function ContextInspector(_props: ContextInspectorProps) {
           </div>
         )}
       </div>
-
-      {/* Context Graph Trace — only when a query result exists */}
-      {lastQueryResult && (() => {
-        const entryPoints: EntryPoint[] = lastQueryResult.entryPoints.map(ep => ({
-          fileId: ep.fileId,
-          symbolName: ep.symbol,
-          confidence: ep.confidence,
-          reason: ep.reason as EntryPoint['reason'],
-        }));
-
-        const packedItems: PackedItem[] = lastQueryResult.items.map(item => ({
-          file: {
-            id: item.path,
-            path: item.path,
-            language: item.language as FileLanguage,
-            tokens: item.tokens,
-            symbols: item.symbols.map(s => ({
-              name: s.name,
-              kind: s.kind as SymbolKind,
-              lineStart: 0,
-              lineEnd: 0,
-              isExported: s.exported,
-            })),
-            lastModified: 0,
-            contentHash: '',
-          },
-          content: '',
-          depth: item.depth,
-          tokens: item.tokens,
-          relevance: item.relevance,
-        }));
-
-        return (
-          <div
-            className="flex-shrink-0 border-t"
-            style={{ borderColor: t.border, background: t.surface }}
-          >
-            <button
-              onClick={() => setGraphTraceCollapsed(c => !c)}
-              className="w-full px-3 py-2 flex items-center justify-between text-left"
-              style={{ background: t.surfaceElevated, color: t.textPrimary }}
-            >
-              <span className="text-xs font-medium" style={{ fontFamily: "'Geist Sans', sans-serif" }}>
-                Context Graph Trace
-              </span>
-              {graphTraceCollapsed
-                ? <ChevronDown size={14} style={{ color: t.textSecondary }} />
-                : <ChevronUp size={14} style={{ color: t.textSecondary }} />
-              }
-            </button>
-            {!graphTraceCollapsed && (
-              <div className="p-3 overflow-auto" style={{ maxHeight: 400 }}>
-                <ContextTrace
-                  entryPoints={entryPoints}
-                  packedItems={packedItems}
-                  totalTokens={lastQueryResult.totalTokens}
-                  tokenBudget={100000}
-                  taskType="explain"
-                />
-              </div>
-            )}
-          </div>
-        );
-      })()}
     </div>
   );
 }
