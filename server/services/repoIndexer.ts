@@ -63,13 +63,19 @@ export interface RepoModule {
 
 export interface RepoFeature {
   name: string;
+  domainStem: string;
   description: string;
-  modules: string[];     // module paths involved
-  keyFiles: string[];    // most important files
-  stores: string[];      // state stores used
-  routes: string[];      // API/page routes
-  components: string[];  // UI components
-  imports: Map<string, string[]>; // file → what it imports from other features
+  files: string[];
+  keyFiles: string[];
+  stores: string[];
+  routes: string[];
+  components: string[];
+  services: string[];
+  tests: string[];
+  imports: Map<string, string[]>;
+  crossFeatureDeps: string[];
+  fileCount: number;
+  tokenCount: number;
 }
 
 export interface RepoScan {
@@ -115,6 +121,25 @@ const CODE_EXTENSIONS = new Set([
 
 const MAX_FILE_SIZE = 100_000; // 100KB
 const MAX_FILES = 2000;
+
+// ── Feature Clustering Constants ──
+
+const GENERIC_DIRS = new Set([
+  'src', 'lib', 'app', 'server', 'client', 'api',
+  'services', 'service', 'store', 'stores', 'state',
+  'components', 'component', 'pages', 'page', 'views', 'view',
+  'routes', 'route', 'controllers', 'controller',
+  'utils', 'util', 'helpers', 'helper', 'common', 'shared',
+  'models', 'model', 'types', 'interfaces',
+  'panels', 'panel', 'tabs', 'tab', 'layouts', 'layout',
+  'middleware', 'middlewares', 'guards', 'pipes',
+  'config', 'configs', 'constants',
+  'hooks', 'composables', 'providers',
+  'assets', 'static', 'public',
+  '__tests__', '__mocks__', 'test', 'tests', 'spec', 'specs',
+]);
+
+const FUNCTIONAL_SUFFIXES = /(?:Service|Store|Controller|Route|Router|Form|Panel|Component|View|Page|Tab|Utils?|Helpers?|Handler|Manager|Provider|Factory|Adapter|Middleware|Guard|Pipe|Module|Config|Spec|Test|Mock|Fixture|Schema|Model|Entity|DTO|Repository|Gateway|Client|Api|Hook|Composable|Plugin|Decorator|Interceptor|Filter|Resolver|Validator|Transformer|Mapper|Builder|Strategy|Observer|Subscriber|Listener|Worker|Job|Task|Queue|Cache|Logger|Monitor|Migration|Seed|Index)$/;
 
 // ── Scanner ──
 
@@ -289,68 +314,263 @@ function detectConventions(files: RepoFile[]): RepoConvention[] {
   return conventions;
 }
 
-/**
- * Cluster files into feature groups based on import relationships and directory structure.
- */
-function clusterFeatures(files: RepoFile[], modules: RepoModule[]): RepoFeature[] {
-  const features: RepoFeature[] = [];
+// ── Feature Clustering Helpers ──
 
-  // Group by top-level directory as initial clusters
-  const dirGroups = new Map<string, RepoFile[]>();
-  for (const f of files) {
-    if (f.category === 'test' || f.category === 'config' || f.category === 'style') continue;
-    const topDir = f.path.split('/')[0] || 'root';
-    if (!dirGroups.has(topDir)) dirGroups.set(topDir, []);
-    dirGroups.get(topDir)!.push(f);
+function extractDomainStem(filePath: string): string {
+  const parts = filePath.replace(/\\/g, '/').split('/');
+  const fileName = parts[parts.length - 1];
+  const baseName = fileName.replace(/\.[^.]+$/, ''); // strip extension
+
+  // Find last non-generic directory
+  let specificDir = '';
+  for (let i = parts.length - 2; i >= 0; i--) {
+    const dir = parts[i].toLowerCase().replace(/[-_]/g, '');
+    if (!GENERIC_DIRS.has(dir) && dir.length > 1) {
+      specificDir = parts[i];
+      break;
+    }
   }
 
-  // For each meaningful group, create a feature
-  for (const [dir, groupFiles] of dirGroups) {
-    if (groupFiles.length < 2) continue;
+  // Strip functional suffix from filename
+  const strippedName = baseName.replace(FUNCTIONAL_SUFFIXES, '');
 
-    const stores = groupFiles.filter(f => f.category === 'store');
-    const routes = groupFiles.filter(f => f.category === 'route');
-    const components = groupFiles.filter(f => f.category === 'component');
-    // const services = groupFiles.filter(f => f.category === 'service');
+  // If filename is generic (index, main, app, types, utils), use directory
+  const GENERIC_NAMES = new Set(['index', 'main', 'app', 'types', 'utils', 'helpers', 'constants', 'config', 'mod']);
+  const nameToUse = GENERIC_NAMES.has(strippedName.toLowerCase()) && specificDir
+    ? specificDir
+    : strippedName;
 
-    // Build import graph within feature
-    const internalImports = new Map<string, string[]>();
-    for (const f of groupFiles) {
-      const deps = f.imports.filter(imp =>
-        !imp.startsWith('@') && !imp.startsWith('node:') && imp.startsWith('.')
-      );
-      if (deps.length > 0) internalImports.set(f.path, deps);
+  // Normalize: camelCase/PascalCase → kebab → lower
+  return nameToUse
+    .replace(/([a-z])([A-Z])/g, '$1-$2')  // camelCase → kebab
+    .replace(/[-_]+/g, '-')
+    .replace(/\bv\d+$/, '')  // strip version suffix (v2, v3)
+    .toLowerCase()
+    .replace(/-+$/, '');
+}
+
+function resolveImportPath(fromFile: string, importPath: string, allFiles: RepoFile[]): string | null {
+  if (!importPath.startsWith('.')) return null; // skip node_modules
+
+  const fromDir = fromFile.split('/').slice(0, -1).join('/');
+  let resolved = importPath;
+
+  // Resolve relative path
+  if (resolved.startsWith('./')) resolved = resolved.slice(2);
+  if (resolved.startsWith('../')) {
+    const parts = fromDir.split('/');
+    for (const seg of resolved.split('/')) {
+      if (seg === '..') parts.pop();
+      else if (seg !== '.') parts.push(seg);
     }
+    resolved = parts.join('/');
+  } else {
+    resolved = fromDir ? fromDir + '/' + resolved : resolved;
+  }
 
-    // Find key files (most imported within the group)
-    const importCounts = new Map<string, number>();
-    for (const f of groupFiles) {
-      for (const imp of f.imports) {
-        const resolved = imp.replace(/^\.\//, `${dir}/`);
-        importCounts.set(resolved, (importCounts.get(resolved) || 0) + 1);
+  // Try exact match, then with extensions
+  const candidates = [resolved, resolved + '.ts', resolved + '.tsx', resolved + '.js', resolved + '.jsx', resolved + '/index.ts', resolved + '/index.js'];
+  for (const c of candidates) {
+    if (allFiles.some(f => f.path === c)) return c;
+  }
+  return null;
+}
+
+function humanizeStem(stem: string): string {
+  return stem
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function clusterByDomainAndImports(files: RepoFile[]): Map<string, RepoFile[]> {
+  // A) Seed clusters by domain stem
+  const stemMap = new Map<string, RepoFile[]>();
+  for (const f of files) {
+    if (f.category === 'config' || f.category === 'style') continue;
+    const stem = extractDomainStem(f.path);
+    if (!stemMap.has(stem)) stemMap.set(stem, []);
+    stemMap.get(stem)!.push(f);
+  }
+
+  // B) Build reverse import index: file path → which files import it
+  const importedBy = new Map<string, Set<string>>();
+  for (const f of files) {
+    for (const imp of f.imports) {
+      const resolved = resolveImportPath(f.path, imp, files);
+      if (!resolved) continue;
+      if (!importedBy.has(resolved)) importedBy.set(resolved, new Set());
+      importedBy.get(resolved)!.add(f.path);
+    }
+  }
+
+  // C) Absorb orphans: files in clusters of size 1
+  //    If imported by ≥2 files from the same cluster → join that cluster
+  const orphanStems = [...stemMap.entries()].filter(([, fs]) => fs.length === 1);
+  for (const [stem, [orphan]] of orphanStems) {
+    const importers = importedBy.get(orphan.path);
+    if (!importers) continue;
+
+    // Count how many files from each OTHER cluster import this orphan
+    const clusterHits = new Map<string, number>();
+    for (const importerPath of importers) {
+      for (const [otherStem, otherFiles] of stemMap) {
+        if (otherStem === stem) continue;
+        if (otherFiles.some(f => f.path === importerPath)) {
+          clusterHits.set(otherStem, (clusterHits.get(otherStem) ?? 0) + 1);
+        }
       }
     }
 
-    const keyFiles = groupFiles
-      .sort((a, b) => (importCounts.get(b.path) || 0) - (importCounts.get(a.path) || 0))
-      .slice(0, 10)
+    // Join the cluster with most imports (≥2 threshold)
+    let bestCluster = '';
+    let bestCount = 1; // threshold: needs ≥2
+    for (const [cs, count] of clusterHits) {
+      if (count > bestCount) { bestCluster = cs; bestCount = count; }
+    }
+
+    if (bestCluster) {
+      stemMap.get(bestCluster)!.push(orphan);
+      stemMap.delete(stem);
+    }
+  }
+
+  return stemMap;
+}
+
+function buildFeatures(stemMap: Map<string, RepoFile[]>, allFiles: RepoFile[]): RepoFeature[] {
+  const features: RepoFeature[] = [];
+  const sharedFiles: RepoFile[] = [];
+
+  // A) Merge micro-clusters (<3 files)
+  const microStems = [...stemMap.entries()].filter(([, fs]) => fs.length < 3);
+  for (const [stem, fs] of microStems) {
+    // Find most-connected larger cluster
+    let bestTarget = '';
+    let bestConnections = 0;
+
+    for (const [otherStem, otherFiles] of stemMap) {
+      if (otherStem === stem || otherFiles.length < 3) continue;
+      let connections = 0;
+      for (const f of fs) {
+        for (const imp of f.imports) {
+          const resolved = resolveImportPath(f.path, imp, allFiles);
+          if (resolved && otherFiles.some(of => of.path === resolved)) connections++;
+        }
+      }
+      if (connections > bestConnections) { bestTarget = otherStem; bestConnections = connections; }
+    }
+
+    if (bestTarget) {
+      stemMap.get(bestTarget)!.push(...fs);
+    } else {
+      sharedFiles.push(...fs);
+    }
+    stemMap.delete(stem);
+  }
+
+  // Add "shared" cluster if any orphans remain
+  if (sharedFiles.length > 0) {
+    stemMap.set('shared', sharedFiles);
+  }
+
+  // B) Build RepoFeature for each cluster
+  for (const [stem, clusterFiles] of stemMap) {
+    if (clusterFiles.length === 0) continue;
+
+    // Compute import fan-in within cluster
+    const fanIn = new Map<string, number>();
+    for (const f of clusterFiles) {
+      for (const imp of f.imports) {
+        const resolved = resolveImportPath(f.path, imp, allFiles);
+        if (resolved && clusterFiles.some(cf => cf.path === resolved)) {
+          fanIn.set(resolved, (fanIn.get(resolved) ?? 0) + 1);
+        }
+      }
+    }
+
+    const keyFiles = [...clusterFiles]
+      .sort((a, b) => (fanIn.get(b.path) ?? 0) - (fanIn.get(a.path) ?? 0))
+      .slice(0, 5)
       .map(f => f.path);
 
-    const feature: RepoFeature = {
-      name: humanizeDirName(dir),
-      description: '', // filled by LLM later
-      modules: modules.filter(m => m.path.startsWith(dir)).map(m => m.path),
-      keyFiles,
-      stores: stores.map(f => f.path),
-      routes: routes.map(f => f.path),
-      components: components.map(f => f.path),
-      imports: internalImports,
-    };
+    // Internal imports
+    const internalImports = new Map<string, string[]>();
+    for (const f of clusterFiles) {
+      const deps = f.imports
+        .map(imp => resolveImportPath(f.path, imp, allFiles))
+        .filter((r): r is string => r !== null && clusterFiles.some(cf => cf.path === r));
+      if (deps.length > 0) internalImports.set(f.path, deps);
+    }
 
-    features.push(feature);
+    // Cross-feature deps
+    const crossDeps = new Set<string>();
+    for (const f of clusterFiles) {
+      for (const imp of f.imports) {
+        const resolved = resolveImportPath(f.path, imp, allFiles);
+        if (!resolved) continue;
+        if (clusterFiles.some(cf => cf.path === resolved)) continue; // internal
+        // Find which feature owns this file
+        for (const [otherStem, otherFiles] of stemMap) {
+          if (otherStem === stem) continue;
+          if (otherFiles.some(of => of.path === resolved)) {
+            crossDeps.add(humanizeStem(otherStem));
+          }
+        }
+      }
+    }
+
+    features.push({
+      name: humanizeStem(stem),
+      domainStem: stem,
+      description: '',
+      files: clusterFiles.map(f => f.path),
+      keyFiles,
+      stores: clusterFiles.filter(f => f.category === 'store').map(f => f.path),
+      routes: clusterFiles.filter(f => f.category === 'route').map(f => f.path),
+      components: clusterFiles.filter(f => f.category === 'component').map(f => f.path),
+      services: clusterFiles.filter(f => f.category === 'service').map(f => f.path),
+      tests: clusterFiles.filter(f => f.category === 'test').map(f => f.path),
+      imports: internalImports,
+      crossFeatureDeps: [...crossDeps],
+      fileCount: clusterFiles.length,
+      tokenCount: clusterFiles.reduce((sum, f) => sum + f.tokens, 0),
+    });
+  }
+
+  // Cap at 50 features, merge smallest
+  features.sort((a, b) => b.fileCount - a.fileCount);
+  if (features.length > 50) {
+    const kept = features.slice(0, 49);
+    const merged = features.slice(49);
+    const overflow: RepoFeature = {
+      name: 'Other',
+      domainStem: 'other',
+      description: `${merged.length} small feature clusters merged`,
+      files: merged.flatMap(f => f.files),
+      keyFiles: merged.flatMap(f => f.keyFiles).slice(0, 5),
+      stores: merged.flatMap(f => f.stores),
+      routes: merged.flatMap(f => f.routes),
+      components: merged.flatMap(f => f.components),
+      services: merged.flatMap(f => f.services),
+      tests: merged.flatMap(f => f.tests),
+      imports: new Map(),
+      crossFeatureDeps: [],
+      fileCount: merged.reduce((s, f) => s + f.fileCount, 0),
+      tokenCount: merged.reduce((s, f) => s + f.tokenCount, 0),
+    };
+    kept.push(overflow);
+    return kept;
   }
 
   return features;
+}
+
+/**
+ * Cluster files into feature groups using a 3-pass domain+import algorithm.
+ */
+function clusterFeatures(files: RepoFile[], _modules: RepoModule[]): RepoFeature[] {
+  const stemMap = clusterByDomainAndImports(files);
+  return buildFeatures(stemMap, files);
 }
 
 function humanizeDirName(dir: string): string {
@@ -501,13 +721,13 @@ export function generateOverviewDoc(scan: RepoScan): string {
   }
 
   // Feature list
-  lines.push(`## Features`);
+  lines.push(`## Features (${scan.features.length} clusters)`);
+  lines.push('');
   for (const f of scan.features) {
-    lines.push(`### ${f.name}`);
-    lines.push(`Key files: ${f.keyFiles.slice(0, 5).join(', ')}`);
-    if (f.stores.length) lines.push(`Stores: ${f.stores.join(', ')}`);
-    if (f.components.length) lines.push(`Components: ${f.components.length} files`);
-    if (f.routes.length) lines.push(`Routes: ${f.routes.join(', ')}`);
+    const tokK = (f.tokenCount / 1000).toFixed(1);
+    lines.push(`### ${f.name} (${f.fileCount} files · ~${tokK}K tokens)`);
+    if (f.keyFiles.length > 0) lines.push(`Key: ${f.keyFiles.map(p => p.split('/').pop()).join(', ')}`);
+    if (f.crossFeatureDeps.length > 0) lines.push(`Deps: ${f.crossFeatureDeps.join(', ')}`);
     lines.push('');
   }
 
@@ -519,61 +739,48 @@ export function generateOverviewDoc(scan: RepoScan): string {
  */
 export function generateFeatureDoc(scan: RepoScan, feature: RepoFeature): string {
   const lines: string[] = [];
+  const tokK = (feature.tokenCount / 1000).toFixed(1);
 
   lines.push(`# Feature: ${feature.name}`);
+  lines.push(`${feature.fileCount} files · ~${tokK}K tokens`);
   lines.push('');
 
-  lines.push(`## Architecture`);
-  lines.push(`This feature spans ${feature.keyFiles.length} key files across ${feature.modules.length} module(s).`);
-  lines.push('');
-
-  lines.push(`## Key Files`);
-  for (const fp of feature.keyFiles) {
-    const file = scan.files.find(f => f.path === fp);
-    if (file) {
-      const symbols = [...file.exports, ...file.functions.slice(0, 5)].slice(0, 8);
-      lines.push(`### ${fp}`);
-      lines.push(`- Category: ${file.category}`);
-      lines.push(`- Size: ${file.size} bytes (~${file.tokens} tokens)`);
-      if (symbols.length > 0) lines.push(`- Exports: \`${symbols.join('`, `')}\``);
-      if (file.classes.length > 0) lines.push(`- Classes: \`${file.classes.join('`, `')}\``);
-      if (file.types.length > 0) lines.push(`- Types: \`${file.types.join('`, `')}\``);
-      lines.push('');
-    }
-  }
-
-  // Import graph
-  if (feature.imports.size > 0) {
-    lines.push(`## Data Flow`);
-    lines.push('Internal import relationships:');
-    lines.push('');
-    for (const [file, deps] of feature.imports) {
-      lines.push(`- \`${file}\` → ${deps.map(d => `\`${d}\``).join(', ')}`);
-    }
-    lines.push('');
-  }
-
-  // Stores
-  if (feature.stores.length > 0) {
-    lines.push(`## State Management`);
-    for (const sp of feature.stores) {
-      const file = scan.files.find(f => f.path === sp);
+  // Key Files
+  if (feature.keyFiles.length > 0) {
+    lines.push(`## Key Files`);
+    for (const fp of feature.keyFiles) {
+      const file = scan.files.find(f => f.path === fp);
       if (file) {
-        lines.push(`### ${basename(sp)}`);
-        lines.push(`- Path: ${sp}`);
-        if (file.exports.length > 0) lines.push(`- Actions/Selectors: \`${file.exports.join('`, `')}\``);
-        lines.push('');
+        const symbols = [...file.exports, ...file.functions.slice(0, 5)].filter(Boolean).slice(0, 8);
+        const symStr = symbols.length > 0 ? ` — ${symbols.join(', ')}` : '';
+        lines.push(`- ${basename(fp)} (${file.category})${symStr}`);
       }
     }
+    lines.push('');
   }
 
-  // Components
-  if (feature.components.length > 0) {
-    lines.push(`## Components`);
-    for (const cp of feature.components.slice(0, 10)) {
-      const file = scan.files.find(f => f.path === cp);
-      if (file) {
-        lines.push(`- \`${cp}\` — exports: ${file.exports.slice(0, 3).map(e => `\`${e}\``).join(', ') || 'default'}`);
+  // Architecture
+  lines.push(`## Architecture`);
+  if (feature.stores.length > 0) lines.push(`- Stores: ${feature.stores.map(p => basename(p)).join(', ')}`);
+  if (feature.routes.length > 0) lines.push(`- Routes: ${feature.routes.map(p => basename(p)).join(', ')}`);
+  if (feature.services.length > 0) lines.push(`- Services: ${feature.services.map(p => basename(p)).join(', ')}`);
+  if (feature.components.length > 0) lines.push(`- Components: ${feature.components.map(p => basename(p)).join(', ')}`);
+  if (feature.tests.length > 0) lines.push(`- Tests: ${feature.tests.map(p => basename(p)).join(', ')}`);
+  lines.push('');
+
+  // Dependencies
+  if (feature.crossFeatureDeps.length > 0) {
+    lines.push(`## Dependencies`);
+    lines.push(`- Imports from: ${feature.crossFeatureDeps.join(', ')}`);
+    lines.push('');
+  }
+
+  // Internal Data Flow
+  if (feature.imports.size > 0) {
+    lines.push(`## Internal Data Flow`);
+    for (const [file, deps] of feature.imports) {
+      for (const dep of deps) {
+        lines.push(`${basename(file)} → ${basename(dep)}`);
       }
     }
     lines.push('');
