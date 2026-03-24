@@ -49,8 +49,7 @@
     "prepublishOnly": "npm run build:all",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
-    "prepare": "husky || true"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.62",
@@ -60,13 +59,14 @@
     "@vectorize-io/hindsight-client": "^0.4.19",
     "@xyflow/react": "^12.10.1",
     "cors": "^2.8.5",
+    "d3": "^7.9.0",
     "d3-array": "^3.2.4",
     "d3-quadtree": "^3.0.1",
     "d3-scale": "^4.0.2",
     "d3-scale-chromatic": "^3.1.0",
     "express": "^5.1.0",
     "jszip": "^3.10.1",
-    "lodash-es": "^4.17.23",
+    "lodash-es": "^4.17.21",
     "lucide-react": "^0.575.0",
     "mermaid": "^11.12.3",
     "modular-studio": "^0.2.0",
