@@ -539,6 +539,10 @@ function ChatSection() {
   const mcpServers = useConsoleStore(s => s.mcpServers);
   const agentMeta = useConsoleStore(s => s.agentMeta);
   const navigationMode = useConsoleStore(s => s.navigationMode);
+  const activityEvents = useActivityStore(s => s.events);
+  const activityCurrentTurn = useActivityStore(s => s.currentTurn);
+  const activityMaxTurns = useActivityStore(s => s.maxTurns);
+  const activityRunning = useActivityStore(s => s.running);
 
   // Derive required capabilities from agent config
   const requiredCapabilities: CapabilityKey[] = (() => {
@@ -691,14 +695,10 @@ function ChatSection() {
               borderBottomRightRadius: msg.role === 'user' ? 4 : 12,
               borderBottomLeftRadius: msg.role === 'assistant' ? 4 : 12,
             }}>
-            {msg.role === 'assistant' && streaming && useActivityStore.getState().events.length > 0 && (
+            {msg.role === 'assistant' && streaming && activityEvents.length > 0 && (
               <div style={{ marginBottom: 8 }}>
-                <TurnProgress
-                  current={useActivityStore.getState().currentTurn}
-                  max={useActivityStore.getState().maxTurns}
-                  running={useActivityStore.getState().running}
-                />
-                <ActivityFeed events={useActivityStore.getState().events} />
+                <TurnProgress current={activityCurrentTurn} max={activityMaxTurns} running={activityRunning} />
+                <ActivityFeed events={activityEvents} currentTurn={activityCurrentTurn} maxTurns={activityMaxTurns} running={activityRunning} />
               </div>
             )}
             {msg.role === 'assistant' ? (

@@ -56,15 +56,11 @@ export function ActivityFeed({ events, currentTurn, maxTurns, running, thinking 
       )}
 
       {groups.map((group) => {
-        // Pair tool_start events with their tool_result/tool_error
+        // Pair tool_start events with their tool_result/tool_error by order (i-th start → i-th result)
         const toolStarts = group.events.filter(e => e.type === 'tool_start');
-        const resultMap = new Map<string, ToolEvent>();
-        for (const evt of group.events) {
-          if ((evt.type === 'tool_result' || evt.type === 'tool_error') && evt.toolName) {
-            // Match by toolName (last result for that tool in this turn)
-            resultMap.set(evt.toolName, evt);
-          }
-        }
+        const toolResults = group.events.filter(e => e.type === 'tool_result' || e.type === 'tool_error');
+        const resultByIndex = new Map<number, ToolEvent>();
+        toolResults.forEach((evt, i) => resultByIndex.set(i, evt));
 
         const thinkingEvents = group.events.filter(e => e.type === 'thinking');
         const doneEvents = group.events.filter(e => e.type === 'done' || e.type === 'turn_end');
@@ -102,11 +98,11 @@ export function ActivityFeed({ events, currentTurn, maxTurns, running, thinking 
             ))}
 
             {/* Tool call cards */}
-            {toolStarts.map(evt => (
+            {toolStarts.map((evt, i) => (
               <ToolCallCard
                 key={evt.id}
                 event={evt}
-                resultEvent={evt.toolName ? resultMap.get(evt.toolName) : undefined}
+                resultEvent={resultByIndex.get(i)}
               />
             ))}
 
