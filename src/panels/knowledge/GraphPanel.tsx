@@ -26,7 +26,6 @@ export function GraphPanel() {
   const nodes = useGraphStore(s => s.nodes);
   const relations = useGraphStore(s => s.relations);
   const scanning = useGraphStore(s => s.scanning);
-  const selectedNodeId = useGraphStore(s => s.selectedNodeId);
   const highlightIds = useGraphStore(s => s.highlightIds);
   const stats = useGraphStore(s => s.stats);
   const lastScanResult = useGraphStore(s => s.lastScanResult);
