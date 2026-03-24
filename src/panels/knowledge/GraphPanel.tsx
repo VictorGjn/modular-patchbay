@@ -64,7 +64,7 @@ export function GraphPanel() {
         continue;
       }
 
-      // 3. For local files — skip files that are under a repo we'll scan via filesystem
+      // 3. For local paths — skip files under a repo we'll scan via filesystem
       if (ch.path && !ch.path.startsWith('http')) {
         const normalizedPath = ch.path.replace(/\\/g, '/');
         const isUnderRepo = Array.from(repoPaths).some(rp =>
@@ -72,7 +72,16 @@ export function GraphPanel() {
         );
         if (isUnderRepo) continue; // repo scan will pick this up
 
-        // Standalone local file — read content (small number, no rate limit risk)
+        // Check if path looks like a directory (no file extension, or ends with /)
+        const lastSegment = normalizedPath.split('/').pop() || '';
+        const isLikelyDir = !lastSegment.includes('.') || normalizedPath.endsWith('/');
+        if (isLikelyDir) {
+          // Directory — scan via filesystem (like a repo)
+          repoPaths.add(ch.path.replace(/[/\\]$/, ''));
+          continue;
+        }
+
+        // Standalone local file — read content
         try {
           const resp = await fetch(`${API_BASE}/knowledge/read?path=${encodeURIComponent(ch.path)}`);
           if (resp.ok) {
