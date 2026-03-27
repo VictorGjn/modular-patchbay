@@ -127,6 +127,29 @@ export interface EntryPoint {
   reason: 'Direct mention' | 'Filename match' | 'Semantic match';
 }
 
+/**
+ * Entry point with both lexical and semantic confidence scores.
+ * Produced by embeddingResolver.resolveHybridEntryPoints().
+ */
+export interface HybridEntryPoint extends EntryPoint {
+  lexicalScore: number;
+  semanticScore: number;
+}
+
+/**
+ * Serializable embedding cache for the graph.
+ */
+export interface EmbeddingCacheData {
+  model: string;
+  dims: number;
+  entries: Record<string, {
+    fileId: string;
+    contentHash: string;
+    identity: string;
+    embedding: number[];
+  }>;
+}
+
 // ── Budget Packing ────────────────────────────────────────────────────────────
 
 export interface PackedContext {
