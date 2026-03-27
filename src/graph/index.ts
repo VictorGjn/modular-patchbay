@@ -7,6 +7,16 @@
 export { GraphDB } from './db.js';
 export { fullScan, updateFiles, buildFileNode, shouldIndex, fileId, hashContent } from './scanner.js';
 export { resolveEntryPoints } from './resolver.js';
+export {
+  buildIdentity,
+  buildEmbeddingCache,
+  resolveSemanticEntryPoints,
+  resolveHybridEntryPoints,
+  serializeCache,
+  deserializeCache,
+  type EmbeddingCache,
+  type HybridEntryPoint,
+} from './embeddingResolver.js';
 export { traverseGraph, traverseForTask } from './traverser.js';
 export { packContext } from './packer.js';
 export { extractCodeRelations } from './extractors/code.js';
@@ -23,11 +33,20 @@ export type {
   PackedContext, PackedItem,
   UpdateResult, ScanResult,
   TaskType,
+  HybridEntryPoint as HybridEntryPointType,
+  EmbeddingCacheData,
 } from './types.js';
 
 import { GraphDB } from './db.js';
 import { fullScan, updateFiles } from './scanner.js';
 import { resolveEntryPoints } from './resolver.js';
+import {
+  buildEmbeddingCache,
+  resolveHybridEntryPoints,
+  serializeCache,
+  deserializeCache,
+  type EmbeddingCache,
+} from './embeddingResolver.js';
 import { traverseForTask } from './traverser.js';
 import { packContext } from './packer.js';
 import type { PackedContext, ScanResult, UpdateResult, TaskType } from './types.js';
@@ -38,6 +57,7 @@ import type { PackedContext, ScanResult, UpdateResult, TaskType } from './types.
 export class ContextGraphEngine {
   private db = new GraphDB();
   private rootPath = '';
+  private embeddingCache: EmbeddingCache | null = null;
 
   /**
    * Full scan from a list of files.
@@ -69,6 +89,52 @@ export class ContextGraphEngine {
   ): PackedContext {
     const graph = this.db.toContextGraph(this.rootPath);
     const entryPoints = resolveEntryPoints(query, graph);
+    const traversal = traverseForTask(query, entryPoints, graph, taskType);
+    return packContext(traversal, tokenBudget);
+  }
+
+  /**
+   * Build or refresh embedding cache. Call after scan() or update().
+   * Only re-embeds files whose content hash changed.
+   */
+  async buildEmbeddings(apiKey: string): Promise<void> {
+    const graph = this.db.toContextGraph(this.rootPath);
+    this.embeddingCache = await buildEmbeddingCache(graph, this.embeddingCache, apiKey);
+  }
+
+  /**
+   * Load a previously saved embedding cache.
+   */
+  loadEmbeddingCache(json: string): void {
+    this.embeddingCache = deserializeCache(json);
+  }
+
+  /**
+   * Serialize embedding cache for persistence.
+   */
+  saveEmbeddingCache(): string | null {
+    return this.embeddingCache ? serializeCache(this.embeddingCache) : null;
+  }
+
+  /**
+   * Hybrid query: semantic + lexical entry points → graph traversal → packed context.
+   * Falls back to lexical-only if no embedding cache available.
+   */
+  async queryHybrid(
+    query: string,
+    apiKey: string,
+    tokenBudget: number = 100000,
+    taskType?: TaskType,
+  ): Promise<PackedContext> {
+    const graph = this.db.toContextGraph(this.rootPath);
+
+    let entryPoints;
+    if (this.embeddingCache) {
+      entryPoints = await resolveHybridEntryPoints(query, graph, this.embeddingCache, apiKey);
+    } else {
+      entryPoints = resolveEntryPoints(query, graph);
+    }
+
     const traversal = traverseForTask(query, entryPoints, graph, taskType);
     return packContext(traversal, tokenBudget);
   }
