@@ -144,14 +144,24 @@ export function SaveAgentModal() {
     setTimeout(() => setPreviewFade(true), 30);
   };
 
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const getSafeName = () => {
     const name = agentMeta.name || 'modular-agent';
-    const safeName = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  };
+
+  const handleSaveToLibrary = async () => {
+    const safeName = getSafeName();
+    setSaving(true);
+    setSaveError(null);
+    setSaved(false);
 
     // Backward compat: update teamStore library
     upsertLibraryAgent({
       id: safeName,
-      name,
+      name: agentMeta.name || 'modular-agent',
       description: agentMeta.description || 'Saved from builder',
       avatar: agentMeta.avatar || 'bot',
       version: '1.0.0',
@@ -161,22 +171,35 @@ export function SaveAgentModal() {
 
     // Persist full state to backend
     const fullState = collectFullState();
-    setSaveError(null);
-    fetch(`${API_BASE}/agents/${encodeURIComponent(safeName)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(fullState),
-    })
-      .then((res) => {
-        if (!res.ok) setSaveError(`Failed to save agent to library (${res.status}). File downloaded as fallback.`);
-      })
-      .catch(() => {
-        setSaveError('Failed to save agent to library — server unreachable. File downloaded as fallback.');
+    try {
+      const res = await fetch(`${API_BASE}/agents/${encodeURIComponent(safeName)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fullState),
       });
+      if (!res.ok) {
+        setSaveError(`Save failed (${res.status}). Try downloading instead.`);
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch {
+      setSaveError('Server unreachable. Try downloading instead.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    // Download file
+  const handleDownload = () => {
+    const safeName = getSafeName();
     const meta = TARGET_META[exportTarget];
     downloadAgentFile(preview, safeName, meta.ext);
+  };
+
+  // Legacy: combined save + download
+  const handleSave = () => {
+    handleSaveToLibrary();
+    handleDownload();
   };
 
   const handleCopy = async () => {
@@ -430,15 +453,33 @@ export function SaveAgentModal() {
 
             {/* Action buttons */}
             <div className="flex flex-col gap-2 px-5 py-4" style={{ borderTop: `1px solid ${t.borderSubtle}` }}>
+              {/* Primary: Save to Library */}
+              <button
+                type="button"
+                onClick={handleSaveToLibrary}
+                disabled={saving}
+                className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg text-[14px] font-semibold tracking-wider uppercase cursor-pointer border-none"
+                style={{
+                  background: saved ? t.statusSuccess : '#FE5000',
+                  color: '#fff',
+                  boxShadow: saved ? '0 0 8px rgba(34,197,94,0.25)' : '0 0 8px rgba(254,80,0,0.25)',
+                  opacity: saving ? 0.7 : 1,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {saved ? <Check size={13} /> : saving ? null : <Database size={13} />}
+                {saved ? 'Saved to Library' : saving ? 'Saving...' : 'Save to Library'}
+              </button>
+              {/* Secondary row: Download + Copy */}
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={handleSave}
-                  className="flex items-center justify-center gap-1.5 flex-1 py-2 rounded-lg text-[14px] font-semibold tracking-wider uppercase cursor-pointer border-none"
+                  onClick={handleDownload}
+                  className="flex items-center justify-center gap-1.5 flex-1 py-2 rounded-lg text-[14px] font-semibold tracking-wider uppercase cursor-pointer"
                   style={{
-                    background: '#FE5000',
-                    color: '#fff',
-                    boxShadow: '0 0 8px rgba(254,80,0,0.25)',
+                    background: 'transparent',
+                    border: `1px solid ${t.border}`,
+                    color: t.textSecondary,
                   }}
                 >
                   <Download size={13} />
