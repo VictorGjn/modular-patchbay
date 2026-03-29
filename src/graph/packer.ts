@@ -1,4 +1,32 @@
 /**
+ * Context Packer — Budget-Aware Context Assembly
+ *
+ * Takes traversal results and packs them into a token budget using
+ * depth-based content generation. Higher-relevance files get more detail.
+ */
+
+import type { FileNode, TraversalResult, PackedContext, PackedItem } from './types.js';
+import type { TreeIndex } from '../services/treeIndexer.js';
+import { applyDepthFilter, renderFilteredMarkdown } from '../utils/depthFilter.js';
+
+/**
+ * Extract tree index from a FileNode, if available.
+ */
+function buildTreeIndex(file: FileNode): TreeIndex | null {
+  return file.treeIndex ?? null;
+}
+
+/**
+ * Estimate token count at a given depth level.
+ * Deeper levels produce less content.
+ */
+function estimateAtDepth(baseTokens: number, depth: number): number {
+  const ratios = [1.0, 0.6, 0.2, 0.05, 0.01];
+  const ratio = ratios[Math.min(depth, ratios.length - 1)];
+  return Math.max(1, Math.ceil(baseTokens * ratio));
+}
+
+/**
  * Generate content at a given depth level.
  * Uses depthFilter when treeIndex is available, falls back to symbol-based stubs.
  */
