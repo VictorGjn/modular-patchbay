@@ -4,10 +4,15 @@
  * Given traversal results and a token budget, decide how much of each file
  * to include using existing depthFilter depth levels:
  *   0 = Full, 1 = Detail, 2 = Summary, 3 = Headlines, 4 = Mention
+ *
+ * Fix #135: contentAtDepth now calls depthFilter + renderFilteredMarkdown
+ * instead of generating stubs.
  */
 
 import type { TraversalResult, PackedContext, PackedItem, FileNode } from './types.js';
-import { estimateTokens as _estimateTokens } from '../services/treeIndexer.js';
+import { estimateTokens as _estimateTokens, type TreeIndex } from '../services/treeIndexer.js';
+import { applyDepthFilter, renderFilteredMarkdown } from '../utils/depthFilter.js';
+import { indexCodeFile } from '../utils/codeIndexer.js';
 
 // Approximate token costs per depth level (as fraction of full)
 const DEPTH_COST_RATIOS: Record<number, number> = {
@@ -27,16 +32,66 @@ function estimateAtDepth(fileTokens: number, depth: number): number {
 }
 
 /**
- * Generate content stub at a given depth level.
- * In production, this would call depthFilter.ts — here we generate a summary.
+ * Build a TreeIndex from a FileNode so we can apply depth filtering.
+ * If the file has content, we index it; otherwise fall back to stub generation.
+ */
+function buildTreeIndex(file: FileNode): TreeIndex | null {
+  // If file has content available, build a real TreeIndex
+  if (file.content) {
+    const isCode = ['typescript', 'python', 'javascript'].includes(file.language);
+    if (isCode) {
+      try {
+        return indexCodeFile(file.path, file.content);
+      } catch {
+        // Fall through to stub
+      }
+    }
+    // For non-code or fallback: build a minimal TreeIndex
+    return {
+      source: file.path,
+      sourceType: isCode ? 'code' : 'markdown',
+      root: {
+        nodeId: `packer-${file.id}`,
+        title: file.path,
+        depth: 0,
+        text: file.content,
+        tokens: file.tokens,
+        totalTokens: file.tokens,
+        children: [],
+        meta: {
+          firstSentence: file.content.split('\n')[0]?.slice(0, 200) ?? '',
+          firstParagraph: file.content.slice(0, 800),
+        },
+      },
+      totalTokens: file.tokens,
+      nodeCount: 1,
+      created: Date.now(),
+    };
+  }
+  return null;
+}
+
+/**
+ * Generate content at a given depth level.
+ * Fix #135: Uses depthFilter pipeline for real filtered content when a TreeIndex is available.
+ * Falls back to stub generation when content is not loaded.
  */
 function contentAtDepth(file: FileNode, depth: number): string {
+  // Try to build a real TreeIndex and apply depth filtering
+  const treeIndex = buildTreeIndex(file);
+  if (treeIndex) {
+    const filterResult = applyDepthFilter(treeIndex, depth);
+    const rendered = renderFilteredMarkdown(filterResult.filtered);
+    if (rendered.trim()) return rendered;
+  }
+
+  // Fallback: generate stubs from symbol metadata (no content loaded)
   const symbols = file.symbols;
 
   switch (depth) {
-    case 0: // Full — would return full file content
-      return `[Full content of ${file.path}]\n` +
-        symbols.map(s => `${s.kind} ${s.name}${s.signature ? s.signature : ''}`).join('\n');
+    case 0: // Full — ideally returns full content, but we don't have it
+      return `// ${file.path} (${file.tokens} tokens)\n` +
+        symbols.map(s => `${s.isExported ? 'export ' : ''}${s.kind} ${s.name}${s.signature ? s.signature : ''}`).join('\n');
 
     case 1: // Detail — signatures + docstrings
       return `// ${file.path} (detail)\n` +
@@ -44,13 +99,13 @@ function contentAtDepth(file: FileNode, depth: number): string {
           `${s.isExported ? 'export ' : ''}${s.kind} ${s.name}${s.signature ?? ''}${s.docstring ? ` // ${s.docstring}` : ''}`
         ).join('\n');
 
-    case 2: // Summary — signatures only
+    case 2: // Summary — exported signatures only
       return `// ${file.path} (summary)\n` +
         symbols.filter(s => s.isExported).map(s =>
           `${s.kind} ${s.name}${s.signature ?? ''}`
         ).join('\n');
 
-    case 3: // Headlines — section/symbol names
+    case 3: // Headlines — symbol names
       return `// ${file.path}: ` +
         symbols.filter(s => s.isExported).map(s => s.name).join(', ');
 
