@@ -35,6 +35,8 @@ import connectorSubRoutes from './routes/connectors/index.js';
 import costRoutes from './routes/cost.js';
 import toolAnalyticsRoutes from './routes/tool-analytics.js';
 import analyticsRoutes from './routes/analytics.js';
+import pipedreamRoutes from './routes/pipedream.js';
+import qualificationLoopRoutes from './routes/qualification-loop.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -131,6 +133,8 @@ export function createApp() {
   app.use('/api/cost', costRoutes);
   app.use('/api/tool-analytics', toolAnalyticsRoutes);
   app.use('/api/analytics', analyticsRoutes);
+  app.use('/api/pipedream', pipedreamRoutes);
+  app.use('/api/qualification', qualificationLoopRoutes);
 
   // API 404 catch-all — log unmatched API routes for debugging
   app.use('/api', (_req: express.Request, res: express.Response) => {
