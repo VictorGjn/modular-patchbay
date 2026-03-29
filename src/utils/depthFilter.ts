@@ -14,7 +14,7 @@
  *   4 = Mention    — document title only
  */
 
-import { type TreeNode, type TreeIndex, estimateTokens } from '../services/treeIndexer';
+import { type TreeNode, type TreeIndex, estimateTokens } from '../services/treeIndexer.js';
 
 export interface FilteredNode {
   nodeId: string;
