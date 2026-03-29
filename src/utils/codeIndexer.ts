@@ -180,26 +180,16 @@ function parseTsItemAt(lines: string[], i: number): CodeItem | null {
   // Try exported declaration first
   let m = TS_EXPORT_RE.exec(lines[i]);
   let isExported = !!m;
-  
-  // #134: Try arrow function export: export const foo = () => ...
-  if (!m) {
-    m = TS_ARROW_EXPORT_RE.exec(lines[i]);
-    if (m) isExported = true;
-  }
-  
+  // #134: Try arrow function export
+  if (!m) { m = TS_ARROW_EXPORT_RE.exec(lines[i]); if (m) isExported = true; }
   // #134: Try non-exported top-level declaration
-  if (!m) {
-    m = TS_TOPLEVEL_RE.exec(lines[i]);
-    isExported = false;
-  }
-  
+  if (!m) { m = TS_TOPLEVEL_RE.exec(lines[i]); isExported = false; }
   if (!m) return null;
-  const kind = m ? resolveKind(lines[i]) : 'const';
+  const kind = resolveKind(lines[i]);
   const name = m[1];
   const doc = extractJsDoc(lines, i);
   const lineEnd = findBracedEnd(lines, i);
-  const body = lines.slice(i, lineEnd + 1).join('
-');
+  const body = lines.slice(i, lineEnd + 1).join('\n');
   const members = kind === 'class' ? parseTsMethods(lines, i, lineEnd) : [];
   return { name, kind, signature: lines[i].trim(), docstring: doc, body, lineStart: i, lineEnd, isExported, members };
 }
@@ -207,7 +197,6 @@ function parseTsItemAt(lines: string[], i: number): CodeItem | null {
 function parseTsItems(lines: string[]): CodeItem[] {
   const items: CodeItem[] = [];
   for (let i = 0; i < lines.length; i++) {
-    // #134: Check all declaration patterns (exported, non-exported, arrow)
     if (!TS_EXPORT_RE.test(lines[i]) && !TS_TOPLEVEL_RE.test(lines[i]) && !TS_ARROW_EXPORT_RE.test(lines[i])) continue;
     const item = parseTsItemAt(lines, i);
     if (!item) continue;
