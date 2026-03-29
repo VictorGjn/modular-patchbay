@@ -3,6 +3,9 @@
  *
  * Runs the 6-phase research-augmented agent generation pipeline:
  * Parse → Research → Pattern Select → Context Strategy → Assemble → Evaluate
+ *
+ * Tool discovery runs in parallel after Parse and emits its result independently
+ * so the SSE stream can show progress accurately.
  */
 
 import { runParser } from './parser.js';
@@ -13,6 +16,7 @@ import { runAssembler } from './assembler.js';
 import { runEvaluator } from './evaluator.js';
 import { discoverTools } from './tool-discovery.js';
 import type { V2PipelineConfig, V2PipelineResult, LLMCallConfig } from './types.js';
+import type { DiscoveredTool } from './tool-discovery.js';
 
 export type { V2PipelineConfig, V2PipelineResult };
 
@@ -29,8 +33,12 @@ export interface PipelineOptions {
   onPhaseComplete?: (phase: string, elapsed: number) => void;
   /** Warning callback — called when a phase fails non-fatally (e.g. tool discovery) */
   onPhaseWarning?: (phase: string, message: string) => void;
+  /** Callback when tool discovery resolves (fires independently of pipeline completion) */
+  onToolDiscoveryComplete?: (tools: DiscoveredTool[]) => void;
   /** Already-installed IDs to exclude from suggestions */
   installed?: { skillIds: string[]; mcpIds: string[]; connectorIds: string[] };
+  /** Server port for internal API calls (used when running server-side). Default: 4800 */
+  serverPort?: number;
 }
 
 function sonnetConfig(opts: PipelineOptions): LLMCallConfig {
@@ -67,12 +75,26 @@ export async function runV2Pipeline(
   notify('parse', timing.parse);
 
   // Start tool discovery in parallel (best-effort, won't block pipeline)
+  // Fire onToolDiscoveryComplete as soon as it resolves, don't wait for pipeline end
+  const toolDiscoveryStart = Date.now();
   const toolPromise = discoverTools(
     parsed,
     options.installed ?? { skillIds: [], mcpIds: [], connectorIds: [] },
-  ).catch((err) => {
+    undefined,
+    options.serverPort,
+  ).then((tools) => {
+    timing.tool_discovery = Date.now() - toolDiscoveryStart;
+    if (options.onToolDiscoveryComplete) {
+      options.onToolDiscoveryComplete(tools);
+    }
+    return tools;
+  }).catch((err) => {
+    timing.tool_discovery = Date.now() - toolDiscoveryStart;
     warn('tool_discovery', err instanceof Error ? err.message : String(err));
-    return [];
+    if (options.onToolDiscoveryComplete) {
+      options.onToolDiscoveryComplete([]);
+    }
+    return [] as DiscoveredTool[];
   });
 
   // Phase 2: Research
@@ -109,7 +131,6 @@ export async function runV2Pipeline(
 
   // Await tool discovery (started after Phase 1, should be done by now)
   const discoveredTools = await toolPromise;
-  notify('tool_discovery', 0);
 
   return {
     parsed,
