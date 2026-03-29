@@ -25,10 +25,18 @@ export interface MemoryConfig {
   connectionString?: string;
 }
 
+export interface PipedreamConfig {
+  projectId: string;
+  clientId: string;
+  clientSecret: string;
+  environment: 'development' | 'production';
+}
+
 export interface AppConfig {
   providers: ProviderConfig[];
   mcpServers: McpServerConfig[];
   memory?: MemoryConfig;
+  pipedream?: PipedreamConfig;
 }
 
 export interface ApiResponse<T = unknown> {
