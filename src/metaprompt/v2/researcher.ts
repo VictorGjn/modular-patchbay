@@ -12,15 +12,26 @@ function parseJSON(text: string): unknown {
 
 /**
  * Search the web using the Agent SDK's built-in WebSearch tool.
- * Falls back to null if the server isn't available.
+ * Falls back to null if the server isn't available or times out.
+ *
+ * 5s hard timeout prevents the pipeline from stalling when Agent SDK
+ * is not the active provider (the most common failure mode).
  */
-async function searchWeb(query: string): Promise<string | null> {
+async function searchWeb(query: string, providerId?: string): Promise<string | null> {
+  // Skip web search entirely if not using Agent SDK — it will always fail
+  if (providerId && providerId !== 'claude-agent-sdk') {
+    return null;
+  }
+
   try {
     const { fetchAgentSdkCompletion } = await import('../../services/llmService.js');
-    const result = await fetchAgentSdkCompletion({
-      prompt: `Search the web for: "${query}". Return ONLY the key findings as a concise summary (max 500 words). Focus on framework steps, methodology mechanics, scoring criteria.`,
-      maxTurns: 3,
-    });
+    const result = await Promise.race([
+      fetchAgentSdkCompletion({
+        prompt: `Search the web for: "${query}". Return ONLY the key findings as a concise summary (max 500 words). Focus on framework steps, methodology mechanics, scoring criteria.`,
+        maxTurns: 3,
+      }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+    ]);
     return result && result.length > 20 ? result : null;
   } catch {
     return null;
@@ -185,9 +196,10 @@ export async function runResearcher(
   const research_notes: string[] = [];
 
   // Try web search for each reference (graceful fallback if unavailable)
+  // Pass providerId so searchWeb can skip immediately if not using Agent SDK
   const expertFrameworks: ExpertFramework[] = [];
   for (const expert of parsed.named_experts) {
-    const searchContext = await searchWeb(`${expert} framework methodology core steps`);
+    const searchContext = await searchWeb(`${expert} framework methodology core steps`, llmConfig.providerId);
     if (!searchContext) {
       research_notes.push(`\u26a0\ufe0f Web search unavailable for ${expert}. Using training knowledge. Verify framework accuracy.`);
     }
@@ -198,7 +210,7 @@ export async function runResearcher(
   const methodologyFrameworks: MethodologyFramework[] = [];
   const allMethodologies = [...parsed.named_methodologies, ...parsed.implied_methodologies];
   for (const methodology of allMethodologies) {
-    const searchContext = await searchWeb(`${methodology} framework scoring criteria steps`);
+    const searchContext = await searchWeb(`${methodology} framework scoring criteria steps`, llmConfig.providerId);
     const framework = await resolveMethodology(methodology, llmConfig, searchContext);
     if (parsed.implied_methodologies.includes(methodology) && !parsed.named_methodologies.includes(methodology)) {
       framework.research_note = (framework.research_note ? framework.research_note + ' ' : '') +
