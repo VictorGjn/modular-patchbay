@@ -61,6 +61,30 @@ async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T | null> {
   }
 }
 
+/**
+ * Resolve command/args for an MCP server from the registry.
+ * Falls back to empty values if the server is not in the registry.
+ *
+ * Fix #140: syncFromConfig used to send command='' for all servers.
+ * Now it looks up the MCP_REGISTRY to get real command/args.
+ */
+async function resolveRegistryConfig(serverId: string): Promise<{ command: string; args: string[]; transport: 'stdio' | 'sse' | 'http' }> {
+  try {
+    const { MCP_REGISTRY } = await import('./mcp-registry');
+    const entry = MCP_REGISTRY.find((e) => e.id === serverId);
+    if (entry) {
+      return {
+        command: entry.command,
+        args: entry.defaultArgs,
+        transport: entry.transport as 'stdio' | 'sse' | 'http',
+      };
+    }
+  } catch {
+    // Registry not available — not fatal
+  }
+  return { command: '', args: [], transport: 'stdio' };
+}
+
 export const useMcpStore = create<McpStore>((set, get) => ({
   servers: [],
   loaded: false,
@@ -109,7 +133,7 @@ export const useMcpStore = create<McpStore>((set, get) => ({
           env: s.env ?? {},
           url: s.url,
           headers: s.headers,
-          status: (s.status === 'enabled' ? 'disconnected' : s.status === 'deferred' ? 'disconnected' : 'disconnected') as McpServerStatus,
+          status: 'disconnected' as McpServerStatus,
           tools: [],
           mcpStatus: s.status as 'enabled' | 'deferred' | 'disabled',
         })),
@@ -133,16 +157,17 @@ export const useMcpStore = create<McpStore>((set, get) => ({
     const existingIds = new Set(currentServers.map((s) => s.id));
 
     // consoleStore.McpServer only has {id, name, icon, connected, enabled, added, ...}
-    // It does NOT have command/args/env — those live in the backend.
-    // We just need to ensure the backend knows about these servers.
+    // It does NOT have command/args/env — those live in the MCP_REGISTRY or backend.
+    // Fix #140: resolve command/args from MCP_REGISTRY instead of sending empty strings.
     for (const configServer of configServers) {
       if (configServer.added && !existingIds.has(configServer.id)) {
-        // Register with backend using minimal info — backend resolves command/args from its own config
+        const registryConfig = await resolveRegistryConfig(configServer.id);
         await get().addServer({
           id: configServer.id,
           name: configServer.name,
-          command: '',
-          args: [],
+          type: registryConfig.transport,
+          command: registryConfig.command,
+          args: registryConfig.args,
           env: {},
         });
       }
