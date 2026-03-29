@@ -70,11 +70,17 @@ describe('scan()', () => {
       relationsRemoved: 0,
       staleFilesTriggered: 0,
     };
-    const statsData = { nodes: 10, symbols: 50, relations: 20 };
+    const mockNodes = Array.from({ length: 10 }, (_, i) => ({
+      id: `n${i}`, path: `src/file${i}.ts`, language: 'typescript',
+      lastModified: Date.now(), contentHash: 'abc', tokens: 100, symbols: [],
+    }));
+    const mockRelations = Array.from({ length: 5 }, (_, i) => ({
+      sourceFile: `n${i}`, targetFile: `n${i + 1}`, kind: 'imports', weight: 1.0,
+    }));
 
     globalThis.fetch = mockFetch([
       { status: 'ok', data: scanData },
-      { status: 'ok', data: statsData },
+      { status: 'ok', data: { nodes: mockNodes, relations: mockRelations } },
     ]);
 
     await useGraphStore.getState().scan('/some/path');
@@ -88,7 +94,7 @@ describe('scan()', () => {
       totalRelations: 20,
       durationMs: 123,
     });
-    expect(state.stats).toEqual(statsData);
+    expect(state.stats).toEqual({ nodes: 10, symbols: 0, relations: 5 });
     expect(state.rootPath).toBe('/some/path');
     expect(state.lastScanTime).toBeTypeOf('number');
   });
