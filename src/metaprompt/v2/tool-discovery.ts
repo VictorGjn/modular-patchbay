@@ -74,6 +74,8 @@ const TOOL_TO_MCP: Record<string, string[]> = {
   'memory': ['mcp-memory'],
   'docker': ['mcp-docker'],
   'kubernetes': ['mcp-kubernetes'],
+  'design': ['mcp-figma'],
+  'figma': ['mcp-figma'],
 };
 
 const TOOL_TO_CONNECTOR: Record<string, string> = {
@@ -227,14 +229,29 @@ interface SkillCatalogEntry {
 let _catalogCache: { data: SkillCatalogEntry[]; ts: number } | null = null;
 const CATALOG_TTL_MS = 10 * 60 * 1000;
 
-async function fetchSkillsCatalog(signal?: AbortSignal): Promise<SkillCatalogEntry[]> {
+/**
+ * Resolve the base URL for internal API calls.
+ * On the server (Node.js), we need an absolute URL since fetch() doesn't support relative paths.
+ * In the browser, relative paths work fine.
+ */
+function resolveApiBase(serverPort?: number): string {
+  if (typeof window !== 'undefined') {
+    return ''; // Browser: relative URLs work
+  }
+  // Server-side: must use absolute URL
+  const port = serverPort ?? 4800;
+  return `http://localhost:${port}`;
+}
+
+async function fetchSkillsCatalog(signal?: AbortSignal, serverPort?: number): Promise<SkillCatalogEntry[]> {
   if (_catalogCache && Date.now() - _catalogCache.ts < CATALOG_TTL_MS) {
     return _catalogCache.data;
   }
 
-  // Fetch skills catalog via backend proxy to avoid CORS with skills.sh
+  const apiBase = resolveApiBase(serverPort);
+
   try {
-    const res = await fetch('/api/skills/catalog', {
+    const res = await fetch(`${apiBase}/api/skills/catalog`, {
       signal: signal ?? AbortSignal.timeout(8000),
     });
     if (!res.ok) return [];
@@ -252,8 +269,12 @@ async function fetchSkillsCatalog(signal?: AbortSignal): Promise<SkillCatalogEnt
       return entries;
     }
     return [];
-  } catch {
-    return []; // CORS or network error — skills discovery is best-effort
+  } catch (err) {
+    // Log on server so the error is visible, not silently swallowed
+    if (typeof window === 'undefined') {
+      console.warn('[tool-discovery] Skills catalog fetch failed:', err instanceof Error ? err.message : String(err));
+    }
+    return [];
   }
 }
 
@@ -261,6 +282,7 @@ export async function discoverSkills(
   parsed: ParsedInput,
   installedSkillIds: string[],
   signal?: AbortSignal,
+  serverPort?: number,
 ): Promise<DiscoveredTool[]> {
   const installedSet = new Set(installedSkillIds);
   const terms = [...parsed.tools_requested, parsed.domain, parsed.role]
@@ -274,7 +296,7 @@ export async function discoverSkills(
 
   let catalog: SkillCatalogEntry[] = [];
   try {
-    catalog = await fetchSkillsCatalog(signal);
+    catalog = await fetchSkillsCatalog(signal, serverPort);
   } catch {
     return [];
   }
@@ -329,19 +351,21 @@ export async function discoverSkills(
  * @param parsed - Parsed metaprompt V2 input.
  * @param installed - IDs of already-installed tools (excluded from suggestions).
  * @param signal - Optional abort signal for the skills.sh network request.
+ * @param serverPort - Server port for internal API calls (used server-side). Default: 4800.
  * @returns Up to 8 tool suggestions (3 MCP + 2 connectors + 3 skills), sorted by relevance.
  */
 export async function discoverTools(
   parsed: ParsedInput,
   installed: { skillIds: string[]; mcpIds: string[]; connectorIds: string[] },
   signal?: AbortSignal,
+  serverPort?: number,
 ): Promise<DiscoveredTool[]> {
   // MCP + connector discovery is instant (in-memory)
   const mcpTools = discoverMcpServers(parsed, installed.mcpIds);
   const connectorTools = discoverConnectors(parsed, installed.connectorIds);
 
   // Skills discovery runs in parallel, best-effort
-  const skillTools = await discoverSkills(parsed, installed.skillIds, signal).catch(() => []);
+  const skillTools = await discoverSkills(parsed, installed.skillIds, signal, serverPort).catch(() => []);
 
   const all = [...mcpTools, ...connectorTools, ...skillTools];
 
