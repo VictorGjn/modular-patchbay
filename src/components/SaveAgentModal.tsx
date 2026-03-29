@@ -196,11 +196,6 @@ export function SaveAgentModal() {
     downloadAgentFile(preview, safeName, meta.ext);
   };
 
-  // Legacy: combined save + download
-  const handleSave = () => {
-    handleSaveToLibrary();
-    handleDownload();
-  };
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(preview);
