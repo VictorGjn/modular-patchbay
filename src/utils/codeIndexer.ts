@@ -43,6 +43,14 @@ interface CodeItem {
 
 const TS_EXPORT_RE =
   /^export\s+(?:default\s+)?(?:async\s+)?(?:declare\s+)?(?:(?:abstract\s+)?class|interface|type|enum|function|(?:const|let|var))\s+(\w+)/;
+
+// #134: Also match non-exported top-level declarations
+const TS_TOPLEVEL_RE =
+  /^(?:async\s+)?(?:(?:abstract\s+)?class|interface|type|enum|function)\s+(\w+)/;
+
+// #134: Match arrow function exports: export const foo = (...) => ...
+const TS_ARROW_EXPORT_RE =
+  /^export\s+(?:const|let|var)\s+(\w+)\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?(?:\([^)]*\)|\w+)\s*=>/;
 const TS_METHOD_RE =
   /^\s{2,}(?:(?:public|private|protected|static|async|override|abstract)\s+)*(\w+)\s*(?:<[^>]*>)?\s*\(/;
 const PY_CLASS_RE = /^class\s+(\w+)/;
@@ -169,7 +177,13 @@ function parseTsMethods(lines: string[], classStart: number, classEnd: number): 
 }
 
 function parseTsItemAt(lines: string[], i: number): CodeItem | null {
-  const m = TS_EXPORT_RE.exec(lines[i]);
+  // Try exported declaration first
+  let m = TS_EXPORT_RE.exec(lines[i]);
+  let isExported = !!m;
+  // #134: Try arrow function export
+  if (!m) { m = TS_ARROW_EXPORT_RE.exec(lines[i]); if (m) isExported = true; }
+  // #134: Try non-exported top-level declaration
+  if (!m) { m = TS_TOPLEVEL_RE.exec(lines[i]); isExported = false; }
   if (!m) return null;
   const kind = resolveKind(lines[i]);
   const name = m[1];
@@ -177,13 +191,13 @@ function parseTsItemAt(lines: string[], i: number): CodeItem | null {
   const lineEnd = findBracedEnd(lines, i);
   const body = lines.slice(i, lineEnd + 1).join('\n');
   const members = kind === 'class' ? parseTsMethods(lines, i, lineEnd) : [];
-  return { name, kind, signature: lines[i].trim(), docstring: doc, body, lineStart: i, lineEnd, isExported: true, members };
+  return { name, kind, signature: lines[i].trim(), docstring: doc, body, lineStart: i, lineEnd, isExported, members };
 }
 
 function parseTsItems(lines: string[]): CodeItem[] {
   const items: CodeItem[] = [];
   for (let i = 0; i < lines.length; i++) {
-    if (!TS_EXPORT_RE.test(lines[i])) continue;
+    if (!TS_EXPORT_RE.test(lines[i]) && !TS_TOPLEVEL_RE.test(lines[i]) && !TS_ARROW_EXPORT_RE.test(lines[i])) continue;
     const item = parseTsItemAt(lines, i);
     if (!item) continue;
     items.push(item);
