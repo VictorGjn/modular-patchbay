@@ -12,7 +12,6 @@
 import type { TraversalResult, PackedContext, PackedItem, FileNode } from './types.js';
 import { estimateTokens as _estimateTokens, type TreeIndex } from '../services/treeIndexer.js';
 import { applyDepthFilter, renderFilteredMarkdown } from '../utils/depthFilter.js';
-import { indexCodeFile } from '../utils/codeIndexer.js';
 
 // Approximate token costs per depth level (as fraction of full)
 const DEPTH_COST_RATIOS: Record<number, number> = {
