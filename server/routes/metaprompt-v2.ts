@@ -46,6 +46,10 @@ router.post("/generate", async (req: Request, res: Response) => {
     const effectiveProvider = providerId || "claude-agent-sdk";
     const effectiveModel = model || "claude-sonnet-4-20250514";
 
+    // Track tool discovery separately so we can emit its SSE event independently
+    let toolDiscoveryDone = false;
+    let discoveredToolsResult: unknown[] = [];
+
     const result = await runV2Pipeline(prompt, {
       providerId: effectiveProvider,
       sonnetModel: effectiveModel,
@@ -63,15 +67,30 @@ router.post("/generate", async (req: Request, res: Response) => {
           sendEvent({ phase: "tool_discovery", status: "running" });
         }
       },
+      // New: callback when tool discovery resolves (before pipeline ends)
+      onToolDiscoveryComplete: (tools: unknown[]) => {
+        if (!toolDiscoveryDone) {
+          toolDiscoveryDone = true;
+          discoveredToolsResult = tools;
+          sendEvent({
+            phase: "tool_discovery",
+            status: "complete",
+            phaseNumber: getPhaseNumber("tool_discovery"),
+            tools,
+          });
+        }
+      },
     });
 
-    // Emit tool_discovery complete now that we have the full result
-    sendEvent({
-      phase: "tool_discovery",
-      status: "complete",
-      phaseNumber: getPhaseNumber("tool_discovery"),
-      tools: result.discoveredTools ?? [],
-    });
+    // Fallback: if tool discovery callback wasn't fired, emit it now
+    if (!toolDiscoveryDone) {
+      sendEvent({
+        phase: "tool_discovery",
+        status: "complete",
+        phaseNumber: getPhaseNumber("tool_discovery"),
+        tools: result.discoveredTools ?? [],
+      });
+    }
 
     // Send final result
     sendEvent({
@@ -104,6 +123,7 @@ router.post("/generate", async (req: Request, res: Response) => {
     res.end();
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
+    console.error("[V2 Pipeline Error]", msg);
     sendEvent({ phase: "error", status: "failed", error: msg });
     res.end();
   }
