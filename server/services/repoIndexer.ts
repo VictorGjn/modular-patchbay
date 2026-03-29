@@ -801,7 +801,7 @@ export function generateKnowledgeBase(scan: RepoScan): Map<string, string> {
   // Per-feature docs
   for (let i = 0; i < scan.features.length; i++) {
     const feature = scan.features[i];
-    const slug = feature.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const slug = feature.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'unnamed';
     const filename = `${String(i + 1).padStart(2, '0')}-${slug}.md`;
     docs.set(filename, generateFeatureDoc(scan, feature));
   }
