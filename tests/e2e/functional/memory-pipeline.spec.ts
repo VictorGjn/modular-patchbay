@@ -21,17 +21,15 @@ test.describe('Memory Pipeline — facts → storage → retrieval', () => {
     expect(Array.isArray(body.facts)).toBe(true);
   });
 
-  test('API: POST /memory/facts/add stores a fact', async ({ request }) => {
-    const res = await request.post(`${API}/memory/facts/add`, {
+  test('API: POST /memory/facts stores a fact', async ({ request }) => {
+    const factId = `e2e-test-fact-${Date.now()}`;
+    const res = await request.post(`${API}/memory/facts`, {
       data: {
-        facts: [{
-          key: 'e2e-test-fact',
-          value: 'The optimal bunkering port for ARA range is Rotterdam',
-          domain: 'maritime',
-          epistemicType: 'ground-truth',
-          confidence: 0.95,
-          source: 'e2e-test',
-        }],
+        id: factId,
+        content: 'The optimal bunkering port for ARA range is Rotterdam',
+        domain: 'maritime',
+        confidence: 0.95,
+        source: 'e2e-test',
       },
     }).catch(() => null);
     if (!res) { test.skip(); return; }
@@ -41,7 +39,7 @@ test.describe('Memory Pipeline — facts → storage → retrieval', () => {
       const body = await res.json();
       expect(body.status).toBe('success');
     } else {
-      // Document failure mode
+      // 400 (validation) or 500 (storage init)
       expect([200, 400, 500]).toContain(status);
     }
   });
@@ -67,16 +65,17 @@ test.describe('Memory Pipeline — facts → storage → retrieval', () => {
     }
   });
 
-  test('API: POST /memory/extract/llm extracts facts via LLM', async ({ request }) => {
-    const res = await request.post(`${API}/memory/extract/llm`, {
+  test('API: POST /memory/extract with useLlm flag', async ({ request }) => {
+    const res = await request.post(`${API}/memory/extract`, {
       data: {
         text: 'The client needs real-time weather overlay on their ECDIS systems.',
-        domain: 'product-feedback',
+        agentId: 'e2e-test-agent',
+        useLlm: true,
       },
     }).catch(() => null);
     if (!res) { test.skip(); return; }
 
-    // This endpoint requires an LLM provider
+    // LLM extraction requires a configured provider
     const status = res.status();
     expect([200, 400, 500]).toContain(status);
   });
@@ -88,8 +87,9 @@ test.describe('Memory Pipeline — facts → storage → retrieval', () => {
     if (res.status() === 200) {
       const body = await res.json();
       expect(body.status).toBe('success');
-      // Should report which backend is active
-      expect(body.backend).toBeTruthy();
+      // Backend info is nested under body.config
+      expect(body.config).toBeTruthy();
+      expect(body.config.backend).toBeTruthy();
     }
   });
 
