@@ -20,10 +20,10 @@ test.describe('Complete Wizard Workflow', () => {
 
   test('1. Agent Library loads without crash', async ({ page }) => {
     await page.goto('/');
-    // Should see either templates or empty state — use auto-waiting assertion
-    const mainContent = page.getByText('New Agent')
-      .or(page.getByText(/no agents|get started|create/i).first());
-    await expect(mainContent).toBeVisible({ timeout: 15_000 });
+    // Use role-based selector to avoid matching text in template descriptions
+    const mainContent = page.getByRole('button', { name: 'New Agent' })
+      .or(page.getByText(/no agents|get started/i).first());
+    await expect(mainContent.first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('2. New Agent opens wizard with all 7 tabs', async ({ page }) => {
