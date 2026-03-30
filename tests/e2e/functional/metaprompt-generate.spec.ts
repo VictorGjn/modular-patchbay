@@ -45,7 +45,7 @@ test.describe('Metaprompt V2 — generate pipeline', () => {
     expect(body.error).toContain('prompt');
   });
 
-  test('API: SSE stream includes tool_discovery phase', async ({ request }) => {
+  test('API: SSE stream runs core pipeline phases', async ({ request }) => {
     const res = await request.fetch(`${API}/metaprompt/v2/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,11 +57,13 @@ test.describe('Metaprompt V2 — generate pipeline', () => {
     if (!res) { test.skip(); return; }
 
     const body = await res.text();
-    // tool_discovery should appear as a phase (running or complete)
-    const hasToolDiscovery = body.includes('"phase":"tool_discovery"');
-    expect(hasToolDiscovery).toBe(true);
+    // Core pipeline: start → parse → research → ... → done|error
+    expect(body).toContain('"phase":"start"');
 
-    // Parse phase should complete before tool_discovery starts
+    const hasCompletion = body.includes('"phase":"done"') || body.includes('"phase":"error"');
+    expect(hasCompletion).toBe(true);
+
+    // tool_discovery is now decoupled — may or may not appear
     const parseIdx = body.indexOf('"phase":"parse"');
     const tdIdx = body.indexOf('"phase":"tool_discovery"');
     if (parseIdx >= 0 && tdIdx >= 0) {
@@ -117,7 +119,7 @@ test.describe('Metaprompt V2 — generate pipeline', () => {
 
     // Check that PHASE_LABELS from metapromptV2Client are rendered somewhere
     // These are defined in the V2PipelineProgress component
-    const expectedPhases = ['Parsing', 'Tool Discovery', 'Researching', 'Pattern Selection', 'Context Strategy', 'Assembling', 'Evaluating'];
+    const expectedPhases = ['Parsing', 'Researching', 'Pattern Selection', 'Context Strategy', 'Assembling', 'Evaluating'];
 
     // Navigate to describe tab, fill prompt, look for the phase labels component
     const textarea = page.locator('textarea').first();
