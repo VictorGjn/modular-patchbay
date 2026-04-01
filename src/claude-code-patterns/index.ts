@@ -45,3 +45,8 @@ export { createContextMiddleware } from '../services/contextMiddleware.js';
 export type { ContextMiddleware, ContextMiddlewareConfig } from '../services/contextMiddleware.js';
 export { createAgentSearchService, toSearchableAgent } from '../services/agentSearchIntegration.js';
 export type { AgentSearchService } from '../services/agentSearchIntegration.js';
+
+// Phase 3: Pipeline wiring exports
+export { buildSystemFrameOptimized } from '../services/systemFrameBuilder.js';
+export { packContextReactive } from '../graph/packer.js';
+export { assemblePipelineContextWithMemory } from '../services/contextAssembler.js';

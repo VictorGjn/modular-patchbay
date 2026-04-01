@@ -530,3 +530,53 @@ function applyAttentionOrdering(knowledgeBlock: string): string {
 
   return `${knowledgeTag}\n${orderedContent.join('\n\n')}\n</knowledge>`;
 }
+
+
+// Phase 3: MemoryStore integration for dynamic memory injection
+import { createMemoryContextSection } from './memoryStoreIntegration.js';
+
+/**
+ * Assemble pipeline context with optional MemoryStore-backed memory.
+ * If a query is provided, searches MemoryStore for relevant memories
+ * and injects them as a dynamic memory section.
+ */
+export function assemblePipelineContextWithMemory(parts: {
+  frame: string;
+  orientationBlock: string;
+  hasRepos: boolean;
+  knowledgeFormatGuide: string;
+  frameworkBlock: string;
+  memoryBlock: string;
+  knowledgeBlock: string;
+  lessonsBlock?: string;
+  providerType?: string;
+  /** If provided, enriches memoryBlock with MemoryStore results */
+  memoryQuery?: string;
+  memoryBasePath?: string;
+}): string {
+  let { memoryBlock } = parts;
+
+  // Enrich memory block with MemoryStore search results
+  if (parts.memoryQuery) {
+    const storeMemory = createMemoryContextSection(parts.memoryQuery, {
+      basePath: parts.memoryBasePath,
+    });
+    if (storeMemory) {
+      memoryBlock = memoryBlock
+        ? memoryBlock + '\n\n' + storeMemory
+        : storeMemory;
+    }
+  }
+
+  return assemblePipelineContext({
+    frame: parts.frame,
+    orientationBlock: parts.orientationBlock,
+    hasRepos: parts.hasRepos,
+    knowledgeFormatGuide: parts.knowledgeFormatGuide,
+    frameworkBlock: parts.frameworkBlock,
+    memoryBlock,
+    knowledgeBlock: parts.knowledgeBlock,
+    lessonsBlock: parts.lessonsBlock,
+    providerType: parts.providerType,
+  });
+}
