@@ -77,7 +77,7 @@ export function McpPicker() {
       id: serverId,
       name: registryEntry?.name ?? serverId,
       type: registryEntry?.transport === 'sse' ? 'sse' as const :
-            registryEntry?.transport === 'http' ? 'http' as const : 'stdio' as const,
+            registryEntry?.transport === 'streamable-http' ? 'sse' as const : 'stdio' as const,
       command: registryEntry?.command ?? 'npx',
       args: registryEntry?.defaultArgs ?? [],
       env,

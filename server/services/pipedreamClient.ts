@@ -11,15 +11,11 @@
  */
 
 import { readConfig, writeConfig } from '../config.js';
+import type { PipedreamConfig } from '../types.js';
 
 // ── Types ──
 
-export interface PipedreamConfig {
-  projectId: string;
-  clientId: string;
-  clientSecret: string;
-  environment: 'development' | 'production';
-}
+// PipedreamConfig imported from ../types.js
 
 export interface PipedreamAccount {
   id: string;          // Pipedream account ID (apn_xxx)
