@@ -55,6 +55,7 @@ function toGenerationResult(r: V2PipelineResult): V2GenerationResult {
     },
     evaluation: r.evaluation.criteria_results,
     discoveredTools: r.discoveredTools ?? [],
+    nativeTools: r.nativeTools ?? [],
   };
 }
 
@@ -302,6 +303,35 @@ export default function V2PipelineProgress({
               {PATTERN_DESCRIPTIONS[result.pattern.pattern] ?? result.pattern.justification}
             </div>
           </div>
+
+
+          {/* Native Tools */}
+          {result.nativeTools && result.nativeTools.length > 0 && (
+            <div style={{ padding: 12, borderRadius: 8, background: t.surfaceElevated, marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, marginBottom: 8 }}>
+                Native Tools ({result.nativeTools.length})
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {result.nativeTools.map((tool: { id: string; name: string; description: string }) => (
+                  <span
+                    key={tool.id}
+                    title={tool.description}
+                    style={{
+                      fontSize: 11,
+                      padding: '4px 8px',
+                      borderRadius: 4,
+                      background: '#10b98120',
+                      color: '#10b981',
+                      fontWeight: 500,
+                      cursor: 'default',
+                    }}
+                  >
+                    ✓ {tool.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, marginBottom: 8 }}>
