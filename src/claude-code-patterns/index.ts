@@ -1,9 +1,11 @@
 /**
- * Claude Code Patterns — barrel export for all Phase 1 features.
+ * Claude Code Patterns — barrel export for all features + adapters.
  *
  * Clean API surface for integrating context engineering patterns
  * inspired by Claude Code into the Modular Patchbay pipeline.
  */
+
+// ── Phase 1: Core features ──
 
 export { SystemPromptBuilder } from '../prompt/SystemPromptBuilder.js';
 export type { PromptSection, BuiltPrompt } from '../prompt/SystemPromptBuilder.js';
@@ -35,7 +37,28 @@ export type {
   ScoredKnowledge,
 } from '../search/AgentSearch.js';
 
-// Integration adapters
+// ── Phase 2: Lightweight adapters (src/adapters/) ──
+
+export { buildCacheOptimizedPrompt } from '../adapters/systemPromptAdapter.js';
+export { withReactiveCompaction as withReactiveCompactionAdapter } from '../adapters/reactivePackerAdapter.js';
+export {
+  getMemoryStore,
+  createMemoryContextSection as createAdapterMemorySection,
+  extractAndStoreMemories as extractAdapterMemories,
+} from '../adapters/memoryAdapter.js';
+export {
+  compressToolOutputs,
+  compressContext,
+  createContextMiddleware as createAdapterContextMiddleware,
+} from '../adapters/contextMiddleware.js';
+export {
+  createAgentSearchService as createAdapterSearchService,
+  searchAgents,
+  searchKnowledge,
+} from '../adapters/searchAdapter.js';
+
+// ── Phase 1 integration adapters (existing, in src/services/ & src/graph/) ──
+
 export { buildSystemFrameWithBuilder } from '../services/systemFrameBuilderAdapter.js';
 export type { SystemFrameInput } from '../services/systemFrameBuilderAdapter.js';
 export { withReactiveCompaction } from '../graph/reactivePackerWrapper.js';
@@ -46,7 +69,8 @@ export type { ContextMiddleware, ContextMiddlewareConfig } from '../services/con
 export { createAgentSearchService, toSearchableAgent } from '../services/agentSearchIntegration.js';
 export type { AgentSearchService } from '../services/agentSearchIntegration.js';
 
-// Phase 3: Pipeline wiring exports
+// ── Phase 3: Pipeline wiring exports ──
+
 export { buildSystemFrameOptimized } from '../services/systemFrameBuilder.js';
 export { packContextReactive } from '../graph/packer.js';
 export { assemblePipelineContextWithMemory } from '../services/contextAssembler.js';
