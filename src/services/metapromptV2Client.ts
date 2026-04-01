@@ -6,6 +6,12 @@
 import type { DiscoveredTool } from '../metaprompt/v2/tool-discovery';
 export type { DiscoveredTool };
 
+export interface NativeToolInfo {
+  id: string;
+  name: string;
+  description: string;
+}
+
 const API_BASE = '/api/metaprompt/v2';
 
 export interface V2PhaseEvent {
@@ -43,6 +49,7 @@ export interface V2GenerationResult {
   };
   evaluation: Record<string, { passed: boolean; issue?: string; fix_applied?: string }>;
   discoveredTools?: DiscoveredTool[];
+  nativeTools?: NativeToolInfo[];
 }
 
 export const PHASE_LABELS: Record<string, { label: string; description: string; icon: string }> = {
