@@ -235,7 +235,7 @@ const CATALOG_TTL_MS = 10 * 60 * 1000;
  * In the browser, relative paths work fine.
  */
 function resolveApiBase(serverPort?: number): string {
-  if (typeof window !== 'undefined') {
+  if ('window' in globalThis) {
     return ''; // Browser: relative URLs work
   }
   // Server-side: must use absolute URL
@@ -271,7 +271,7 @@ async function fetchSkillsCatalog(signal?: AbortSignal, serverPort?: number): Pr
     return [];
   } catch (err) {
     // Log on server so the error is visible, not silently swallowed
-    if (typeof window === 'undefined') {
+    if (!('window' in globalThis)) {
       console.warn('[tool-discovery] Skills catalog fetch failed:', err instanceof Error ? err.message : String(err));
     }
     return [];

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { usePipedreamStore, type PipedreamApp } from '../../store/pipedreamStore';
-import { useTheme } from '../../theme';
+import { usePipedreamStore } from '../store/pipedreamStore';
+import { useTheme } from '../theme';
 import { Search, Plus, Trash2, Settings } from 'lucide-react';
 
 export function PipedreamPicker() {

@@ -157,7 +157,7 @@ describe('V2 Pipeline Orchestrator', () => {
       onPhaseComplete: (phase) => phases.push(phase),
     });
 
-    expect(phases).toEqual(['parse', 'research', 'pattern', 'context', 'assemble', 'evaluate', 'tool_discovery']);
+    expect(phases).toEqual(['parse', 'research', 'pattern', 'context', 'assemble', 'evaluate']);
   });
 
   it('throws on empty input', async () => {

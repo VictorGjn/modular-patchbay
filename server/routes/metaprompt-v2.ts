@@ -48,8 +48,7 @@ router.post("/generate", async (req: Request, res: Response) => {
 
     // Track tool discovery separately so we can emit its SSE event independently
     let toolDiscoveryDone = false;
-    let discoveredToolsResult: unknown[] = [];
-
+    
     const result = await runV2Pipeline(prompt, {
       providerId: effectiveProvider,
       sonnetModel: effectiveModel,
@@ -71,7 +70,6 @@ router.post("/generate", async (req: Request, res: Response) => {
       onToolDiscoveryComplete: (tools: unknown[]) => {
         if (!toolDiscoveryDone) {
           toolDiscoveryDone = true;
-          discoveredToolsResult = tools;
           sendEvent({
             phase: "tool_discovery",
             status: "complete",

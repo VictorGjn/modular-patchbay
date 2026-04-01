@@ -22,8 +22,8 @@ import {
   listAccounts,
   deleteAccount,
   proxyRequest,
-  type PipedreamConfig,
 } from '../services/pipedreamClient.js';
+import type { PipedreamConfig } from '../types.js';
 
 const router = Router();
 

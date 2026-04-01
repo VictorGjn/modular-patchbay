@@ -92,6 +92,7 @@ describe('mcpStoreSync', () => {
           body: JSON.stringify({
             id: 'test-server-1',
             name: 'Test Server 1',
+            type: 'stdio',
             command: '',
             args: [],
             env: {},
