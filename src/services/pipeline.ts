@@ -32,6 +32,7 @@ import {
 } from './treeNavigator';
 import { compressWithPriority } from './compress';
 import { estimateTokens } from './treeIndexer';
+import { createContextMiddleware } from './contextMiddleware.js';
 import { classifyQuery } from './treeAwareRetriever';
 import { useTraceStore } from '../store/traceStore';
 import type { PipelineStageData, PipelineStageDataMap } from '../types/pipelineStageTypes';
@@ -71,6 +72,12 @@ export interface PipelineOptions {
   tokenBudget: number;
   /** If provided, skip the navigation LLM call and use these selections */
   manualSelections?: BranchSelection[];
+  /** Context middleware for tool output and conversation collapse */
+  middleware?: {
+    enabled?: boolean;
+    toolOutputMaxTokens?: number;
+    conversationMaxTokens?: number;
+  };
   /** RTK compression settings */
   compression?: {
     enabled?: boolean;
@@ -247,6 +254,15 @@ export function completePipeline(
 
   const compressionMs = Date.now() - compressionStart;
   const totalMs = indexMs + navigationMs + compressionMs;
+  // Phase 3: Apply context middleware if enabled
+  if (options.middleware?.enabled) {
+    const mw = createContextMiddleware({
+      toolOutputMaxTokens: options.middleware.toolOutputMaxTokens,
+      conversationMaxTokens: options.middleware.conversationMaxTokens,
+    });
+    finalContent = mw.collapse(finalContent, 'text');
+  }
+
   const finalTokens = estimateTokens(finalContent);
 
   // Emit remaining pipeline stage events

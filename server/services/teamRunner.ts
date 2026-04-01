@@ -1,4 +1,5 @@
 import { runAgent } from './agentRunner.js';
+import { prepareAgentWorktree } from './worktreeManager.js';
 import type { AgentRunConfig, AgentRunResult, ProgressCallback } from './agentRunner.js';
 import type { ExtractedFact } from './factExtractor.js';
 
@@ -62,7 +63,19 @@ export async function runTeam(config: TeamRunConfig, onProgress?: ProgressCallba
         systemPrompt += `\n\n## Your Role\n${agent.rolePrompt}`;
       }
       if (agent.repoUrl) {
-        systemPrompt += `\n\n## Repository\nYou are working on: ${agent.repoUrl}`;
+        // Phase 3: Prepare isolated worktree for this agent
+        try {
+          const wt = prepareAgentWorktree({
+            repoUrl: agent.repoUrl,
+            baseRef: 'main',
+            teamId: config.teamId,
+            agentId: agent.agentId,
+          });
+          systemPrompt += `\n\n## Working Directory\nWorking directory: ${wt.worktreePath}\nBranch: ${wt.branch}\nBase ref: ${wt.baseRef}`;
+        } catch (wtErr) {
+          // Fallback: just note the repo URL if worktree fails
+          systemPrompt += `\n\n## Repository\nYou are working on: ${agent.repoUrl}\n(Worktree preparation failed: ${wtErr instanceof Error ? wtErr.message : String(wtErr)})`;
+        }
       }
 
       return {
