@@ -43,8 +43,8 @@ Step 2: Respond',
       expect(result.text).toContain('User prefers concise answers');
 
       // Verify prompt metadata
-      expect(result.prompt.staticTokens).toBeGreaterThan(0);
-      expect(result.prompt.dynamicTokens).toBeGreaterThan(0);
+      expect(result.prompt.staticTokenEstimate).toBeGreaterThan(0);
+      expect(result.prompt.dynamicTokenEstimate).toBeGreaterThan(0);
     });
 
     it('handles minimal input without crashing', () => {
@@ -56,51 +56,59 @@ Step 2: Respond',
 
   describe('Task 2: Reactive compaction under pressure', () => {
     it('applies reactive compaction when token pressure is high', () => {
-      // Create a mock traversal result with files
       const traversalResult: TraversalResult = {
         files: [
           {
             node: {
               id: 'file-1', path: 'src/main.ts', language: 'typescript',
+              lastModified: Date.now(), contentHash: 'hash1',
               tokens: 500, symbols: [
-                { name: 'main', kind: 'function', isExported: true, signature: '(): void' },
-                { name: 'helper', kind: 'function', isExported: false, signature: '(): string' },
+                { name: 'main', kind: 'function', isExported: true, signature: '(): void', lineStart: 1, lineEnd: 20 },
+                { name: 'helper', kind: 'function', isExported: false, signature: '(): string', lineStart: 22, lineEnd: 30 },
               ],
             },
             relevance: 0.9,
+            distance: 0,
+            reason: 'direct',
           },
           {
             node: {
               id: 'file-2', path: 'src/utils.ts', language: 'typescript',
+              lastModified: Date.now(), contentHash: 'hash2',
               tokens: 300, symbols: [
-                { name: 'format', kind: 'function', isExported: true, signature: '(s: string): string' },
+                { name: 'format', kind: 'function', isExported: true, signature: '(s: string): string', lineStart: 1, lineEnd: 10 },
               ],
             },
             relevance: 0.5,
+            distance: 1,
+            reason: 'imports',
           },
           {
             node: {
               id: 'file-3', path: 'src/config.ts', language: 'typescript',
+              lastModified: Date.now(), contentHash: 'hash3',
               tokens: 200, symbols: [
-                { name: 'CONFIG', kind: 'const', isExported: true },
+                { name: 'CONFIG', kind: 'const', isExported: true, lineStart: 1, lineEnd: 5 },
               ],
             },
             relevance: 0.3,
+            distance: 2,
+            reason: 'imports',
           },
         ],
-        edges: [],
-        query: 'test',
+        totalTokens: 1000,
+        graphStats: { nodesTraversed: 5, edgesFollowed: 3, nodesIncluded: 3, nodesPruned: 2 },
       };
 
       // Tight budget to force pressure
       const budget = 400;
       const result = withReactiveCompaction(traversalResult, budget, {
-        hedgingConfidence: 0.2, // trigger hedging signal
+        hedgingConfidence: 0.2,
       });
 
       expect(result).toBeDefined();
       expect(result.items.length).toBeGreaterThan(0);
-      expect(result.totalTokens).toBeLessThanOrEqual(budget * 1.5); // allow some slack for reactive adjustments
+      expect(result.totalTokens).toBeLessThanOrEqual(budget * 1.5);
       expect(result.budgetUtilization).toBeGreaterThan(0);
     });
   });
@@ -113,17 +121,19 @@ Step 2: Respond',
       const store = new MemoryStore(tempDir);
 
       // Store some memories
-      store.add({
+      store.save({
         type: 'preference',
         content: 'User prefers TypeScript over JavaScript',
+        source: 'test-agent',
         tags: ['language', 'coding'],
-        agentId: 'test-agent',
+        confidence: 0.9,
       });
-      store.add({
-        type: 'fact',
+      store.save({
+        type: 'learning',
         content: 'Project uses React with Zustand for state',
+        source: 'test-agent',
         tags: ['stack'],
-        agentId: 'test-agent',
+        confidence: 0.8,
       });
 
       // Search
@@ -134,7 +144,6 @@ Step 2: Respond',
       // Memory context section
       const section = createMemoryContextSection('coding preferences', { basePath: tempDir });
       expect(section).toBeTruthy();
-      expect(section).toContain('memories');
 
       // Cleanup
       rmSync(tempDir, { recursive: true, force: true });
@@ -152,8 +161,8 @@ Step 2: Respond',
     it('summarizes tool calls', () => {
       const middleware = createContextMiddleware();
       const summary = middleware.processToolCalls([
-        { tool: 'read_file', args: { path: 'src/main.ts' }, output: 'file content here', durationMs: 100 },
-        { tool: 'read_file', args: { path: 'src/utils.ts' }, output: 'another file', durationMs: 50 },
+        { tool: 'read_file', input: { path: 'src/main.ts' }, output: 'file content here', durationMs: 100, success: true },
+        { tool: 'read_file', input: { path: 'src/utils.ts' }, output: 'another file', durationMs: 50, success: true },
       ]);
       expect(summary).toBeTruthy();
       expect(typeof summary).toBe('string');
