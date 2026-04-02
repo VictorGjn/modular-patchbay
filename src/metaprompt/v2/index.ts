@@ -117,7 +117,11 @@ export async function runV2Pipeline(
 
   // Phase 5: Assembly (uses Opus for depth)
   t = Date.now();
-  const assembled = await runAssembler(parsed, research, pattern, context, opusConfig(options));
+  const assembled = await runAssembler(
+    parsed, research, pattern, context, opusConfig(options),
+    options.installed?.mcpIds,
+    options.installed?.connectorIds,
+  );
   timing.assemble = Date.now() - t;
   notify('assemble', timing.assemble);
 
@@ -141,6 +145,7 @@ export async function runV2Pipeline(
     evaluation,
     timing,
     discoveredTools,
+    nativeTools: assembled.native_tools,
   };
 }
 

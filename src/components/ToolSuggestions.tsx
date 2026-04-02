@@ -7,11 +7,13 @@ import { useTheme } from '../theme';
 import { useMcpStore } from '../store/mcpStore';
 import { useConsoleStore } from '../store/consoleStore';
 import { useSkillsStore } from '../store/skillsStore';
-import type { DiscoveredTool } from '../services/metapromptV2Client';
+import type { DiscoveredTool, NativeToolInfo } from '../services/metapromptV2Client';
 import { ChevronDown, ChevronUp, Plus, Link, Download, X } from 'lucide-react';
 
 interface ToolSuggestionsProps {
   tools: DiscoveredTool[];
+  /** Native tools always available to the generated agent */
+  nativeTools?: NativeToolInfo[];
   onNavigateToKnowledge?: () => void;
   /** When true, skills search is still running — show a spinner */
   skillsLoading?: boolean;
@@ -19,7 +21,7 @@ interface ToolSuggestionsProps {
 
 const DEFAULT_VISIBLE = 8;
 
-export function ToolSuggestions({ tools, onNavigateToKnowledge, skillsLoading }: ToolSuggestionsProps) {
+export function ToolSuggestions({ tools, nativeTools, onNavigateToKnowledge, skillsLoading }: ToolSuggestionsProps) {
   const t = useTheme();
   const addServer = useMcpStore((s) => s.addServer);
   const [collapsed, setCollapsed] = useState(false);
@@ -43,7 +45,7 @@ export function ToolSuggestions({ tools, onNavigateToKnowledge, skillsLoading }:
     });
   }, [tools, mcpServerIds, connectorIds, skillIds]);
 
-  if (dismissed || (visibleTools.length === 0 && !skillsLoading)) return null;
+  if (dismissed || (visibleTools.length === 0 && (!nativeTools || nativeTools.length === 0) && !skillsLoading)) return null;
 
   const mcpTools = visibleTools.filter((t) => t.source === 'mcp');
   const connectorTools = visibleTools.filter((t) => t.source === 'connector');
@@ -314,6 +316,39 @@ export function ToolSuggestions({ tools, onNavigateToKnowledge, skillsLoading }:
 
       {!collapsed && (
         <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+
+          {/* Native Tools (always available) */}
+          {nativeTools && nativeTools.length > 0 && (
+            <section>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+                Native Tools
+              </div>
+              <div style={{ fontSize: 11, color: '#10b981', fontWeight: 500, marginBottom: 8 }}>
+                Always available — no setup required
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {nativeTools.map((tool) => (
+                  <div key={tool.id} style={card}>
+                    <div style={{ fontSize: 18, lineHeight: 1, paddingTop: 2, flexShrink: 0 }}>✅</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+                          {tool.name}
+                        </span>
+                        <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 4, background: '#10b98120', color: '#10b981', fontWeight: 500 }}>
+                          Active
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 12, color: t.textSecondary, marginTop: 2, lineHeight: 1.4 }}>
+                        {tool.description}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* MCP Servers */}
           {mcpShown.length > 0 && (

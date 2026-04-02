@@ -518,9 +518,10 @@ export function DescribeTab({ onValidationChange, onNavigateToNext, onNavigateTo
                 />
 
                 {/* Tool Suggestions — shown after pipeline completes */}
-                {v2Result?.discoveredTools && v2Result.discoveredTools.length > 0 && (
+                {v2Result && ((v2Result.discoveredTools && v2Result.discoveredTools.length > 0) || (v2Result.nativeTools && v2Result.nativeTools.length > 0)) && (
                   <ToolSuggestions
-                    tools={v2Result.discoveredTools}
+                    tools={v2Result.discoveredTools ?? []}
+                    nativeTools={v2Result.nativeTools}
                     onNavigateToKnowledge={onNavigateToKnowledge}
                   />
                 )}

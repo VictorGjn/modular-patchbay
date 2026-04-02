@@ -1,4 +1,6 @@
 import { fetchCompletion } from '../../services/llmService.js';
+import { getAvailableNativeTools, formatNativeToolsForPrompt } from './native-tools.js';
+import type { NativeTool } from './native-tools.js';
 import type {
   LLMCallConfig,
   ParsedInput,
@@ -111,7 +113,9 @@ CRITICAL RULES:
 4. No duplicate content between persona and workflow
 5. Persona is max 3 sentences, no framework names
 6. Always end with a Self-Check step
-7. If a framework has low confidence, add ⚠️ in the step name`;
+7. If a framework has low confidence, add ⚠️ in the step name
+8. Every step that needs external data MUST have at least one tool in tools_used[]. Use exact tool IDs from the NATIVE TOOLS list provided in the user message.
+9. Prefer firecrawl over web_fetch for structured data extraction. Prefer web_search for general research. Always include filesystem when reading/writing files.`;
 
 export async function runAssembler(
   parsed: ParsedInput,
@@ -119,8 +123,15 @@ export async function runAssembler(
   pattern: PatternSelection,
   context: ContextStrategy,
   llmConfig: LLMCallConfig,
+  enabledMcpIds?: string[],
+  enabledConnectorIds?: string[],
 ): Promise<AssembledAgent> {
   const frameworkContext = buildFrameworkContext(research);
+
+  // Resolve native tools available to this agent
+  const nativeTools = getAvailableNativeTools(enabledMcpIds, enabledConnectorIds);
+  const toolsSection = formatNativeToolsForPrompt(nativeTools);
+  const nativeToolIds = nativeTools.map(t => t.id);
 
   const contextSummary = context.classified_documents.length > 0
     ? context.classified_documents.map(d =>
@@ -152,9 +163,13 @@ ${frameworkContext}
 DOCUMENT STRATEGY:
 ${contextSummary}
 
-TOOLS AVAILABLE: ${parsed.tools_requested.join(', ') || 'Filesystem, Web Search'}
+NATIVE TOOLS (always available — reference by ID in tools_used[]):
+${toolsSection}
 
-Generate the agent config. Every framework above MUST become at least one workflow step with specific mechanics.`,
+ADDITIONAL TOOLS REQUESTED: ${parsed.tools_requested.filter(t => !nativeToolIds.includes(t.toLowerCase())).join(', ') || 'None'}
+
+Generate the agent config. Every framework above MUST become at least one workflow step with specific mechanics.
+IMPORTANT: For every step that needs external information, specify which native tool(s) to use in tools_used[]. Use the exact tool IDs listed above (e.g. "web_search", "firecrawl", "filesystem").`,
       },
     ],
     temperature: 0.3,
@@ -176,6 +191,7 @@ Generate the agent config. Every framework above MUST become at least one workfl
     output_schema: ensureOutputSchema(result.output_schema, parsed),
     agentic_pillars: AGENTIC_PILLARS,
     self_check: SELF_CHECK,
+    native_tools: nativeTools.map(t => ({ id: t.id, name: t.name, description: t.description })),
   };
 
   return assembled;

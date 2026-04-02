@@ -114,6 +114,7 @@ router.post("/generate", async (req: Request, res: Response) => {
         },
         evaluation: result.evaluation.criteria_results,
         discoveredTools: result.discoveredTools ?? [],
+        nativeTools: result.nativeTools ?? [],
       },
     });
 
