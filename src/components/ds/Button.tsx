@@ -20,10 +20,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   const fontSizes = { sm: 12, md: 13 };
 
   const variants: Record<string, { bg: string; color: string; border: string; hoverBg: string }> = {
-    primary: { bg: '#FE5000', color: '#fff', border: 'transparent', hoverBg: '#e54700' },
-    secondary: { bg: t.surfaceElevated, color: t.textSecondary, border: t.border, hoverBg: t.isDark ? '#2a2a30' : '#eee' },
-    ghost: { bg: 'transparent', color: t.textSecondary, border: 'transparent', hoverBg: t.isDark ? '#ffffff08' : '#00000008' },
-    danger: { bg: t.statusErrorBg, color: t.statusError, border: 'transparent', hoverBg: t.isDark ? '#ff4d4f20' : '#ff4d4f15' },
+    primary: { bg: 'var(--m-accent)', color: '#fff', border: 'transparent', hoverBg: 'var(--m-accent-hover)' },
+    secondary: { bg: 'var(--m-surface-elevated)', color: t.textSecondary, border: 'var(--m-border)', hoverBg: 'var(--m-surface-hover)' },
+    ghost: { bg: 'transparent', color: t.textSecondary, border: 'transparent', hoverBg: t.isDark ? 'oklch(1 0 0 / 0.03)' : 'oklch(0 0 0 / 0.03)' },
+    danger: { bg: t.statusErrorBg, color: t.statusError, border: 'transparent', hoverBg: 'var(--m-error-hover-bg)' },
   };
 
   const v = variants[variant];
@@ -38,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         height: heights[size],
         padding: paddings[size],
         fontSize: fontSizes[size],
-        fontFamily: "'Geist Mono', monospace",
+        fontFamily: "var(--m-font-mono), monospace",
         background: v.bg,
         color: v.color,
         borderColor: v.border,
