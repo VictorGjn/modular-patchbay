@@ -187,6 +187,15 @@ function toYaml(assembled: AssembledAgent, parsed: ParsedInput): string {
   lines.push(`- **Planning:** ${assembled.agentic_pillars.planning}`);
   lines.push('');
 
+  // Available Tools section
+  if (assembled.native_tools && assembled.native_tools.length > 0) {
+    lines.push('## Available Tools');
+    for (const tool of assembled.native_tools) {
+      lines.push(`- **${tool.id}**: ${tool.description}`);
+    }
+    lines.push('');
+  }
+
   lines.push('## Workflow');
   for (const step of assembled.workflow_steps) {
     lines.push(`### Step ${step.number}: ${step.name}`);
@@ -232,6 +241,36 @@ function toYaml(assembled: AssembledAgent, parsed: ParsedInput): string {
   return lines.join('\n');
 }
 
+/**
+ * Check: steps that involve research/search/scraping/fetching have tools_used populated.
+ */
+function checkToolCoverage(assembled: AssembledAgent): CriterionResult {
+  const researchPatterns = [
+    /search|research|look\s*up|find\s+information|investigate/i,
+    /scrape|crawl|extract.*from.*web|mine.*data/i,
+    /fetch|download|retrieve.*url|pull.*from/i,
+    /read.*file|load.*document|access.*data|write.*output|save.*file/i,
+    /browse|navigate|visit.*site|open.*page/i,
+  ];
+
+  const missingTools: string[] = [];
+  for (const step of assembled.workflow_steps) {
+    if (step.name.toLowerCase().includes('self-check') || step.name.toLowerCase().includes('self check')) continue;
+    const combined = `${step.process} ${step.input} ${step.output}`;
+    const needsTool = researchPatterns.some((p) => p.test(combined));
+    if (needsTool && step.tools_used.length === 0) {
+      missingTools.push(`Step ${step.number} "${step.name}"`);
+    }
+  }
+
+  if (missingTools.length === 0) return { passed: true };
+
+  return {
+    passed: false,
+    issue: `Steps reference external actions but have no tools_used: ${missingTools.join('; ')}`,
+  };
+}
+
 export async function runEvaluator(
   parsed: ParsedInput,
   research: ResearchResult,
@@ -247,6 +286,7 @@ export async function runEvaluator(
     context_efficiency: checkContextEfficiency(context),
     agentic_completeness: checkAgenticCompleteness(assembled),
     output_specificity: checkOutputSpecificity(assembled),
+    tool_coverage: checkToolCoverage(assembled),
   };
 
   const warnings: string[] = [];

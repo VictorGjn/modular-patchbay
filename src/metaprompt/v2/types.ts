@@ -149,6 +149,7 @@ export interface AssembledAgent {
   output_schema: OutputSchema;
   agentic_pillars: AgenticPillars;
   self_check: SelfCheck;
+  native_tools: Array<{ id: string; name: string; description: string }>;
 }
 
 export interface CriterionResult {
@@ -173,4 +174,5 @@ export interface V2PipelineResult {
   evaluation: EvaluationResult;
   timing: Record<string, number>;
   discoveredTools?: import('./tool-discovery.js').DiscoveredTool[];
+  nativeTools?: Array<{ id: string; name: string; description: string }>;
 }
