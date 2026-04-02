@@ -35,6 +35,11 @@ import { useLessonStore } from '../store/lessonStore';
 import type { Lesson } from '../store/lessonStore';
 import { computeActualCost } from './costEstimator';
 import { runAdaptiveMiddleware } from './adaptiveMiddleware';
+import { createContextMiddleware } from './contextMiddleware.js';
+
+// Phase 3: Context middleware for tool output and conversation collapse
+const contextMiddleware = createContextMiddleware();
+export { contextMiddleware };
 
 /**
  * Fire-and-forget cost record with one retry on failure.

@@ -8,6 +8,8 @@ import { useMcpStore, type McpTool } from '../store/mcpStore';
 import { compileWorkflow } from '../utils/workflowCompiler';
 import type { ChannelConfig } from '../store/knowledgeBase';
 import type { ProvenanceSummary } from '../types/provenance';
+import { buildSystemFrameWithBuilder } from './systemFrameBuilderAdapter.js';
+import type { SystemFrameInput } from './systemFrameBuilderAdapter.js';
 
 
 /**
@@ -44,7 +46,8 @@ export function buildProvenanceSection(provenance: ProvenanceSummary): string {
     lines.push('</context_provenance>');
   }
   
-  return lines.join('\n');
+  return lines.join('
+');
 }
 
 export function buildSystemFrame(provenance?: ProvenanceSummary): string {
@@ -58,7 +61,10 @@ export function buildSystemFrame(provenance?: ProvenanceSummary): string {
     if (agentMeta.description) identity.push(`Description: ${agentMeta.description}`);
     if (agentMeta.avatar) identity.push(`Avatar: ${agentMeta.avatar}`);
     if (agentMeta.tags?.length) identity.push(`Tags: ${agentMeta.tags.join(', ')}`);
-    parts.push(`<identity>\n${identity.join('\n')}\n</identity>`);
+    parts.push(`<identity>
+${identity.join('
+')}
+</identity>`);
   }
 
   // Instructions
@@ -73,11 +79,19 @@ export function buildSystemFrame(provenance?: ProvenanceSummary): string {
     if (instructionState.objectives.primary) {
       lines.push(`Primary Objective: ${instructionState.objectives.primary}`);
       if (instructionState.objectives.successCriteria.length > 0)
-        lines.push(`Success Criteria:\n${instructionState.objectives.successCriteria.map(c => `- ${c}`).join('\n')}`);
+        lines.push(`Success Criteria:
+${instructionState.objectives.successCriteria.map(c => `- ${c}`).join('
+')}`);
       if (instructionState.objectives.failureModes.length > 0)
-        lines.push(`Failure Modes to Avoid:\n${instructionState.objectives.failureModes.map(f => `- ${f}`).join('\n')}`);
+        lines.push(`Failure Modes to Avoid:
+${instructionState.objectives.failureModes.map(f => `- ${f}`).join('
+')}`);
     }
-    parts.push(`<instructions>\n${lines.join('\n\n')}\n</instructions>`);
+    parts.push(`<instructions>
+${lines.join('
+
+')}
+</instructions>`);
   }
 
   // Constraints
@@ -91,12 +105,17 @@ export function buildSystemFrame(provenance?: ProvenanceSummary): string {
     constraints.push(`Keep responses under ${instructionState.constraints.wordLimit} words`);
   if (instructionState.constraints.customConstraints)
     constraints.push(`Additional constraints: ${instructionState.constraints.customConstraints}`);
-  if (constraints.length > 0) parts.push(`<constraints>\n${constraints.map(c => `- ${c}`).join('\n')}\n</constraints>`);
+  if (constraints.length > 0) parts.push(`<constraints>
+${constraints.map(c => `- ${c}`).join('
+')}
+</constraints>`);
 
   // Workflow
   if (workflowSteps.length > 0) {
     const compiled = compileWorkflow(workflowSteps);
-    parts.push(`<workflow>\n${compiled}\n</workflow>`);
+    parts.push(`<workflow>
+${compiled}
+</workflow>`);
   }
 
   // Tools — replaced by dynamic tool guide (Ticket B)
@@ -109,7 +128,60 @@ export function buildSystemFrame(provenance?: ProvenanceSummary): string {
     parts.push(provenanceSection);
   }
 
-  return parts.join('\n\n');
+  return parts.join('
+
+');
+}
+
+/**
+ * Parallel optimized system frame builder using SystemPromptBuilder.
+ * Uses static/dynamic section boundaries for optimal prompt caching.
+ *
+ * Converts current console state into SystemFrameInput and delegates to
+ * the adapter. Returns the full text for backward compatibility.
+ */
+export function buildSystemFrameOptimized(provenance?: ProvenanceSummary): { text: string; prompt: import('../prompt/SystemPromptBuilder.js').BuiltPrompt } {
+  const state = useConsoleStore.getState();
+  const { instructionState, workflowSteps, agentMeta } = state;
+
+  const constraints: string[] = [];
+  if (instructionState.constraints.neverMakeUp) constraints.push('Never fabricate information or make up facts');
+  if (instructionState.constraints.askBeforeActions) constraints.push('Ask for permission before taking significant actions');
+  if (instructionState.constraints.stayInScope)
+    constraints.push(`Stay within the defined scope: ${instructionState.constraints.scopeDefinition || 'as specified'}`);
+  if (instructionState.constraints.useOnlyTools) constraints.push('Only use tools and capabilities that are explicitly provided');
+  if (instructionState.constraints.limitWords)
+    constraints.push(`Keep responses under ${instructionState.constraints.wordLimit} words`);
+  if (instructionState.constraints.customConstraints)
+    constraints.push(`Additional constraints: ${instructionState.constraints.customConstraints}`);
+
+  const toolGuide = buildToolGuide();
+  const compiled = workflowSteps.length > 0 ? compileWorkflow(workflowSteps) : undefined;
+
+  const input: SystemFrameInput = {
+    identity: agentMeta.name ? {
+      name: agentMeta.name,
+      description: agentMeta.description || undefined,
+      avatar: agentMeta.avatar || undefined,
+      tags: agentMeta.tags?.length ? agentMeta.tags : undefined,
+    } : undefined,
+    instructions: (instructionState.persona || instructionState.objectives.primary) ? {
+      persona: instructionState.persona || undefined,
+      tone: instructionState.tone,
+      expertise: instructionState.expertise,
+      objectives: instructionState.objectives.primary ? {
+        primary: instructionState.objectives.primary,
+        successCriteria: instructionState.objectives.successCriteria,
+        failureModes: instructionState.objectives.failureModes,
+      } : undefined,
+    } : undefined,
+    constraints: constraints.length > 0 ? constraints : undefined,
+    workflow: compiled,
+    toolGuide: toolGuide || undefined,
+    provenance,
+  };
+
+  return buildSystemFrameWithBuilder(input);
 }
 
 /**
@@ -244,5 +316,8 @@ export function buildToolGuide(): string {
     lines.push('5. Need cross-repo relationships? → graph tools');
   }
 
-  return `<tool_guide>\n${lines.join('\n')}\n</tool_guide>`;
+  return `<tool_guide>
+${lines.join('
+')}
+</tool_guide>`;
 }

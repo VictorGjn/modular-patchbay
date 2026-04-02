@@ -8,6 +8,7 @@
 import type { FileNode, TraversalResult, PackedContext, PackedItem } from './types.js';
 import type { TreeIndex } from '../services/treeIndexer.js';
 import { applyDepthFilter, renderFilteredMarkdown } from '../utils/depthFilter.js';
+import { withReactiveCompaction } from './reactivePackerWrapper.js';
 
 /**
  * Extract tree index from a FileNode, if available.
@@ -31,7 +32,6 @@ function estimateAtDepth(baseTokens: number, depth: number): number {
  * Uses depthFilter when treeIndex is available, falls back to symbol-based stubs.
  */
 function contentAtDepth(file: FileNode, depth: number): string {
-  // Try depth filtering via stored treeIndex
   const treeIndex = buildTreeIndex(file);
   if (treeIndex) {
     const filterResult = applyDepthFilter(treeIndex, depth);
@@ -39,7 +39,6 @@ function contentAtDepth(file: FileNode, depth: number): string {
     if (rendered.trim()) return rendered;
   }
 
-  // Fallback: generate stubs from symbol metadata
   const symbols = file.symbols;
   switch (depth) {
     case 0:
@@ -64,11 +63,11 @@ function contentAtDepth(file: FileNode, depth: number): string {
  * Determine depth level based on relevance score.
  */
 function relevanceToDepth(relevance: number): number {
-  if (relevance >= 0.8) return 0; // Full
-  if (relevance >= 0.6) return 1; // Detail
-  if (relevance >= 0.4) return 2; // Summary
-  if (relevance >= 0.2) return 3; // Headlines
-  return 4;                        // Mention
+  if (relevance >= 0.8) return 0;
+  if (relevance >= 0.6) return 1;
+  if (relevance >= 0.4) return 2;
+  if (relevance >= 0.2) return 3;
+  return 4;
 }
 
 /**
@@ -90,10 +89,8 @@ export function packContext(
     return { items: [], totalTokens: 0, budgetUtilization: 0 };
   }
 
-  // Sort by relevance descending
   const sorted = [...files].sort((a, b) => b.relevance - a.relevance);
 
-  // Phase 1: Assign initial depth based on relevance
   interface WorkItem {
     file: FileNode;
     relevance: number;
@@ -111,11 +108,9 @@ export function packContext(
     };
   });
 
-  // Phase 2: Fit within budget — demote from bottom up
   let totalTokens = items.reduce((sum, it) => sum + it.tokens, 0);
 
   if (totalTokens > tokenBudget) {
-    // Demote least relevant files first
     for (let i = items.length - 1; i >= 0 && totalTokens > tokenBudget; i--) {
       const item = items[i];
       while (item.depth < 4 && totalTokens > tokenBudget) {
@@ -126,14 +121,12 @@ export function packContext(
       }
     }
 
-    // If still over budget, drop from bottom
     while (items.length > 0 && totalTokens > tokenBudget) {
       const removed = items.pop()!;
       totalTokens -= removed.tokens;
     }
   }
 
-  // Phase 3: If budget has room, promote top files
   if (totalTokens < tokenBudget * 0.8) {
     for (let i = 0; i < items.length && totalTokens < tokenBudget * 0.9; i++) {
       const item = items[i];
@@ -149,7 +142,6 @@ export function packContext(
     }
   }
 
-  // Build final output
   const packed: PackedItem[] = items.map(it => ({
     file: it.file,
     content: contentAtDepth(it.file, it.depth),
@@ -164,3 +156,9 @@ export function packContext(
     budgetUtilization: totalTokens / tokenBudget,
   };
 }
+
+/**
+ * Enhanced packer with signal-driven reactive compaction.
+ * Wraps packContext with ReactiveCompaction adjustments.
+ */
+export const packContextReactive = withReactiveCompaction;
