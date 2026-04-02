@@ -73,4 +73,4 @@ export type { AgentSearchService } from '../services/agentSearchIntegration.js';
 
 export { buildSystemFrameOptimized } from '../services/systemFrameBuilder.js';
 export { packContextReactive } from '../graph/packer.js';
-export { assemblePipelineContextWithMemory } from '../services/contextAssembler.js';
+export { assemblePipelineContext as assemblePipelineContextWithMemory } from '../services/contextAssembler.js';
