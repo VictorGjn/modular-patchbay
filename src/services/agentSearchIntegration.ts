@@ -43,7 +43,7 @@ export function createAgentSearchService(
   agents: AgentConfig[],
   knowledge: KnowledgeSource[] = [],
 ): AgentSearchService {
-  const hash = JSON.stringify(agents.map(a => a.id).sort());
+  const hash = JSON.stringify(agents.map(a => [a.id, a.description, a.role, ...(a.tags ?? [])].join('|')).sort());
   if (!_searchInstance || hash !== _lastIndexHash) {
     _searchInstance = new AgentSearch(agents, knowledge);
     _lastIndexHash = hash;
