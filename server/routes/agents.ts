@@ -24,6 +24,37 @@ import {
 import type { ApiResponse } from '../types.js';
 
 const router = Router();
+// Phase 3: Agent search endpoint using AgentSearch integration
+import { createAgentSearchService, toSearchableAgent } from '../../src/services/agentSearchIntegration.js';
+
+// GET /api/agents/search?q=<query>&limit=<n>
+router.get('/search', (req, res) => {
+  try {
+    const query = req.query.q as string;
+    if (!query || typeof query !== 'string') {
+      res.status(400).json({ status: 'error', error: 'Missing query parameter "q"' } satisfies ApiResponse);
+      return;
+    }
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+
+    // Load all agents and convert to searchable format
+    const allAgents = listAgents();
+    const searchable = allAgents.map((a: any) => toSearchableAgent({
+      id: a.id,
+      name: a.name || a.id,
+      description: a.description || '',
+      category: a.category,
+      tags: a.tags,
+    }));
+
+    const service = createAgentSearchService(searchable);
+    const results = service.searchAgents(query, limit);
+    res.json({ status: 'ok', data: results } satisfies ApiResponse);
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: (err as Error).message } satisfies ApiResponse);
+  }
+});
+
 
 // List all agents
 router.get('/', (_req, res) => {
