@@ -238,7 +238,7 @@ export function WizardLayout() {
     >
       {/* Skip Link */}
       <a
-        href="#main-content"
+        href={`#tabpanel-${activeTab}`}
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-3 focus:py-2 focus:rounded"
         style={{ 
           background: t.surface, 
@@ -309,6 +309,7 @@ export function WizardLayout() {
                 ref={el => { tabRefs.current[index] = el; }}
                 type="button"
                 role="tab"
+                id={`tab-${tab.id}`}
                 aria-selected={isActive}
                 aria-controls={`tabpanel-${tab.id}`}
                 tabIndex={isActive ? 0 : -1}
@@ -353,7 +354,7 @@ export function WizardLayout() {
                   }}
                   aria-hidden="true"
                 />
-                <span style={{ fontFamily: "'Geist Sans', sans-serif" }}>
+                <span style={{ fontFamily: "'Geist', sans-serif" }}>
                   {tab.label}
                 </span>
                 {isTabCompleted && (
@@ -378,7 +379,7 @@ export function WizardLayout() {
       {/* Tab Content */}
       <div 
         ref={contentRef}
-        id="main-content"
+        id={`tabpanel-${activeTab}`}
         role="tabpanel"
         aria-labelledby={`tab-${activeTab}`}
         tabIndex={0}
