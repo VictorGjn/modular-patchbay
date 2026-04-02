@@ -65,7 +65,7 @@ function AgentCard({ agent, expanded: forceExpanded }: { agent: RuntimeAgentStat
               color: 'var(--m-accent)',
               fontFamily: "var(--m-font-mono), monospace",
               fontWeight: 600,
-              border: '1px solid #FE500030',
+              border: '1px solid color-mix(in srgb, var(--m-accent) 19%, transparent)',
             }}
           >
             Agent SDK
@@ -122,7 +122,7 @@ function AgentCard({ agent, expanded: forceExpanded }: { agent: RuntimeAgentStat
                   padding: 6,
                   borderRadius: 4,
                   background: 'color-mix(in srgb, var(--m-success) 8%, transparent)',
-                  border: '1px solid #2ecc7130',
+                  border: '1px solid color-mix(in srgb, var(--m-success) 19%, transparent)',
                   color: t.textSecondary,
                   fontFamily: "var(--m-font-mono), monospace",
                 }}
