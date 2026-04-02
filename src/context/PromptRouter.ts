@@ -30,8 +30,8 @@ export function tokenizePrompt(prompt: string): Set<string> {
   return new Set(
     prompt
       .toLowerCase()
-      .replace(/[^a-z0-9s/_-]/g, '')
-      .split(/[s/_-]+/)
+      .replace(/[^a-z0-9\s\/_-]/g, '')
+      .split(/[\s\/_-]+/)
       .filter(t => t.length >= 2)
   );
 }

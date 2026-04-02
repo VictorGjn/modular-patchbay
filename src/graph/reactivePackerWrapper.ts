@@ -127,7 +127,14 @@ export function withReactiveCompaction(
       const baseTokens = oldRatio > 0 ? item.tokens / oldRatio : item.tokens;
       const newTokens = Math.max(1, Math.ceil(baseTokens * newRatio));
       newTotal += newTokens;
-      return { ...item, depth: newDepthNumeric, tokens: newTokens };
+      // Truncate content proportionally to new depth
+      const contentStr = typeof item.content === 'string' ? item.content : '';
+      const truncatedLength = oldRatio > 0 ? Math.ceil(contentStr.length * (newRatio / oldRatio)) : contentStr.length;
+      const truncatedContent = contentStr.length > truncatedLength
+        ? contentStr.slice(0, truncatedLength) + '
+[... truncated by reactive compaction]'
+        : contentStr;
+      return { ...item, depth: newDepthNumeric, tokens: newTokens, content: truncatedContent };
     }
     newTotal += item.tokens;
     return item;
