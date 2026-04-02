@@ -46,8 +46,7 @@ export function buildProvenanceSection(provenance: ProvenanceSummary): string {
     lines.push('</context_provenance>');
   }
   
-  return lines.join('
-');
+  return lines.join('\n');
 }
 
 export function buildSystemFrame(provenance?: ProvenanceSummary): string {
