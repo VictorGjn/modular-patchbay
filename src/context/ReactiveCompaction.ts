@@ -68,9 +68,9 @@ export class ReactiveCompaction {
               }
             }
           } else if (signal.ratio >= this.config.pressureThreshold) {
-            // Pressure: downgrade bottom half by one level
+            // Pressure: downgrade least-relevant half by one level
             const half = Math.ceil(sorted.length / 2);
-            for (let i = half; i < sorted.length; i++) {
+            for (let i = 0; i < half; i++) {
               const f = sorted[i];
               const next = this.nextDepth(f.depth);
               if (next) adjustments.push({ fileId: f.fileId, currentDepth: f.depth, newDepth: next, reason: 'token_pressure' });
