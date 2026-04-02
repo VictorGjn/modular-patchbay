@@ -98,6 +98,47 @@ export const NATIVE_TOOLS: NativeTool[] = [
     preferWhen: 'You need to interact with a website (login, fill forms, multi-step flows). Not for simple scraping.',
     requiresConfig: true,
   },
+  {
+    id: 'bash',
+    name: 'Bash / Shell',
+    description: 'Execute shell commands, run scripts, install packages, manage processes, and interact with the operating system.',
+    capabilities: [
+      'Run any shell command (ls, grep, curl, git, etc.)',
+      'Execute scripts (bash, sh, zsh)',
+      'Install and manage packages (npm, pip, apt)',
+      'Process text with unix tools (awk, sed, jq, sort)',
+      'Manage processes and system state',
+      'Chain commands with pipes and redirects',
+    ],
+    preferWhen: 'You need to run a shell command, install a dependency, process text with unix tools, or interact with the OS. Preferred for quick one-liners.',
+  },
+  {
+    id: 'code_execution',
+    name: 'Code Execution',
+    description: 'Execute Python or JavaScript/TypeScript code for computation, data processing, analysis, and automation.',
+    capabilities: [
+      'Run Python scripts (data analysis, ML, web requests)',
+      'Run JavaScript/TypeScript code (Node.js)',
+      'Install and use packages (pandas, numpy, requests, etc.)',
+      'Process structured data (JSON, CSV, XML)',
+      'Perform calculations and statistical analysis',
+      'Generate visualizations and charts',
+    ],
+    preferWhen: 'You need to process data, run calculations, call APIs programmatically, or do anything requiring actual code execution. Preferred over bash for multi-step logic.',
+  },
+  {
+    id: 'text_editor',
+    name: 'Text Editor',
+    description: 'View, create, and edit files with precision — targeted replacements, insertions, and multi-file refactoring.',
+    capabilities: [
+      'View file contents with line numbers',
+      'Create new files with specific content',
+      'Make targeted edits (replace specific strings or line ranges)',
+      'Multi-file coordinated edits',
+      'Search and replace across files',
+    ],
+    preferWhen: 'You need to create or modify files with precision. Preferred over filesystem for editing (filesystem is better for reading/listing/searching).',
+  },
 ];
 
 /**
