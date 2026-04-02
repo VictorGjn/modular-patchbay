@@ -64,7 +64,7 @@ export function createAgentSearchService(
 
     reindex(newAgents: AgentConfig[], newKnowledge?: KnowledgeSource[]): void {
       _searchInstance = new AgentSearch(newAgents, newKnowledge ?? knowledge);
-      _lastIndexHash = JSON.stringify(newAgents.map(a => a.id).sort());
+      _lastIndexHash = JSON.stringify(newAgents.map(a => [a.id, a.description, a.role, ...(a.tags ?? [])].join('|')).sort());
     },
   };
 }
