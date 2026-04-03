@@ -133,6 +133,5 @@ export function renderRoutedTools<T extends RoutableItem>(matches: RoutedMatch<T
   for (const m of matches) {
     lines.push(`- **${m.item.name}** — ${m.item.description} (relevance: ${m.score})`);
   }
-  return lines.join('
-');
+  return lines.join('\n');
 }
