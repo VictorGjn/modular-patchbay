@@ -4,17 +4,17 @@ import { useRuntimeStore, type ExtractedFact, type RuntimeAgentState } from '../
 import { Loader2, CheckCircle, XCircle, Clock, Brain, Maximize2, Minimize2, ChevronDown, ChevronRight, Copy, Check, Zap } from 'lucide-react';
 
 const FACT_COLORS: Record<string, string> = {
-  observation: '#3498db',
-  inference: '#f1c40f',
-  decision: '#2ecc71',
-  hypothesis: '#9b59b6',
-  contract: '#FE5000',
+  observation: 'var(--m-fact-observation)',
+  inference: 'var(--m-fact-inference)',
+  decision: 'var(--m-fact-decision)',
+  hypothesis: 'var(--m-fact-hypothesis)',
+  contract: 'var(--m-fact-contract)',
 };
 
 function FactBadge({ fact }: { fact: ExtractedFact }) {
-  const color = FACT_COLORS[fact.epistemicType] ?? '#888';
+  const color = FACT_COLORS[fact.epistemicType] ?? 'var(--m-text-dim)';
   return (
-    <span style={{ fontSize: 12, padding: '2px 6px', borderRadius: 4, background: color + '15', color, fontFamily: "'Geist Mono', monospace" }}>
+    <span style={{ fontSize: 12, padding: '2px 6px', borderRadius: 4, background: `color-mix(in srgb, ${color} 8%, transparent)`, color, fontFamily: "var(--m-font-mono), monospace" }}>
       {fact.key}
     </span>
   );
@@ -29,7 +29,7 @@ function CopyButton({ text }: { text: string }) {
       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, opacity: 0.6 }}
       title="Copy output"
     >
-      {copied ? <Check size={12} style={{ color: '#2ecc71' }} /> : <Copy size={12} />}
+      {copied ? <Check size={12} style={{ color: 'var(--m-success)' }} /> : <Copy size={12} />}
     </button>
   );
 }
@@ -40,19 +40,19 @@ function AgentCard({ agent, expanded: forceExpanded }: { agent: RuntimeAgentStat
 
   const statusIcon = {
     waiting: <Clock size={14} style={{ color: t.textDim }} />,
-    running: <Loader2 size={14} className="animate-spin" style={{ color: '#FE5000' }} />,
-    completed: <CheckCircle size={14} style={{ color: '#2ecc71' }} />,
-    error: <XCircle size={14} style={{ color: '#dc2626' }} />,
+    running: <Loader2 size={14} className="animate-spin" style={{ color: 'var(--m-accent)' }} />,
+    completed: <CheckCircle size={14} style={{ color: 'var(--m-success)' }} />,
+    error: <XCircle size={14} style={{ color: 'var(--m-error)' }} />,
   }[agent.status];
 
   const output = agent.status === 'completed' ? agent.output : agent.currentMessage;
   const hasLongOutput = (output?.length ?? 0) > 300;
 
   return (
-    <div style={{ padding: 12, borderRadius: 8, border: `1px solid ${agent.status === 'running' ? '#FE500040' : t.border}`, background: agent.status === 'running' ? '#FE500008' : t.surface }}>
+    <div style={{ padding: 12, borderRadius: 8, border: `1px solid ${agent.status === 'running' ? 'color-mix(in srgb, var(--m-accent) 25%, transparent)' : t.border}`, background: agent.status === 'running' ? 'color-mix(in srgb, var(--m-accent) 3%, transparent)' : t.surface }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: output ? 8 : 0 }}>
         {statusIcon}
-        <span style={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, fontFamily: "var(--m-font-mono), monospace" }}>
           {agent.name}
         </span>
         {agent.isAgentSdk && (
@@ -61,11 +61,11 @@ function AgentCard({ agent, expanded: forceExpanded }: { agent: RuntimeAgentStat
               fontSize: 10,
               padding: '2px 6px',
               borderRadius: 4,
-              background: '#FE500015',
-              color: '#FE5000',
-              fontFamily: "'Geist Mono', monospace",
+              background: 'color-mix(in srgb, var(--m-accent) 8%, transparent)',
+              color: 'var(--m-accent)',
+              fontFamily: "var(--m-font-mono), monospace",
               fontWeight: 600,
-              border: '1px solid #FE500030',
+              border: '1px solid color-mix(in srgb, var(--m-accent) 19%, transparent)',
             }}
           >
             Agent SDK
@@ -95,7 +95,7 @@ function AgentCard({ agent, expanded: forceExpanded }: { agent: RuntimeAgentStat
               <button
                 type="button"
                 onClick={() => setExpanded(!expanded)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', fontSize: 12, color: '#FE5000', display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'Geist Mono', monospace" }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', fontSize: 12, color: 'var(--m-accent)', display: 'flex', alignItems: 'center', gap: 4, fontFamily: "var(--m-font-mono), monospace" }}
               >
                 {expanded ? <><ChevronDown size={12} /> Collapse</> : <><ChevronRight size={12} /> Expand ({Math.ceil((output?.length ?? 0) / 1000)}k chars)</>}
               </button>
@@ -108,8 +108,8 @@ function AgentCard({ agent, expanded: forceExpanded }: { agent: RuntimeAgentStat
       {agent.toolCalls.length > 0 && (
         <div style={{ marginTop: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <Zap size={12} style={{ color: '#2ecc71' }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary, fontFamily: "'Geist Mono', monospace" }}>
+            <Zap size={12} style={{ color: 'var(--m-success)' }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary, fontFamily: "var(--m-font-mono), monospace" }}>
               Tool Calls ({agent.toolCalls.length})
             </span>
           </div>
@@ -121,13 +121,13 @@ function AgentCard({ agent, expanded: forceExpanded }: { agent: RuntimeAgentStat
                   fontSize: 12,
                   padding: 6,
                   borderRadius: 4,
-                  background: '#2ecc7115',
-                  border: '1px solid #2ecc7130',
+                  background: 'color-mix(in srgb, var(--m-success) 8%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--m-success) 19%, transparent)',
                   color: t.textSecondary,
-                  fontFamily: "'Geist Mono', monospace",
+                  fontFamily: "var(--m-font-mono), monospace",
                 }}
               >
-                <div style={{ fontWeight: 600, color: '#2ecc71', marginBottom: 2 }}>
+                <div style={{ fontWeight: 600, color: 'var(--m-success)', marginBottom: 2 }}>
                   {tc.tool}
                 </div>
                 {tc.args && (
@@ -157,8 +157,8 @@ function SharedFacts({ facts }: { facts: ExtractedFact[] }) {
   return (
     <div style={{ padding: 12, borderRadius: 8, border: `1px solid ${t.border}`, background: t.surface }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <Brain size={14} style={{ color: '#FE5000' }} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, fontFamily: "'Geist Mono', monospace" }}>
+        <Brain size={14} style={{ color: 'var(--m-accent)' }} />
+        <span style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary, fontFamily: "var(--m-font-mono), monospace" }}>
           Shared Memory ({facts.length})
         </span>
       </div>
@@ -203,9 +203,9 @@ export function RuntimeResults() {
   const content = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {status === 'running' && <Loader2 size={14} className="animate-spin" style={{ color: '#FE5000' }} />}
-        {status === 'completed' && <CheckCircle size={14} style={{ color: '#2ecc71' }} />}
-        {status === 'error' && <XCircle size={14} style={{ color: '#dc2626' }} />}
+        {status === 'running' && <Loader2 size={14} className="animate-spin" style={{ color: 'var(--m-accent)' }} />}
+        {status === 'completed' && <CheckCircle size={14} style={{ color: 'var(--m-success)' }} />}
+        {status === 'error' && <XCircle size={14} style={{ color: 'var(--m-error)' }} />}
         <span style={{ fontSize: 13, fontWeight: 600, color: t.textPrimary }}>
           {status === 'running' ? 'Running...' : status === 'completed' ? 'Completed' : 'Error'}
         </span>
@@ -221,7 +221,7 @@ export function RuntimeResults() {
       </div>
 
       {error && (
-        <div style={{ fontSize: 13, color: '#dc2626', padding: 8, borderRadius: 6, background: '#dc262610' }}>{error}</div>
+        <div style={{ fontSize: 13, color: 'var(--m-error)', padding: 8, borderRadius: 6, background: 'color-mix(in srgb, var(--m-error) 6%, transparent)' }}>{error}</div>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, overflowY: 'auto' }}>

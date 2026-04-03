@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Clock, Bot, Search, Trash2, Copy, ArrowUpDown, CheckCircle, XCircle, Rocket } from 'lucide-react';
+import { Plus, Clock, Bot, Search, Trash2, Copy, ArrowUpDown, Rocket } from 'lucide-react';
 import { useTheme } from '../theme';
 import { useConsoleStore } from '../store/consoleStore';
 import { Button } from './ds/Button';
@@ -10,6 +10,7 @@ import { Select } from './ds/Select';
 import { API_BASE } from '../config';
 import { DEMO_PRESETS } from '../store/demoPresets';
 import { TemplateCard } from './TemplateCard';
+import { useToastStore } from '../store/toastStore';
 
 interface Agent {
   id: string;
@@ -18,12 +19,6 @@ interface Agent {
   avatar: string;
   tags: string[];
   updatedAt: string;
-}
-
-interface Toast {
-  id: number;
-  type: 'success' | 'error';
-  message: string;
 }
 
 interface AgentLibraryProps {
@@ -44,8 +39,6 @@ const TEMPLATE_LIST = Object.entries(DEMO_PRESETS).map(([id, preset]) => ({
   tags: preset.agentMeta.tags,
 }));
 
-let _toastSeq = 0;
-
 export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +49,6 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
   const [deleteTarget, setDeleteTarget] = useState<Agent | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [cloningId, setCloningId] = useState<string | null>(null);
-  const [toasts, setToasts] = useState<Toast[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = useTheme();
 
@@ -67,11 +59,7 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchQuery]);
 
-  const showToast = useCallback((type: Toast['type'], message: string) => {
-    const id = ++_toastSeq;
-    setToasts((prev) => [...prev, { id, type, message }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
-  }, []);
+  const addToast = useToastStore((s) => s.addToast);
 
   const handleUseTemplate = useCallback((presetId: string) => {
     const { loadDemoPreset } = useConsoleStore.getState();
@@ -130,9 +118,9 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
       const res = await fetch(`${API_BASE}/agents/${encodeURIComponent(deleteTarget.id)}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
       setAgents((prev) => prev.filter((a) => a.id !== deleteTarget.id));
-      showToast('success', `"${deleteTarget.name}" deleted`);
+      addToast(`"${deleteTarget.name}" deleted`, 'success');
     } catch {
-      showToast('error', `Failed to delete "${deleteTarget.name}"`);
+      addToast(`Failed to delete "${deleteTarget.name}"`, 'error');
     } finally {
       setDeletingId(null);
     }
@@ -165,10 +153,10 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
       });
       if (!saveRes.ok) throw new Error('Failed to save clone');
 
-      showToast('success', `Cloned as "${cloned.agentMeta.name}"`);
+      addToast(`Cloned as "${cloned.agentMeta.name}"`, 'success');
       onSelectAgent(newId);
     } catch {
-      showToast('error', `Failed to clone "${agent.name}"`);
+      addToast(`Failed to clone "${agent.name}"`, 'error');
     } finally {
       setCloningId(null);
     }
@@ -255,7 +243,7 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
                 background: t.inputBg,
                 border: `1px solid ${t.border}`,
                 color: t.textPrimary,
-                fontFamily: "'Geist Sans', sans-serif",
+                fontFamily: "var(--m-font-sans), sans-serif",
                 fontSize: 13,
               }}
             />
@@ -276,13 +264,13 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
           <div
             className="mb-6 flex items-start gap-4 p-5 rounded-xl"
             style={{
-              background: t.isDark ? 'rgba(254,80,0,0.07)' : 'rgba(254,80,0,0.05)',
-              border: `1px solid ${t.isDark ? 'rgba(254,80,0,0.25)' : 'rgba(254,80,0,0.2)'}`,
+              background: t.isDark ? 'color-mix(in srgb, var(--m-accent) 7%, transparent)' : 'color-mix(in srgb, var(--m-accent) 5%, transparent)',
+              border: `1px solid ${t.isDark ? 'color-mix(in srgb, var(--m-accent) 25%, transparent)' : 'color-mix(in srgb, var(--m-accent) 20%, transparent)'}`,
             }}
           >
-            <Rocket size={28} style={{ color: '#FE5000', flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
+            <Rocket size={28} style={{ color: 'var(--m-accent)', flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
             <div>
-              <div className="text-base font-bold mb-1" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+              <div className="text-base font-bold mb-1" style={{ color: t.textPrimary, fontFamily: "var(--m-font-sans), sans-serif" }}>
                 Welcome to Modular Studio
               </div>
               <div className="text-sm mb-3" style={{ color: t.textSecondary }}>
@@ -292,7 +280,7 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
                 type="button"
                 onClick={handleNewAgentClick}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-none cursor-pointer"
-                style={{ background: '#FE5000', color: '#fff' }}
+                style={{ background: 'var(--m-accent)', color: '#fff' }}
               >
                 <Plus size={14} aria-hidden="true" />
                 Get Started
@@ -325,17 +313,17 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
                   border: `1px solid ${t.border}`,
                   boxShadow: `0 2px 8px ${t.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)'}`,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FE5000'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--m-accent)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; }}
               >
                 <div className="p-4">
                   {/* Avatar and Name */}
                   <div className="flex items-start gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: '#FE500015' }}>
-                      <Bot size={16} style={{ color: '#FE5000' }} />
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'color-mix(in srgb, var(--m-accent) 8%, transparent)' }}>
+                      <Bot size={16} style={{ color: 'var(--m-accent)' }} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-base font-semibold mb-1 truncate" style={{ color: t.textPrimary, fontFamily: "'Geist Sans', sans-serif" }}>
+                      <h3 className="text-base font-semibold mb-1 truncate" style={{ color: t.textPrimary, fontFamily: "var(--m-font-sans), sans-serif" }}>
                         {agent.name}
                       </h3>
                       <p className="text-sm line-clamp-2" style={{ color: t.textSecondary }}>
@@ -349,7 +337,7 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
                     <div className="flex flex-wrap gap-1 mb-3">
                       {agent.tags.slice(0, 3).map((tag) => (
                         <span key={tag} className="text-[11px] px-1.5 py-0.5 rounded"
-                          style={{ background: t.surfaceElevated, color: t.textDim, fontFamily: "'Geist Mono', monospace" }}>
+                          style={{ background: t.surfaceElevated, color: t.textDim, fontFamily: "var(--m-font-mono), monospace" }}>
                           {tag}
                         </span>
                       ))}
@@ -365,7 +353,7 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1 text-xs" style={{ color: t.textDim }}>
                       <Clock size={12} />
-                      <span style={{ fontFamily: "'Geist Mono', monospace" }}>{formatDate(agent.updatedAt)}</span>
+                      <span style={{ fontFamily: "var(--m-font-mono), monospace" }}>{formatDate(agent.updatedAt)}</span>
                     </div>
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       <button
@@ -376,7 +364,7 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
                         onClick={(e) => handleClone(agent, e)}
                         className="flex items-center justify-center w-6 h-6 rounded cursor-pointer border-none bg-transparent transition-colors"
                         style={{ color: cloningId === agent.id ? t.textFaint : t.textDim }}
-                        onMouseEnter={(e) => { e.currentTarget.style.color = '#FE5000'; }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--m-accent)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.color = cloningId === agent.id ? t.textFaint : t.textDim; }}
                       >
                         {cloningId === agent.id ? <span className="animate-spin text-[10px]" aria-hidden="true">⟳</span> : <Copy size={13} aria-hidden="true" />}
@@ -389,7 +377,7 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
                         onClick={(e) => { e.stopPropagation(); setDeleteTarget(agent); }}
                         className="flex items-center justify-center w-6 h-6 rounded cursor-pointer border-none bg-transparent transition-colors"
                         style={{ color: deletingId === agent.id ? t.textFaint : t.textDim }}
-                        onMouseEnter={(e) => { e.currentTarget.style.color = '#ff4d4f'; }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--m-error)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.color = deletingId === agent.id ? t.textFaint : t.textDim; }}
                       >
                         {deletingId === agent.id ? <span className="animate-spin text-[10px]" aria-hidden="true">⟳</span> : <Trash2 size={13} aria-hidden="true" />}
@@ -423,27 +411,7 @@ export function AgentLibrary({ onSelectAgent, onNewAgent }: AgentLibraryProps) {
         </div>
       </Modal>
 
-      {/* Toast notifications */}
-      <div className="fixed bottom-5 right-5 z-[300] flex flex-col gap-2 pointer-events-none">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium pointer-events-auto"
-            style={{
-              background: t.surfaceOpaque,
-              border: `1px solid ${toast.type === 'success' ? '#22c55e40' : '#ff4d4f40'}`,
-              color: t.textPrimary,
-              boxShadow: `0 4px 16px ${t.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.12)'}`,
-              fontFamily: "'Geist Sans', sans-serif",
-            }}
-          >
-            {toast.type === 'success'
-              ? <CheckCircle size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
-              : <XCircle size={15} style={{ color: '#ff4d4f', flexShrink: 0 }} />}
-            {toast.message}
-          </div>
-        ))}
-      </div>
+
     </div>
   );
 }

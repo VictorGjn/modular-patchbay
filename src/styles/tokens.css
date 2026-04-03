@@ -1,0 +1,135 @@
+/* ═══════════════════════════════════════════════════════════
+   MODULAR Design Tokens (OKLCH)
+   Single source of truth for both Studio and Crew
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Accent ── */
+  --m-accent: oklch(0.63 0.24 38);
+  --m-accent-hover: oklch(0.58 0.22 38);
+  --m-accent-glow: oklch(0.63 0.24 38 / 0.25);
+  --m-accent-bg: oklch(0.63 0.24 38 / 0.08);
+
+  /* ── Semantic status ── */
+  --m-success: oklch(0.72 0.19 155);
+  --m-success-bg: oklch(0.72 0.19 155 / 0.07);
+  --m-success-glow: oklch(0.72 0.19 155 / 0.5);
+  --m-error: oklch(0.60 0.25 20);
+  --m-error-bg: oklch(0.60 0.25 20 / 0.08);
+  --m-error-glow: oklch(0.60 0.25 20 / 0.5);
+  --m-warning: oklch(0.78 0.18 80);
+  --m-warning-bg: oklch(0.78 0.18 80 / 0.08);
+  --m-warning-glow: oklch(0.78 0.18 80 / 0.5);
+  --m-info: oklch(0.60 0.12 245);
+  --m-info-bg: oklch(0.60 0.12 245 / 0.08);
+
+  /* ── Semantic domains ── */
+  --m-knowledge: oklch(0.60 0.12 245);
+  --m-discovery: oklch(0.72 0.19 155);
+  --m-intel: oklch(0.68 0.16 60);
+  --m-agents: oklch(0.55 0.18 310);
+
+  /* ── Cable/port roles ── */
+  --m-cable-skills: oklch(0.80 0.18 90);
+  --m-cable-mcp: oklch(0.72 0.19 155);
+  --m-cable-knowledge: oklch(0.60 0.25 20);
+
+  /* ── Fact epistemic types ── */
+  --m-fact-observation: oklch(0.60 0.12 245);
+  --m-fact-inference: oklch(0.80 0.18 90);
+  --m-fact-decision: oklch(0.72 0.19 155);
+  --m-fact-hypothesis: oklch(0.55 0.18 310);
+  --m-fact-contract: oklch(0.63 0.24 38);
+
+  /* ── Sizing ── */
+  --m-radius-sm: 6px;
+  --m-radius: 8px;
+  --m-radius-lg: 12px;
+  --m-radius-xl: 16px;
+  --m-radius-full: 9999px;
+
+  /* ── Spacing ── */
+  --m-space-1: 4px;
+  --m-space-2: 8px;
+  --m-space-3: 12px;
+  --m-space-4: 16px;
+  --m-space-6: 24px;
+  --m-space-8: 32px;
+  --m-space-12: 48px;
+
+  /* ── Typography ── */
+  --m-font-sans: 'Geist', system-ui, -apple-system, sans-serif;
+  --m-font-mono: 'Geist Mono', 'SF Mono', 'Fira Code', monospace;
+  --m-text-xs: 11px;
+  --m-text-sm: 12px;
+  --m-text-base: 13px;
+  --m-text-md: 14px;
+  --m-text-lg: 16px;
+  --m-text-xl: 18px;
+  --m-text-2xl: 24px;
+  --m-text-3xl: 32px;
+
+  /* ── Layout ── */
+  --m-topbar-h: 48px;
+
+  /* ── Transitions ── */
+  --m-t-fast: 120ms ease;
+  --m-t-base: 150ms ease;
+  --m-t-slide: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Dark Theme (default) ── */
+[data-theme="dark"], :root {
+  --m-bg: oklch(0.15 0.005 280);
+  --m-surface: oklch(0.20 0.005 280 / 0.9);
+  --m-surface-opaque: oklch(0.20 0.005 280);
+  --m-surface-elevated: oklch(0.23 0.005 280);
+  --m-surface-hover: oklch(0.21 0.005 280);
+  --m-border: oklch(0.26 0.005 280);
+  --m-border-subtle: oklch(0.22 0.005 280);
+  --m-text-primary: oklch(0.95 0 0);
+  --m-text-secondary: oklch(0.65 0 0);
+  --m-text-muted: oklch(0.50 0 0);
+  --m-text-dim: oklch(0.42 0 0);
+  --m-text-faint: oklch(0.35 0 0);
+  --m-input-bg: oklch(0.16 0.005 280);
+  --m-badge-bg: oklch(0.23 0.005 280);
+  --m-dot-grid: oklch(0.22 0.005 280);
+  --m-scrollbar-track: oklch(0.18 0.005 280);
+  --m-scrollbar-thumb: oklch(0.30 0.005 280);
+  --m-shadow-card: 0 2px 8px oklch(0 0 0 / 0.3);
+  --m-overlay: oklch(0 0 0 / 0.5);
+  color-scheme: dark;
+}
+
+/* ── Light Theme ── */
+[data-theme="light"] {
+  --m-bg: oklch(0.95 0.005 260);
+  --m-surface: oklch(1.0 0 0 / 0.95);
+  --m-surface-opaque: oklch(1.0 0 0);
+  --m-surface-elevated: oklch(0.94 0.005 260);
+  --m-surface-hover: oklch(0.97 0.005 260);
+  --m-border: oklch(0.83 0.005 260);
+  --m-border-subtle: oklch(0.88 0.005 260);
+  --m-text-primary: oklch(0.18 0.01 280);
+  --m-text-secondary: oklch(0.35 0.01 280);
+  --m-text-muted: oklch(0.50 0.01 280);
+  --m-text-dim: oklch(0.55 0.01 280);
+  --m-text-faint: oklch(0.62 0.01 280);
+  --m-input-bg: oklch(0.97 0.005 260);
+  --m-badge-bg: oklch(0.91 0.005 260);
+  --m-dot-grid: oklch(0.85 0.005 260);
+  --m-scrollbar-track: oklch(0.93 0.005 260);
+  --m-scrollbar-thumb: oklch(0.78 0.005 260);
+  --m-shadow-card: 0 2px 8px oklch(0 0 0 / 0.08);
+  --m-overlay: oklch(0 0 0 / 0.18);
+  color-scheme: light;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
