@@ -14,7 +14,7 @@ const FACT_COLORS: Record<string, string> = {
 function FactBadge({ fact }: { fact: ExtractedFact }) {
   const color = FACT_COLORS[fact.epistemicType] ?? 'var(--m-text-dim)';
   return (
-    <span style={{ fontSize: 12, padding: '2px 6px', borderRadius: 4, background: color + '15', color, fontFamily: "var(--m-font-mono), monospace" }}>
+    <span style={{ fontSize: 12, padding: '2px 6px', borderRadius: 4, background: `color-mix(in srgb, ${color} 8%, transparent)`, color, fontFamily: "var(--m-font-mono), monospace" }}>
       {fact.key}
     </span>
   );
