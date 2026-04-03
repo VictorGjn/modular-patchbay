@@ -46,8 +46,7 @@ export function buildProvenanceSection(provenance: ProvenanceSummary): string {
     lines.push('</context_provenance>');
   }
   
-  return lines.join('
-');
+  return lines.join('\n');
 }
 
 export function buildSystemFrame(provenance?: ProvenanceSummary): string {
@@ -62,8 +61,7 @@ export function buildSystemFrame(provenance?: ProvenanceSummary): string {
     if (agentMeta.avatar) identity.push(`Avatar: ${agentMeta.avatar}`);
     if (agentMeta.tags?.length) identity.push(`Tags: ${agentMeta.tags.join(', ')}`);
     parts.push(`<identity>
-${identity.join('
-')}
+${identity.join('\n')}
 </identity>`);
   }
 
@@ -80,17 +78,13 @@ ${identity.join('
       lines.push(`Primary Objective: ${instructionState.objectives.primary}`);
       if (instructionState.objectives.successCriteria.length > 0)
         lines.push(`Success Criteria:
-${instructionState.objectives.successCriteria.map(c => `- ${c}`).join('
-')}`);
+${instructionState.objectives.successCriteria.map(c => `- ${c}`).join('\n')}`);
       if (instructionState.objectives.failureModes.length > 0)
         lines.push(`Failure Modes to Avoid:
-${instructionState.objectives.failureModes.map(f => `- ${f}`).join('
-')}`);
+${instructionState.objectives.failureModes.map(f => `- ${f}`).join('\n')}`);
     }
     parts.push(`<instructions>
-${lines.join('
-
-')}
+${lines.join('\n\n')}
 </instructions>`);
   }
 
@@ -106,8 +100,7 @@ ${lines.join('
   if (instructionState.constraints.customConstraints)
     constraints.push(`Additional constraints: ${instructionState.constraints.customConstraints}`);
   if (constraints.length > 0) parts.push(`<constraints>
-${constraints.map(c => `- ${c}`).join('
-')}
+${constraints.map(c => `- ${c}`).join('\n')}
 </constraints>`);
 
   // Workflow
@@ -128,9 +121,7 @@ ${compiled}
     parts.push(provenanceSection);
   }
 
-  return parts.join('
-
-');
+  return parts.join('\n\n');
 }
 
 /**
@@ -317,7 +308,6 @@ export function buildToolGuide(): string {
   }
 
   return `<tool_guide>
-${lines.join('
-')}
+${lines.join('\n')}
 </tool_guide>`;
 }
