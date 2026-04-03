@@ -131,8 +131,7 @@ export function withReactiveCompaction(
       const contentStr = typeof item.content === 'string' ? item.content : '';
       const truncatedLength = oldRatio > 0 ? Math.ceil(contentStr.length * (newRatio / oldRatio)) : contentStr.length;
       const truncatedContent = contentStr.length > truncatedLength
-        ? contentStr.slice(0, truncatedLength) + '
-[... truncated by reactive compaction]'
+        ? contentStr.slice(0, truncatedLength) + '\n[... truncated by reactive compaction]'
         : contentStr;
       return { ...item, depth: newDepthNumeric, tokens: newTokens, content: truncatedContent };
     }

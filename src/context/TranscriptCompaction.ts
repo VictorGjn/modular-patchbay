@@ -107,8 +107,7 @@ export class TranscriptCompaction {
     if (toolMsgs.length) {
       parts.push(`Tool calls: ${toolMsgs.map(m => m.metadata?.toolName ?? 'unknown').join(', ')}`);
     }
-    return parts.join('
-');
+    return parts.join('\n');
   }
 
   /** Estimate tokens for a string (rough approximation). */

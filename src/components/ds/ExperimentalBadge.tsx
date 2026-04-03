@@ -86,13 +86,12 @@ interface ExperimentalGateProps {
 
 export function ExperimentalGate({ feature, children, fallback }: ExperimentalGateProps) {
   const isEnabled = useFeatureFlags((s) => s[feature]);
+  const t = useTheme();
+  const meta = FLAG_META[feature];
 
   if (isEnabled) return <>{children}</>;
 
   if (fallback) return <>{fallback}</>;
-
-  const meta = FLAG_META[feature];
-  const t = useTheme();
 
   return (
     <div
