@@ -44,8 +44,7 @@ export function ConstraintsSection({ onOpenModal }: { onOpenModal: (config: Cons
       </div>
       <div>
         <span className="text-[13px] font-semibold block mb-1.5" style={{ color: 'var(--m-text-muted)', fontFamily: 'var(--m-font-mono)' }}>Custom Rules</span>
-        {constraints.customConstraints.split('
-').filter(Boolean).map((rule: string, i: number) => (
+        {constraints.customConstraints.split('\n').filter(Boolean).map((rule: string, i: number) => (
           <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-1.5" style={{ background: t.isDark ? 'oklch(0.18 0.02 50)' : 'oklch(0.97 0.01 70)', border: `1px solid ${t.isDark ? 'oklch(0.68 0.16 60 / 0.19)' : 'oklch(0.68 0.16 60 / 0.25)'}` }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--m-intel)', flexShrink: 0 }} />
             <span className="flex-1 text-[13px]" style={{ color: 'var(--m-text-primary)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rule}</span>
